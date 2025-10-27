@@ -766,9 +766,7 @@ class ReviewNewController extends Controller
                $createdReview->rate =  $rate;
                $createdReview->save();
                 $value["review_id"] = $createdReview->id;
-                // $value["question_id"] = $createdReview->question_id;
-                // $value["tag_id"] = $createdReview->tag_id;
-                // $value["star_id"] = $createdReview->star_id;
+              
                 ReviewValueNew::create($value);
             }
 

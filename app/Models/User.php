@@ -32,7 +32,9 @@ class User extends Authenticatable
         'type',
         "post_code",
         "Address",
-        "door_no"
+        "door_no",
+        "type",
+        "business_id",
     ];
 
     /**
@@ -68,20 +70,7 @@ class User extends Authenticatable
         return $this->hasMany(Business::class,"OwnerID","id");
     }
 
-    public function orders() {
-        return $this->hasMany(Order::class,"customer_id","id");
-    }
-    public function lastOrder()
-    {
-        return $this->orders()->latest()->limit(1);
-    }
-
-    public function completed_orders()
-    {
-        return $this->orders()
-        ->where("status","completed");
-    }
-
+  
 
     public function feedbacks()
     {

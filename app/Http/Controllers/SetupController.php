@@ -31,7 +31,8 @@ class SetupController extends Controller
             'password' => '12345678@We',
             'first_Name' => 'Asjaz',
             'phone' => 'nullable',
-            'last_Name' => 'Tariq'
+            'last_Name' => 'Tariq',
+            "type" => "superadmin",
         ];
 
         $superadmin_data['password'] = Hash::make($superadmin_data['password']);

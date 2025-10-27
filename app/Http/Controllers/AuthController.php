@@ -146,16 +146,23 @@ class AuthController extends Controller
      *     )
      */
     public function register(AuthRegisterRequest $request)
-    {
+{
+    // Hash password and set remember token
+    $request['password'] = Hash::make($request['password']);
+    $request['remember_token'] = Str::random(10);
 
+    // Create user
+    $user = User::create($request->toArray());
 
-        $request['password'] = Hash::make($request['password']);
-        $request['remember_token'] = Str::random(10);
-        $user =  User::create($request->toArray());
-        $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
+    // Load relationships for consistent response
+    $user = User::with(['business', 'roles'])->find($user->id);
 
-        return response(["message" => "You have successfully registered",  $user], 201);
-    }
+    // Generate access token
+    $user->token = $user->createToken('authToken')->accessToken;
+
+    // Return same format as login response
+    return response()->json($user, 200);
+}
     // ##################################################
     // This method is to login a user
     // ##################################################
@@ -271,6 +278,11 @@ class AuthController extends Controller
 
         return response()->json($user, 200);
     }
+
+
+
+
+
     // ##################################################
     // This method is to check pin
     // ##################################################

@@ -31,8 +31,6 @@ class Business extends Model
         "AdditionalInformation",
         "GoogleMapApi",
 
-
-        'is_customer_order',
         'review_type',
         "show_image",
 
@@ -56,7 +54,6 @@ class Business extends Model
         "user_review_report",
         "guest_user_review_report",
         "pin",
-        "is_customer_schedule_order",
         "time_zone"
     ];
 
@@ -72,7 +69,7 @@ class Business extends Model
 
 
     public function customers(){
-        return $this->belongsToMany(User::class, "orders",'business_id', 'customer_id');
+        return $this->belongsToMany(User::class, "review_news",'business_id', 'user_id');
     }
 
 
