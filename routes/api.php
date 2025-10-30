@@ -104,20 +104,14 @@ Route::get('/owner/getAllowner/withourbusiness', [OwnerController::class, "getOw
 Route::get('/owner/loaduser/bynumber/{phoneNumber}', [OwnerController::class, "getOwnerByPhoneNumber"]);
 
 
-
-
-
-
-
 Route::get('/business/{businessId}', [BusinessController::class, "getbusinessById"]);
-
-
 
 
 Route::get('/review-new/get/questions-all/customer', [ReviewNewController::class, "getQuestionAllUnauthorized"]);
 
 
 Route::get('/review-new/get/questions-all-report/unauthorized', [ReviewNewController::class, "getQuestionAllReportUnauthorized"]);
+
 
 Route::get('/review-new/get/questions-all-report/guest/unauthorized', [ReviewNewController::class, "getQuestionAllReportGuestUnauthorized"]);
 
@@ -435,9 +429,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
 
-    Route::get('/v1.0/sales-reports', [DashboardManagementController::class, "getSalesReports"]);
-
-
+ 
 
 
 
