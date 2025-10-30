@@ -975,6 +975,7 @@ $previous_week_reviews = (clone $review_query)
     ->whereBetween('created_at', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])
     ->count();
 
+
 $this_week_reviews = $data['this_week_total_reviews'] ?? (clone $review_query)
     ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
     ->count();
@@ -982,7 +983,7 @@ $this_week_reviews = $data['this_week_total_reviews'] ?? (clone $review_query)
 $data['review_growth_rate_week'] = $previous_week_reviews > 0
     ? round((($this_week_reviews - $previous_week_reviews) / $previous_week_reviews) * 100, 2)
     : 0;
-
+     
 // ----------------------------
 // 2️⃣ Review Source Breakdown
 // ----------------------------
@@ -1015,16 +1016,16 @@ $data['review_language_distribution'] = $languages->map(fn($lang) => [
 
 // Average Star Rating
 $avg_ratings = [
-    'today' => (clone $review_query)->whereDate('created_at', now())->avg('rating'),
-    'this_week' => (clone $review_query)->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->avg('rating'),
-    'this_month' => (clone $review_query)->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->avg('rating')
+    'today' => (clone $review_query)->whereDate('created_at', now())->avg('rate'),
+    'this_week' => (clone $review_query)->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->avg('rate'),
+    'this_month' => (clone $review_query)->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->avg('rate')
 ];
 $data['average_star_rating'] = array_map(fn($r) => round($r ?? 0, 2), $avg_ratings);
 
 // Star Rating Distribution
 $total_reviews = (clone $review_query)->count();
 $data['star_rating_distribution'] = collect(range(5, 1))->mapWithKeys(fn($i) => [
-    $i => $total_reviews ? round((clone $review_query)->where('rating', $i)->count() / $total_reviews * 100, 2) : 0
+    $i => $total_reviews ? round((clone $review_query)->where('rate', $i)->count() / $total_reviews * 100, 2) : 0
 ])->toArray();
 
 // Star Rating vs Benchmark
@@ -1042,8 +1043,8 @@ $total_weight = $review_query->get()->sum(fn($r) => $r->user_id ? $weights['veri
 $data['weighted_star_rating'] = $total_weight ? round($weighted_sum / $total_weight, 2) : 0;
 
 // Low-Rating Alerts
-$low_rating_this_week = (clone $review_query)->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->whereIn('rating', [1,2])->count();
-$low_rating_last_week = (clone $review_query)->whereBetween('created_at', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])->whereIn('rating', [1,2])->count();
+$low_rating_this_week = (clone $review_query)->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->whereIn('rate', [1,2])->count();
+$low_rating_last_week = (clone $review_query)->whereBetween('created_at', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])->whereIn('rate', [1,2])->count();
 $low_rating_increase = $low_rating_last_week ? round(($low_rating_this_week - $low_rating_last_week)/$low_rating_last_week*100, 2) : ($low_rating_this_week ? 100 : 0);
 $data['low_rating_alert'] = [
     'this_week_low_ratings' => $low_rating_this_week,
@@ -1078,7 +1079,7 @@ $data['tag_impact_on_ratings'] = $all_tags->mapWithKeys(fn($tag) => [
         ReviewNew::leftJoin('review_value_news', 'review_news.id', '=', 'review_value_news.review_id')
             ->where('review_value_news.tag_id', $tag->id)
             ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-            ->avg('review_news.rating') ?? 0, 2)
+            ->avg('review_news.rate') ?? 0, 2)
 ])->toArray();
 
 // ----------------------------
@@ -1114,9 +1115,25 @@ $avg_star = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id
 
 $data['dashboard_trends'] = [
     'engagement_index' => round($total_review_count * ($avg_star ?? 0), 2),
-    'performance_vs_target' => round($total_review_count/100*100, 2), // assuming 100 target
-    'time_of_day_trends' => collect(range(0,23))->mapWithKeys(fn($h) => [$h => (clone $review_query)->whereHour('created_at', $h)->count()])->toArray(),
-    'day_of_week_trends' => collect(range(0,6))->mapWithKeys(fn($d) => [$d => (clone $review_query)->whereDayOfWeek('created_at', $d)->count()])->toArray()
+    'performance_vs_target' => round(($total_review_count / 100) * 100, 2), // assuming 100 target
+    
+    // Reviews by hour of day
+    'time_of_day_trends' => collect(range(0, 23))
+        ->mapWithKeys(function ($h) use ($review_query) {
+            return [$h => (clone $review_query)
+                ->whereRaw('HOUR(created_at) = ?', [$h])
+                ->count()];
+        })
+        ->toArray(),
+
+    // Reviews by day of week (0 = Sunday, 6 = Saturday)
+    'day_of_week_trends' => collect(range(0, 6))
+        ->mapWithKeys(function ($d) use ($review_query) {
+            return [$d => (clone $review_query)
+                ->whereRaw('DAYOFWEEK(created_at) = ?', [$d + 1]) // MySQL returns 1–7 (Sunday = 1)
+                ->count()];
+        })
+        ->toArray(),
 ];
 
 // ----------------------------
@@ -1140,17 +1157,11 @@ $data['advanced_insights']['topic_analysis'] = ReviewValueNew::leftJoin('review_
 
 $data['advanced_insights']['monthly_review_trend'] = $review_query->select(DB::raw('MONTH(created_at) as month'), DB::raw('count(*) as total'))->groupBy('month')->pluck('total','month');
 
-$review_with_replies = $review_query->whereNotNull('reply_at')->get();
+$review_with_replies = $review_query->whereNotNull('responded_at')->get();
 $data['advanced_insights']['response_effectiveness'] = [
     'before_reply_avg' => round($review_with_replies->avg('star_before_reply') ?? 0, 2),
     'after_reply_avg' => round($review_with_replies->avg('star_after_reply') ?? 0, 2)
 ];
-
-
-
-
-
-
 
 
 

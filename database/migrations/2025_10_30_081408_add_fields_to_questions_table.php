@@ -14,8 +14,7 @@ class AddFieldsToQuestionsTable extends Migration
     public function up(): void
 {
     Schema::table('questions', function (Blueprint $table) {
-        $table->string('type')->default('text');
-        $table->json('options')->nullable();
+
         $table->float('weight')->default(1.0);
         $table->enum('sentiment', ['positive','neutral','negative'])->nullable();
     });
@@ -30,7 +29,7 @@ class AddFieldsToQuestionsTable extends Migration
     public function down()
     {
         Schema::table('questions', function (Blueprint $table) {
-          $table->dropColumn(['type', 'options', 'weight', 'sentiment']);
+          $table->dropColumn([ 'weight', 'sentiment']);
 
         });
     }

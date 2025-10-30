@@ -32,4 +32,7 @@ class AddFieldsToReviewValueNewsTable extends Migration
 
         });
     }
+
+
+    
 }

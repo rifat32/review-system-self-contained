@@ -24,4 +24,8 @@ class ReviewValueNew extends Model
         return $this->hasOne(Business::class,'id','business_id');
     }
 
+    public function review() {
+        return $this->hasOne(ReviewNew::class,'id','review_id');
+    }
+
 }

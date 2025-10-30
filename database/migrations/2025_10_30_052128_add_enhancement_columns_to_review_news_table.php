@@ -20,6 +20,8 @@ class AddEnhancementColumnsToReviewNewsTable extends Migration
     $table->boolean('verified')->default(false);
     $table->unsignedBigInteger('topic_id')->nullable();
     $table->text('reply_content')->nullable();
+    $table->timestamp('responded_at')->nullable();
+
         });
     }
 
