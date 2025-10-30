@@ -14,15 +14,29 @@ class AddEnhancementColumnsToReviewNewsTable extends Migration
             $table->string('source')->nullable()->after('id'); // e.g., website, mobile, qr_code
             $table->string('language')->nullable()->after('source'); // e.g., en, de
             $table->timestamp('responded_at')->nullable()->after('language'); // when business responded
-            $table->tinyInteger('sentiment')->nullable()->comment('1=positive, 0=neutral, -1=negative')->after('responded_at');
+           
+               $table->string('review_type')->nullable();
+    $table->enum('sentiment', ['positive','neutral','negative'])->nullable();
+    $table->boolean('verified')->default(false);
+    $table->unsignedBigInteger('topic_id')->nullable();
+    $table->text('reply_content')->nullable();
         });
     }
 
     public function down(): void
     {
         Schema::table('review_news', function (Blueprint $table) {
-            $table->dropColumn(['source', 'language', 'responded_at', 'sentiment']);
-        });
+        $table->dropColumn([
+            'source',
+            'language',
+            'responded_at',
+            'review_type',
+            'sentiment',
+            'verified',
+            'topic_id',
+            'reply_content',
+        ]);
+    });
     }
 
 
