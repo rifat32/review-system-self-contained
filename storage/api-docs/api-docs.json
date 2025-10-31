@@ -1987,13 +1987,6 @@
                         "description": "Customer date filter",
                         "required": true,
                         "example": ""
-                    },
-                    {
-                        "name": "revenue_date_filter",
-                        "in": "query",
-                        "description": "Revenue date filter",
-                        "required": true,
-                        "example": ""
                     }
                 ],
                 "responses": {
@@ -2039,71 +2032,6 @@
                     },
                     "404": {
                         "description": "not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/sales-reports": {
-            "get": {
-                "tags": [
-                    "reports"
-                ],
-                "summary": "Get sales report data",
-                "description": "Returns detailed sales report including daily, weekly/monthly trends, and sales breakdown by category and item.",
-                "operationId": "getSalesReports",
-                "parameters": [
-                    {
-                        "name": "sales_date_filter",
-                        "in": "query",
-                        "description": "Sales date filter",
-                        "required": true,
-                        "example": "this_month"
-                    },
-                    {
-                        "name": "payment_method_filter",
-                        "in": "query",
-                        "description": "Filter by payment method (cash, credit, digital wallets)",
-                        "required": false,
-                        "example": "cash"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -5269,6 +5197,64 @@
                 "summary": "This method is to get dashboard report",
                 "description": "This method is to get dashboard report",
                 "operationId": "getDashboardReport2",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "businessId",
+                        "required": false,
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/dashboard-report3": {
+            "get": {
+                "tags": [
+                    "report"
+                ],
+                "summary": "This method is to get dashboard report",
+                "description": "This method is to get dashboard report",
+                "operationId": "getDashboardReport3",
                 "parameters": [
                     {
                         "name": "businessId",
