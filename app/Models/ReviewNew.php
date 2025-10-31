@@ -29,6 +29,9 @@ class ReviewNew extends Model
     public function value() {
         return $this->hasMany(ReviewValueNew::class,'review_id','id');
     }
+
+
+
     public function business() {
         return $this->hasOne(Business::class,'id','business_id');
     }
@@ -42,5 +45,18 @@ class ReviewNew extends Model
         'created_at',
         'updated_at',
     ];
+
+    // In your QuestionValue model (or the model that has 'value' relation)
+public function scopeFilterByOverall($query, $is_overall)
+{
+    return $query->when(isset($is_overall), function ($q) use ($is_overall) {
+        $q->whereHas('value', function ($q2) use ($is_overall) {
+            $q2->whereHas('question', function ($q3) use ($is_overall) {
+                $q3->where('is_overall', $is_overall ? 1 : 0);
+            });
+        });
+    });
+}
+
 
 }

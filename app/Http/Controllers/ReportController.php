@@ -1171,7 +1171,7 @@ class ReportController extends Controller
     }
 
 
-/**
+    /**
      *
      * @OA\Get(
      *      path="/dashboard-report3",
@@ -1222,15 +1222,15 @@ class ReportController extends Controller
      *     )
      */
 
-     public function getDashboardReport3(Request $request)
+    public function getDashboardReport3(Request $request)
     {
 
-        
+
 
         $data = [];
 
-     $data['survey'] = $this->generateDashboardReport($request, 0);   // Normal survey (is_overall = 0)
-    $data['overall'] = $this->generateDashboardReport($request, 1);  // Overall report (is_overall = 1)
+        $data['survey'] = $this->generateDashboardReport($request, 0);   // Normal survey (is_overall = 0)
+        $data['overall'] = $this->generateDashboardReport($request, 1);  // Overall report (is_overall = 1)
 
 
         return response()->json($data, 200);
@@ -1238,105 +1238,134 @@ class ReportController extends Controller
 
 
     private function generateDashboardReport($request, $is_overall)
-{
+    {
 
-   // Get the business ID from the request
-$businessId = $request->businessId;
-$data = [];
+        // Get the business ID from the request
+        $businessId = $request->businessId;
+        $data = [];
 
-// Get the current date and time
-$now = Carbon::now();
+        // Get the current date and time
+        $now = Carbon::now();
 
-// Define the start date (beginning of the current year)
-$startDate = $now->copy()->startOfYear();
+        // Define the start date (beginning of the current year)
+        $startDate = $now->copy()->startOfYear();
 
-// Define the end date (end of the current month)
-$endDate = $now->copy()->endOfMonth();
+        // Define the end date (end of the current month)
+        $endDate = $now->copy()->endOfMonth();
 
-// Calculate the total number of months between start and end dates
-$numberOfMonths = $startDate->diffInMonths($endDate);
+        // Calculate the total number of months between start and end dates
+        $numberOfMonths = $startDate->diffInMonths($endDate);
 
-// Loop through each month (from current going backwards)
-for ($i = 0; $i <= $numberOfMonths; $i++) {
-    // Get the start date of the month (i months ago)
-    $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
-    
-    // Get the end date of the same month
-    $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
-    
-    // Format the month name (e.g., January, February)
-    $month = $startDateOfMonth->format('F');
+        // Loop through each month (from current going backwards)
+        for ($i = 0; $i <= $numberOfMonths; $i++) {
+            // Get the start date of the month (i months ago)
+            $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
 
-    // Store the month name in the data array
-    $data["monthly_data"]["monthly_reviews"][$i]["month"] = $month;
+            // Get the end date of the same month
+            $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
 
-    // Count the number of reviews created in that month
-    // If user is not a superadmin, filter by their business ID
-    $data["monthly_data"]["monthly_reviews"][$i]["value"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
-        "review_news.business_id" => $businessId
-    ] : []))
-        ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
-        ->count();
-}
+            // Format the month name (e.g., January, February)
+            $month = $startDateOfMonth->format('F');
+
+            // Store the month name in the data array
+            $data["monthly_data"]["monthly_reviews"][$i]["month"] = $month;
+
+            // Count the number of reviews created in that month
+            // If user is not a superadmin, filter by their business ID
+            $data["monthly_data"]["monthly_reviews"][$i]["value"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+                "review_news.business_id" => $businessId
+            ] : []))
+                ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
+
+               ->filterByOverall($is_overall)
+
+                ->count();
+        }
 
 
 
+        // Count total reviews created today
         $data["today_total_reviews"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "review_news.business_id" => $businessId
-        ] : []))->whereDate('created_at', Carbon::today())
+        ] : []))
+            ->whereDate('created_at', Carbon::today()) 
+           ->filterByOverall($is_overall)
             ->count();
 
-
+        // Count total reviews created within the last 30 days (approximate current month)
         $data["this_month_total_reviews"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
         ] : []))
-            ->where('created_at', '>', now()->subDays(30)->endOfDay())
+            ->where('created_at', '>', now()->subDays(30)->endOfDay()) // Filter reviews created in the last 30 days
+            ->filterByOverall($is_overall)
             ->count();
 
+
+
+
+        // Count total reviews from the previous month (between 30 and 60 days ago)
         $data["previous_month_total_reviews"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
         ] : []))
             ->whereBetween(
                 'created_at',
-                [now()->subDays(60)->startOfDay(), now()->subDays(30)]
+                [now()->subDays(60)->startOfDay(), now()->subDays(30)] // Date range for the previous month
             )
+             ->filterByOverall($is_overall)
             ->count();
 
+        // Count total reviews overall (all-time count)
         $data["total_reviews"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
         ] : []))
+         ->filterByOverall($is_overall)
             ->count();
 
+        // Count total reviews from the previous week (last full week)
         $data["previous_week_total_reviews"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
         ] : []))
             ->whereBetween(
                 'created_at',
-                [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
+                [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()] // Start and end of last week
             )
+            ->filterByOverall($is_overall)
             ->count();
 
+
+
+        // Count total reviews created in the current week (from Monday to Sunday)
         $data["this_week_total_reviews"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
         ] : []))
-            ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]) // Filter by current week range
+            ->filterByOverall($is_overall)
             ->count();
 
-        $total_stars_selected = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+        // Get distinct star ratings selected in reviews
+        $total_stars_selected = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id') // Join review values with their related reviews
             ->where((!$request->user()->hasRole("superadmin") ? [
                 "review_news.business_id" => $businessId
             ] : []))
-            ->select("review_value_news.star_id")
-            ->distinct()
+             ->filterByOverall($is_overall)
+            ->select("review_value_news.star_id") // Select only the star_id field
+            ->distinct() // Ensure only unique star IDs are fetched
             ->get();
 
+
+
+
+        // Loop through each distinct star selected
         foreach ($total_stars_selected as $key => $star_selected) {
+            // Get the star details from the Star table
             $data["selected_stars"][$key]["star"] = Star::where([
                 "id" => $star_selected->star_id
             ])
+            ->filterByOverall($is_overall)
                 ->first();
 
-            $data["selected_stars"][$key]["star_selected_time"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            // Count total times this star was selected overall
+            $data["selected_stars"][$key]["star_selected_time"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id') // Join with reviews
                 ->where((!$request->user()->hasRole("superadmin") ? [
                     "review_news.business_id" => $businessId
                 ] : []))
@@ -1346,14 +1375,18 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
                 ->get()
                 ->count();
 
+            // Loop through each month to get monthly star selection counts
             for ($i = 0; $i <= $numberOfMonths; $i++) {
+                // Start and end dates for the month (i months ago)
                 $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
                 $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
                 $month = $startDateOfMonth->format('F');
 
+                // Store the month name
                 $data["monthly_data"]["selected_stars"][$key]["star_selected_time_monthly"][$i]["month"] = $month;
 
-                $data["monthly_data"]["selected_stars"][$key]["star_selected_time_monthly"][$i]["value"]   = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                // Count times this star was selected in the given month
+                $data["monthly_data"]["selected_stars"][$key]["star_selected_time_monthly"][$i]["value"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                     ->where((!$request->user()->hasRole("superadmin") ? [
                         "review_news.business_id" => $businessId
                     ] : []))
@@ -1364,6 +1397,7 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
                     ->count();
             }
 
+            // Count times this star was selected in the previous week
             $data["selected_stars"][$key]["star_selected_time_previous_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->where((!$request->user()->hasRole("superadmin") ? [
                     "review_news.business_id" => $businessId
@@ -1377,6 +1411,7 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
                 )
                 ->count();
 
+            // Count times this star was selected in the current week
             $data["selected_stars"][$key]["star_selected_time_this_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->where((!$request->user()->hasRole("superadmin") ? [
                     "review_news.business_id" => $businessId
@@ -1389,21 +1424,29 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
                 ->count();
         }
 
-        $total_tag_selected = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+
+
+
+        // Get all distinct tags selected in reviews
+        $total_tag_selected = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id') // Join review values with reviews
             ->where((!$request->user()->hasRole("superadmin") ? [
                 "review_news.business_id" => $businessId
-            ] : []))
-            ->select("review_value_news.tag_id")
-            ->distinct()
-            ->get();
+            ] : [])) // Filter by business ID if user is not superadmin
+            ->select("review_value_news.tag_id") // Select only the tag_id field
+            ->distinct() // Ensure only unique tag IDs are retrieved
+            ->get(); // Execute the query and get the results
 
+
+        // Loop through each distinct tag selected
         foreach ($total_tag_selected as $key => $tag_selected) {
+            // Get the tag details from the Tag table
             $data["selected_tags"][$key]["tag"] = Tag::where([
                 "id" => $tag_selected->tag_id
             ])
                 ->first();
 
-            $data["selected_tags"][$key]["tag_selected_time"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            // Count total times this tag was selected overall
+            $data["selected_tags"][$key]["tag_selected_time"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id') // Join with reviews
                 ->where((!$request->user()->hasRole("superadmin") ? [
                     "review_news.business_id" => $businessId
                 ] : []))
@@ -1413,37 +1456,40 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
                 ->get()
                 ->count();
 
+            // Loop through each month to get monthly tag selection counts
             for ($i = 0; $i <= $numberOfMonths; $i++) {
+                // Start and end dates for the month (i months ago)
                 $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
                 $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
-
                 $month = $startDateOfMonth->format('F');
 
+                // Store the month name
                 $data["monthly_data"]["selected_tags"][$key]["tag_selected_time_monthly"][$i]["month"] = $month;
 
+                // Count times this tag was selected in the given month
                 $data["monthly_data"]["selected_tags"][$key]["tag_selected_time_monthly"][$i]["value"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                     ->where((!$request->user()->hasRole("superadmin") ? [
                         "review_news.business_id" => $businessId
                     ] : []))
                     ->where([
-
                         "tag_id" =>  $tag_selected->tag_id
                     ])
                     ->whereBetween(
                         'review_value_news.created_at',
                         [$startDateOfMonth, $endDateOfMonth]
                     )
-
                     ->count();
             }
 
+            // Store tag ID for reference
             $data["selected_tags"][$key]["tag_id"] = $tag_selected->tag_id;
+
+            // Count times this tag was selected in the previous week
             $data["selected_tags"][$key]["tag_selected_time_previous_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->where((!$request->user()->hasRole("superadmin") ? [
                     "review_news.business_id" => $businessId
                 ] : []))
                 ->where([
-
                     "tag_id" =>  $tag_selected->tag_id
                 ])
                 ->whereBetween(
@@ -1452,6 +1498,7 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
                 )
                 ->count();
 
+            // Count times this tag was selected in the current week
             $data["selected_tags"][$key]["tag_selected_time_this_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->where((!$request->user()->hasRole("superadmin") ? [
                     "review_news.business_id" => $businessId
@@ -1460,16 +1507,15 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
                     "tag_id" =>  $tag_selected->tag_id
                 ])
                 ->whereBetween('review_value_news.created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
-
                 ->get()
                 ->count();
 
-            $data["selected_tags"][$key]["tag_selected_time_this_month"] =       ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            // Count times this tag was selected in the last 30 days (approximate current month)
+            $data["selected_tags"][$key]["tag_selected_time_this_month"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->where((!$request->user()->hasRole("superadmin") ? [
                     "review_news.business_id" => $businessId
                 ] : []))
                 ->where([
-
                     "tag_id" =>  $tag_selected->tag_id
                 ])
                 ->where('review_value_news.created_at', '>', now()->subDays(30)->endOfDay())
@@ -1477,305 +1523,466 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
                 ->count();
         }
 
+
+        // Loop through each month to store month names for customer monthly data
         for ($i = 0; $i <= $numberOfMonths; $i++) {
+            // Start and end dates for the month (i months ago)
             $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
             $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
 
+            // Format the month name (e.g., January, February)
             $month = $startDateOfMonth->format('F');
 
+            // Store the month name in the customers_monthly array
             $data["monthly_data"]["customers_monthly"][$i]["month"] = $month;
         }
 
+        // Loop through each month to calculate guest review counts
         for ($i = 0; $i <= $numberOfMonths; $i++) {
+            // Start and end dates for the month (i months ago)
             $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
             $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
+
+            // Format the month name
             $month = $startDateOfMonth->format('F');
+
+            // Store the month name in the guest_review_count_monthly array
             $data["monthly_data"]["guest_review_count_monthly"][$i]["month"] = $month;
+
+            // Count reviews created by guests (user_id is NULL) in the given month
             $data["monthly_data"]["guest_review_count_monthly"][$i]["value"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
                 "business_id" => $businessId,
                 "user_id" => NULL
-            ] : []))->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
+            ] : []))
+                ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->get()
                 ->count();
         }
 
+
+
+        // Count guest reviews created in the last 30 days (approximate current month)
         $data["this_month_guest_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId,
             "user_id" => NULL
-        ] : []))->where('created_at', '>', now()->subDays(30)->endOfDay())
-
+        ] : []))
+            ->where('created_at', '>', now()->subDays(30)->endOfDay())
             ->count();
 
+        // Count guest reviews from the previous month (between 30 and 60 days ago)
         $data["previous_month_guest_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId,
             "user_id" => NULL
-        ] : []))->whereBetween(
-            'created_at',
-            [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
-        )->get()->count();
-
-        $data["this_week_guest_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId,
-            "user_id" => NULL
-        ] : []))->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->get()->count();
-
-        $data["previous_week_guest_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId,
-            "user_id" => NULL
-        ] : []))->whereBetween(
-            'created_at',
-            [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
-        )->get()->count();
-
-        $data["total_guest_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId,
-            "user_id" => NULL
-        ] : []))->get()->count();
-
-        for ($i = 0; $i <= 6; $i++) {
-            $customer = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
-                "business_id" => $businessId,
-                "user_id" => NULL
-            ] : []))->whereDate('created_at', Carbon::today()->subDay($i))
-
-                ->get()->count();
-
-            $data["this_week_guest_review"][$i]["total"] =  $customer;
-
-            $data["this_week_guest_review"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
-        }
-        for ($i = 0; $i <= 29; $i++) {
-            $customer = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
-                "business_id" => $businessId,
-                "user_id" => NULL
-            ] : []))->whereDate('created_at', Carbon::today()->subDay($i))
-
-                ->get()->count();
-
-            $data["this_month_guest_review"][$i]["total"] =  $customer;
-
-
-            $data["this_month_guest_review"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
-        }
-
-        for ($i = 0; $i <= $numberOfMonths; $i++) {
-            $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
-            $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
-            $month = $startDateOfMonth->format('F');
-            $data["monthly_data"]["customer_review_count_monthly"][$i]["month"] = $month;
-            $data["monthly_data"]["customer_review_count_monthly"][$i]["value"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
-                "business_id" => $businessId,
-                "guest_id" => NULL
-            ] : []))->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
-
-                ->count();
-        }
-
-        $data["this_month_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId,
-            "guest_id" => NULL
-        ] : []))->where('created_at', '>', now()->subDays(30)->endOfDay())
+        ] : []))
+            ->whereBetween(
+                'created_at',
+                [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
+            )
             ->get()
             ->count();
 
-        $data["previous_month_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+        // Count guest reviews created in the current week (Monday to Sunday)
+        $data["this_week_guest_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId,
-            "guest_id" => NULL
-        ] : []))->whereBetween(
-            'created_at',
-            [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
-        )->get()->count();
+            "user_id" => NULL
+        ] : []))
+            ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->get()
+            ->count();
 
-        $data["this_week_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+        // Count guest reviews created in the previous week
+        $data["previous_week_guest_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId,
-            "guest_id" => NULL
-        ] : []))->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->get()->count();
+            "user_id" => NULL
+        ] : []))
+            ->whereBetween(
+                'created_at',
+                [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
+            )
+            ->get()
+            ->count();
 
-        $data["previous_week_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+        // Count total guest reviews (all-time)
+        $data["total_guest_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId,
-            "guest_id" => NULL
-        ] : []))->whereBetween(
-            'created_at',
-            [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
-        )->get()->count();
+            "user_id" => NULL
+        ] : []))
+            ->get()
+            ->count();
 
-        $data["total_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId,
-            "guest_id" => NULL
-        ] : []))->get()->count();
-
+        // Prepare daily guest review data for the current week (last 7 days)
         for ($i = 0; $i <= 6; $i++) {
             $customer = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
                 "business_id" => $businessId,
-                "guest_id" => NULL
-            ] : []))->whereDate('created_at', Carbon::today()->subDay($i))
+                "user_id" => NULL
+            ] : []))
+                ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->get()
+                ->count();
 
-                ->get()->count();
+            // Store total guest reviews for the day
+            $data["this_week_guest_review"][$i]["total"] =  $customer;
 
-            $data["this_week_customer_review"][$i]["total"] =  $customer;
-
-            $data["this_week_customer_review"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
+            // Store the date for reference
+            $data["this_week_guest_review"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
         }
+
+        // Prepare daily guest review data for the current month (last 30 days)
         for ($i = 0; $i <= 29; $i++) {
             $customer = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
                 "business_id" => $businessId,
-                "guest_id" => NULL
-            ] : []))->whereDate('created_at', Carbon::today()->subDay($i))
+                "user_id" => NULL
+            ] : []))
+                ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->get()
+                ->count();
 
-                ->get()->count();
+            // Store total guest reviews for the day
+            $data["this_month_guest_review"][$i]["total"] =  $customer;
 
-            $data["this_month_customer_review"][$i]["total"] =  $customer;
-            $data["this_month_customer_review"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
+            // Store the date for reference
+            $data["this_month_guest_review"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
         }
 
+
+
+        // Loop through each month to calculate customer review counts (excluding guests)
         for ($i = 0; $i <= $numberOfMonths; $i++) {
+            // Start and end dates for the month (i months ago)
             $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
             $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
             $month = $startDateOfMonth->format('F');
-            $data["monthly_data"]["question_count_monthly"][$i]["month"] = $month;
-            $data["monthly_data"]["question_count_monthly"][$i]["value"] = Question::where((!$request->user()->hasRole("superadmin") ? [
-                "business_id" => $businessId
-            ] : []))->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
 
+            // Store the month name
+            $data["monthly_data"]["customer_review_count_monthly"][$i]["month"] = $month;
+
+            // Count customer reviews in the given month (guest_id is NULL)
+            $data["monthly_data"]["customer_review_count_monthly"][$i]["value"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+                "business_id" => $businessId,
+                "guest_id" => NULL
+            ] : []))
+                ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->count();
         }
 
-        $data["this_month_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId
-        ] : []))->where('created_at', '>', now()->subDays(30)->endOfDay())
-
+        // Count customer reviews for the current month (last 30 days)
+        $data["this_month_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId,
+            "guest_id" => NULL
+        ] : []))
+            ->where('created_at', '>', now()->subDays(30)->endOfDay())
+            ->get()
             ->count();
 
-        $data["previous_month_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId
-        ] : []))->whereBetween(
-            'created_at',
-            [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
-        )->get()->count();
+        // Count customer reviews for the previous month (between 30 and 60 days ago)
+        $data["previous_month_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId,
+            "guest_id" => NULL
+        ] : []))
+            ->whereBetween(
+                'created_at',
+                [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
+            )
+            ->get()
+            ->count();
 
-        $data["this_week_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId
-        ] : []))->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->get()->count();
+        // Count customer reviews for the current week
+        $data["this_week_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId,
+            "guest_id" => NULL
+        ] : []))
+            ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->get()
+            ->count();
 
-        $data["previous_week_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId
-        ] : []))->whereBetween(
-            'created_at',
-            [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
-        )->get()->count();
-        $data["total_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
-            "business_id" => $businessId
-        ] : []))->get()->count();
+        // Count customer reviews for the previous week
+        $data["previous_week_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId,
+            "guest_id" => NULL
+        ] : []))
+            ->whereBetween(
+                'created_at',
+                [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
+            )
+            ->get()
+            ->count();
 
+        // Count total customer reviews (all-time, excluding guests)
+        $data["total_customer_review_count"] = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId,
+            "guest_id" => NULL
+        ] : []))
+            ->get()
+            ->count();
+
+
+
+
+        // Prepare daily customer review data for the current week (last 7 days, excluding guests)
         for ($i = 0; $i <= 6; $i++) {
-            $customer = Question::where((!$request->user()->hasRole("superadmin") ? [
-                "business_id" => $businessId
-            ] : []))->whereDate('created_at', Carbon::today()->subDay($i))
+            $customer = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+                "business_id" => $businessId,
+                "guest_id" => NULL
+            ] : []))
+                ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->get()
+                ->count();
 
-                ->get()->count();
+            // Store total customer reviews for the day
+            $data["this_week_customer_review"][$i]["total"] =  $customer;
 
-            $data["this_week_question"][$i]["total"] =  $customer;
-
-            $data["this_week_question"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
+            // Store the date for reference
+            $data["this_week_customer_review"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
         }
+
+        // Prepare daily customer review data for the current month (last 30 days, excluding guests)
         for ($i = 0; $i <= 29; $i++) {
-            $customer = Question::where((!$request->user()->hasRole("superadmin") ? [
-                "business_id" => $businessId
-            ] : []))->whereDate('created_at', Carbon::today()->subDay($i))
-                ->get()->count();
-            $data["this_month_question"][$i]["total"] =  $customer;
-            $data["this_month_question"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
+            $customer = ReviewNew::where((!$request->user()->hasRole("superadmin") ? [
+                "business_id" => $businessId,
+                "guest_id" => NULL
+            ] : []))
+                ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->get()
+                ->count();
+
+            // Store total customer reviews for the day
+            $data["this_month_customer_review"][$i]["total"] =  $customer;
+
+            // Store the date for reference
+            $data["this_month_customer_review"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
         }
 
+        // Loop through each month to calculate question counts
         for ($i = 0; $i <= $numberOfMonths; $i++) {
+            // Start and end dates for the month (i months ago)
             $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
             $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
             $month = $startDateOfMonth->format('F');
+
+            // Store the month name
+            $data["monthly_data"]["question_count_monthly"][$i]["month"] = $month;
+
+            // Count questions created in the given month
+            $data["monthly_data"]["question_count_monthly"][$i]["value"] = Question::where((!$request->user()->hasRole("superadmin") ? [
+                "business_id" => $businessId
+            ] : []))
+                ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
+                ->count();
+        }
+
+        // Count questions created in the last 30 days (approximate current month)
+        $data["this_month_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId
+        ] : []))
+            ->where('created_at', '>', now()->subDays(30)->endOfDay())
+            ->count();
+
+
+
+
+        // Count questions from the previous month (between 30 and 60 days ago)
+        $data["previous_month_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId
+        ] : []))
+            ->whereBetween(
+                'created_at',
+                [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
+            )
+            ->get()
+            ->count();
+
+        // Count questions created in the current week
+        $data["this_week_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId
+        ] : []))
+            ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->get()
+            ->count();
+
+        // Count questions created in the previous week
+        $data["previous_week_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId
+        ] : []))
+            ->whereBetween(
+                'created_at',
+                [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
+            )
+            ->get()
+            ->count();
+
+        // Count total questions (all-time)
+        $data["total_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
+            "business_id" => $businessId
+        ] : []))
+            ->get()
+            ->count();
+
+        // Prepare daily question data for the current week (last 7 days)
+        for ($i = 0; $i <= 6; $i++) {
+            $customer = Question::where((!$request->user()->hasRole("superadmin") ? [
+                "business_id" => $businessId
+            ] : []))
+                ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->get()
+                ->count();
+
+            // Store total questions for the day
+            $data["this_week_question"][$i]["total"] =  $customer;
+
+            // Store the date for reference
+            $data["this_week_question"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
+        }
+
+        // Prepare daily question data for the current month (last 30 days)
+        for ($i = 0; $i <= 29; $i++) {
+            $customer = Question::where((!$request->user()->hasRole("superadmin") ? [
+                "business_id" => $businessId
+            ] : []))
+                ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->get()
+                ->count();
+
+            // Store total questions for the day
+            $data["this_month_question"][$i]["total"] =  $customer;
+
+            // Store the date for reference
+            $data["this_month_question"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
+        }
+
+        // Loop through each month to calculate tag counts
+        for ($i = 0; $i <= $numberOfMonths; $i++) {
+            // Start and end dates for the month (i months ago)
+            $startDateOfMonth = $now->copy()->startOfMonth()->subMonths($i);
+            $endDateOfMonth = $now->copy()->endOfMonth()->subMonths($i);
+            $month = $startDateOfMonth->format('F');
+
+            // Store the month name
             $data["monthly_data"]["tag_count"][$i]["month"] = $month;
+
+            // Count tags created in the given month
             $data["monthly_data"]["tag_count"][$i]["value"] = Tag::where((!$request->user()->hasRole("superadmin") ? [
                 "business_id" => $businessId
-            ] : []))->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
+            ] : []))
+                ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->get()
                 ->count();
         }
 
+
+        // Count tags created in the current month (last 30 days)
         $data["this_month_tag_count"] = Tag::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
-        ] : []))->where('created_at', '>', now()->subDays(30)->endOfDay())
+        ] : []))
+            ->where('created_at', '>', now()->subDays(30)->endOfDay())
             ->get()
             ->count();
 
+        // Count tags created in the previous month (between 30 and 60 days ago)
         $data["previous_month_tag_count"] = Tag::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
-        ] : []))->whereBetween(
-            'created_at',
-            [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
-        )->get()->count();
+        ] : []))
+            ->whereBetween(
+                'created_at',
+                [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
+            )
+            ->get()
+            ->count();
 
+        // Count tags created in the current week
         $data["this_week_tag_count"] = Tag::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
-        ] : []))->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->get()->count();
+        ] : []))
+            ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->get()
+            ->count();
 
+        // Count tags created in the previous week
         $data["previous_week_tag_count"] = Tag::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
-        ] : []))->whereBetween(
-            'created_at',
-            [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
-        )->get()->count();
+        ] : []))
+            ->whereBetween(
+                'created_at',
+                [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
+            )
+            ->get()
+            ->count();
+
+        // Count total tags (all-time)
         $data["total_tag_count"] = Tag::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
-        ] : []))->get()->count();
+        ] : []))
+            ->get()
+            ->count();
 
+        // Prepare daily tag data for the current week (last 7 days)
         for ($i = 0; $i <= 6; $i++) {
             $customer = Tag::where((!$request->user()->hasRole("superadmin") ? [
                 "business_id" => $businessId
-            ] : []))->whereDate('created_at', Carbon::today()->subDay($i))
+            ] : []))
+                ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->get()
+                ->count();
 
-                ->get()->count();
-
+            // Store total tags for the day
             $data["this_week_tag"][$i]["total"] =  $customer;
 
-
+            // Store the date for reference
             $data["this_week_tag"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
         }
+
+        // Prepare daily tag data for the current month (last 30 days)
         for ($i = 0; $i <= 29; $i++) {
             $customer = Tag::where((!$request->user()->hasRole("superadmin") ? [
                 "business_id" => $businessId
-            ] : []))->whereDate('created_at', Carbon::today()->subDay($i))
-                ->get()->count();
+            ] : []))
+                ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->get()
+                ->count();
+
+            // Store total tags for the day
             $data["this_month_tag"][$i]["total"] =  $customer;
+
+            // Store the date for reference
             $data["this_month_tag"][$i]["date"] =  date_format(Carbon::today()->subDay($i), "d/m/Y");
         }
 
 
 
-        // new  reports enhancement 
         // ----------------------------
+        // New Reports Enhancement
+        // ----------------------------
+
         // 1️⃣ Review Growth Rate
         // ----------------------------
+        // Clone base review query with business filter if not superadmin
         $review_query = ReviewNew::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId));
 
+        // Count previous month reviews
         $previous_month_reviews = (clone $review_query)
             ->whereBetween('created_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
             ->count();
 
+        // Count this month reviews
         $this_month_reviews = $data['this_month_total_reviews'] ?? (clone $review_query)
             ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
             ->count();
 
+        // Calculate monthly review growth rate
         $data['review_growth_rate_month'] = $previous_month_reviews > 0
             ? round((($this_month_reviews - $previous_month_reviews) / $previous_month_reviews) * 100, 2)
             : 0;
 
+        // Count previous week reviews
         $previous_week_reviews = (clone $review_query)
             ->whereBetween('created_at', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])
             ->count();
 
-
+        // Count this week reviews
         $this_week_reviews = $data['this_week_total_reviews'] ?? (clone $review_query)
             ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
             ->count();
 
+        // Calculate weekly review growth rate
         $data['review_growth_rate_week'] = $previous_week_reviews > 0
             ? round((($this_week_reviews - $previous_week_reviews) / $previous_week_reviews) * 100, 2)
             : 0;
@@ -1783,6 +1990,7 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
         // ----------------------------
         // 2️⃣ Review Source Breakdown
         // ----------------------------
+        // Get all distinct sources and count reviews for each
         $sources = (clone $review_query)->distinct()->pluck('source');
         $data['review_source_breakdown'] = $sources->map(fn($source) => [
             'source' => $source,
@@ -1792,6 +2000,7 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
         // ----------------------------
         // 3️⃣ Review Response Time (average in hours)
         // ----------------------------
+        // Calculate average response time for responded reviews
         $responses = (clone $review_query)->whereNotNull('responded_at')->get();
         $data['average_response_time_hours'] = $responses->count() > 0
             ? round($responses->avg(fn($r) => \Carbon\Carbon::parse($r->responded_at)->diffInHours($r->created_at)), 2)
@@ -1800,6 +2009,7 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
         // ----------------------------
         // 4️⃣ Review Language Distribution
         // ----------------------------
+        // Count reviews by language
         $languages = (clone $review_query)->distinct()->pluck('language');
         $data['review_language_distribution'] = $languages->map(fn($lang) => [
             'language' => $lang,
@@ -1807,7 +2017,7 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
         ]);
 
         // ----------------------------
-        // ⭐ STAR RATING ENHANCEMENTS
+        // ⭐ Star Rating Enhancements
         // ----------------------------
 
         // Average Star Rating
@@ -1816,6 +2026,7 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
             'this_week' => (clone $review_query)->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->avg('rate'),
             'this_month' => (clone $review_query)->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->avg('rate')
         ];
+        // Round averages and handle null
         $data['average_star_rating'] = array_map(fn($r) => round($r ?? 0, 2), $avg_ratings);
 
         // Star Rating Distribution
@@ -1834,13 +2045,16 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
 
         // Weighted Star Rating
         $weights = ['verified' => 1.5, 'guest' => 1];
+        // Weighted sum of ratings
         $weighted_sum = $review_query->get()->sum(fn($r) => $r->user_id ? $r->rating * $weights['verified'] : $r->rating * $weights['guest']);
+        // Total weight for averaging
         $total_weight = $review_query->get()->sum(fn($r) => $r->user_id ? $weights['verified'] : $weights['guest']);
         $data['weighted_star_rating'] = $total_weight ? round($weighted_sum / $total_weight, 2) : 0;
 
         // Low-Rating Alerts
         $low_rating_this_week = (clone $review_query)->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->whereIn('rate', [1, 2])->count();
         $low_rating_last_week = (clone $review_query)->whereBetween('created_at', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])->whereIn('rate', [1, 2])->count();
+        // Calculate increase percent and determine alert
         $low_rating_increase = $low_rating_last_week ? round(($low_rating_this_week - $low_rating_last_week) / $low_rating_last_week * 100, 2) : ($low_rating_this_week ? 100 : 0);
         $data['low_rating_alert'] = [
             'this_week_low_ratings' => $low_rating_this_week,
@@ -1850,14 +2064,17 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
         ];
 
         // ----------------------------
-        // 🏷️ TAG REPORT ENHANCEMENTS
+        // 🏷️ Tag Report Enhancements
         // ----------------------------
+
+        // Get all tags per review
         $tags_with_reviews = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
             ->select('review_news.id as review_id', 'review_value_news.tag_id')
             ->get()
             ->groupBy('review_id');
 
+        // Calculate co-occurrence of tags in the same review
         $tag_co_occurrence = [];
         foreach ($tags_with_reviews as $review_tags) {
             $tag_ids = $review_tags->pluck('tag_id')->toArray();
@@ -1869,6 +2086,7 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
         }
         $data['tag_co_occurrence'] = $tag_co_occurrence;
 
+        // Calculate impact of each tag on average rating
         $all_tags = Tag::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))->get();
         $data['tag_impact_on_ratings'] = $all_tags->mapWithKeys(fn($tag) => [
             $tag->id => round(
@@ -1880,42 +2098,63 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
             )
         ])->toArray();
 
+
+
+
         // ----------------------------
-        // ❓ QUESTION REPORT ENHANCEMENTS
+        // ❓ Question Report Enhancements
         // ----------------------------
+        // Get all questions for the business (or all if superadmin)
         $questions = Question::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))->get();
+
+        // Total users/reviews to calculate completion rates
         $total_users = $review_query->count();
 
+        // Calculate completion rate per question
         $data['question_completion_rate'] = $questions->mapWithKeys(fn($qst) => [
             $qst->id => [
                 'question_text' => $qst->text,
-                'completion_rate' => $total_users ? round(ReviewValueNew::where('question_id', $qst->id)->whereHas('review', fn($r) => $r->where('business_id', $businessId))->count() / $total_users * 100, 2) : 0
+                'completion_rate' => $total_users ? round(
+                    ReviewValueNew::where('question_id', $qst->id)
+                        ->whereHas('review', fn($r) => $r->where('business_id', $businessId))
+                        ->count() / $total_users * 100,
+                    2
+                ) : 0
             ]
         ])->toArray();
 
+        // Calculate total responses per question
         $data['average_response_per_question'] = $questions->mapWithKeys(fn($qst) => [
-            $qst->id => ReviewValueNew::where('question_id', $qst->id)->whereHas('review', fn($r) => $r->where('business_id', $businessId))->count()
+            $qst->id => ReviewValueNew::where('question_id', $qst->id)
+                ->whereHas('review', fn($r) => $r->where('business_id', $businessId))
+                ->count()
         ])->toArray();
 
+        // Response distribution per question option
         $data['response_distribution'] = $questions->mapWithKeys(fn($qst) => [
             $qst->id => collect($qst->options ?? [])->mapWithKeys(fn($opt) => [
-                $opt => ReviewValueNew::where('question_id', $qst->id)->where('answer', $opt)->whereHas('review', fn($r) => $r->where('business_id', $businessId))->count()
+                $opt => ReviewValueNew::where('question_id', $qst->id)
+                    ->where('answer', $opt)
+                    ->whereHas('review', fn($r) => $r->where('business_id', $businessId))
+                    ->count()
             ])->toArray()
         ])->toArray();
 
         // ----------------------------
-        // 📊 DASHBOARD TRENDS ENHANCEMENTS
+        // 📊 Dashboard Trends Enhancements
         // ----------------------------
+        // Total reviews and average star rating
         $total_review_count = $review_query->count();
         $avg_star = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
             ->avg('star_id');
 
+        // Calculate engagement index and performance vs target
         $data['dashboard_trends'] = [
             'engagement_index' => round($total_review_count * ($avg_star ?? 0), 2),
             'performance_vs_target' => round(($total_review_count / 100) * 100, 2), // assuming 100 target
 
-            // Reviews by hour of day
+            // Reviews by hour of day (0–23)
             'time_of_day_trends' => collect(range(0, 23))
                 ->mapWithKeys(function ($h) use ($review_query) {
                     return [$h => (clone $review_query)
@@ -1928,20 +2167,24 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
             'day_of_week_trends' => collect(range(0, 6))
                 ->mapWithKeys(function ($d) use ($review_query) {
                     return [$d => (clone $review_query)
-                        ->whereRaw('DAYOFWEEK(created_at) = ?', [$d + 1]) // MySQL returns 1–7 (Sunday = 1)
+                        ->whereRaw('DAYOFWEEK(created_at) = ?', [$d + 1]) // MySQL DAYOFWEEK returns 1–7
                         ->count()];
                 })
                 ->toArray(),
         ];
 
+
         // ----------------------------
-        // 📈 ADVANCED INSIGHTS
+        // 📈 Advanced Insights
         // ----------------------------
+
+        // Calculate customer retention rate based on repeat reviewers
         $reviewers = $review_query->pluck('user_id')->filter();
         $repeat_reviewers_count = $reviewers->countBy()->filter(fn($c) => $c > 1)->count();
         $total_customers = $reviewers->unique()->count();
         $data['advanced_insights']['customer_retention_rate'] = $total_customers ? round($repeat_reviewers_count / $total_customers * 100, 2) : 0;
 
+        // Topic/tag analysis: count of reviews per tag
         $data['advanced_insights']['topic_analysis'] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
             ->select('tag_id', DB::raw('count(*) as total'))
@@ -1953,22 +2196,20 @@ for ($i = 0; $i <= $numberOfMonths; $i++) {
                 'tag_name' => Tag::find($t->tag_id)?->name
             ]);
 
-        $data['advanced_insights']['monthly_review_trend'] = $review_query->select(DB::raw('MONTH(created_at) as month'), DB::raw('count(*) as total'))->groupBy('month')->pluck('total', 'month');
+        // Monthly review trend: total reviews per month
+        $data['advanced_insights']['monthly_review_trend'] = $review_query
+            ->select(DB::raw('MONTH(created_at) as month'), DB::raw('count(*) as total'))
+            ->groupBy('month')
+            ->pluck('total', 'month');
 
+        // Response effectiveness: average star before and after replies
         $review_with_replies = $review_query->whereNotNull('responded_at')->get();
         $data['advanced_insights']['response_effectiveness'] = [
             'before_reply_avg' => round($review_with_replies->avg('star_before_reply') ?? 0, 2),
             'after_reply_avg' => round($review_with_replies->avg('star_after_reply') ?? 0, 2)
         ];
 
+
         return $data;
-
-}
-
-
-
-
-
-
-    
+    }
 }
