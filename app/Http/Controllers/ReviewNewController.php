@@ -841,7 +841,8 @@ class ReviewNewController extends Controller
             'question' => $request->question,
             'business_id' => $request->business_id,
             'is_active' => $request->is_active,
-            'type' => !empty($request->type)?$request->type:"star"
+            'type' => !empty($request->type)?$request->type:"star",
+            "is_overall"=>$request->is_overall ?? 0,
         ];
         if ($request->user()->hasRole("superadmin")) {
             $question["is_default"] = true;
@@ -857,8 +858,6 @@ class ReviewNewController extends Controller
                 return response()->json(["message" => "question is enabled"],400);
             }
         }
-
-
 
         $createdQuestion =    Question::create($question);
         $createdQuestion->info = "supported value is of type is 'star','emoji','numbers','heart'";

@@ -262,40 +262,51 @@ class OwnerController extends Controller
 
 
     public function createUser2(Request $request)
-    {
+{
+    $validator = Validator::make($request->all(), [
+        'email' => 'email|required|unique:users,email',
+        'password' => 'required|string|min:6',
+        'first_Name' => 'required',
+        'phone' => 'nullable',
+        'type' => 'nullable',
+    ]);
 
-        $validator = Validator::make($request->all(), [
-            'email' => 'email|required|unique:users,email',
-            'password' => 'required|string|min:6',
-            'first_Name' => 'required',
-            'phone' => 'nullable',
-            'type' => 'nullable',
-        ]);
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-        $validatedData = $validator->validated();
-
-        $validatedData['password'] = Hash::make($validatedData['password']);
-        $validatedData['remember_token'] = Str::random(10);
-        $user =  User::create($validatedData);
-        $token = $user->createToken('Laravel Password Grant Client')->accessToken;
-        $data["user"] = $user;
-        // email_verify_token
-        $email_token = Str::random(30);
-        $user->email_verify_token = $email_token;
-        $user->email_verify_token_expires = Carbon::now()->subDays(-1);
-        $user->save();
-
-        if(env("SEND_EMAIL")=="TRUE") {
-         
-            Mail::to($validatedData["email"])->send(new NotifyMail($user));
-        }
-
-
-
-        return response(["ok" => true, "message" => "You have successfully registered", "data" => $data, "token" => $token], 200);
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
     }
+
+    $validatedData = $validator->validated();
+
+    $validatedData['password'] = Hash::make($validatedData['password']);
+    $validatedData['remember_token'] = Str::random(10);
+
+    $user = User::create($validatedData);
+
+    // email verification token
+    $email_token = Str::random(30);
+    $user->email_verify_token = $email_token;
+    $user->email_verify_token_expires = Carbon::now()->addDay();
+    $user->save();
+
+    // send verification email
+    if (env("SEND_EMAIL") == "TRUE") {
+        Mail::to($validatedData["email"])->send(new NotifyMail($user));
+    }
+
+    // generate access token
+    $token = $user->createToken('Laravel Password Grant Client')->accessToken;
+
+    // load relationships if needed
+    $user = User::with("business", "roles")->find($user->id);
+
+    // attach token to response (same style as login)
+    $user->token = $token;
+
+    return response()->json($user, 200);
+}
+
+
+
 
     /**
      *

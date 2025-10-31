@@ -441,6 +441,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
 
     Route::get('/dashboard-report2', [ReportController::class, "getDashboardReport2"]);
+    Route::get('/dashboard-report3', [ReportController::class, "getDashboardReport3"]);
     Route::get('/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
 
     // #################

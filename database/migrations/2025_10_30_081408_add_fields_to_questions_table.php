@@ -17,6 +17,7 @@ class AddFieldsToQuestionsTable extends Migration
 
         $table->float('weight')->default(1.0);
         $table->enum('sentiment', ['positive','neutral','negative'])->nullable();
+        $table->boolean('is_overall')->default(false);
     });
 }
 
