@@ -32,4 +32,17 @@ class ReviewValueNew extends Model
         return $this->hasOne(Question::class,'id','question_id');
     }
 
+
+public function scopeFilterByOverall($query, $is_overall)
+{
+    return $query->when(isset($is_overall), function ($q) use ($is_overall) {
+  
+            $q->whereHas('question', function ($q2) use ($is_overall) {
+                $q2->where('is_overall', $is_overall ? 1 : 0);
+            });
+       
+    });
+}
+
+
 }

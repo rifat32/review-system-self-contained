@@ -1372,6 +1372,7 @@ class ReportController extends Controller
                 ->where([
                     "star_id" => $star_selected->star_id
                 ])
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1394,6 +1395,7 @@ class ReportController extends Controller
                         "star_id" => $star_selected->star_id
                     ])
                     ->whereBetween('review_value_news.created_at', [$startDateOfMonth, $endDateOfMonth])
+                    ->filterByOverall($is_overall)
                     ->count();
             }
 
@@ -1409,6 +1411,7 @@ class ReportController extends Controller
                     'review_value_news.created_at',
                     [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
                 )
+                ->filterByOverall($is_overall)
                 ->count();
 
             // Count times this star was selected in the current week
@@ -1420,6 +1423,7 @@ class ReportController extends Controller
                     "star_id" => $star_selected->star_id
                 ])
                 ->whereBetween('review_value_news.created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
         }
@@ -1432,7 +1436,8 @@ class ReportController extends Controller
             ->where((!$request->user()->hasRole("superadmin") ? [
                 "review_news.business_id" => $businessId
             ] : [])) // Filter by business ID if user is not superadmin
-            ->select("review_value_news.tag_id") // Select only the tag_id field
+            ->select("review_value_news.tag_id") 
+            ->filterByOverall($is_overall)
             ->distinct() // Ensure only unique tag IDs are retrieved
             ->get(); // Execute the query and get the results
 
@@ -1443,6 +1448,7 @@ class ReportController extends Controller
             $data["selected_tags"][$key]["tag"] = Tag::where([
                 "id" => $tag_selected->tag_id
             ])
+            ->filterByOverall($is_overall)
                 ->first();
 
             // Count total times this tag was selected overall
@@ -1453,6 +1459,7 @@ class ReportController extends Controller
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1478,6 +1485,7 @@ class ReportController extends Controller
                         'review_value_news.created_at',
                         [$startDateOfMonth, $endDateOfMonth]
                     )
+                    ->filterByOverall($is_overall)
                     ->count();
             }
 
@@ -1496,6 +1504,7 @@ class ReportController extends Controller
                     'review_value_news.created_at',
                     [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
                 )
+                ->filterByOverall($is_overall)
                 ->count();
 
             // Count times this tag was selected in the current week
@@ -1507,6 +1516,7 @@ class ReportController extends Controller
                     "tag_id" =>  $tag_selected->tag_id
                 ])
                 ->whereBetween('review_value_news.created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1519,6 +1529,7 @@ class ReportController extends Controller
                     "tag_id" =>  $tag_selected->tag_id
                 ])
                 ->where('review_value_news.created_at', '>', now()->subDays(30)->endOfDay())
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
         }
@@ -1555,6 +1566,7 @@ class ReportController extends Controller
                 "user_id" => NULL
             ] : []))
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
         }
@@ -1567,6 +1579,7 @@ class ReportController extends Controller
             "user_id" => NULL
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay())
+            ->filterByOverall($is_overall)
             ->count();
 
         // Count guest reviews from the previous month (between 30 and 60 days ago)
@@ -1578,6 +1591,7 @@ class ReportController extends Controller
                 'created_at',
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
             )
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1587,6 +1601,7 @@ class ReportController extends Controller
             "user_id" => NULL
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1599,6 +1614,7 @@ class ReportController extends Controller
                 'created_at',
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
             )
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1607,6 +1623,7 @@ class ReportController extends Controller
             "business_id" => $businessId,
             "user_id" => NULL
         ] : []))
+        ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1617,6 +1634,7 @@ class ReportController extends Controller
                 "user_id" => NULL
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1634,6 +1652,7 @@ class ReportController extends Controller
                 "user_id" => NULL
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1662,6 +1681,7 @@ class ReportController extends Controller
                 "guest_id" => NULL
             ] : []))
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
+                ->filterByOverall($is_overall)
                 ->count();
         }
 
@@ -1671,6 +1691,7 @@ class ReportController extends Controller
             "guest_id" => NULL
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay())
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1683,6 +1704,7 @@ class ReportController extends Controller
                 'created_at',
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
             )
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1692,6 +1714,7 @@ class ReportController extends Controller
             "guest_id" => NULL
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1704,6 +1727,7 @@ class ReportController extends Controller
                 'created_at',
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
             )
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1712,6 +1736,7 @@ class ReportController extends Controller
             "business_id" => $businessId,
             "guest_id" => NULL
         ] : []))
+        ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1725,6 +1750,7 @@ class ReportController extends Controller
                 "guest_id" => NULL
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1742,6 +1768,7 @@ class ReportController extends Controller
                 "guest_id" => NULL
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1767,6 +1794,7 @@ class ReportController extends Controller
                 "business_id" => $businessId
             ] : []))
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
+                ->filterByOverall($is_overall)
                 ->count();
         }
 
@@ -1775,6 +1803,7 @@ class ReportController extends Controller
             "business_id" => $businessId
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay())
+            ->filterByOverall($is_overall)
             ->count();
 
 
@@ -1788,6 +1817,7 @@ class ReportController extends Controller
                 'created_at',
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
             )
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1796,6 +1826,7 @@ class ReportController extends Controller
             "business_id" => $businessId
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1807,6 +1838,7 @@ class ReportController extends Controller
                 'created_at',
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
             )
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1814,6 +1846,7 @@ class ReportController extends Controller
         $data["total_question_count"] = Question::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
         ] : []))
+        ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1823,6 +1856,7 @@ class ReportController extends Controller
                 "business_id" => $businessId
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1839,6 +1873,7 @@ class ReportController extends Controller
                 "business_id" => $businessId
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1864,6 +1899,7 @@ class ReportController extends Controller
                 "business_id" => $businessId
             ] : []))
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
         }
@@ -1874,6 +1910,7 @@ class ReportController extends Controller
             "business_id" => $businessId
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay())
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1885,6 +1922,7 @@ class ReportController extends Controller
                 'created_at',
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
             )
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1893,6 +1931,7 @@ class ReportController extends Controller
             "business_id" => $businessId
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1904,6 +1943,7 @@ class ReportController extends Controller
                 'created_at',
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
             )
+            ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1911,6 +1951,7 @@ class ReportController extends Controller
         $data["total_tag_count"] = Tag::where((!$request->user()->hasRole("superadmin") ? [
             "business_id" => $businessId
         ] : []))
+        ->filterByOverall($is_overall)
             ->get()
             ->count();
 
@@ -1920,6 +1961,7 @@ class ReportController extends Controller
                 "business_id" => $businessId
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1936,6 +1978,7 @@ class ReportController extends Controller
                 "business_id" => $businessId
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
+                ->filterByOverall($is_overall)
                 ->get()
                 ->count();
 
@@ -1955,7 +1998,8 @@ class ReportController extends Controller
         // 1️⃣ Review Growth Rate
         // ----------------------------
         // Clone base review query with business filter if not superadmin
-        $review_query = ReviewNew::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId));
+        $review_query = ReviewNew::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
+        ->filterByOverall($is_overall);
 
         // Count previous month reviews
         $previous_month_reviews = (clone $review_query)
@@ -2070,6 +2114,7 @@ class ReportController extends Controller
         // Get all tags per review
         $tags_with_reviews = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->filterByOverall($is_overall)
             ->select('review_news.id as review_id', 'review_value_news.tag_id')
             ->get()
             ->groupBy('review_id');
@@ -2087,12 +2132,16 @@ class ReportController extends Controller
         $data['tag_co_occurrence'] = $tag_co_occurrence;
 
         // Calculate impact of each tag on average rating
-        $all_tags = Tag::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))->get();
+        $all_tags = Tag::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
+        ->filterByOverall($is_overall)
+        ->get();
+
         $data['tag_impact_on_ratings'] = $all_tags->mapWithKeys(fn($tag) => [
             $tag->id => round(
                 ReviewNew::leftJoin('review_value_news', 'review_news.id', '=', 'review_value_news.review_id')
                     ->where('review_value_news.tag_id', $tag->id)
                     ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+                    ->filterByOverall($is_overall)
                     ->avg('review_news.rate') ?? 0,
                 2
             )
@@ -2105,7 +2154,9 @@ class ReportController extends Controller
         // ❓ Question Report Enhancements
         // ----------------------------
         // Get all questions for the business (or all if superadmin)
-        $questions = Question::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))->get();
+        $questions = Question::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
+        ->filterByOverall($is_overall)
+        ->get();
 
         // Total users/reviews to calculate completion rates
         $total_users = $review_query->count();
@@ -2117,6 +2168,7 @@ class ReportController extends Controller
                 'completion_rate' => $total_users ? round(
                     ReviewValueNew::where('question_id', $qst->id)
                         ->whereHas('review', fn($r) => $r->where('business_id', $businessId))
+                        ->filterByOverall($is_overall)
                         ->count() / $total_users * 100,
                     2
                 ) : 0
@@ -2127,6 +2179,7 @@ class ReportController extends Controller
         $data['average_response_per_question'] = $questions->mapWithKeys(fn($qst) => [
             $qst->id => ReviewValueNew::where('question_id', $qst->id)
                 ->whereHas('review', fn($r) => $r->where('business_id', $businessId))
+                ->filterByOverall($is_overall)
                 ->count()
         ])->toArray();
 
@@ -2136,6 +2189,7 @@ class ReportController extends Controller
                 $opt => ReviewValueNew::where('question_id', $qst->id)
                     ->where('answer', $opt)
                     ->whereHas('review', fn($r) => $r->where('business_id', $businessId))
+                    ->filterByOverall($is_overall)
                     ->count()
             ])->toArray()
         ])->toArray();
@@ -2147,6 +2201,7 @@ class ReportController extends Controller
         $total_review_count = $review_query->count();
         $avg_star = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->filterByOverall($is_overall)
             ->avg('star_id');
 
         // Calculate engagement index and performance vs target
@@ -2187,6 +2242,7 @@ class ReportController extends Controller
         // Topic/tag analysis: count of reviews per tag
         $data['advanced_insights']['topic_analysis'] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->filterByOverall($is_overall)
             ->select('tag_id', DB::raw('count(*) as total'))
             ->groupBy('tag_id')
             ->get()
