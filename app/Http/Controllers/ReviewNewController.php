@@ -951,6 +951,67 @@ class ReviewNewController extends Controller
 
         return response($updatedQuestion, 200);
     }
+
+/**
+ *
+ * @OA\Put(
+ *      path="/review-new/set-overall-question",
+ *      operationId="setOverallQuestion",
+ *      tags={"review.setting.question"},
+ *      security={{"bearerAuth": {}}},
+ *      summary="Set a question as overall and make all others non-overall",
+ *      description="This method marks one question as overall and updates all other questions for the same business to non-overall.",
+ *
+ *  @OA\RequestBody(
+ *      required=true,
+ *      @OA\JsonContent(
+ *          required={"question_id","business_id"},
+ *          @OA\Property(property="question_id", type="number", example=1),
+ *          @OA\Property(property="business_id", type="number", example=1)
+ *      )
+ *  ),
+ *  @OA\Response(response=200, description="Successful operation", @OA\JsonContent()),
+ *  @OA\Response(response=400, description="Bad Request", @OA\JsonContent()),
+ *  @OA\Response(response=404, description="Not Found", @OA\JsonContent())
+ * )
+ */
+public function setOverallQuestion(Request $request)
+{
+    $request->validate([
+        'question_id' => 'required|integer|exists:questions,id',
+        'business_id' => 'required|integer|exists:businesses,id',
+    ]);
+
+    // Check if user owns the business or is superadmin
+    $business = Business::where('id', $request->business_id)
+        ->when(!$request->user()->hasRole('superadmin'), function ($q) use ($request) {
+            $q->where('OwnerID', $request->user()->id);
+        })->first();
+
+    if (!$business) {
+        return response()->json(['message' => 'Business not found or access denied'], 400);
+    }
+
+    // Start transaction
+    DB::transaction(function () use ($request) {
+        // Make all questions non-overall for this business
+        Question::where('business_id', $request->business_id)
+            ->update(['is_overall' => 0]);
+
+        // Set the selected question as overall
+        Question::where('id', $request->question_id)
+            ->update(['is_overall' => 1]);
+    });
+
+    $overall_question = Question::find($request->question_id);
+    return response()->json([
+        'message' => 'Overall question updated successfully',
+        'overall_question' => $overall_question
+    ], 200);
+}
+
+
+
      // ##################################################
     // This method is to update question's active state
     // ##################################################

@@ -284,6 +284,13 @@ Route::middleware(['auth:api'])->group(function () {
     // #################
     Route::post('/review-new/create/questions', [ReviewNewController::class, "storeQuestion"]);
     Route::put('/review-new/update/questions', [ReviewNewController::class, "updateQuestion"]);
+
+    
+     Route::put('/review-new/set-overall-question', [ReviewNewController::class, "setOverallQuestion"]);
+
+
+
+
     Route::put('/review-new/update/active_state/questions', [ReviewNewController::class, "updateQuestionActiveState"]);
 
     Route::get('/review-new/get/questions', [ReviewNewController::class, "getQuestion"]);
