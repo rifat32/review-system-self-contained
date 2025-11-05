@@ -17,8 +17,8 @@ use Illuminate\Support\Str;
 class AuthController extends Controller
 {
 
-      /**
-        *
+    /**
+     *
      * @OA\Post(
      *      path="/resend-email-verify-mail",
      *      operationId="resendEmailVerifyToken",
@@ -66,49 +66,45 @@ class AuthController extends Controller
      *     )
      */
 
-    public function resendEmailVerifyToken(EmailVerifyTokenRequest $request) {
+    public function resendEmailVerifyToken(EmailVerifyTokenRequest $request)
+    {
 
         try {
 
             return DB::transaction(function () use (&$request) {
                 $insertableData = $request->validated();
 
-            $user = User::where(["email" => $insertableData["email"]])->first();
-            if (!$user) {
-                return response()->json(["message" => "no user found"], 404);
-            }
+                $user = User::where(["email" => $insertableData["email"]])->first();
+                if (!$user) {
+                    return response()->json(["message" => "no user found"], 404);
+                }
 
 
 
-            $email_token = Str::random(30);
-            $user->email_verify_token = $email_token;
-            $user->email_verify_token_expires = Carbon::now()->subDays(-1);
+                $email_token = Str::random(30);
+                $user->email_verify_token = $email_token;
+                $user->email_verify_token_expires = Carbon::now()->subDays(-1);
 
                 Mail::to($user->email)->send(new VerifyMail($user));
 
 
-            $user->save();
+                $user->save();
 
 
-            return response()->json([
-                "message" => "please check email"
-            ]);
+                return response()->json([
+                    "message" => "please check email"
+                ]);
             });
-
-
-
-
         } catch (Exception $e) {
 
             return response()->json([
                 "message" => $e->getMessage()
-            ],500);
+            ], 500);
         }
-
     }
 
 
-     /**
+    /**
      * @OA\Post(
      *      path="/auth/register",
      *      operationId="register",
@@ -146,27 +142,27 @@ class AuthController extends Controller
      *     )
      */
     public function register(AuthRegisterRequest $request)
-{
-    // Hash password and set remember token
-    $request['password'] = Hash::make($request['password']);
-    $request['remember_token'] = Str::random(10);
+    {
+        // Hash password and set remember token
+        $request['password'] = Hash::make($request['password']);
+        $request['remember_token'] = Str::random(10);
 
-    // Create user
-    $user = User::create($request->toArray());
+        // Create user
+        $user = User::create($request->toArray());
 
-    // Load relationships for consistent response
-    $user = User::with(['business', 'roles'])->find($user->id);
+        // Load relationships for consistent response
+        $user = User::with(['business', 'roles'])->find($user->id);
 
-    // Generate access token
-    $user->token = $user->createToken('authToken')->accessToken;
+        // Generate access token
+        $user->token = $user->createToken('authToken')->accessToken;
 
-    // Return same format as login response
-    return response()->json($user, 200);
-}
+        // Return same format as login response
+        return response()->json($user, 200);
+    }
     // ##################################################
     // This method is to login a user
     // ##################################################
-     /**
+    /**
      * @OA\Post(
      *      path="/auth",
      *      operationId="login",
@@ -256,16 +252,16 @@ class AuthController extends Controller
         $user_created_date = strtotime($user->created_at);
         $datediff = $now - $user_created_date;
 
-                    if(!$user->email_verified_at && (($datediff / (60 * 60 * 24))>1)){
-                        return response(['message' => 'please activate your email first'], 409);
-                    }
+        if (!$user->email_verified_at && (($datediff / (60 * 60 * 24)) > 1)) {
+            return response(['message' => 'please activate your email first'], 409);
+        }
 
 
-        $user = User::with("business","roles")
-        ->where([
-            "id" => $user->id
-        ])
-        ->first();
+        $user = User::with("business", "roles")
+            ->where([
+                "id" => $user->id
+            ])
+            ->first();
 
         $user->login_attempts = 0;
         $user->last_failed_login_attempt_at = null;
@@ -289,13 +285,13 @@ class AuthController extends Controller
 
 
 
-       /**
-        *
+    /**
+     *
      * @OA\Post(
      *      path="/auth/checkpin/{id}",
      *      operationId="checkPin",
      *      tags={"auth"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to check pin",
@@ -370,13 +366,13 @@ class AuthController extends Controller
     // ##################################################
 
 
-        /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/auth",
      *      operationId="getUserWithRestaurent",
      *      tags={"auth"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to get user with business",
@@ -417,10 +413,10 @@ class AuthController extends Controller
         // @@@@@@@@@@ should connect with restaurent
         $user = $request->user();
         $user = User::with("business")
-        ->where([
-            "id" => $user->id
-        ])
-        ->first();
+            ->where([
+                "id" => $user->id
+            ])
+            ->first();
 
 
         $user->token = auth()->user()->createToken('authToken')->accessToken;
@@ -431,9 +427,8 @@ class AuthController extends Controller
             $user,
             200
         );
-
     }
-     // ##################################################
+    // ##################################################
     // This method is to get user with business
     // ##################################################
 
@@ -490,38 +485,38 @@ class AuthController extends Controller
      */
 
 
-     public function getUser(Request $request)
-     {
-         try {
-             $this->storeActivity($request, "DUMMY activity", "DUMMY description");
+    public function getUser(Request $request)
+    {
+        try {
+            $this->storeActivity($request, "DUMMY activity", "DUMMY description");
 
-             $user = $request->user();
+            $user = $request->user();
 
-             $user->token = auth()->user()->createToken('authToken')->accessToken;
-             $user->permissions = $user->getAllPermissions()->pluck('name');
-             $user->roles = $user->roles->pluck('name');
-             $user->business = $user->business;
-
-
-
-             return response()->json(
-                 $user,
-                 200
-             );
-         } catch (Exception $e) {
-             return $this->sendError($e, 500, $request);
-         }
-     }
+            $user->token = auth()->user()->createToken('authToken')->accessToken;
+            $user->permissions = $user->getAllPermissions()->pluck('name');
+            $user->roles = $user->roles->pluck('name');
+            $user->business = $user->business;
 
 
 
-        /**
-        *
+            return response()->json(
+                $user,
+                200
+            );
+        } catch (Exception $e) {
+            return $this->sendError($e, 500, $request);
+        }
+    }
+
+
+
+    /**
+     *
      * @OA\Get(
      *      path="/auth/users/{perPage}",
      *      operationId="getUsers",
      *      tags={"auth"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *               @OA\Parameter(
@@ -572,13 +567,13 @@ class AuthController extends Controller
      *      )
      *     )
      */
-    public function getUsers($perPage,Request $request)
+    public function getUsers($perPage, Request $request)
     {
         // @@@@@@@@@@ should connect with restaurent
 
         $userQuery = User::with("business");
-        if(!empty($request->search_key)) {
-            $userQuery = $userQuery->where(function($query) use ($request){
+        if (!empty($request->search_key)) {
+            $userQuery = $userQuery->where(function ($query) use ($request) {
                 $term = $request->search_key;
                 $query->where("first_Name", "like", "%" . $term . "%");
                 $query->orWhere("last_Name", "like", "%" . $term . "%");
@@ -590,7 +585,6 @@ class AuthController extends Controller
                 $query->orWhere("Address", "like", "%" . $term . "%");
                 $query->orWhere("door_no", "like", "%" . $term . "%");
             });
-
         }
         $users = $userQuery->orderByDesc("id")->paginate($perPage);
         return response()->json($users, 200);

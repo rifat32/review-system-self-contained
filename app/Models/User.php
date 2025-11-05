@@ -9,9 +9,10 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Cashier\Billable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable,HasRoles, Billable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, Billable;
 
 
     protected $fillable = [
@@ -26,6 +27,7 @@ class User extends Authenticatable
         "door_no",
         "type",
         "business_id",
+        "date_of_birth"
     ];
 
     /**
@@ -39,31 +41,27 @@ class User extends Authenticatable
         'remember_token',
         'resetPasswordToken',
         'resetPasswordExpires',
-            'created_at',
-            'updated_at',
-            'email_verify_token',
-            'email_verify_token_expires',
-            'email_verified_at',
-            "login_attempts",
-            "last_failed_login_attempt_at"
+        'created_at',
+        'updated_at',
+        'email_verify_token',
+        'email_verify_token_expires',
+        'email_verified_at',
+        "login_attempts",
+        "last_failed_login_attempt_at"
     ];
 
-   
+
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
-    public function business() {
-        return $this->hasMany(Business::class,"OwnerID","id");
+    public function business()
+    {
+        return $this->hasMany(Business::class, "OwnerID", "id");
     }
 
     public function feedbacks()
     {
         return $this->hasMany(ReviewNew::class, 'user_id', 'id');
     }
-
-
-
-    
-
 }

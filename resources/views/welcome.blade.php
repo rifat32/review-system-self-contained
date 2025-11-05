@@ -45,11 +45,11 @@
 
 
 
-            {{-- <div class="col-md-3">
+            <div class="col-md-3">
                 <a href="{{ env('APP_URL') }}/migrate" class="btn btn-danger w-100" target="_blank">
                     Migrate
                 </a>
-            </div> --}}
+            </div>
 
             {{-- <div class="col-md-3">
                 <a href="{{ env('APP_URL') }}/roleRefresh" class="btn btn-danger w-100" target="_blank">

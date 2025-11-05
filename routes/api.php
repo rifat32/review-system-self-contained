@@ -18,6 +18,7 @@ use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReviewNewController;
 use App\Http\Controllers\RolesController;
+use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SuperAdminReportController;
 use App\Http\Controllers\UserController;
@@ -126,8 +127,14 @@ Route::post('/review-new-guest/{businessId}', [ReviewNewController::class, "stor
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 Route::middleware(['auth:api'])->group(function () {
 
+    Route::get('/v1.0/staffs',        [StaffController::class, 'getAllStaffs']);   // list
+    Route::get('/v1.0/staffs/{id}',   [StaffController::class, 'getStaffById']);    // read
+    Route::post('/v1.0/staffs',        [StaffController::class, 'createStaff']);   // create
+    Route::patch('/v1.0/staffs/{id}',   [StaffController::class, 'updateStaff']);  // update (partial)
+    Route::delete('/v1.0/staffs/{id}',   [StaffController::class, 'deleteStaff']); // delete
 
-   // #################
+
+    // #################
     // notification  Routes
     // #################
 
@@ -142,7 +149,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/user', [AuthController::class, "getUser"]);
 
 
-   
+
 
 
     Route::post('/v1.0/header-image/{business_id}', [OwnerController::class, "createHeaderImage"]);
@@ -247,7 +254,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::patch('/auth/changepassword', [ForgotPasswordController::class, "changePassword"]);
 
-  
+
 
     // #################
     // review  Routes
@@ -285,8 +292,8 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/review-new/create/questions', [ReviewNewController::class, "storeQuestion"]);
     Route::put('/review-new/update/questions', [ReviewNewController::class, "updateQuestion"]);
 
-    
-     Route::put('/review-new/set-overall-question', [ReviewNewController::class, "setOverallQuestion"]);
+
+    Route::put('/review-new/set-overall-question', [ReviewNewController::class, "setOverallQuestion"]);
 
 
 
@@ -382,14 +389,14 @@ Route::middleware(['auth:api'])->group(function () {
 
 
 
-     
 
-   
+
+
         Route::get('/superadmin/dashboard-report/total-reviews', [SuperAdminReportController::class, "getTotalReviews"]);
         Route::get('/superadmin/dashboard-report/today-reviews', [SuperAdminReportController::class, "getTodayReviews"]);
         Route::get('/superadmin/dashboard-report/review-report', [SuperAdminReportController::class, "getReviewReport"]);
 
-       
+
 
 
 
@@ -436,7 +443,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
 
- 
+
 
 
 
@@ -484,4 +491,4 @@ Route::get('/client/v1.0/business-days/{restaurentId}', [BusinessDaysController:
 
 
 
- Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetailsClient"]);
+Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetailsClient"]);
