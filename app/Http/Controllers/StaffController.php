@@ -327,8 +327,6 @@ class StaffController extends Controller
     // DELETE (soft delete if your model uses SoftDeletes)
     public function deleteStaff($id)
     {
-        $this->authorizeStaff();
-
         $user = User::where('business_id', auth()->user()->business_id)
             ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
             ->find($id);
@@ -448,15 +446,6 @@ class StaffController extends Controller
                         ->orWhere('last_name', 'like', "%$s%");
                 });
             })
-            ->select([
-                'id',
-                'first_name',
-                'last_name',
-                'email',
-                'phone',
-                'date_of_birth',
-                'business_id'
-            ])
             ->orderByDesc('id');
 
         // $perPage = (int)($request->input('per_page', 15));
@@ -532,7 +521,9 @@ class StaffController extends Controller
     public function getStaffById($id)
     {
 
-        $user = User::where('business_id', auth()->user()->business_id)
+        $user = User::with('roles', function ($query) {
+            $query->select('name', 'id');
+        })->where('business_id', auth()->user()->business_id)
             ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
             ->find($id);
 
@@ -541,15 +532,7 @@ class StaffController extends Controller
         }
 
         return response()->json([
-            'data' => [
-                'id'           => $user->id,
-                'first_name'   => $user->first_name,
-                'last_name'    => $user->last_name,
-                'email'        => $user->email,
-                'phone'        => $user->phone,
-                'date_of_birth' => $user->date_of_birth,
-                'role'         => 'staff',
-            ]
+            'data' => $user
         ], 200);
     }
 }
