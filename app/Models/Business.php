@@ -54,7 +54,14 @@ class Business extends Model
         "user_review_report",
         "guest_user_review_report",
         "pin",
-        "time_zone"
+        "time_zone",
+
+
+         'overall_review',
+                'survey',
+                'show_stuffs',
+                'show_stuff_image',
+                'show_stuff_name',
     ];
 
     

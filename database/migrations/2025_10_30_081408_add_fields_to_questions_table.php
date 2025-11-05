@@ -18,6 +18,8 @@ class AddFieldsToQuestionsTable extends Migration
         $table->float('weight')->default(1.0);
         $table->enum('sentiment', ['positive','neutral','negative'])->nullable();
         $table->boolean('is_overall')->default(false);
+           $table->boolean("show_in_guest_user")->default(true);
+            $table->boolean("show_in_user")->default(true);
     });
 }
 
@@ -30,7 +32,7 @@ class AddFieldsToQuestionsTable extends Migration
     public function down()
     {
         Schema::table('questions', function (Blueprint $table) {
-          $table->dropColumn([ 'weight', 'sentiment']);
+          $table->dropColumn([ 'weight', 'sentiment', 'show_in_guest_user', 'show_in_user']);
 
         });
     }

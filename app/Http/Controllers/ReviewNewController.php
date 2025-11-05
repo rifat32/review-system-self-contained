@@ -796,6 +796,8 @@ class ReviewNewController extends Controller
      *            @OA\Property(property="question", type="string", format="string",example="How was this?"),
      *  @OA\Property(property="business_id", type="number", format="number",example="1"),
      * *  @OA\Property(property="is_active", type="boolean", format="boolean",example="1"),
+     *      *  *  @OA\Property(property="show_in_guest_user", type="boolean", format="boolean",example="1"),
+     * *  *  @OA\Property(property="show_in_user", type="boolean", format="boolean",example="1"),
      * * *  @OA\Property(property="type", type="string", format="string",example="star"),
      *
      *
@@ -842,6 +844,8 @@ class ReviewNewController extends Controller
             'business_id' => $request->business_id,
             'is_active' => $request->is_active,
             'type' => !empty($request->type)?$request->type:"star",
+                'show_in_guest_user' => $request->show_in_guest_user,
+            'show_in_user' => $request->show_in_user,
             "is_overall"=>$request->is_overall ?? 0,
         ];
         if ($request->user()->hasRole("superadmin")) {
@@ -887,7 +891,8 @@ class ReviewNewController extends Controller
       *  @OA\Property(property="id", type="number", format="number",example="1"),
      *            @OA\Property(property="question", type="string", format="string",example="was it good?"),
      *  *            @OA\Property(property="type", type="string", format="string",example="star"),
-     *
+     *     *  *  @OA\Property(property="show_in_guest_user", type="boolean", format="boolean",example="1"),
+     * *  *  @OA\Property(property="show_in_user", type="boolean", format="boolean",example="1"),
 
      *   @OA\Property(property="is_active", type="boolean", format="boolean",example="1"),
      *
@@ -935,6 +940,8 @@ class ReviewNewController extends Controller
         $question = [
             'type' => $request->type,
             'question' => $request->question,
+            'show_in_guest_user' => $request->show_in_guest_user,
+            'show_in_user' => $request->show_in_user,
             "is_active"=>$request->is_active,
         ];
         $checkQuestion =    Question::where(["id" => $request->id])->first();

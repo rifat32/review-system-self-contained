@@ -13,6 +13,8 @@ class Question extends Model
        "business_id",
        "is_default",
        "is_active",
+       "show_in_guest_user",
+       "show_in_user",
        "type"
     ];
 
