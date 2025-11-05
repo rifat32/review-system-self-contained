@@ -44,14 +44,13 @@ class ReviewNewController extends Controller
         }
 
         return response($raviewValue_array, 201);
-
     }
     // ##################################################
     // This method is to get   ReviewValue
     // ##################################################
 
-      /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/getvalues/{businessId}/{rate}",
      *      operationId="getReviewValues",
@@ -59,20 +58,20 @@ class ReviewNewController extends Controller
      *   *       security={
      *           {"bearerAuth": {}}
      *       },
-    *  @OA\Parameter(
-* name="businessId",
-* in="path",
-* description="businessId",
-* required=true,
-* example="1"
-* ),
-   *  @OA\Parameter(
-* name="rate",
-* in="path",
-* description="rate",
-* required=true,
-* example="1"
-* ),
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
+     *  @OA\Parameter(
+     * name="rate",
+     * in="path",
+     * description="rate",
+     * required=true,
+     * example="1"
+     * ),
      *      summary="This method is to get   Review Value",
      *      description="This method is to get   Review Value",
      *      @OA\Response(
@@ -139,8 +138,8 @@ class ReviewNewController extends Controller
     // ##################################################
     // This method is to get average
     // ##################################################
-       /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/getavg/review/{businessId}/{start}/{end}",
      *      operationId="getAverage",
@@ -148,27 +147,27 @@ class ReviewNewController extends Controller
      *   *       security={
      *           {"bearerAuth": {}}
      *       },
-    *  @OA\Parameter(
-* name="businessId",
-* in="path",
-* description="businessId",
-* required=true,
-* example="1"
-* ),
-  *  @OA\Parameter(
-* name="start",
-* in="path",
-* description="from date",
-* required=true,
-* example="2019-06-29"
-* ),
-  *  @OA\Parameter(
-* name="end",
-* in="path",
-* description="to date",
-* required=true,
-* example="2026-06-29"
-* ),
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
+     *  @OA\Parameter(
+     * name="start",
+     * in="path",
+     * description="from date",
+     * required=true,
+     * example="2019-06-29"
+     * ),
+     *  @OA\Parameter(
+     * name="end",
+     * in="path",
+     * description="to date",
+     * required=true,
+     * example="2026-06-29"
+     * ),
      *      summary="This method is to get average",
      *      description="This method is to get average",
      *      @OA\Response(
@@ -266,8 +265,8 @@ class ReviewNewController extends Controller
     // ##################################################
     // This method is to filter   Review
     // ##################################################
-   /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/getreview/{businessId}/{rate}/{start}/{end}",
      *      operationId="filterReview",
@@ -275,34 +274,34 @@ class ReviewNewController extends Controller
      *        security={
      *           {"bearerAuth": {}}
      *       },
-        *  @OA\Parameter(
-* name="businessId",
-* in="path",
-* description="businessId",
-* required=true,
-* example="1"
-* ),
-    *  @OA\Parameter(
-* name="rate",
-* in="path",
-* description="rate",
-* required=true,
-* example="1"
-* ),
-  *  @OA\Parameter(
-* name="start",
-* in="path",
-* description="from date",
-* required=true,
-* example="2019-06-29"
-* ),
-  *  @OA\Parameter(
-* name="end",
-* in="path",
-* description="to date",
-* required=true,
-* example="2026-06-29"
-* ),
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
+     *  @OA\Parameter(
+     * name="rate",
+     * in="path",
+     * description="rate",
+     * required=true,
+     * example="1"
+     * ),
+     *  @OA\Parameter(
+     * name="start",
+     * in="path",
+     * description="from date",
+     * required=true,
+     * example="2019-06-29"
+     * ),
+     *  @OA\Parameter(
+     * name="end",
+     * in="path",
+     * description="to date",
+     * required=true,
+     * example="2026-06-29"
+     * ),
      *      summary="This method is to filter   Review",
      *      description="This method is to filter   Review",
      *      @OA\Response(
@@ -344,7 +343,7 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
             "rate" => $rate
         ])
-            ->with("business","value")
+            ->with("business", "value")
             ->whereBetween('created_at', [$start, $end])
             ->get();
 
@@ -354,8 +353,8 @@ class ReviewNewController extends Controller
     // ##################################################
     // This method is to get review by business id
     // ##################################################
-     /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/getreviewAll/{businessId}",
      *      operationId="getReviewByBusinessId",
@@ -363,13 +362,13 @@ class ReviewNewController extends Controller
      *        security={
      *           {"bearerAuth": {}}
      *       },
-        *  @OA\Parameter(
-* name="businessId",
-* in="path",
-* description="businessId",
-* required=true,
-* example="1"
-* ),
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
 
      *      summary="This method is to get review by business id",
      *      description="This method is to get review by business id",
@@ -420,8 +419,8 @@ class ReviewNewController extends Controller
     // ##################################################
 
 
-     /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/getcustomerreview/{businessId}/{start}/{end}",
      *      operationId="getCustommerReview",
@@ -429,28 +428,28 @@ class ReviewNewController extends Controller
      *        security={
      *           {"bearerAuth": {}}
      *       },
-        *  @OA\Parameter(
-* name="businessId",
-* in="path",
-* description="businessId",
-* required=true,
-* example="1"
-* ),
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
 
-  *  @OA\Parameter(
-* name="start",
-* in="path",
-* description="from date",
-* required=true,
-* example="2019-06-29"
-* ),
-  *  @OA\Parameter(
-* name="end",
-* in="path",
-* description="to date",
-* required=true,
-* example="2026-06-29"
-* ),
+     *  @OA\Parameter(
+     * name="start",
+     * in="path",
+     * description="from date",
+     * required=true,
+     * example="2019-06-29"
+     * ),
+     *  @OA\Parameter(
+     * name="end",
+     * in="path",
+     * description="to date",
+     * required=true,
+     * example="2026-06-29"
+     * ),
      *      summary="This method is to get customer review",
      *      description="This method is to get customer review",
      *      @OA\Response(
@@ -528,22 +527,22 @@ class ReviewNewController extends Controller
     // ##################################################
     // This method is to store review
     // ##################################################
-    
-     /**
-        *
+
+    /**
+     *
      * @OA\Post(
      *      path="/review-new/{businessId}",
      *      operationId="storeReview",
      *      tags={"review"},
      *    *  @OA\Parameter(
-* name="businessId",
-* in="path",
-* description="businessId",
-* required=true,
-* example="1"
-* ),
-*
-  *       security={
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
+     *
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to store review",
@@ -561,7 +560,7 @@ class ReviewNewController extends Controller
      *    *  @OA\Property(property="values", type="string", format="array",example={
 
      *  {"question_id":1,"tag_id":2,"star_id":1},
-    *  {"question_id":2,"tag_id":1,"star_id":4},
+     *  {"question_id":2,"tag_id":1,"star_id":4},
 
      * }
      *
@@ -606,66 +605,65 @@ class ReviewNewController extends Controller
     public function storeReview($businessId,  Request $request)
     {
 
-            $review = [
-                'description' => $request["description"],
-                'business_id' => $businessId,
-                'rate' => $request["rate"],
-                'user_id' => $request->user()->id,
-                'comment' => $request["comment"],
+        $review = [
+            'description' => $request["description"],
+            'business_id' => $businessId,
+            'rate' => $request["rate"],
+            'user_id' => $request->user()->id,
+            'comment' => $request["comment"],
             //     'question_id' => $singleReview["question_id"],
             // 'tag_id' => $request->tag_id,
             // 'star_id' => $request->star_id,
-            ];
+        ];
 
-            $createdReview =   ReviewNew::create($review);
+        $createdReview =   ReviewNew::create($review);
 
-            $rate = 0;
-            $questionCount = 0;
-            $previousQuestionId = NULL;
-            foreach ($request["values"] as $value) {
-               if(!$previousQuestionId) {
+        $rate = 0;
+        $questionCount = 0;
+        $previousQuestionId = NULL;
+        foreach ($request["values"] as $value) {
+            if (!$previousQuestionId) {
                 $previousQuestionId = $value["question_id"];
                 $rate += $value["star_id"];
-               }else {
+            } else {
 
-                if($value["question_id"] != $previousQuestionId) {
+                if ($value["question_id"] != $previousQuestionId) {
                     $rate += $value["star_id"];
                     $previousQuestionId = $value["question_id"];
                     $questionCount += 1;
                 }
-
-               }
-
-               $createdReview->rate =  $rate;
-               $createdReview->save();
-                $value["review_id"] = $createdReview->id;
-                // $value["question_id"] = $createdReview->question_id;
-                // $value["tag_id"] = $createdReview->tag_id;
-                // $value["star_id"] = $createdReview->star_id;
-                ReviewValueNew::create($value);
             }
+
+            $createdReview->rate =  $rate;
+            $createdReview->save();
+            $value["review_id"] = $createdReview->id;
+            // $value["question_id"] = $createdReview->question_id;
+            // $value["tag_id"] = $createdReview->tag_id;
+            // $value["star_id"] = $createdReview->star_id;
+            ReviewValueNew::create($value);
+        }
 
 
         return response(["message" => "created successfully"], 201);
     }
-     // ##################################################
+    // ##################################################
     // This method is to store review
     // ##################################################
-     /**
-        *
+    /**
+     *
      * @OA\Post(
      *      path="/review-new-guest/{businessId}",
      *      operationId="storeReviewByGuest",
      *      tags={"review"},
      *    *  @OA\Parameter(
-* name="businessId",
-* in="path",
-* description="businessId",
-* required=true,
-* example="1"
-* ),
-*
-  *       security={
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
+     *
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to store review by guest user",
@@ -685,7 +683,7 @@ class ReviewNewController extends Controller
      *    *  @OA\Property(property="values", type="string", format="array",example={
 
      *  {"question_id":1,"tag_id":2,"star_id":1},
-    *  {"question_id":2,"tag_id":1,"star_id":4},
+     *  {"question_id":2,"tag_id":1,"star_id":4},
 
      * }
      *
@@ -730,45 +728,44 @@ class ReviewNewController extends Controller
     public function storeReviewByGuest($businessId,  Request $request)
     {
 
-            $guestData = [
-                'full_name' => $request["guest_full_name"],
-                'phone' => $request["guest_phone"],
-            ];
+        $guestData = [
+            'full_name' => $request["guest_full_name"],
+            'phone' => $request["guest_phone"],
+        ];
 
-            $guest = GuestUser::create($guestData);
-            $review = [
-                'description' => $request["description"],
-                'business_id' => $businessId,
-                'rate' => $request["rate"],
-                'guest_id' => $guest->id,
-                'comment' => $request["comment"],
+        $guest = GuestUser::create($guestData);
+        $review = [
+            'description' => $request["description"],
+            'business_id' => $businessId,
+            'rate' => $request["rate"],
+            'guest_id' => $guest->id,
+            'comment' => $request["comment"],
 
-            ];
-            $createdReview =   ReviewNew::create($review);
+        ];
+        $createdReview =   ReviewNew::create($review);
 
-            $rate = 0;
-            $questionCount = 0;
-            $previousQuestionId = NULL;
-            foreach ($request["values"] as $value) {
-               if(!$previousQuestionId) {
+        $rate = 0;
+        $questionCount = 0;
+        $previousQuestionId = NULL;
+        foreach ($request["values"] as $value) {
+            if (!$previousQuestionId) {
                 $previousQuestionId = $value["question_id"];
                 $rate += $value["star_id"];
-               }else {
+            } else {
 
-                if($value["question_id"] != $previousQuestionId) {
+                if ($value["question_id"] != $previousQuestionId) {
                     $rate += $value["star_id"];
                     $previousQuestionId = $value["question_id"];
                     $questionCount += 1;
                 }
-
-               }
-
-               $createdReview->rate =  $rate;
-               $createdReview->save();
-                $value["review_id"] = $createdReview->id;
-              
-                ReviewValueNew::create($value);
             }
+
+            $createdReview->rate =  $rate;
+            $createdReview->save();
+            $value["review_id"] = $createdReview->id;
+
+            ReviewValueNew::create($value);
+        }
 
 
         return response(["message" => "created successfully"], 201);
@@ -776,13 +773,13 @@ class ReviewNewController extends Controller
     // ##################################################
     // This method is to store question
     // ##################################################
-     /**
-        *
+    /**
+     *
      * @OA\Post(
      *      path="/review-new/create/questions",
      *      operationId="storeQuestion",
      *      tags={"review.setting.question"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to store question",
@@ -843,23 +840,23 @@ class ReviewNewController extends Controller
             'question' => $request->question,
             'business_id' => $request->business_id,
             'is_active' => $request->is_active,
-            'type' => !empty($request->type)?$request->type:"star",
-                'show_in_guest_user' => $request->show_in_guest_user,
+            'type' => !empty($request->type) ? $request->type : "star",
+            'show_in_guest_user' => $request->show_in_guest_user,
             'show_in_user' => $request->show_in_user,
-            "is_overall"=>$request->is_overall ?? 0,
+            "is_overall" => $request->is_overall ?? 0,
         ];
         if ($request->user()->hasRole("superadmin")) {
             $question["is_default"] = true;
             $question["business_id"] = NULL;
         } else {
 
-            $business =    Business::where(["id" => $request->business_id,"OwnerID" => $request->user()->id])->first();
+            $business =    Business::where(["id" => $request->business_id, "OwnerID" => $request->user()->id])->first();
 
-            if(!$business){
-                return response()->json(["message" => "No Business Found"],400);
+            if (!$business) {
+                return response()->json(["message" => "No Business Found"], 400);
             }
             if ($business->enable_question == true) {
-                return response()->json(["message" => "question is enabled"],400);
+                return response()->json(["message" => "question is enabled"], 400);
             }
         }
 
@@ -871,13 +868,13 @@ class ReviewNewController extends Controller
     // ##################################################
     // This method is to update question
     // ##################################################
-     /**
-        *
+    /**
+     *
      * @OA\Put(
      *      path="/review-new/update/questions",
      *      operationId="updateQuestion",
      *      tags={"review.setting.question"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to update question",
@@ -888,7 +885,7 @@ class ReviewNewController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *            required={"question","is_active","id"},
-      *  @OA\Property(property="id", type="number", format="number",example="1"),
+     *  @OA\Property(property="id", type="number", format="number",example="1"),
      *            @OA\Property(property="question", type="string", format="string",example="was it good?"),
      *  *            @OA\Property(property="type", type="string", format="string",example="star"),
      *     *  *  @OA\Property(property="show_in_guest_user", type="boolean", format="boolean",example="1"),
@@ -942,7 +939,7 @@ class ReviewNewController extends Controller
             'question' => $request->question,
             'show_in_guest_user' => $request->show_in_guest_user,
             'show_in_user' => $request->show_in_user,
-            "is_active"=>$request->is_active,
+            "is_active" => $request->is_active,
         ];
         $checkQuestion =    Question::where(["id" => $request->id])->first();
         if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
@@ -954,82 +951,82 @@ class ReviewNewController extends Controller
             // ->with("somthing")
 
             ->first();
-            $updatedQuestion->info = "supported value is of type is 'star','emoji','numbers','heart'";
+        $updatedQuestion->info = "supported value is of type is 'star','emoji','numbers','heart'";
 
         return response($updatedQuestion, 200);
     }
 
-/**
- *
- * @OA\Put(
- *      path="/review-new/set-overall-question",
- *      operationId="setOverallQuestion",
- *      tags={"review.setting.question"},
- *      security={{"bearerAuth": {}}},
- *      summary="Set a question as overall and make all others non-overall",
- *      description="This method marks one question as overall and updates all other questions for the same business to non-overall.",
- *
- *  @OA\RequestBody(
- *      required=true,
- *      @OA\JsonContent(
- *          required={"question_id","business_id"},
- *          @OA\Property(property="question_id", type="number", example=1),
- *          @OA\Property(property="business_id", type="number", example=1)
- *      )
- *  ),
- *  @OA\Response(response=200, description="Successful operation", @OA\JsonContent()),
- *  @OA\Response(response=400, description="Bad Request", @OA\JsonContent()),
- *  @OA\Response(response=404, description="Not Found", @OA\JsonContent())
- * )
- */
-public function setOverallQuestion(Request $request)
-{
-    $request->validate([
-        'question_id' => 'required|integer|exists:questions,id',
-        'business_id' => 'required|integer|exists:businesses,id',
-    ]);
+    /**
+     *
+     * @OA\Put(
+     *      path="/review-new/set-overall-question",
+     *      operationId="setOverallQuestion",
+     *      tags={"review.setting.question"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Set a question as overall and make all others non-overall",
+     *      description="This method marks one question as overall and updates all other questions for the same business to non-overall.",
+     *
+     *  @OA\RequestBody(
+     *      required=true,
+     *      @OA\JsonContent(
+     *          required={"question_id","business_id"},
+     *          @OA\Property(property="question_id", type="number", example=1),
+     *          @OA\Property(property="business_id", type="number", example=1)
+     *      )
+     *  ),
+     *  @OA\Response(response=200, description="Successful operation", @OA\JsonContent()),
+     *  @OA\Response(response=400, description="Bad Request", @OA\JsonContent()),
+     *  @OA\Response(response=404, description="Not Found", @OA\JsonContent())
+     * )
+     */
+    public function setOverallQuestion(Request $request)
+    {
+        $request->validate([
+            'question_id' => 'required|integer|exists:questions,id',
+            'business_id' => 'required|integer|exists:businesses,id',
+        ]);
 
-    // Check if user owns the business or is superadmin
-    $business = Business::where('id', $request->business_id)
-        ->when(!$request->user()->hasRole('superadmin'), function ($q) use ($request) {
-            $q->where('OwnerID', $request->user()->id);
-        })->first();
+        // Check if user owns the business or is superadmin
+        $business = Business::where('id', $request->business_id)
+            ->when(!$request->user()->hasRole('superadmin'), function ($q) use ($request) {
+                $q->where('OwnerID', $request->user()->id);
+            })->first();
 
-    if (!$business) {
-        return response()->json(['message' => 'Business not found or access denied'], 400);
+        if (!$business) {
+            return response()->json(['message' => 'Business not found or access denied'], 400);
+        }
+
+        // Start transaction
+        DB::transaction(function () use ($request) {
+            // Make all questions non-overall for this business
+            Question::where('business_id', $request->business_id)
+                ->update(['is_overall' => 0]);
+
+            // Set the selected question as overall
+            Question::where('id', $request->question_id)
+                ->update(['is_overall' => 1]);
+        });
+
+        $overall_question = Question::find($request->question_id);
+        return response()->json([
+            'message' => 'Overall question updated successfully',
+            'overall_question' => $overall_question
+        ], 200);
     }
 
-    // Start transaction
-    DB::transaction(function () use ($request) {
-        // Make all questions non-overall for this business
-        Question::where('business_id', $request->business_id)
-            ->update(['is_overall' => 0]);
-
-        // Set the selected question as overall
-        Question::where('id', $request->question_id)
-            ->update(['is_overall' => 1]);
-    });
-
-    $overall_question = Question::find($request->question_id);
-    return response()->json([
-        'message' => 'Overall question updated successfully',
-        'overall_question' => $overall_question
-    ], 200);
-}
 
 
-
-     // ##################################################
+    // ##################################################
     // This method is to update question's active state
     // ##################################################
 
-     /**
-        *
+    /**
+     *
      * @OA\Put(
      *      path="/review-new/update/active_state/questions",
      *      operationId="updateQuestionActiveState",
      *      tags={"review.setting.question"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to update question's active state",
@@ -1039,7 +1036,7 @@ public function setOverallQuestion(Request $request)
      *         required=true,
      *         @OA\JsonContent(
      *            required={"is_active","id"},
-      *  @OA\Property(property="id", type="number", format="number",example="1"),
+     *  @OA\Property(property="id", type="number", format="number",example="1"),
      *   @OA\Property(property="is_active", type="boolean", format="boolean",example="1"),
      *
      *
@@ -1083,7 +1080,7 @@ public function setOverallQuestion(Request $request)
     public function updateQuestionActiveState(Request $request)
     {
         $question = [
-            "is_active"=>$request->is_active,
+            "is_active" => $request->is_active,
         ];
         $checkQuestion =    Question::where(["id" => $request->id])->first();
         if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
@@ -1105,19 +1102,19 @@ public function setOverallQuestion(Request $request)
     // ##################################################
 
 
-     /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions",
      *      operationId="getQuestion",
      *      tags={"review.setting.question"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to get question",
      *      description="This method is to get question",
      *
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -1160,40 +1157,47 @@ public function setOverallQuestion(Request $request)
      */
     public function   getQuestion(Request $request)
     {
-        $is_dafault = false;
-        $businessId = !empty($request->business_id)?$request->business_id:NULL;
+        $is_default = false;
+        $businessId = !empty($request->business_id) ? $request->business_id : NULL;
         if ($request->user()->hasRole("superadmin")) {
 
-            $is_dafault = true;
+            $is_default = true;
             $businessId = NULL;
-
-        }else{
+        } else {
             $business =    Business::where(["id" => $request->business_id])->first();
-            if(!$business && !$request->user()->hasRole("superadmin")){
+            if (!$business && !$request->user()->hasRole("superadmin")) {
                 return response("No Business Found", 404);
             }
             // if ($business->enable_question == true) {
-            //     $is_dafault = true;
+            //     $is_default = true;
 
             // }
         }
 
 
-        $query =  Question::where(["business_id" => $businessId,"is_default" => $is_dafault]);
+        $query =  Question::where(["business_id" => $businessId, "is_default" => $is_default])
+            ->when($request->boolean("is_user"), function ($q) use ($request) {
+                return $q->where("show_in_user", $request->is_user);
+            })
+            ->when($request->boolean("exclude_user"), function ($q) use ($request) {
+                return $q->where("show_in_user", false);
+            })
+            ->when($request->boolean("is_guest_user"), function ($q) use ($request) {
+                return $q->where("show_in_guest_user", $request->is_guest_user);
+            })
+            ->when($request->boolean("exclude_guest_user"), function ($q) use ($request) {
+                return $q->where("show_in_guest_user", false);
+            });
 
 
         $questions =  $query->get();
 
 
-    return response($questions, 200);
-
-
-
-
+        return response($questions, 200);
     }
 
- /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all/customer",
      *      operationId="getQuestionAllUnauthorized",
@@ -1202,7 +1206,7 @@ public function setOverallQuestion(Request $request)
      *      summary="This method is to get all question without pagination",
      *      description="This method is to get all question without pagination",
      *
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -1253,21 +1257,19 @@ public function setOverallQuestion(Request $request)
     {
         $is_dafault = false;
 
-            $business =    Business::where(["id" => $request->business_id])->first();
-            if(!$business){
-                return response("No Business Found", 404);
-            }
-            // if ($business->enable_question == true) {
-            //     $query =  Question::where(["is_default" => 1]);
-            // }
-            // else {
-                $query =  Question::where(["business_id" => $request->business_id,"is_default" => 0])
-                ->when(request()->filled("is_active"), function($query) {
-                    $query->where("questions.is_active",request()->input("is_active"));
-                 })
-
-                ;
-            // }
+        $business =    Business::where(["id" => $request->business_id])->first();
+        if (!$business) {
+            return response("No Business Found", 404);
+        }
+        // if ($business->enable_question == true) {
+        //     $query =  Question::where(["is_default" => 1]);
+        // }
+        // else {
+        $query =  Question::where(["business_id" => $request->business_id, "is_default" => 0])
+            ->when(request()->filled("is_active"), function ($query) {
+                $query->where("questions.is_active", request()->input("is_active"));
+            });
+        // }
 
 
 
@@ -1275,32 +1277,23 @@ public function setOverallQuestion(Request $request)
 
         $questions =  $query->get();
 
-    $data =  json_decode(json_encode($questions), true);
-    foreach($questions as $key1=>$question){
+        $data =  json_decode(json_encode($questions), true);
+        foreach ($questions as $key1 => $question) {
 
-        foreach($question->question_stars as $key2=>$questionStar){
-            $data[$key1]["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
-
-
-            $data[$key1]["stars"][$key2]["tags"] = [];
-            foreach($questionStar->star->star_tags as $key3=>$starTag){
-if($starTag->question_id == $question->id) {
-
-    array_push($data[$key1]["stars"][$key2]["tags"],json_decode(json_encode($starTag->tag), true));
+            foreach ($question->question_stars as $key2 => $questionStar) {
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
 
-}
+                $data[$key1]["stars"][$key2]["tags"] = [];
+                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+                    if ($starTag->question_id == $question->id) {
 
-
-
+                        array_push($data[$key1]["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
+                    }
+                }
             }
-
         }
-
-    }
-    return response($data, 200);
-
-
+        return response($data, 200);
     }
 
 
@@ -1320,8 +1313,8 @@ if($starTag->question_id == $question->id) {
 
 
 
-      /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all",
      *      operationId="getQuestionAll",
@@ -1332,7 +1325,7 @@ if($starTag->question_id == $question->id) {
      *       security={
      *           {"bearerAuth": {}}
      *       },
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -1379,10 +1372,9 @@ if($starTag->question_id == $question->id) {
         if ($request->user()->hasRole("superadmin")) {
 
             $is_dafault = true;
-
-        }else{
+        } else {
             $business =    Business::where(["id" => $request->business_id])->first();
-            if(!$business && !$request->user()->hasRole("superadmin")){
+            if (!$business && !$request->user()->hasRole("superadmin")) {
                 return response("No Business Found", 404);
             }
             // if ($business->enable_question == true) {
@@ -1392,41 +1384,32 @@ if($starTag->question_id == $question->id) {
         }
 
 
-        $query =  Question::where(["business_id" => $request->business_id,"is_default" => $is_dafault]);
+        $query =  Question::where(["business_id" => $request->business_id, "is_default" => $is_dafault]);
 
 
         $questions =  $query->get();
 
-    $data =  json_decode(json_encode($questions), true);
-    foreach($questions as $key1=>$question){
+        $data =  json_decode(json_encode($questions), true);
+        foreach ($questions as $key1 => $question) {
 
-        foreach($question->question_stars as $key2=>$questionStar){
-            $data[$key1]["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
-
-
-            $data[$key1]["stars"][$key2]["tags"] = [];
-            foreach($questionStar->star->star_tags as $key3=>$starTag){
-if($starTag->question_id == $question->id) {
-
-    array_push($data[$key1]["stars"][$key2]["tags"],json_decode(json_encode($starTag->tag), true));
+            foreach ($question->question_stars as $key2 => $questionStar) {
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
 
-}
+                $data[$key1]["stars"][$key2]["tags"] = [];
+                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+                    if ($starTag->question_id == $question->id) {
 
-
-
+                        array_push($data[$key1]["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
+                    }
+                }
             }
-
         }
-
-    }
-    return response($data, 200);
-
-
+        return response($data, 200);
     }
 
-  /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all-report",
      *      operationId="getQuestionAllReport",
@@ -1437,7 +1420,7 @@ if($starTag->question_id == $question->id) {
      *       security={
      *           {"bearerAuth": {}}
      *       },
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -1493,191 +1476,179 @@ if($starTag->question_id == $question->id) {
      *     )
      */
 
-    public function getQuestionAllReport(Request $request) {
+    public function getQuestionAllReport(Request $request)
+    {
 
 
-            $business =    Business::where(["id" => $request->business_id])->first();
-            if(!$business){
-                return response("No Business Found", 404);
-            }
+        $business =    Business::where(["id" => $request->business_id])->first();
+        if (!$business) {
+            return response("No Business Found", 404);
+        }
 
-        $query =  Question::where(["business_id" => $request->business_id,"is_default" => false]);
+        $query =  Question::where(["business_id" => $request->business_id, "is_default" => false]);
 
         $questions =  $query->get();
 
         $questionsCount = $query->get()->count();
 
-    $data =  json_decode(json_encode($questions), true);
-    foreach($questions as $key1=>$question){
+        $data =  json_decode(json_encode($questions), true);
+        foreach ($questions as $key1 => $question) {
 
-        $tags_rating = [];
-       $starCountTotal = 0;
-       $starCountTotalTimes = 0;
-        foreach($question->question_stars as $key2=>$questionStar){
-
-
-            $data[$key1]["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
-
-            $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->where([
-                "review_news.business_id" => $business->id,
-                "question_id" => $question->id,
-                "star_id" => $questionStar->star->id,
-                "review_news.guest_id" => NULL
-
-                ]
-            );
-            if(!empty($request->start_date) && !empty($request->end_date)) {
-
-                $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->whereBetween('review_news.created_at', [
-                    $request->start_date,
-                    $request->end_date
-                ]);
-
-            }
-            $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->get()
-            ->count();
-
-            $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
-
-            $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
-            $data[$key1]["stars"][$key2]["tag_ratings"] = [];
-            if($starCountTotalTimes > 0) {
-                $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
-            }
+            $tags_rating = [];
+            $starCountTotal = 0;
+            $starCountTotalTimes = 0;
+            foreach ($question->question_stars as $key2 => $questionStar) {
 
 
-            foreach($questionStar->star->star_tags as $key3=>$starTag){
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
+                $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                    ->where(
+                        [
+                            "review_news.business_id" => $business->id,
+                            "question_id" => $question->id,
+                            "star_id" => $questionStar->star->id,
+                            "review_news.guest_id" => NULL
 
-         if($starTag->question_id == $question->id) {
+                        ]
+                    );
+                if (!empty($request->start_date) && !empty($request->end_date)) {
 
-            $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->where([
-                "review_news.business_id" => $business->id,
-                "question_id" => $question->id,
-                "tag_id" => $starTag->tag->id,
-                "review_news.guest_id" => NULL
-                ]
-            );
-            if(!empty($request->start_date) && !empty($request->end_date)) {
+                    $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->whereBetween('review_news.created_at', [
+                        $request->start_date,
+                        $request->end_date
+                    ]);
+                }
+                $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->get()
+                    ->count();
 
-                $starTag->tag->count = $starTag->tag->count->whereBetween('review_news.created_at', [
-                    $request->start_date,
-                    $request->end_date
-                ]);
+                $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
 
-            }
-
-            $starTag->tag->count = $starTag->tag->count->get()->count();
-            if($starTag->tag->count > 0) {
-                array_push($tags_rating,json_decode(json_encode($starTag->tag)));
-                           }
-
-
-            $starTag->tag->total =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->where([
-                "review_news.business_id" => $business->id,
-                "question_id" => $question->id,
-                "star_id" => $questionStar->star->id,
-                "tag_id" => $starTag->tag->id,
-                "review_news.guest_id" => NULL
-                ]
-            );
-            if(!empty($request->start_date) && !empty($request->end_date)) {
-
-                $starTag->tag->total = $starTag->tag->total->whereBetween('review_news.created_at', [
-                    $request->start_date,
-                    $request->end_date
-                ]);
-
-            }
-            $starTag->tag->total = $starTag->tag->total->get()->count();
-
-                if($starTag->tag->total > 0) {
-                    unset($starTag->tag->count);
-                    array_push($data[$key1]["stars"][$key2]["tag_ratings"],json_decode(json_encode($starTag->tag)));
+                $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
+                $data[$key1]["stars"][$key2]["tag_ratings"] = [];
+                if ($starCountTotalTimes > 0) {
+                    $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
                 }
 
 
-          }
+                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
 
 
+                    if ($starTag->question_id == $question->id) {
 
+                        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->where(
+                                [
+                                    "review_news.business_id" => $business->id,
+                                    "question_id" => $question->id,
+                                    "tag_id" => $starTag->tag->id,
+                                    "review_news.guest_id" => NULL
+                                ]
+                            );
+                        if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                            $starTag->tag->count = $starTag->tag->count->whereBetween('review_news.created_at', [
+                                $request->start_date,
+                                $request->end_date
+                            ]);
+                        }
+
+                        $starTag->tag->count = $starTag->tag->count->get()->count();
+                        if ($starTag->tag->count > 0) {
+                            array_push($tags_rating, json_decode(json_encode($starTag->tag)));
+                        }
+
+
+                        $starTag->tag->total =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->where(
+                                [
+                                    "review_news.business_id" => $business->id,
+                                    "question_id" => $question->id,
+                                    "star_id" => $questionStar->star->id,
+                                    "tag_id" => $starTag->tag->id,
+                                    "review_news.guest_id" => NULL
+                                ]
+                            );
+                        if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                            $starTag->tag->total = $starTag->tag->total->whereBetween('review_news.created_at', [
+                                $request->start_date,
+                                $request->end_date
+                            ]);
+                        }
+                        $starTag->tag->total = $starTag->tag->total->get()->count();
+
+                        if ($starTag->tag->total > 0) {
+                            unset($starTag->tag->count);
+                            array_push($data[$key1]["stars"][$key2]["tag_ratings"], json_decode(json_encode($starTag->tag)));
+                        }
+                    }
+                }
             }
 
+
+            $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
         }
 
 
-        $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
-    }
 
 
 
+        $totalCount = 0;
+        $ttotalRating = 0;
 
+        foreach (Star::get() as $star) {
 
-$totalCount = 0;
-$ttotalRating = 0;
+            $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                ->where([
+                    "review_news.business_id" => $business->id,
+                    "star_id" => $star->id,
+                    "review_news.guest_id" => NULL
+                ])
+                ->distinct("review_value_news.review_id", "review_value_news.question_id");
+            if (!empty($request->start_date) && !empty($request->end_date)) {
 
-foreach(Star::get() as $star) {
+                $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->whereBetween('review_news.created_at', [
+                    $request->start_date,
+                    $request->end_date
+                ]);
+            }
+            $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->count();
 
-    $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-    ->where([
-        "review_news.business_id" => $business->id,
-        "star_id" => $star->id,
-        "review_news.guest_id" => NULL
-    ])
-    ->distinct("review_value_news.review_id","review_value_news.question_id");
-    if(!empty($request->start_date) && !empty($request->end_date)) {
+            $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
 
-        $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->whereBetween('review_news.created_at', [
-            $request->start_date,
-            $request->end_date
-        ]);
+            $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
+        }
+        if ($totalCount > 0) {
+            $data2["total_rating"] = $totalCount / $ttotalRating;
+        } else {
+            $data2["total_rating"] = 0;
+        }
 
-    }
-    $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->count();
+        $data2["total_comment"] = ReviewNew::with("user", "guest_user")->where([
+            "business_id" => $business->id,
+            "guest_id" => NULL,
+        ])
+            ->whereNotNull("comment");
+        if (!empty($request->start_date) && !empty($request->end_date)) {
 
-    $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
+            $data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
+                $request->start_date,
+                $request->end_date
+            ]);
+        }
+        $data2["total_comment"] = $data2["total_comment"]->get();
 
-    $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
-
-}
-if($totalCount > 0) {
-    $data2["total_rating"] = $totalCount / $ttotalRating;
-
-}
-else {
-    $data2["total_rating"] = 0;
-
-}
-
-$data2["total_comment"] = ReviewNew::with("user","guest_user")->where([
-    "business_id" => $business->id,
-    "guest_id" => NULL,
-])
-->whereNotNull("comment")
-;
-if(!empty($request->start_date) && !empty($request->end_date)) {
-
-    $data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
-        $request->start_date,
-        $request->end_date
-    ]);
-
-}
-$data2["total_comment"] = $data2["total_comment"]->get();
-
-    return response([
-        "part1" =>  $data2,
-        "part2" =>  $data
-], 200);
+        return response([
+            "part1" =>  $data2,
+            "part2" =>  $data
+        ], 200);
     }
     // ##################################################
     // This method is to get question  by id
     // ##################################################
-       /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions/{id}",
      *      operationId="getQuestionById",
@@ -1736,35 +1707,30 @@ $data2["total_comment"] = $data2["total_comment"]->get();
             ->first();
 
 
-            if(!$questions) {
-                return response([
-                    "message" => "No question found"
-                ], 404);
-            }
-            $data =  json_decode(json_encode($questions), true);
+        if (!$questions) {
+            return response([
+                "message" => "No question found"
+            ], 404);
+        }
+        $data =  json_decode(json_encode($questions), true);
 
-            foreach($questions->question_stars as $key2=>$questionStar){
-                $data["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
-
-
-                $data["stars"][$key2]["tags"] = [];
-                foreach($questionStar->star->star_tags as $key3=>$starTag){
-
-    if($starTag->question_id == $questions->id) {
-
-        array_push($data["stars"][$key2]["tags"],json_decode(json_encode($starTag->tag), true));
-
-    }
+        foreach ($questions->question_stars as $key2 => $questionStar) {
+            $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
 
+            $data["stars"][$key2]["tags"] = [];
+            foreach ($questionStar->star->star_tags as $key3 => $starTag) {
 
+                if ($starTag->question_id == $questions->id) {
+
+                    array_push($data["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
                 }
-
             }
+        }
         return response($data, 200);
     }
-        /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions/{id}/{businessId}",
      *      operationId="getQuestionById2",
@@ -1823,50 +1789,45 @@ $data2["total_comment"] = $data2["total_comment"]->get();
      *     )
      */
 
-    public function   getQuestionById2($id,$businessId, Request $request)
+    public function   getQuestionById2($id, $businessId, Request $request)
     {
-        $questions =    Question::where(["id" => $id,"business_id"=>$businessId])
+        $questions =    Question::where(["id" => $id, "business_id" => $businessId])
             ->first();
 
 
-            if(!$questions) {
-                return response([
-                    "message" => "No question found"
-                ], 404);
-            }
-            $data =  json_decode(json_encode($questions), true);
+        if (!$questions) {
+            return response([
+                "message" => "No question found"
+            ], 404);
+        }
+        $data =  json_decode(json_encode($questions), true);
 
-            foreach($questions->question_stars as $key2=>$questionStar){
-                $data["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
-
-
-                $data["stars"][$key2]["tags"] = [];
-                foreach($questionStar->star->star_tags as $key3=>$starTag){
-
-    if($starTag->question_id == $questions->id) {
-
-        array_push($data["stars"][$key2]["tags"],json_decode(json_encode($starTag->tag), true));
-
-    }
+        foreach ($questions->question_stars as $key2 => $questionStar) {
+            $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
 
+            $data["stars"][$key2]["tags"] = [];
+            foreach ($questionStar->star->star_tags as $key3 => $starTag) {
 
+                if ($starTag->question_id == $questions->id) {
+
+                    array_push($data["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
                 }
-
             }
+        }
         return response($data, 200);
     }
 
     // ##################################################
     // This method is to delete question by id
     // ##################################################
-     /**
-        *
+    /**
+     *
      * @OA\Delete(
      *      path="/review-new/delete/questions/{id}",
      *      operationId="deleteQuestionById",
      *      tags={"review.setting.question"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to delete question by id",
@@ -1923,13 +1884,13 @@ $data2["total_comment"] = $data2["total_comment"]->get();
     // ##################################################
     // This method is to store tag
     // ##################################################
-      /**
-        *
+    /**
+     *
      * @OA\Post(
      *      path="/review-new/create/tags",
      *      operationId="storeTag",
      *      tags={"review.setting.tag"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to store tag",
@@ -1987,7 +1948,7 @@ $data2["total_comment"] = $data2["total_comment"]->get();
             $question["is_default"] = true;
         } else {
             $business =    Business::where(["id" => $request->business_id])->first();
-            if(!$business){
+            if (!$business) {
                 return response()->json(["message" => "No Business Found"]);
             }
             if ($business->enable_question == true) {
@@ -2007,30 +1968,30 @@ $data2["total_comment"] = $data2["total_comment"]->get();
 
         return response($createdQuestion, 201);
     }
-     /**
-        *
+    /**
+     *
      * @OA\Post(
      *      path="/review-new/create/tags/multiple/{businessId}",
      *      operationId="storeTagMultiple",
      *      tags={"review.setting.tag"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to store tag",
      *      description="This method is to store tag",
-          *  @OA\Parameter(
-* name="businessId",
-* in="path",
-* description="businessId",
-* required=true,
-* example="1"
-* ),
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
      *  @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *            required={"tags"},
- *  @OA\Property(property="tags", type="string", format="array",example={
- * "tag1","tag2"
+     *  @OA\Property(property="tags", type="string", format="array",example={
+     * "tag1","tag2"
      * }
      *
      * ),
@@ -2068,11 +2029,11 @@ $data2["total_comment"] = $data2["total_comment"]->get();
      *      )
      *     )
      */
-    public function storeTagMultiple($businessId,Request $request)
+    public function storeTagMultiple($businessId, Request $request)
     {
 
 
-$dataArray = [];
+        $dataArray = [];
         $duplicate_indexes_array = [];
 
         $uniqueTags = collect($request->tags)->unique()->values()->all();
@@ -2081,7 +2042,7 @@ $dataArray = [];
 
 
 
-        foreach($uniqueTags as $index=>$tag) {
+        foreach ($uniqueTags as $index => $tag) {
             $question = [
                 'tag' => $tag,
                 'business_id' => $businessId
@@ -2091,112 +2052,93 @@ $dataArray = [];
             if ($request->user()->hasRole("superadmin")) {
 
 
-            $tag_found =    Tag::where([
+                $tag_found =    Tag::where([
                     "business_id" => NULL,
                     "tag" => $question["tag"],
                     "is_default" => 1
                 ])
-                ->first();
+                    ->first();
 
-         if($tag_found) {
+                if ($tag_found) {
 
-            array_push($duplicate_indexes_array,$index);
-        }
+                    array_push($duplicate_indexes_array, $index);
+                }
             } else {
-                $tag_found =    Tag::where(["business_id" => $businessId,"is_default" => 0,"tag" => $question["tag"]])
+                $tag_found =    Tag::where(["business_id" => $businessId, "is_default" => 0, "tag" => $question["tag"]])
 
-                ->first();
+                    ->first();
 
-         if($tag_found) {
+                if ($tag_found) {
 
-            array_push($duplicate_indexes_array,$index);
-        } else {
-            $tag_found =    Tag::where(["business_id" => NULL,"is_default" => 1,"tag" => $question["tag"]])
-            ->first();
-            if($tag_found) {
+                    array_push($duplicate_indexes_array, $index);
+                } else {
+                    $tag_found =    Tag::where(["business_id" => NULL, "is_default" => 1, "tag" => $question["tag"]])
+                        ->first();
+                    if ($tag_found) {
 
-                array_push($duplicate_indexes_array,$index);
+                        array_push($duplicate_indexes_array, $index);
+                    }
+                }
             }
         }
 
 
-            }
 
-
-
-
-
-        }
-
-
-
-        if(count($duplicate_indexes_array)) {
+        if (count($duplicate_indexes_array)) {
 
             return response([
                 "message" => "duplicate data",
-                "duplicate_indexes_array"=> $duplicate_indexes_array
-        ], 409);
+                "duplicate_indexes_array" => $duplicate_indexes_array
+            ], 409);
+        } else {
 
-        }
-
-        else {
-
- foreach($uniqueTags as $index=>$tag) {
-            $question = [
-                'tag' => $tag,
-                'business_id' => $businessId
-            ];
+            foreach ($uniqueTags as $index => $tag) {
+                $question = [
+                    'tag' => $tag,
+                    'business_id' => $businessId
+                ];
 
 
-            if ($request->user()->hasRole("superadmin")) {
-                $question["is_default"] = true;
-                $businessId = NULL;
-                $question["business_id"] = NULL;
+                if ($request->user()->hasRole("superadmin")) {
+                    $question["is_default"] = true;
+                    $businessId = NULL;
+                    $question["business_id"] = NULL;
+                } else {
 
+                    $question["is_default"] = false;
 
+                    $business =    Business::where(["id" => $businessId])->first();
+                    if (!$business) {
+                        return response()->json(["message" => "No Business Found"]);
+                    }
+                }
 
-            } else {
-
-                $question["is_default"] = false;
-
-                $business =    Business::where(["id" => $businessId])->first();
-                if(!$business){
-                    return response()->json(["message" => "No Business Found"]);
+                if (!count($duplicate_indexes_array)) {
+                    $finalTag =  Tag::create($question);
+                    array_push($dataArray, $finalTag);
+                } else {
+                    return response()->json($duplicate_indexes_array, 200);
                 }
             }
-
-            if(!count($duplicate_indexes_array)) {
-              $finalTag =  Tag::create($question);
-              array_push($dataArray,$finalTag);
-            }
-            else {
-                return response()->json($duplicate_indexes_array,200) ;
-            }
-
-
-
-        }
         }
 
 
 
 
 
-        return response(["message" => "data inserted","data"=>$dataArray], 201);
-
-
+        return response(["message" => "data inserted", "data" => $dataArray], 201);
     }
 
     // ##################################################
     // This method is to update tag
     // ##################################################
-      /**
-        *
+    /**
+     *
      * @OA\Put(
      *      path="/review-new/update/tags",
      *      operationId="updateTag",
      *      tags={"review.setting.tag"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to update tag",
@@ -2263,18 +2205,17 @@ $dataArray = [];
 
 
         return response($updatedQuestion, 200);
-
     }
     // ##################################################
     // This method is to get tag
     // ##################################################
-      /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/tags",
      *      operationId="getTag",
      *      tags={"review.setting.tag"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to get tag",
@@ -2331,25 +2272,23 @@ $dataArray = [];
         if ($request->user()->hasRole("superadmin")) {
             $is_dafault = true;
             $businessId = NULL;
-            $query =  Tag::where(["business_id" => NULL,"is_default" => true])
-            ->when(request()->filled("is_active"), function($query) {
-               $query->where("tags.is_active",request()->input("is_active"));
-            });
-
-        }
-        else{
+            $query =  Tag::where(["business_id" => NULL, "is_default" => true])
+                ->when(request()->filled("is_active"), function ($query) {
+                    $query->where("tags.is_active", request()->input("is_active"));
+                });
+        } else {
             $business =    Business::where(["id" => $request->business_id])->first();
-            if(!$business && !$request->user()->hasRole("superadmin")){
+            if (!$business && !$request->user()->hasRole("superadmin")) {
                 return response("No Business Found", 404);
             }
             // if ($business->enable_question == true) {
             //     $is_dafault = true;
             // }
-            $query =  Tag::where(["business_id" => $businessId,"is_default" => 0])
-            ->orWhere(["business_id" => NULL,"is_default" => 1])
-            ->when(request()->filled("is_active"), function($query) {
-                $query->where("tags.is_active",request()->input("is_active"));
-             });;
+            $query =  Tag::where(["business_id" => $businessId, "is_default" => 0])
+                ->orWhere(["business_id" => NULL, "is_default" => 1])
+                ->when(request()->filled("is_active"), function ($query) {
+                    $query->where("tags.is_active", request()->input("is_active"));
+                });;
         }
 
 
@@ -2358,16 +2297,12 @@ $dataArray = [];
 
 
         return response($questions, 200);
-
-
-
-
     }
     // ##################################################
     // This method is to get tag  by id.
     // ##################################################
-       /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/tags/{id}",
      *      operationId="getTagById",
@@ -2418,15 +2353,15 @@ $dataArray = [];
     {
         $questions =    Tag::where(["id" => $id])
             ->first();
-            if(!$questions) {
-                return response([
-                    "message" => "No Tag Found"
-                ], 404);
-            }
+        if (!$questions) {
+            return response([
+                "message" => "No Tag Found"
+            ], 404);
+        }
         return response($questions, 200);
     }
-       /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/tags/{id}/{reataurantId}",
      *      operationId="getTagById2",
@@ -2479,15 +2414,15 @@ $dataArray = [];
      *      )
      *     )
      */
-    public function   getTagById2($id,$reataurantId, Request $request)
+    public function   getTagById2($id, $reataurantId, Request $request)
     {
-        $questions =    Tag::where(["id" => $id,"business_id" => $reataurantId])
+        $questions =    Tag::where(["id" => $id, "business_id" => $reataurantId])
             ->first();
-            if(!$questions) {
-                return response([
-                    "message" => "No Tag Found"
-                ], 404);
-            }
+        if (!$questions) {
+            return response([
+                "message" => "No Tag Found"
+            ], 404);
+        }
         return response($questions, 200);
     }
 
@@ -2495,8 +2430,8 @@ $dataArray = [];
     // This method is to delete tag by id
     // ##################################################
 
-      /**
-        *
+    /**
+     *
      * @OA\Delete(
      *      path="/review-new/delete/tags/{id}",
      *      operationId="deleteTagById",
@@ -2546,26 +2481,24 @@ $dataArray = [];
     public function   deleteTagById($id, Request $request)
     {
         $tag =    Tag::where(["id" => $id])
-        ->first();
+            ->first();
         $tagId = $tag->id;
 
-            if ($request->user()->hasRole("superadmin") &&  $tag->is_default == 1) {
-                StarTag::where(["tag_id"=> $tagId])->delete();
-                $tag->delete();
-                ReviewValueNew::where([
-                    'tag_id'=>$tagId
-                ])
+        if ($request->user()->hasRole("superadmin") &&  $tag->is_default == 1) {
+            StarTag::where(["tag_id" => $tagId])->delete();
+            $tag->delete();
+            ReviewValueNew::where([
+                'tag_id' => $tagId
+            ])
                 ->delete();
-
-            }
-            else  if(!$request->user()->hasRole("superadmin") &&  $tag->is_default == 0){
-                StarTag::where(["tag_id"=> $tagId])->delete();
-                $tag->delete();
-                ReviewValueNew::where([
-                    'tag_id'=>$tagId
-                ])
+        } else  if (!$request->user()->hasRole("superadmin") &&  $tag->is_default == 0) {
+            StarTag::where(["tag_id" => $tagId])->delete();
+            $tag->delete();
+            ReviewValueNew::where([
+                'tag_id' => $tagId
+            ])
                 ->delete();
-            }
+        }
 
 
 
@@ -2600,8 +2533,6 @@ $dataArray = [];
 
 
         return response($createdQuestion, 201);
-
-
     }
     // ##################################################
     // This method is to update star
@@ -2625,23 +2556,21 @@ $dataArray = [];
 
 
         return response($updatedQuestion, 200);
-
-
     }
     // ##################################################
     // This method is to get star
     // ##################################################
     public function   getStar(Request $request)
     {
-     return   Star::where()->paginate(10);
+        return   Star::where()->paginate(10);
         if ($request->user()->hasRole("superadmin")) {
 
             $questions =  Star::where(["is_default" => true])->paginate(10);
 
-        return response($questions, 200);
+            return response($questions, 200);
         }
         $business =    Business::where(["id" => $request->business_id])->first();
-        if(!$business){
+        if (!$business) {
             return response("No Business Found", 404);
         }
         // if ($business->enable_question == true) {
@@ -2655,9 +2584,6 @@ $dataArray = [];
         $questions =  $query->paginate(10);
 
         return response($questions, 200);
-
-
-
     }
     // ##################################################
     // This method is to get star by id
@@ -2749,60 +2675,52 @@ $dataArray = [];
             ->first();
         return response($questions, 200);
     }
-       // ##################################################
+    // ##################################################
     // This method is to get report
     // ##################################################
-    public function   getSelectedTagCount($businessId , Request $request)
+    public function   getSelectedTagCount($businessId, Request $request)
     {
 
         $questions =    Question::where(["business_id" => $businessId])
             ->get();
         $data =  json_decode(json_encode($questions), true);
-        foreach($questions as $key1=>$question){
+        foreach ($questions as $key1 => $question) {
 
-            foreach($question->question_stars as $key2=>$questionStar){
-                $data[$key1]["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
+            foreach ($question->question_stars as $key2 => $questionStar) {
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
                 $data[$key1]["stars"][$key2]["star_count"]  =  ReviewValueNew::where([
-                      "question_id"=>$question->id,
-                      "star_id"=> $questionStar->star->id,
+                    "question_id" => $question->id,
+                    "star_id" => $questionStar->star->id,
 
-                     ])->count();
-
-
-                foreach($questionStar->star->star_tags as $key3=>$starTag){
-   if($starTag->question_id == $question->id) {
-    $data[$key1]["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true) ;
-    // $data[$key1]["stars"][$key2]["tags"][$key3]["search"] = [
-    //     "question_id"=>$question->id,
-    //     "star_id"=> $questionStar->star->id,
-    //     "tag_id"=> $starTag->tag->id
-
-    // ];
-
-     $data[$key1]["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
-         "question_id"=>$question->id,
-         "star_id"=> $questionStar->star->id,
-         "tag_id"=> $starTag->tag->id
-
-          ])->count();
-   }
+                ])->count();
 
 
+                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+                    if ($starTag->question_id == $question->id) {
+                        $data[$key1]["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
+                        // $data[$key1]["stars"][$key2]["tags"][$key3]["search"] = [
+                        //     "question_id"=>$question->id,
+                        //     "star_id"=> $questionStar->star->id,
+                        //     "tag_id"=> $starTag->tag->id
 
+                        // ];
+
+                        $data[$key1]["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
+                            "question_id" => $question->id,
+                            "star_id" => $questionStar->star->id,
+                            "tag_id" => $starTag->tag->id
+
+                        ])->count();
+                    }
                 }
-
             }
-
         }
         return response($data, 200);
-
-
-
     }
-        // ##################################################
+    // ##################################################
     // This method is to get report
     // ##################################################
-    public function   getSelectedTagCountByQuestion($questionId , Request $request)
+    public function   getSelectedTagCountByQuestion($questionId, Request $request)
     {
 
         $question =    Question::where(["id" => $questionId])
@@ -2811,41 +2729,36 @@ $dataArray = [];
         $data =  json_decode(json_encode($question), true);
 
 
-            foreach($question->question_stars as $key2=>$questionStar){
-                $data["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
-                $data["stars"][$key2]["star_count"]  =  ReviewValueNew::where([
-                      "question_id"=>$question->id,
-                      "star_id"=> $questionStar->star->id,
+        foreach ($question->question_stars as $key2 => $questionStar) {
+            $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
+            $data["stars"][$key2]["star_count"]  =  ReviewValueNew::where([
+                "question_id" => $question->id,
+                "star_id" => $questionStar->star->id,
 
-                     ])->count();
+            ])->count();
 
-                foreach($questionStar->star->star_tags as $key3=>$starTag){
-                    if($starTag->question_id == $question->id){
-                        $data["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true) ;
-                        // $data["stars"][$key2]["tags"][$key3]["search"] = [
-                        //     "question_id"=>$question->id,
-                        //     "star_id"=> $questionStar->star->id,
-                        //     "tag_id"=> $starTag->tag->id
+            foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+                if ($starTag->question_id == $question->id) {
+                    $data["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
+                    // $data["stars"][$key2]["tags"][$key3]["search"] = [
+                    //     "question_id"=>$question->id,
+                    //     "star_id"=> $questionStar->star->id,
+                    //     "tag_id"=> $starTag->tag->id
 
-                        // ];
+                    // ];
 
-                         $data["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
-                             "question_id"=>$question->id,
-                             "star_id"=> $questionStar->star->id,
-                             "tag_id"=> $starTag->tag->id
+                    $data["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
+                        "question_id" => $question->id,
+                        "star_id" => $questionStar->star->id,
+                        "tag_id" => $starTag->tag->id
 
-                              ])->count();
-                    }
-
-
-
+                    ])->count();
                 }
-
             }
+        }
 
 
         return response($data, 200);
-
     }
 
 
@@ -2858,7 +2771,7 @@ $dataArray = [];
             ->delete();
         return response(["message" => "ok"], 200);
     }
-       // ##################################################
+    // ##################################################
     // This method is to create question and all other thing
     // ##################################################
 
@@ -2899,13 +2812,13 @@ $dataArray = [];
 
 
 
-  /**
-        *
+    /**
+     *
      * @OA\Post(
      *      path="/review-new/owner/create/questions",
      *      operationId="storeOwnerQuestion",
      *      tags={"review.setting.link"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to store question",
@@ -2971,42 +2884,40 @@ $dataArray = [];
 
     public function storeOwnerQuestion(Request $request)
     {
-        return DB::transaction(function ()use($request) {
+        return DB::transaction(function () use ($request) {
             $question_id = $request->question_id;
-            foreach($request->stars as $requestStar){
+            foreach ($request->stars as $requestStar) {
 
 
                 QusetionStar::create([
-                    "question_id"=>$question_id,
+                    "question_id" => $question_id,
                     "star_id" => $requestStar["star_id"]
-                         ]);
+                ]);
 
 
-               foreach($requestStar["tags"] as $tag){
+                foreach ($requestStar["tags"] as $tag) {
 
 
-               StarTag::create([
-                "question_id"=>$question_id,
-                "tag_id"=>$tag["tag_id"],
-                "star_id" => $requestStar["star_id"]
-                     ]);
-
-               }
+                    StarTag::create([
+                        "question_id" => $question_id,
+                        "tag_id" => $tag["tag_id"],
+                        "star_id" => $requestStar["star_id"]
+                    ]);
+                }
             }
 
-      return response(["message" => "ok"], 201);
+            return response(["message" => "ok"], 201);
         });
-
     }
 
 
-     /**
-        *
+    /**
+     *
      * @OA\Post(
      *      path="/review-new/owner/update/questions",
      *      operationId="updateOwnerQuestion",
      *      tags={"review.setting.link"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to update question",
@@ -3076,60 +2987,59 @@ $dataArray = [];
     public function updateOwnerQuestion(Request $request)
     {
 
-        return DB::transaction(function ()use($request) {
+        return DB::transaction(function () use ($request) {
             $question_id = $request->question_id;
 
             $starIds = collect($request->stars)->pluck('star_id')->toArray();
 
 
             QusetionStar::where([
-                    'question_id' => $question_id,
-                ])
+                'question_id' => $question_id,
+            ])
                 ->whereNotIn('star_id', $starIds)
                 ->delete();
 
 
 
-            foreach($request->stars as $requestStar){
+            foreach ($request->stars as $requestStar) {
 
-    if( !(QusetionStar::where([
-    "question_id"=>$question_id,
-    "star_id" => $requestStar["star_id"]
-         ])->exists())) {
-            QusetionStar::create([
-                "question_id"=>$question_id,
-                "star_id" => $requestStar["star_id"]
-                     ]);
-}
-
-$starTagIds = collect($requestStar["tags"])->pluck('tag_id')->toArray();
-
-StarTag::where([
-    "question_id"  => $question_id,
-    "star_id" => $requestStar["star_id"]
-])
-->whereNotIn('tag_id', $starTagIds)
-->delete();
-
-               foreach($requestStar["tags"] as $tag){
-
-                if( !(StarTag::where([
-                    "question_id"=>$question_id,
-                "tag_id"=>$tag["tag_id"],
-                "star_id" => $requestStar["star_id"]
-                         ])->exists())) {
-                            StarTag::create([
-                                "question_id"=>$question_id,
-                                "tag_id"=>$tag["tag_id"],
-                                "star_id" => $requestStar["star_id"]
-                                     ]);
+                if (!(QusetionStar::where([
+                    "question_id" => $question_id,
+                    "star_id" => $requestStar["star_id"]
+                ])->exists())) {
+                    QusetionStar::create([
+                        "question_id" => $question_id,
+                        "star_id" => $requestStar["star_id"]
+                    ]);
                 }
-               }
+
+                $starTagIds = collect($requestStar["tags"])->pluck('tag_id')->toArray();
+
+                StarTag::where([
+                    "question_id"  => $question_id,
+                    "star_id" => $requestStar["star_id"]
+                ])
+                    ->whereNotIn('tag_id', $starTagIds)
+                    ->delete();
+
+                foreach ($requestStar["tags"] as $tag) {
+
+                    if (!(StarTag::where([
+                        "question_id" => $question_id,
+                        "tag_id" => $tag["tag_id"],
+                        "star_id" => $requestStar["star_id"]
+                    ])->exists())) {
+                        StarTag::create([
+                            "question_id" => $question_id,
+                            "tag_id" => $tag["tag_id"],
+                            "star_id" => $requestStar["star_id"]
+                        ]);
+                    }
+                }
             }
 
-      return response(["message" => "ok"], 201);
+            return response(["message" => "ok"], 201);
         });
-
     }
 
 
@@ -3137,8 +3047,8 @@ StarTag::where([
 
 
 
-  /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all-report/guest",
      *      operationId="getQuestionAllReportGuest",
@@ -3149,13 +3059,13 @@ StarTag::where([
      *       security={
      *           {"bearerAuth": {}}
      *       },
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
      *         required=false,
      *      ),
-         *    @OA\Parameter(
+     *    @OA\Parameter(
      *         name="start_date",
      *         in="query",
      *         description="start_date",
@@ -3205,170 +3115,206 @@ StarTag::where([
      *     )
      */
 
-    public function getQuestionAllReportGuest(Request $request) {
+    public function getQuestionAllReportGuest(Request $request)
+    {
 
 
         $business =    Business::where(["id" => $request->business_id])->first();
-        if(!$business){
+        if (!$business) {
             return response("No Business Found", 404);
         }
 
-    $query =  Question::where(["business_id" => $request->business_id,"is_default" => false]);
+        $query =  Question::where(["business_id" => $request->business_id, "is_default" => false]);
 
-    $questions =  $query->get();
+        $questions =  $query->get();
 
-    $questionsCount = $query->get()->count();
+        $questionsCount = $query->get()->count();
 
-$data =  json_decode(json_encode($questions), true);
-foreach($questions as $key1=>$question){
+        $data =  json_decode(json_encode($questions), true);
+        foreach ($questions as $key1 => $question) {
 
-    $tags_rating = [];
-   $starCountTotal = 0;
-   $starCountTotalTimes = 0;
-    foreach($question->question_stars as $key2=>$questionStar){
+            $tags_rating = [];
+            $starCountTotal = 0;
+            $starCountTotalTimes = 0;
+            foreach ($question->question_stars as $key2 => $questionStar) {
 
 
-        $data[$key1]["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
-        $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "star_id" => $questionStar->star->id,
-            "review_news.user_id" => NULL,
+                $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                    ->where(
+                        [
+                            "review_news.business_id" => $business->id,
+                            "question_id" => $question->id,
+                            "star_id" => $questionStar->star->id,
+                            "review_news.user_id" => NULL,
 
-            ]
-        );
-        if(!empty($request->start_date) && !empty($request->end_date)) {
+                        ]
+                    );
+                if (!empty($request->start_date) && !empty($request->end_date)) {
 
-            $data[$key1]["stars"][$key2]["stars_count"]  = $data[$key1]["stars"][$key2]["stars_count"]->whereBetween('review_news.created_at', [
+                    $data[$key1]["stars"][$key2]["stars_count"]  = $data[$key1]["stars"][$key2]["stars_count"]->whereBetween('review_news.created_at', [
+                        $request->start_date,
+                        $request->end_date
+                    ]);
+                }
+                $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]
+                    ->get()
+                    ->count();
+
+                $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
+
+                $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
+                $data[$key1]["stars"][$key2]["tag_ratings"] = [];
+                if ($starCountTotalTimes > 0) {
+                    $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
+                }
+
+
+
+                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+
+
+
+
+
+                    if ($starTag->question_id == $question->id) {
+
+
+
+
+                        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->where(
+                                [
+                                    "review_news.business_id" => $business->id,
+                                    "question_id" => $question->id,
+                                    "tag_id" => $starTag->tag->id,
+                                    "review_news.user_id" => NULL
+                                ]
+                            );
+                        if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                            $starTag->tag->count  = $starTag->tag->count->whereBetween('review_news.created_at', [
+                                $request->start_date,
+                                $request->end_date
+                            ]);
+                        }
+                        $starTag->tag->count = $starTag->tag->count->get()->count();
+
+                        if ($starTag->tag->count > 0) {
+                            array_push($tags_rating, json_decode(json_encode($starTag->tag)));
+                        }
+
+                        $starTag->tag->total =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->where(
+                                [
+                                    "review_news.business_id" => $business->id,
+                                    "question_id" => $question->id,
+                                    "star_id" => $questionStar->star->id,
+                                    "tag_id" => $starTag->tag->id,
+                                    "review_news.user_id" => NULL
+                                ]
+                            );
+                        if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                            $starTag->tag->total = $starTag->tag->total->whereBetween('review_news.created_at', [
+                                $request->start_date,
+                                $request->end_date
+                            ]);
+                        }
+                        $starTag->tag->total = $starTag->tag->total->get()->count();
+                        if ($starTag->tag->total > 0) {
+                            unset($starTag->tag->count);
+                            array_push($data[$key1]["stars"][$key2]["tag_ratings"], json_decode(json_encode($starTag->tag)));
+                        }
+                    }
+                }
+            }
+
+
+            $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
+        }
+
+
+
+
+
+        $totalCount = 0;
+        $ttotalRating = 0;
+
+        foreach (Star::get() as $star) {
+
+            $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                ->where([
+                    "review_news.business_id" => $business->id,
+                    "star_id" => $star->id,
+                    "review_news.user_id" => NULL
+                ])
+                ->distinct("review_value_news.review_id", "review_value_news.question_id");
+            if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->whereBetween('review_news.created_at', [
+                    $request->start_date,
+                    $request->end_date
+                ]);
+            }
+            $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->count();
+
+            $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
+
+            $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
+        }
+        if ($totalCount > 0) {
+            $data2["total_rating"] = $totalCount / $ttotalRating;
+        } else {
+            $data2["total_rating"] = 0;
+        }
+
+
+
+
+
+
+
+        $data2["total_comment"] = ReviewNew::with("user", "guest_user")->where([
+            "business_id" => $business->id,
+            "user_id" => NULL,
+        ])
+            ->whereNotNull("comment");
+        if (!empty($request->start_date) && !empty($request->end_date)) {
+
+            $data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
                 $request->start_date,
                 $request->end_date
             ]);
-
         }
-        $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]
-        ->get()
-        ->count();
-
-        $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
-
-        $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
-        $data[$key1]["stars"][$key2]["tag_ratings"] = [];
-        if($starCountTotalTimes > 0) {
-            $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
-        }
-
-
-
-        foreach($questionStar->star->star_tags as $key3=>$starTag){
+        $data2["total_comment"] = $data2["total_comment"]->get();
 
 
 
 
 
-     if($starTag->question_id == $question->id) {
 
-
-
-
-        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "tag_id" => $starTag->tag->id,
-            "review_news.user_id" => NULL
-            ]
-        );
-        if(!empty($request->start_date) && !empty($request->end_date)) {
-
-            $starTag->tag->count  = $starTag->tag->count->whereBetween('review_news.created_at', [
-                $request->start_date,
-                $request->end_date
-            ]);
-
-        }
-        $starTag->tag->count = $starTag->tag->count->get()->count();
-
-        if($starTag->tag->count > 0) {
-                array_push($tags_rating,json_decode(json_encode($starTag->tag)));
-        }
-
-        $starTag->tag->total =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "star_id" => $questionStar->star->id,
-            "tag_id" => $starTag->tag->id,
-            "review_news.user_id" => NULL
-            ]
-        );
-        if(!empty($request->start_date) && !empty($request->end_date)) {
-
-            $starTag->tag->total = $starTag->tag->total->whereBetween('review_news.created_at', [
-                $request->start_date,
-                $request->end_date
-            ]);
-
-        }
-        $starTag->tag->total = $starTag->tag->total->get()->count();
-        if($starTag->tag->total > 0) {
-            unset($starTag->tag->count);
-            array_push($data[$key1]["stars"][$key2]["tag_ratings"],json_decode(json_encode($starTag->tag)));
-        }
-
-
-
-
-      }
-
-
-        }
-
+        return response([
+            "part1" =>  $data2,
+            "part2" =>  $data
+        ], 200);
     }
 
 
-    $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
-}
 
 
 
 
 
-$totalCount = 0;
-$ttotalRating = 0;
 
-foreach(Star::get() as $star) {
 
-$data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-->where([
-    "review_news.business_id" => $business->id,
-    "star_id" => $star->id,
-    "review_news.user_id" => NULL
-])
-->distinct("review_value_news.review_id","review_value_news.question_id");
-if(!empty($request->start_date) && !empty($request->end_date)) {
 
-    $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->whereBetween('review_news.created_at', [
-        $request->start_date,
-        $request->end_date
-    ]);
 
-}
-$data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->count();
 
-$totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
 
-$ttotalRating += $data2["star_" . $star->value . "_selected_count"];
 
-}
-if($totalCount > 0) {
-$data2["total_rating"] = $totalCount / $ttotalRating;
 
-}
-else {
-$data2["total_rating"] = 0;
-}
 
 
 
@@ -3376,31 +3322,14 @@ $data2["total_rating"] = 0;
 
 
 
-$data2["total_comment"] = ReviewNew::with("user","guest_user")->where([
-    "business_id" => $business->id,
-    "user_id" => NULL,
-])
-->whereNotNull("comment");
-if(!empty($request->start_date) && !empty($request->end_date)) {
 
-    $data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
-        $request->start_date,
-        $request->end_date
-    ]);
 
-}
-$data2["total_comment"] = $data2["total_comment"]->get();
 
 
 
 
 
 
-return response([
-    "part1" =>  $data2,
-    "part2" =>  $data
-], 200);
-}
 
 
 
@@ -3437,38 +3366,8 @@ return response([
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all-report/unauthorized",
      *      operationId="getQuestionAllReportUnauthorized",
@@ -3476,7 +3375,7 @@ return response([
 
      *      summary="This method is to get all question report unauthorized",
      *      description="This method is to get all question report unauthorized",
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -3518,147 +3417,147 @@ return response([
      *     )
      */
 
-    public function getQuestionAllReportUnauthorized(Request $request) {
+    public function getQuestionAllReportUnauthorized(Request $request)
+    {
 
 
         $business =    Business::where(["id" => $request->business_id])->first();
-        if(!$business){
+        if (!$business) {
             return response("No Business Found", 404);
         }
 
-    $query =  Question::where(["business_id" => $request->business_id,"is_default" => false]);
+        $query =  Question::where(["business_id" => $request->business_id, "is_default" => false]);
 
-    $questions =  $query->get();
+        $questions =  $query->get();
 
-    $questionsCount = $query->get()->count();
+        $questionsCount = $query->get()->count();
 
-$data =  json_decode(json_encode($questions), true);
-foreach($questions as $key1=>$question){
+        $data =  json_decode(json_encode($questions), true);
+        foreach ($questions as $key1 => $question) {
 
-    $tags_rating = [];
-   $starCountTotal = 0;
-   $starCountTotalTimes = 0;
-    foreach($question->question_stars as $key2=>$questionStar){
-
-
-        $data[$key1]["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
-
-        $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "star_id" => $questionStar->star->id,
-            "review_news.guest_id" => NULL
-
-            ]
-        )
-        ->get()
-        ->count();
-
-        $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
-
-        $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
-
-        if($starCountTotalTimes > 0) {
-            $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
-        }
+            $tags_rating = [];
+            $starCountTotal = 0;
+            $starCountTotalTimes = 0;
+            foreach ($question->question_stars as $key2 => $questionStar) {
 
 
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
+                $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                    ->where(
+                        [
+                            "review_news.business_id" => $business->id,
+                            "question_id" => $question->id,
+                            "star_id" => $questionStar->star->id,
+                            "review_news.guest_id" => NULL
 
-        foreach($questionStar->star->star_tags as $key3=>$starTag){
+                        ]
+                    )
+                    ->get()
+                    ->count();
+
+                $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
+
+                $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
+
+                if ($starCountTotalTimes > 0) {
+                    $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
+                }
 
 
 
 
-
-     if($starTag->question_id == $question->id) {
-
-
-
-        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "tag_id" => $starTag->tag->id,
-            "review_news.guest_id" => NULL
-            ]
-        )->get()->count();
+                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
 
 
 
 
 
-            if($starTag->tag->count > 0) {
- array_push($tags_rating,json_decode(json_encode($starTag->tag)));
+                    if ($starTag->question_id == $question->id) {
+
+
+
+                        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->where(
+                                [
+                                    "review_news.business_id" => $business->id,
+                                    "question_id" => $question->id,
+                                    "tag_id" => $starTag->tag->id,
+                                    "review_news.guest_id" => NULL
+                                ]
+                            )->get()->count();
+
+
+
+
+
+                        if ($starTag->tag->count > 0) {
+                            array_push($tags_rating, json_decode(json_encode($starTag->tag)));
+                        }
+                    }
+                }
             }
 
 
-
-
-
-
-
-
-
-
-
-      }
-
-
-
+            $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
         }
 
+
+
+
+
+        $totalCount = 0;
+        $ttotalRating = 0;
+
+        foreach (Star::get() as $star) {
+
+            $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                ->where([
+                    "review_news.business_id" => $business->id,
+                    "star_id" => $star->id,
+                    "review_news.guest_id" => NULL
+                ])
+                ->distinct("review_value_news.review_id", "review_value_news.question_id")
+                ->count();
+
+            $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
+
+            $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
+        }
+        if ($totalCount > 0) {
+            $data2["total_rating"] = $totalCount / $ttotalRating;
+        } else {
+            $data2["total_rating"] = 0;
+        }
+
+        $data2["total_comment"] = ReviewNew::with("user", "guest_user")->where([
+            "business_id" => $business->id,
+            "guest_id" => NULL,
+        ])
+            ->whereNotNull("comment")
+            ->get();
+
+        return response([
+            "part1" =>  $data2,
+            // "part2" =>  $data
+        ], 200);
     }
 
 
-    $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
-}
 
 
 
 
 
-$totalCount = 0;
-$ttotalRating = 0;
 
-foreach(Star::get() as $star) {
 
-$data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-->where([
-    "review_news.business_id" => $business->id,
-    "star_id" => $star->id,
-    "review_news.guest_id" => NULL
-])
-->distinct("review_value_news.review_id","review_value_news.question_id")
-->count();
 
-$totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
 
-$ttotalRating += $data2["star_" . $star->value . "_selected_count"];
 
-}
-if($totalCount > 0) {
-$data2["total_rating"] = $totalCount / $ttotalRating;
 
-}
-else {
-$data2["total_rating"] = 0;
 
-}
 
-$data2["total_comment"] = ReviewNew::with("user","guest_user")->where([
-"business_id" => $business->id,
-"guest_id" => NULL,
-])
-->whereNotNull("comment")
-->get();
 
-return response([
-    "part1" =>  $data2,
-    // "part2" =>  $data
-], 200);
-}
 
 
 
@@ -3735,24 +3634,8 @@ return response([
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all-report/guest/unauthorized",
      *      operationId="getQuestionAllReportGuestUnauthorized",
@@ -3761,7 +3644,7 @@ return response([
      *      summary="This method is to get all question report guest unauthorized",
      *      description="This method is to get all question report guest unauthorized",
 
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -3803,154 +3686,148 @@ return response([
      *     )
      */
 
-    public function getQuestionAllReportGuestUnauthorized(Request $request) {
+    public function getQuestionAllReportGuestUnauthorized(Request $request)
+    {
 
 
         $business =    Business::where(["id" => $request->business_id])->first();
-        if(!$business){
+        if (!$business) {
             return response("No Business Found", 404);
         }
 
-    $query =  Question::where(["business_id" => $request->business_id,"is_default" => false]);
+        $query =  Question::where(["business_id" => $request->business_id, "is_default" => false]);
 
-    $questions =  $query->get();
+        $questions =  $query->get();
 
-    $questionsCount = $query->get()->count();
+        $questionsCount = $query->get()->count();
 
-$data =  json_decode(json_encode($questions), true);
-foreach($questions as $key1=>$question){
+        $data =  json_decode(json_encode($questions), true);
+        foreach ($questions as $key1 => $question) {
 
-    $tags_rating = [];
-   $starCountTotal = 0;
-   $starCountTotalTimes = 0;
-    foreach($question->question_stars as $key2=>$questionStar){
+            $tags_rating = [];
+            $starCountTotal = 0;
+            $starCountTotalTimes = 0;
+            foreach ($question->question_stars as $key2 => $questionStar) {
 
 
-        $data[$key1]["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
-        $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "star_id" => $questionStar->star->id,
-            "review_news.user_id" => NULL
+                $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                    ->where(
+                        [
+                            "review_news.business_id" => $business->id,
+                            "question_id" => $question->id,
+                            "star_id" => $questionStar->star->id,
+                            "review_news.user_id" => NULL
 
-            ]
-        )
-        ->get()
-        ->count();
+                        ]
+                    )
+                    ->get()
+                    ->count();
 
-        $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
+                $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
 
-        $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
+                $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
 
-        if($starCountTotalTimes > 0) {
-            $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
+                if ($starCountTotalTimes > 0) {
+                    $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
+                }
+
+
+
+
+                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+
+
+
+
+
+                    if ($starTag->question_id == $question->id) {
+
+
+
+
+                        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->where(
+                                [
+                                    "review_news.business_id" => $business->id,
+                                    "question_id" => $question->id,
+                                    "tag_id" => $starTag->tag->id,
+                                    "review_news.user_id" => NULL
+                                ]
+                            )->get()->count();
+
+
+                        if ($starTag->tag->count > 0) {
+                            array_push($tags_rating, json_decode(json_encode($starTag->tag)));
+                        }
+                    }
+                }
+            }
+
+
+            $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
         }
 
 
 
 
-        foreach($questionStar->star->star_tags as $key3=>$starTag){
 
+        $totalCount = 0;
+        $ttotalRating = 0;
 
+        foreach (Star::get() as $star) {
 
+            $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                ->where([
+                    "review_news.business_id" => $business->id,
+                    "star_id" => $star->id,
+                    "review_news.user_id" => NULL
+                ])
+                ->distinct("review_value_news.review_id", "review_value_news.question_id")
+                ->count();
 
+            $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
 
-     if($starTag->question_id == $question->id) {
-
-
-
-
-        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "tag_id" => $starTag->tag->id,
-            "review_news.user_id" => NULL
-            ]
-        )->get()->count();
-
-
-        if($starTag->tag->count > 0) {
-                array_push($tags_rating,json_decode(json_encode($starTag->tag)));
+            $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
+        }
+        if ($totalCount > 0) {
+            $data2["total_rating"] = $totalCount / $ttotalRating;
+        } else {
+            $data2["total_rating"] = 0;
         }
 
 
 
-      }
 
 
-        }
 
+
+        $data2["total_comment"] = ReviewNew::with("user", "guest_user")->where([
+            "business_id" => $business->id,
+            "user_id" => NULL,
+        ])
+            ->whereNotNull("comment")
+            ->get();
+
+
+
+
+
+
+        return response([
+            "part1" =>  $data2,
+            "part2" =>  $data
+        ], 200);
     }
 
 
-    $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
-}
 
 
 
 
-
-$totalCount = 0;
-$ttotalRating = 0;
-
-foreach(Star::get() as $star) {
-
-$data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-->where([
-    "review_news.business_id" => $business->id,
-    "star_id" => $star->id,
-    "review_news.user_id" => NULL
-])
-->distinct("review_value_news.review_id","review_value_news.question_id")
-->count();
-
-$totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
-
-$ttotalRating += $data2["star_" . $star->value . "_selected_count"];
-
-}
-if($totalCount > 0) {
-$data2["total_rating"] = $totalCount / $ttotalRating;
-
-}
-else {
-$data2["total_rating"] = 0;
-}
-
-
-
-
-
-
-
-$data2["total_comment"] = ReviewNew::with("user","guest_user")->where([
-    "business_id" => $business->id,
-    "user_id" => NULL,
-])
-->whereNotNull("comment")
-->get();
-
-
-
-
-
-
-return response([
-    "part1" =>  $data2,
-    "part2" =>  $data
-], 200);
-}
-
-
-
-
-
-
- /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all-report/guest/quantum",
      *      operationId="getQuestionAllReportGuestQuantum",
@@ -3961,7 +3838,7 @@ return response([
      *      summary="This method is to get all question report guest and only business owner of the business can view this ",
      *      description="This method is to get all question report guest and only business owner of the business can view this ",
 
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -4015,48 +3892,47 @@ return response([
      *     )
      */
 
-    public function getQuestionAllReportGuestQuantum(Request $request) {
+    public function getQuestionAllReportGuestQuantum(Request $request)
+    {
 
 
-        $business =    Business::where(["id" => $request->business_id,
-        "OwnerID" => $request->user()->id
+        $business =    Business::where([
+            "id" => $request->business_id,
+            "OwnerID" => $request->user()->id
         ])->first();
-        if(!$business){
+        if (!$business) {
             return response("No Business Found or you are not the owner of the business", 404);
         }
-$data = [];
+        $data = [];
 
-$period=0;
-        for($i=0;$i<$request->quantum;$i++ ) {
+        $period = 0;
+        for ($i = 0; $i < $request->quantum; $i++) {
             $totalCount = 0;
             $ttotalRating = 0;
 
-            foreach(Star::get() as $star) {
+            foreach (Star::get() as $star) {
 
-            $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->where([
-                "review_news.business_id" => $business->id,
-                "star_id" => $star->id,
-                "review_news.user_id" => NULL
-            ])
-            ->whereBetween(
-                'review_news.created_at',
-                [now()->subDays(($request->period + $period))->startOfDay(), now()->subDays($period)->endOfDay()]
-            )
-            ->distinct("review_value_news.review_id","review_value_news.question_id")
-            ->count();
+                $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                    ->where([
+                        "review_news.business_id" => $business->id,
+                        "star_id" => $star->id,
+                        "review_news.user_id" => NULL
+                    ])
+                    ->whereBetween(
+                        'review_news.created_at',
+                        [now()->subDays(($request->period + $period))->startOfDay(), now()->subDays($period)->endOfDay()]
+                    )
+                    ->distinct("review_value_news.review_id", "review_value_news.question_id")
+                    ->count();
 
-            $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
+                $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
 
-            $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
-
+                $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
             }
-            if($totalCount > 0) {
-            $data2["total_rating"] = $totalCount / $ttotalRating;
-
-            }
-            else {
-            $data2["total_rating"] = 0;
+            if ($totalCount > 0) {
+                $data2["total_rating"] = $totalCount / $ttotalRating;
+            } else {
+                $data2["total_rating"] = 0;
             }
 
             // $data2["total_comment"] = ReviewNew::with("user","guest_user")->where([
@@ -4065,8 +3941,8 @@ $period=0;
             // ])
             // ->whereNotNull("comment")
             // ->count();
-        array_push($data,$data2);
-        $period +=  $request->period + $period;
+            array_push($data, $data2);
+            $period +=  $request->period + $period;
         }
 
 
@@ -4075,17 +3951,17 @@ $period=0;
 
 
 
-return response([
-    "data" =>  $data,
+        return response([
+            "data" =>  $data,
 
-], 200);
-}
-
-
+        ], 200);
+    }
 
 
-/**
-        *
+
+
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all-report/quantum",
      *      operationId="getQuestionAllReportQuantum",
@@ -4096,7 +3972,7 @@ return response([
      *      summary="This method is to get all question report.  and only business owner of the business can view this ",
      *      description="This method is to get all question report. and only business owner of the business can view this ",
 
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -4150,48 +4026,47 @@ return response([
      *     )
      */
 
-    public function getQuestionAllReportQuantum(Request $request) {
+    public function getQuestionAllReportQuantum(Request $request)
+    {
 
 
-        $business =    Business::where(["id" => $request->business_id,
-        "OwnerID" => $request->user()->id
+        $business =    Business::where([
+            "id" => $request->business_id,
+            "OwnerID" => $request->user()->id
         ])->first();
-        if(!$business){
+        if (!$business) {
             return response("No Business Found or you are not the owner of the business", 404);
         }
-$data = [];
+        $data = [];
 
-$period=0;
-        for($i=0;$i<$request->quantum;$i++ ) {
+        $period = 0;
+        for ($i = 0; $i < $request->quantum; $i++) {
             $totalCount = 0;
             $ttotalRating = 0;
 
-            foreach(Star::get() as $star) {
+            foreach (Star::get() as $star) {
 
-            $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->where([
-                "review_news.business_id" => $business->id,
-                "star_id" => $star->id,
-                "review_news.guest_id" => NULL
-            ])
-            ->whereBetween(
-                'review_news.created_at',
-                [now()->subDays(($request->period + $period))->startOfDay(), now()->subDays($period)->endOfDay()]
-            )
-            ->distinct("review_value_news.review_id","review_value_news.question_id")
-            ->count();
+                $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                    ->where([
+                        "review_news.business_id" => $business->id,
+                        "star_id" => $star->id,
+                        "review_news.guest_id" => NULL
+                    ])
+                    ->whereBetween(
+                        'review_news.created_at',
+                        [now()->subDays(($request->period + $period))->startOfDay(), now()->subDays($period)->endOfDay()]
+                    )
+                    ->distinct("review_value_news.review_id", "review_value_news.question_id")
+                    ->count();
 
-            $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
+                $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
 
-            $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
-
+                $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
             }
-            if($totalCount > 0) {
-            $data2["total_rating"] = $totalCount / $ttotalRating;
-
-            }
-            else {
-            $data2["total_rating"] = 0;
+            if ($totalCount > 0) {
+                $data2["total_rating"] = $totalCount / $ttotalRating;
+            } else {
+                $data2["total_rating"] = 0;
             }
 
             // $data2["total_comment"] = ReviewNew::with("user","guest_user")->where([
@@ -4200,8 +4075,8 @@ $period=0;
             // ])
             // ->whereNotNull("comment")
             // ->count();
-        array_push($data,$data2);
-        $period +=  $request->period + $period;
+            array_push($data, $data2);
+            $period +=  $request->period + $period;
         }
 
 
@@ -4210,15 +4085,15 @@ $period=0;
 
 
 
-return response([
-    "data" =>  $data,
+        return response([
+            "data" =>  $data,
 
-], 200);
-}
+        ], 200);
+    }
 
 
-  /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all-report-by-user/{perPage}",
      *      operationId="getQuestionAllReportByUser",
@@ -4235,7 +4110,7 @@ return response([
      *         description="perPage Id",
      *         required=true,
      *      ),
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -4291,230 +4166,214 @@ return response([
      *     )
      */
 
-    public function getQuestionAllReportByUser($perPage,Request $request) {
+    public function getQuestionAllReportByUser($perPage, Request $request)
+    {
 
 
         $business =    Business::where(["id" => $request->business_id])->first();
-        if(!$business){
+        if (!$business) {
             return response("No Business Found", 404);
         }
-$usersQuery = User::leftjoin('review_news', 'users.id', '=', 'review_news.user_id')
-->leftjoin('review_value_news', 'review_news.id', '=', 'review_value_news.review_id')
-->leftjoin('questions', 'review_value_news.question_id', '=', 'questions.id')
+        $usersQuery = User::leftjoin('review_news', 'users.id', '=', 'review_news.user_id')
+            ->leftjoin('review_value_news', 'review_news.id', '=', 'review_value_news.review_id')
+            ->leftjoin('questions', 'review_value_news.question_id', '=', 'questions.id')
 
-->where([
-    "review_news.business_id" => $business->id
-])
-->havingRaw('COUNT(review_news.id) > 0')
-->havingRaw('COUNT(review_value_news.question_id) > 0')
-->havingRaw('COUNT(questions.id) > 0')
-->groupBy("users.id")
-->select("users.*","review_news.created_at as review_created_at");
-if(!empty($request->start_date) && !empty($request->end_date)) {
+            ->where([
+                "review_news.business_id" => $business->id
+            ])
+            ->havingRaw('COUNT(review_news.id) > 0')
+            ->havingRaw('COUNT(review_value_news.question_id) > 0')
+            ->havingRaw('COUNT(questions.id) > 0')
+            ->groupBy("users.id")
+            ->select("users.*", "review_news.created_at as review_created_at");
+        if (!empty($request->start_date) && !empty($request->end_date)) {
 
-    $usersQuery = $usersQuery->whereBetween('review_news.created_at', [
-        $request->start_date,
-        $request->end_date
-    ]);
-
-}
-$users = $usersQuery->paginate($perPage);
-
-for($i = 0;$i < count($users->items());$i++ ){
-    $query =  Question::leftjoin('review_value_news', 'questions.id', '=', 'review_value_news.question_id')
-    ->leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-    ->where([
-        "questions.business_id" => $request->business_id,
-        "questions.is_default" => false,
-        "review_news.user_id" => $users->items()[$i]->id
-    ])
-    ->groupBy("questions.id")
-    ->select("questions.*")
-    ;
-
-    $questions =  $query->get();
-
-
-
-$data =  json_decode(json_encode($questions), true);
-foreach($questions as $key1=>$question){
-
-    $tags_rating = [];
-   $starCountTotal = 0;
-   $starCountTotalTimes = 0;
-    foreach($question->question_stars as $key2=>$questionStar){
-
-
-        $data[$key1]["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
-
-        $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "star_id" => $questionStar->star->id,
-            "review_news.guest_id" => NULL,
-            "review_news.user_id" => $users->items()[$i]->id
-            ]
-        );
-        if(!empty($request->start_date) && !empty($request->end_date)) {
-
-            $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->whereBetween('review_news.created_at', [
+            $usersQuery = $usersQuery->whereBetween('review_news.created_at', [
                 $request->start_date,
                 $request->end_date
             ]);
-
         }
-        $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->get()
-        ->count();
+        $users = $usersQuery->paginate($perPage);
 
-        $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
+        for ($i = 0; $i < count($users->items()); $i++) {
+            $query =  Question::leftjoin('review_value_news', 'questions.id', '=', 'review_value_news.question_id')
+                ->leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                ->where([
+                    "questions.business_id" => $request->business_id,
+                    "questions.is_default" => false,
+                    "review_news.user_id" => $users->items()[$i]->id
+                ])
+                ->groupBy("questions.id")
+                ->select("questions.*");
 
-        $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
-        $data[$key1]["stars"][$key2]["tag_ratings"] = [];
-        if($starCountTotalTimes > 0) {
-            $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
-        }
-
-
-        foreach($questionStar->star->star_tags as $key3=>$starTag){
-
-
-     if($starTag->question_id == $question->id) {
-
-        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "tag_id" => $starTag->tag->id,
-            "review_news.guest_id" => NULL,
-            "review_news.user_id" => $users->items()[$i]->id
-            ]
-        );
-        if(!empty($request->start_date) && !empty($request->end_date)) {
-
-            $starTag->tag->count = $starTag->tag->count->whereBetween('review_news.created_at', [
-                $request->start_date,
-                $request->end_date
-            ]);
-
-        }
-
-        $starTag->tag->count = $starTag->tag->count->get()->count();
-        if($starTag->tag->count > 0) {
-            array_push($tags_rating,json_decode(json_encode($starTag->tag)));
-                       }
+            $questions =  $query->get();
 
 
-        $starTag->tag->total =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "star_id" => $questionStar->star->id,
-            "tag_id" => $starTag->tag->id,
-            "review_news.guest_id" => NULL,
-            "review_news.user_id" => $users->items()[$i]->id
-            ]
-        );
-        if(!empty($request->start_date) && !empty($request->end_date)) {
 
-            $starTag->tag->total = $starTag->tag->total->whereBetween('review_news.created_at', [
-                $request->start_date,
-                $request->end_date
-            ]);
+            $data =  json_decode(json_encode($questions), true);
+            foreach ($questions as $key1 => $question) {
 
-        }
-        $starTag->tag->total = $starTag->tag->total->get()->count();
+                $tags_rating = [];
+                $starCountTotal = 0;
+                $starCountTotalTimes = 0;
+                foreach ($question->question_stars as $key2 => $questionStar) {
 
-            if($starTag->tag->total > 0) {
-                unset($starTag->tag->count);
-                array_push($data[$key1]["stars"][$key2]["tag_ratings"],json_decode(json_encode($starTag->tag)));
+
+                    $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
+
+                    $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                        ->where(
+                            [
+                                "review_news.business_id" => $business->id,
+                                "question_id" => $question->id,
+                                "star_id" => $questionStar->star->id,
+                                "review_news.guest_id" => NULL,
+                                "review_news.user_id" => $users->items()[$i]->id
+                            ]
+                        );
+                    if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                        $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->whereBetween('review_news.created_at', [
+                            $request->start_date,
+                            $request->end_date
+                        ]);
+                    }
+                    $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->get()
+                        ->count();
+
+                    $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
+
+                    $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
+                    $data[$key1]["stars"][$key2]["tag_ratings"] = [];
+                    if ($starCountTotalTimes > 0) {
+                        $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
+                    }
+
+
+                    foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+
+
+                        if ($starTag->question_id == $question->id) {
+
+                            $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                                ->where(
+                                    [
+                                        "review_news.business_id" => $business->id,
+                                        "question_id" => $question->id,
+                                        "tag_id" => $starTag->tag->id,
+                                        "review_news.guest_id" => NULL,
+                                        "review_news.user_id" => $users->items()[$i]->id
+                                    ]
+                                );
+                            if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                                $starTag->tag->count = $starTag->tag->count->whereBetween('review_news.created_at', [
+                                    $request->start_date,
+                                    $request->end_date
+                                ]);
+                            }
+
+                            $starTag->tag->count = $starTag->tag->count->get()->count();
+                            if ($starTag->tag->count > 0) {
+                                array_push($tags_rating, json_decode(json_encode($starTag->tag)));
+                            }
+
+
+                            $starTag->tag->total =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                                ->where(
+                                    [
+                                        "review_news.business_id" => $business->id,
+                                        "question_id" => $question->id,
+                                        "star_id" => $questionStar->star->id,
+                                        "tag_id" => $starTag->tag->id,
+                                        "review_news.guest_id" => NULL,
+                                        "review_news.user_id" => $users->items()[$i]->id
+                                    ]
+                                );
+                            if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                                $starTag->tag->total = $starTag->tag->total->whereBetween('review_news.created_at', [
+                                    $request->start_date,
+                                    $request->end_date
+                                ]);
+                            }
+                            $starTag->tag->total = $starTag->tag->total->get()->count();
+
+                            if ($starTag->tag->total > 0) {
+                                unset($starTag->tag->count);
+                                array_push($data[$key1]["stars"][$key2]["tag_ratings"], json_decode(json_encode($starTag->tag)));
+                            }
+                        }
+                    }
+                }
+
+
+                $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
             }
 
 
-      }
 
 
 
+            $totalCount = 0;
+            $ttotalRating = 0;
+
+            foreach (Star::get() as $star) {
+
+                $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                    ->where([
+                        "review_news.business_id" => $business->id,
+                        "star_id" => $star->id,
+                        "review_news.guest_id" => NULL,
+                        "review_news.user_id" => $users->items()[$i]->id
+                    ])
+                    ->distinct("review_value_news.review_id", "review_value_news.question_id");
+                if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                    $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->whereBetween('review_news.created_at', [
+                        $request->start_date,
+                        $request->end_date
+                    ]);
+                }
+                $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->count();
+
+                $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
+
+                $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
+            }
+            if ($totalCount > 0) {
+                $data2["total_rating"] = $totalCount / $ttotalRating;
+            } else {
+                $data2["total_rating"] = 0;
+            }
+
+            $data2["total_comment"] = ReviewNew::with("user", "guest_user")->where([
+                "business_id" => $business->id,
+                "guest_id" => NULL,
+                "review_news.user_id" => $users->items()[$i]->id
+            ])
+                ->whereNotNull("comment");
+            if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                $data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
+                    $request->start_date,
+                    $request->end_date
+                ]);
+            }
+            $data2["total_comment"] = $data2["total_comment"]->get();
+
+            $users->items()[$i]["review_info"] = [
+                "part1" =>  $data2,
+                "part2" =>  $data
+            ];
         }
-
+        return response()->json($users, 200);
     }
 
 
-    $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
-}
 
-
-
-
-
-$totalCount = 0;
-$ttotalRating = 0;
-
-foreach(Star::get() as $star) {
-
-$data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-->where([
-    "review_news.business_id" => $business->id,
-    "star_id" => $star->id,
-    "review_news.guest_id" => NULL,
-    "review_news.user_id" => $users->items()[$i]->id
-])
-->distinct("review_value_news.review_id","review_value_news.question_id");
-if(!empty($request->start_date) && !empty($request->end_date)) {
-
-    $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->whereBetween('review_news.created_at', [
-        $request->start_date,
-        $request->end_date
-    ]);
-
-}
-$data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->count();
-
-$totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
-
-$ttotalRating += $data2["star_" . $star->value . "_selected_count"];
-
-}
-if($totalCount > 0) {
-$data2["total_rating"] = $totalCount / $ttotalRating;
-
-}
-else {
-$data2["total_rating"] = 0;
-
-}
-
-$data2["total_comment"] = ReviewNew::with("user","guest_user")->where([
-"business_id" => $business->id,
-"guest_id" => NULL,
-"review_news.user_id" => $users->items()[$i]->id
-])
-->whereNotNull("comment");
-if(!empty($request->start_date) && !empty($request->end_date)) {
-
-$data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
-    $request->start_date,
-    $request->end_date
-]);
-
-}
-$data2["total_comment"] = $data2["total_comment"]->get();
-
-$users->items()[$i]["review_info"] = [
-    "part1" =>  $data2,
-    "part2" =>  $data
-];
-
-
-}
-return response()->json($users,200);
-
-}
-
-
-
-  /**
-        *
+    /**
+     *
      * @OA\Get(
      *      path="/review-new/get/questions-all-report-by-user-guest/{perPage}",
      *      operationId="getQuestionAllReportByUserGuest",
@@ -4531,7 +4390,7 @@ return response()->json($users,200);
      *         description="perPage Id",
      *         required=false,
      *      ),
- *         @OA\Parameter(
+     *         @OA\Parameter(
      *         name="business_id",
      *         in="query",
      *         description="business Id",
@@ -4587,233 +4446,214 @@ return response()->json($users,200);
      *     )
      */
 
-    public function getQuestionAllReportByUserGuest($perPage,Request $request) {
+    public function getQuestionAllReportByUserGuest($perPage, Request $request)
+    {
 
 
         $business =    Business::where(["id" => $request->business_id])->first();
-        if(!$business){
+        if (!$business) {
             return response("No Business Found", 404);
         }
-$usersQuery = GuestUser::leftjoin('review_news', 'guest_users.id', '=', 'review_news.guest_id')
-->leftjoin('review_value_news', 'review_news.id', '=', 'review_value_news.review_id')
-->leftjoin('questions', 'review_value_news.question_id', '=', 'questions.id')
+        $usersQuery = GuestUser::leftjoin('review_news', 'guest_users.id', '=', 'review_news.guest_id')
+            ->leftjoin('review_value_news', 'review_news.id', '=', 'review_value_news.review_id')
+            ->leftjoin('questions', 'review_value_news.question_id', '=', 'questions.id')
 
-->where([
-    "review_news.business_id" => $business->id
-])
-->havingRaw('COUNT(review_news.id) > 0')
-->havingRaw('COUNT(review_value_news.question_id) > 0')
-->havingRaw('COUNT(questions.id) > 0')
-->groupBy("guest_users.id",)
-->select("guest_users.*",
+            ->where([
+                "review_news.business_id" => $business->id
+            ])
+            ->havingRaw('COUNT(review_news.id) > 0')
+            ->havingRaw('COUNT(review_value_news.question_id) > 0')
+            ->havingRaw('COUNT(questions.id) > 0')
+            ->groupBy("guest_users.id",)
+            ->select(
+                "guest_users.*",
 
-"review_news.created_at as review_created_at"
-);
+                "review_news.created_at as review_created_at"
+            );
 
-if(!empty($request->start_date) && !empty($request->end_date)) {
+        if (!empty($request->start_date) && !empty($request->end_date)) {
 
-    $usersQuery = $usersQuery->whereBetween('review_news.created_at', [
-        $request->start_date,
-        $request->end_date
-    ]);
-
-}
-$users = $usersQuery->paginate($perPage);
-
-
-for($i = 0;$i < count($users->items());$i++ ){
-    $query =  Question::leftjoin('review_value_news', 'questions.id', '=', 'review_value_news.question_id')
-    ->leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-    ->where([
-        "questions.business_id" => $request->business_id,
-        "is_default" => false,
-        "review_news.guest_id" => $users->items()[$i]->id
-    ])
-    ->groupBy("questions.id")
-    ->select("questions.*")
-    ;
-
-    $questions =  $query->get();
-
-
-
-$data =  json_decode(json_encode($questions), true);
-foreach($questions as $key1=>$question){
-
-    $tags_rating = [];
-   $starCountTotal = 0;
-   $starCountTotalTimes = 0;
-    foreach($question->question_stars as $key2=>$questionStar){
-
-
-        $data[$key1]["stars"][$key2]= json_decode(json_encode($questionStar->star), true) ;
-
-        $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "star_id" => $questionStar->star->id,
-            "review_news.guest_id" => $users->items()[$i]->id,
-            "review_news.user_id" => NULL
-            ]
-        );
-        if(!empty($request->start_date) && !empty($request->end_date)) {
-
-            $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->whereBetween('review_news.created_at', [
+            $usersQuery = $usersQuery->whereBetween('review_news.created_at', [
                 $request->start_date,
                 $request->end_date
             ]);
-
         }
-        $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->get()
-        ->count();
-
-        $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
-
-        $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
-        $data[$key1]["stars"][$key2]["tag_ratings"] = [];
-        if($starCountTotalTimes > 0) {
-            $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
-        }
+        $users = $usersQuery->paginate($perPage);
 
 
-        foreach($questionStar->star->star_tags as $key3=>$starTag){
+        for ($i = 0; $i < count($users->items()); $i++) {
+            $query =  Question::leftjoin('review_value_news', 'questions.id', '=', 'review_value_news.question_id')
+                ->leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                ->where([
+                    "questions.business_id" => $request->business_id,
+                    "is_default" => false,
+                    "review_news.guest_id" => $users->items()[$i]->id
+                ])
+                ->groupBy("questions.id")
+                ->select("questions.*");
+
+            $questions =  $query->get();
 
 
-     if($starTag->question_id == $question->id) {
 
-        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "tag_id" => $starTag->tag->id,
-            "review_news.guest_id" => $users->items()[$i]->id,
-            "review_news.user_id" => NULL
-            ]
-        );
-        if(!empty($request->start_date) && !empty($request->end_date)) {
+            $data =  json_decode(json_encode($questions), true);
+            foreach ($questions as $key1 => $question) {
 
-            $starTag->tag->count = $starTag->tag->count->whereBetween('review_news.created_at', [
-                $request->start_date,
-                $request->end_date
-            ]);
-
-        }
-
-        $starTag->tag->count = $starTag->tag->count->get()->count();
-        if($starTag->tag->count > 0) {
-            array_push($tags_rating,json_decode(json_encode($starTag->tag)));
-                       }
+                $tags_rating = [];
+                $starCountTotal = 0;
+                $starCountTotalTimes = 0;
+                foreach ($question->question_stars as $key2 => $questionStar) {
 
 
-        $starTag->tag->total =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-        ->where([
-            "review_news.business_id" => $business->id,
-            "question_id" => $question->id,
-            "star_id" => $questionStar->star->id,
-            "tag_id" => $starTag->tag->id,
-            "review_news.guest_id" => $users->items()[$i]->id,
-            "review_news.user_id" => NULL
-            ]
-        );
-        if(!empty($request->start_date) && !empty($request->end_date)) {
+                    $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
-            $starTag->tag->total = $starTag->tag->total->whereBetween('review_news.created_at', [
-                $request->start_date,
-                $request->end_date
-            ]);
+                    $data[$key1]["stars"][$key2]["stars_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                        ->where(
+                            [
+                                "review_news.business_id" => $business->id,
+                                "question_id" => $question->id,
+                                "star_id" => $questionStar->star->id,
+                                "review_news.guest_id" => $users->items()[$i]->id,
+                                "review_news.user_id" => NULL
+                            ]
+                        );
+                    if (!empty($request->start_date) && !empty($request->end_date)) {
 
-        }
-        $starTag->tag->total = $starTag->tag->total->get()->count();
+                        $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->whereBetween('review_news.created_at', [
+                            $request->start_date,
+                            $request->end_date
+                        ]);
+                    }
+                    $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->get()
+                        ->count();
 
-            if($starTag->tag->total > 0) {
-                unset($starTag->tag->count);
-                array_push($data[$key1]["stars"][$key2]["tag_ratings"],json_decode(json_encode($starTag->tag)));
+                    $starCountTotal += $data[$key1]["stars"][$key2]["stars_count"] * $questionStar->star->value;
+
+                    $starCountTotalTimes += $data[$key1]["stars"][$key2]["stars_count"];
+                    $data[$key1]["stars"][$key2]["tag_ratings"] = [];
+                    if ($starCountTotalTimes > 0) {
+                        $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
+                    }
+
+
+                    foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+
+
+                        if ($starTag->question_id == $question->id) {
+
+                            $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                                ->where(
+                                    [
+                                        "review_news.business_id" => $business->id,
+                                        "question_id" => $question->id,
+                                        "tag_id" => $starTag->tag->id,
+                                        "review_news.guest_id" => $users->items()[$i]->id,
+                                        "review_news.user_id" => NULL
+                                    ]
+                                );
+                            if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                                $starTag->tag->count = $starTag->tag->count->whereBetween('review_news.created_at', [
+                                    $request->start_date,
+                                    $request->end_date
+                                ]);
+                            }
+
+                            $starTag->tag->count = $starTag->tag->count->get()->count();
+                            if ($starTag->tag->count > 0) {
+                                array_push($tags_rating, json_decode(json_encode($starTag->tag)));
+                            }
+
+
+                            $starTag->tag->total =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                                ->where(
+                                    [
+                                        "review_news.business_id" => $business->id,
+                                        "question_id" => $question->id,
+                                        "star_id" => $questionStar->star->id,
+                                        "tag_id" => $starTag->tag->id,
+                                        "review_news.guest_id" => $users->items()[$i]->id,
+                                        "review_news.user_id" => NULL
+                                    ]
+                                );
+                            if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                                $starTag->tag->total = $starTag->tag->total->whereBetween('review_news.created_at', [
+                                    $request->start_date,
+                                    $request->end_date
+                                ]);
+                            }
+                            $starTag->tag->total = $starTag->tag->total->get()->count();
+
+                            if ($starTag->tag->total > 0) {
+                                unset($starTag->tag->count);
+                                array_push($data[$key1]["stars"][$key2]["tag_ratings"], json_decode(json_encode($starTag->tag)));
+                            }
+                        }
+                    }
+                }
+
+
+                $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
             }
 
 
-      }
 
 
 
+            $totalCount = 0;
+            $ttotalRating = 0;
+
+            foreach (Star::get() as $star) {
+
+                $data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                    ->where([
+                        "review_news.business_id" => $business->id,
+                        "star_id" => $star->id,
+                        "review_news.guest_id" => $users->items()[$i]->id,
+                        "review_news.user_id" => NULL
+                    ])
+                    ->distinct("review_value_news.review_id", "review_value_news.question_id");
+                if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                    $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->whereBetween('review_news.created_at', [
+                        $request->start_date,
+                        $request->end_date
+                    ]);
+                }
+                $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->count();
+
+                $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
+
+                $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
+            }
+            if ($totalCount > 0) {
+                $data2["total_rating"] = $totalCount / $ttotalRating;
+            } else {
+                $data2["total_rating"] = 0;
+            }
+
+            $data2["total_comment"] = ReviewNew::with("user", "guest_user")->where([
+                "business_id" => $business->id,
+                "guest_id" => $users->items()[$i]->id,
+                "review_news.user_id" => NULL
+            ])
+                ->whereNotNull("comment");
+            if (!empty($request->start_date) && !empty($request->end_date)) {
+
+                $data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
+                    $request->start_date,
+                    $request->end_date
+                ]);
+            }
+            $data2["total_comment"] = $data2["total_comment"]->get();
+
+            $users->items()[$i]["review_info"] = [
+                "part1" =>  $data2,
+                "part2" =>  $data
+            ];
         }
 
+        return response()->json($users, 200);
     }
-
-
-    $data[$key1]["tags_rating"] = array_values(collect($tags_rating)->unique()->toArray());
-}
-
-
-
-
-
-$totalCount = 0;
-$ttotalRating = 0;
-
-foreach(Star::get() as $star) {
-
-$data2["star_" . $star->value . "_selected_count"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-->where([
-    "review_news.business_id" => $business->id,
-    "star_id" => $star->id,
-    "review_news.guest_id" => $users->items()[$i]->id,
-    "review_news.user_id" => NULL
-])
-->distinct("review_value_news.review_id","review_value_news.question_id");
-if(!empty($request->start_date) && !empty($request->end_date)) {
-
-    $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->whereBetween('review_news.created_at', [
-        $request->start_date,
-        $request->end_date
-    ]);
-
-}
-$data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->count();
-
-$totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
-
-$ttotalRating += $data2["star_" . $star->value . "_selected_count"];
-
-}
-if($totalCount > 0) {
-$data2["total_rating"] = $totalCount / $ttotalRating;
-
-}
-else {
-$data2["total_rating"] = 0;
-
-}
-
-$data2["total_comment"] = ReviewNew::with("user","guest_user")->where([
-"business_id" => $business->id,
-"guest_id" => $users->items()[$i]->id,
-"review_news.user_id" => NULL
-])
-->whereNotNull("comment");
-if(!empty($request->start_date) && !empty($request->end_date)) {
-
-$data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
-    $request->start_date,
-    $request->end_date
-]);
-
-}
-$data2["total_comment"] = $data2["total_comment"]->get()
-;
-
-$users->items()[$i]["review_info"] = [
-    "part1" =>  $data2,
-    "part2" =>  $data
-];
-
-
-}
-
-return response()->json($users,200);
-
-}
-
-
-
 }
