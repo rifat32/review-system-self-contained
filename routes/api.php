@@ -15,6 +15,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\LeafletController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReviewNewController;
 use App\Http\Controllers\RolesController;
@@ -126,6 +127,15 @@ Route::post('/review-new-guest/{businessId}', [ReviewNewController::class, "stor
 // @@@@@@@@@@@@@@@@@@@@  Protected Routes      @@@@@@@@@@@@@@@@@
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 Route::middleware(['auth:api'])->group(function () {
+
+    // Leaflet CRUD
+    Route::post('/v1.0/leaflet/create',        [LeafletController::class, 'createLeaflet'])->name('leaflet.create');
+    Route::put('/v1.0/leaflet/update',        [LeafletController::class, 'updateLeaflet'])->name('leaflet.update');
+    Route::get('/v1.0/leaflet/get',           [LeafletController::class, 'getLeaflet'])->name('leaflet.index');     // ?business_id=&type=
+    Route::get('/v1.0/leaflet/get/{id}',      [LeafletController::class, 'getLeafletById'])->name('leaflet.show');
+    Route::delete('/v1.0/leaflet/{business_id}/{id}', [LeafletController::class, 'deleteLeafletById'])->name('leaflet.destroy');
+    Route::post('/v1.0/leaflet-image',         [LeafletController::class, 'createLeafletImage'])->name('leaflet.image.upload');
+
 
     Route::get('/v1.0/staffs',        [StaffController::class, 'getAllStaffs']);   // list
     Route::get('/v1.0/staffs/{id}',   [StaffController::class, 'getStaffById']);    // read

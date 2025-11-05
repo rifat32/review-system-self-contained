@@ -64,6 +64,11 @@ class SetupController extends Controller
 
         $this->roleRefreshFunc();
 
+        //! CREATE STAFF ROLE
+        // if (!Role::where(['name' => 'staff'])->exists()) {
+        //     Role::create(['name' => 'staff']);
+        // }
+
         return "You are done with setup";
     }
 
