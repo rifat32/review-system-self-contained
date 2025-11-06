@@ -13,7 +13,7 @@ class LeafletController extends Controller
     /**
      * @OA\Post(
      *   path="/v1.0/leaflet/create",
-     *   operationId="createLeaflet",
+     *   operationId="insertLeaflet",
      *   tags={"leaflet"},
      *   security={{"bearerAuth": {}}},
      *   summary="Create a leaflet",
@@ -24,8 +24,15 @@ class LeafletController extends Controller
      *       required={"title","business_id","leaflet_data","type"},
      *       @OA\Property(property="title", type="string", example="Promo Leaflet Q4"),
      *       @OA\Property(property="business_id", type="integer", example=1),
-     *       @OA\Property(property="thumbnail", type="string", example="/leaflet_image/thumb_123.jpg"),
-     *       @OA\Property(property="leaflet_data", type="string", example="{\"pages\":2,\"elements\":[]}"),
+     *       @OA\Property(property="thumbnail", type="string", example=""),
+     *       @OA\Property(
+     *         property="leaflet_data",
+     *         type="object",
+     *         @OA\Property(property="pages", type="integer", example=2),
+     *         @OA\Property(property="elements", type="array", 
+     *         @OA\Items(type="object")
+     *         )
+     *       ),
      *       @OA\Property(property="type", type="string", example="menu")
      *     )
      *   ),
@@ -36,7 +43,8 @@ class LeafletController extends Controller
      *   @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function createLeaflet(Request $request)
+
+    public function insertLeaflet(Request $request)
     {
         $body = $request->toArray();
 
@@ -53,24 +61,33 @@ class LeafletController extends Controller
 
     /**
      * @OA\Put(
-     *   path="/v1.0/leaflet/update",
-     *   operationId="updateLeaflet",
+     *   path="/v1.0/leaflet",
+     *   operationId="editLeaflet",
      *   tags={"leaflet"},
      *   security={{"bearerAuth": {}}},
      *   summary="Update a leaflet",
-     *   description="Update an existing leaflet for a business",
+     *   description="Update an existing leaflet for a business.",
      *   @OA\RequestBody(
      *     required=true,
      *     @OA\JsonContent(
-     *       required={"id","business_id"},
-     *       @OA\Property(property="id", type="integer", example=10),
+     *       type="object",
+     *       required={"business_id"},
+     *       @OA\Property(property="id", type="integer", example=1),
      *       @OA\Property(property="title", type="string", example="Updated Promo Leaflet"),
      *       @OA\Property(property="business_id", type="integer", example=1),
-     *       @OA\Property(property="thumbnail", type="string", example="/leaflet_image/thumb_456.jpg"),
-     *       @OA\Property(property="leaflet_data", type="string", example="{\"pages\":3,\"elements\":[]}"),
+     *       @OA\Property(property="thumbnail", type="string", example=""),
+     *       @OA\Property(
+     *         property="leaflet_data",
+     *         type="object",
+     *         @OA\Property(property="pages", type="integer", example=2),
+     *         @OA\Property(property="elements", type="array", 
+     *         @OA\Items(type="object")
+     *          )
+     *       ),
      *       @OA\Property(property="type", type="string", example="menu")
      *     )
      *   ),
+     *
      *   @OA\Response(response=200, description="OK"),
      *   @OA\Response(response=401, description="Unauthenticated"),
      *   @OA\Response(response=403, description="Forbidden"),
@@ -78,7 +95,8 @@ class LeafletController extends Controller
      *   @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function updateLeaflet(Request $request)
+
+    public function editLeaflet(Request $request)
     {
         $body = $request->toArray();
 
@@ -103,7 +121,7 @@ class LeafletController extends Controller
     /**
      * @OA\Get(
      *   path="/v1.0/leaflet/get",
-     *   operationId="getLeaflet",
+     *   operationId="getAllLeaflet",
      *   tags={"leaflet"},
      *   summary="List leaflets",
      *   description="Get leaflets filtered by business and/or type",
@@ -122,7 +140,7 @@ class LeafletController extends Controller
      *   @OA\Response(response=403, description="Forbidden")
      * )
      */
-    public function getLeaflet(Request $request)
+    public function getAllLeaflet(Request $request)
     {
         $leafletsQuery = Leaflet::query();
 
@@ -140,7 +158,7 @@ class LeafletController extends Controller
     /**
      * @OA\Get(
      *   path="/v1.0/leaflet/get/{id}",
-     *   operationId="getLeafletById",
+     *   operationId="leafletById",
      *   tags={"leaflet"},
      *   summary="Get a leaflet by id",
      *   description="Get a single leaflet by id",
@@ -152,7 +170,7 @@ class LeafletController extends Controller
      *   @OA\Response(response=404, description="Not found")
      * )
      */
-    public function getLeafletById($id, Request $request)
+    public function leafletById($id, Request $request)
     {
         $leaflet = Leaflet::where('id', $id)->first();
         if (!$leaflet) {
@@ -164,7 +182,7 @@ class LeafletController extends Controller
     /**
      * @OA\Delete(
      *   path="/v1.0/leaflet/{business_id}/{id}",
-     *   operationId="deleteLeafletById",
+     *   operationId="leafletDeleteById",
      *   tags={"leaflet"},
      *   security={{"bearerAuth": {}}},
      *   summary="Delete a leaflet by id",
@@ -183,7 +201,7 @@ class LeafletController extends Controller
      *   @OA\Response(response=404, description="Business/Leaflet not found")
      * )
      */
-    public function deleteLeafletById($business_id, $id, Request $request)
+    public function leafletDeleteById($business_id, $id, Request $request)
     {
         if (!$request->user()->hasRole('superadmin')) {
             $business = Business::where('id', $business_id)->first();
@@ -203,7 +221,7 @@ class LeafletController extends Controller
     /**
      * @OA\Post(
      *   path="/v1.0/v1.0/leaflet-image",
-     *   operationId="createLeafletImage",
+     *   operationId="insertLeafletImage",
      *   tags={"leaflet"},
      *   security={{"bearerAuth": {}}},
      *   summary="Upload a leaflet image",
@@ -230,7 +248,7 @@ class LeafletController extends Controller
      *   @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function createLeafletImage(ImageUploadRequest $request)
+    public function insertLeafletImage(ImageUploadRequest $request)
     {
         try {
             $data = $request->validated();

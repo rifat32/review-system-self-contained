@@ -21,8 +21,8 @@ class UpdateStaffRequest extends FormRequest
     {
         $id = $this->route('id');
         return [
-            'first_name'    => ['nullable', 'string', 'max:255'],
-            'last_name'     => ['nullable', 'string', 'max:255'],
+            'first_Name'    => ['nullable', 'string', 'max:255'],
+            'last_Name'     => ['nullable', 'string', 'max:255'],
             'email'         => ['nullable', 'email'],
             'phone'         => ['nullable', 'string', 'max:50'],
             'date_of_birth' => ['nullable', 'string'],

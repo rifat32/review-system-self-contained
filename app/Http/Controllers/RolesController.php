@@ -99,22 +99,21 @@ class RolesController extends Controller
                 $insertableRole["is_default_for_business"] = 0;
             }
 
-            if(!empty($insertableRole["business_id"])) {
+            if (!empty($insertableRole["business_id"])) {
 
-                 $custom_roles_count =   Role::where([
+                $custom_roles_count =   Role::where([
                     "business_id" => $insertableRole["business_id"],
-                    "is_default_for_business"=> 0
-                 ])
-                 ->count();
+                    "is_default_for_business" => 0
+                ])
+                    ->count();
 
-                 if($custom_roles_count >= 5) {
+                if ($custom_roles_count >= 5) {
                     return response()->json([
                         "message" => "You can not create more than 5"
                     ], 403);
-                 }
+                }
 
-                 throw new Exception($custom_roles_count,409);
-
+                throw new Exception($custom_roles_count, 409);
             }
 
 
@@ -125,7 +124,6 @@ class RolesController extends Controller
             return response()->json([
                 "role" =>  $role,
             ], 201);
-
         } catch (Exception $e) {
 
             return $this->sendError($e, 500, $request);
@@ -196,15 +194,15 @@ class RolesController extends Controller
                 ], 401);
             }
 
-        $request_data = $request->validated();
+            $request_data = $request->validated();
 
-        $currentUser = auth()->user();
+            $currentUser = auth()->user();
 
-        $currentUserRole = $currentUser->roles()->orderBy('id', 'asc')->first();
+            $currentUserRole = $currentUser->roles()->orderBy('id', 'asc')->first();
 
-        if(empty($currentUserRole)){
-            throw new Exception("There is no role of the current user");
-        }
+            if (empty($currentUserRole)) {
+                throw new Exception("There is no role of the current user");
+            }
 
             $role = Role::where(["id" => $request_data["id"]])
                 ->when((empty(auth()->user()->business_id)), function ($query) use ($request) {
@@ -213,22 +211,22 @@ class RolesController extends Controller
                 ->when(!empty(auth()->user()->business_id), function ($query) use ($request) {
                     // return $query->where('business_id', auth()->user()->business_id)->where('is_default', 0);
                     return $query->where('business_id', auth()->user()->business_id);
-                 })
+                })
                 ->first();
 
-                if(empty($role)){
-                    throw new Exception("no role found");
-                }
+            if (empty($role)) {
+                throw new Exception("no role found");
+            }
 
-                if($role->id <= $currentUserRole->id){
-                    throw new Exception("You can not update this role");
-                }
+            if ($role->id <= $currentUserRole->id) {
+                throw new Exception("You can not update this role");
+            }
 
-                $role->name = $request_data['name'];
+            $role->name = $request_data['name'];
 
-                $role->description = !empty($request_data['description'])?$request_data['description']:"";
+            $role->description = !empty($request_data['description']) ? $request_data['description'] : "";
 
-                $role->save();
+            $role->save();
 
 
             $role->syncPermissions($request_data["permissions"]);
@@ -238,8 +236,6 @@ class RolesController extends Controller
             return response()->json([
                 "role" =>  $role,
             ], 201);
-
-
         } catch (Exception $e) {
 
             return $this->sendError($e, 500, $request);
@@ -344,7 +340,7 @@ class RolesController extends Controller
 
             $roles = Role::with('permissions:name,id', "users")
 
-                ->where("is_default_for_business",0)
+                ->where("is_default_for_business", 0)
 
                 ->when((empty(auth()->user()->business_id)), function ($query) use ($request) {
                     return $query->where('business_id', NULL)->where('is_default', 1)
@@ -766,8 +762,8 @@ class RolesController extends Controller
                     "permissions" => [],
                 ];
 
-                if(!empty($permissions["module"])){
-                     if($this->isModuleEnabled($permissions["module"],false)) {
+                if (!empty($permissions["module"])) {
+                    if ($this->isModuleEnabled($permissions["module"], false)) {
                         foreach ($permissions["permissions"] as $permission) {
 
                             $hasPermission = $current_permissions->contains('name', $permission);
@@ -780,7 +776,7 @@ class RolesController extends Controller
                                 ];
                             }
                         }
-                     }
+                    }
                 } else {
                     foreach ($permissions["permissions"] as $permission) {
 

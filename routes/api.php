@@ -129,12 +129,12 @@ Route::post('/review-new-guest/{businessId}', [ReviewNewController::class, "stor
 Route::middleware(['auth:api'])->group(function () {
 
     // Leaflet CRUD
-    Route::post('/v1.0/leaflet/create',        [LeafletController::class, 'createLeaflet'])->name('leaflet.create');
-    Route::put('/v1.0/leaflet/update',        [LeafletController::class, 'updateLeaflet'])->name('leaflet.update');
-    Route::get('/v1.0/leaflet/get',           [LeafletController::class, 'getLeaflet'])->name('leaflet.index');     // ?business_id=&type=
-    Route::get('/v1.0/leaflet/get/{id}',      [LeafletController::class, 'getLeafletById'])->name('leaflet.show');
-    Route::delete('/v1.0/leaflet/{business_id}/{id}', [LeafletController::class, 'deleteLeafletById'])->name('leaflet.destroy');
-    Route::post('/v1.0/leaflet-image',         [LeafletController::class, 'createLeafletImage'])->name('leaflet.image.upload');
+    Route::post('/v1.0/leaflet/create',        [LeafletController::class, 'insertLeaflet']);
+    Route::put('/v1.0/leaflet/update',        [LeafletController::class, 'editLeaflet']);
+    Route::get('/v1.0/leaflet/get',           [LeafletController::class, 'getAllLeaflet']);
+    Route::get('/v1.0/leaflet/get/{id}',      [LeafletController::class, 'leafletById']);
+    Route::delete('/v1.0/leaflet/{business_id}/{id}', [LeafletController::class, 'leafletDeleteById']);
+    Route::post('/v1.0/leaflet-image',         [LeafletController::class, 'insertLeafletImage']);
 
 
     Route::get('/v1.0/staffs',        [StaffController::class, 'getAllStaffs']);   // list
@@ -483,7 +483,7 @@ Route::middleware(['auth:api'])->group(function () {
 });
 
 // #################
-// forggor password Routes
+// forget password Routes
 // #################
 
 Route::post('/forgetpassword', [ForgotPasswordController::class, "storeForgetPassword"]);
@@ -497,7 +497,7 @@ Route::get('/client/businesses/{perPage}', [BusinessController::class, "getBusin
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 Route::get('/client/v1.0/business-days/{restaurentId}', [BusinessDaysController::class, "getBusinessDays"]);
-
+Route::get('/v1.0/client/staffs', [StaffController::class, 'getClientAllStaffs']);   // list
 
 
 
