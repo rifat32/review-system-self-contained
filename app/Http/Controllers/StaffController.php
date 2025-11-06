@@ -23,9 +23,9 @@ class StaffController extends Controller
      *     required=true,
      *     @OA\JsonContent(
      *       type="object",
-     *       required={"first_name","last_name","email","password","phone","date_of_birth","role"},
-     *       @OA\Property(property="first_name", type="string", maxLength=255, example="John"),
-     *       @OA\Property(property="last_name",  type="string", maxLength=255, example="Doe"),
+     *       required={"first_Name","last_Name","email","password","phone","date_of_birth","role"},
+     *       @OA\Property(property="first_Name", type="string", maxLength=255, example="John"),
+     *       @OA\Property(property="last_Name",  type="string", maxLength=255, example="Doe"),
      *       @OA\Property(property="email",      type="string", format="email", example="john.doe@example.com"),
      *       @OA\Property(property="password",   type="string", format="password", minLength=8, example="StrongP@ssw0rd"),
      *       @OA\Property(property="phone",      type="string", maxLength=255, example="+8801765432109"),
@@ -45,8 +45,8 @@ class StaffController extends Controller
      *         property="data",
      *         type="object",
      *         @OA\Property(property="id", type="integer", example=42),
-     *         @OA\Property(property="first_name", type="string", example="John"),
-     *         @OA\Property(property="last_name", type="string", example="Doe"),
+     *         @OA\Property(property="first_Name", type="string", example="John"),
+     *         @OA\Property(property="last_Name", type="string", example="Doe"),
      *         @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *         @OA\Property(property="phone", type="string", example="+8801765432109"),
      *         @OA\Property(property="date_of_birth", type="string", example="1995-06-15"),
@@ -99,8 +99,8 @@ class StaffController extends Controller
         try {
             DB::beginTransaction();
             $request->validate([
-                'first_name'     => 'required|string|max:255',
-                'last_name'     => 'required|string|max:255',
+                'first_Name'     => 'required|string|max:255',
+                'last_Name'     => 'required|string|max:255',
                 'email'    => 'required|email|unique:users,email',
                 'password' => 'required|string|min:8',
                 'phone'     => 'required|string|max:255',
@@ -109,8 +109,8 @@ class StaffController extends Controller
             ]);
 
             $user = User::create([
-                'first_name'     => $request->first_name,
-                'last_name'     => $request->last_name,
+                'first_Name'     => $request->first_Name,
+                'last_Name'     => $request->last_Name,
                 'email'    => $request->email,
                 'password' => Hash::make($request->password),
                 'phone'     => $request->phone,
@@ -135,8 +135,8 @@ class StaffController extends Controller
                     'message' => 'User registered successfully',
                     'data' => [
                         'id' => $user->id,
-                        'first_name'    => $user->first_name,
-                        'last_name'    => $user->last_name,
+                        'first_Name'    => $user->first_Name,
+                        'last_Name'    => $user->last_Name,
                         'email'   => $user->email,
                         'phone'    => $user->phone,
                         'date_of_birth'    => $user->date_of_birth,
@@ -175,8 +175,8 @@ class StaffController extends Controller
      *     required=true,
      *     @OA\JsonContent(
      *       type="object",
-     *       @OA\Property(property="first_name", type="string", maxLength=255, example="John"),
-     *       @OA\Property(property="last_name",  type="string", maxLength=255, example="Doe"),
+     *       @OA\Property(property="first_Name", type="string", maxLength=255, example="John"),
+     *       @OA\Property(property="last_Name",  type="string", maxLength=255, example="Doe"),
      *       @OA\Property(property="email",      type="string", format="email", example="john.doe@example.com"),
      *       @OA\Property(property="phone",      type="string", maxLength=50, example="+8801765432109"),
      *       @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
@@ -195,8 +195,8 @@ class StaffController extends Controller
      *         property="data",
      *         type="object",
      *         @OA\Property(property="id", type="integer", example=12),
-     *         @OA\Property(property="first_name", type="string", example="John"),
-     *         @OA\Property(property="last_name", type="string", example="Doe"),
+     *         @OA\Property(property="first_Name", type="string", example="John"),
+     *         @OA\Property(property="last_Name", type="string", example="Doe"),
      *         @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *         @OA\Property(property="phone", type="string", example="+8801765432109"),
      *         @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
@@ -256,8 +256,8 @@ class StaffController extends Controller
                 'message' => 'Staff updated',
                 'data' => [
                     'id'           => $user->id,
-                    'first_name'   => $user->first_name,
-                    'last_name'    => $user->last_name,
+                    'first_Name'   => $user->first_Name,
+                    'last_Name'    => $user->last_Name,
                     'email'        => $user->email,
                     'phone'        => $user->phone,
                     'date_of_birth' => $user->date_of_birth,
