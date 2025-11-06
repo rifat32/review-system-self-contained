@@ -1268,7 +1268,17 @@ class ReviewNewController extends Controller
         $query =  Question::where(["business_id" => $request->business_id, "is_default" => 0])
             ->when(request()->filled("is_active"), function ($query) {
                 $query->where("questions.is_active", request()->input("is_active"));
-            });
+            })
+            ->when(request()->filled("is_overall"), function ($query) {
+                $query->when(request()->boolean("is_overall"), function($query) {
+                   $query->where("questions.is_overall", 1);
+                }, function($query) {
+                   $query->where("questions.is_overall", 0);
+                });
+                
+            })
+            
+            ;
         // }
 
 

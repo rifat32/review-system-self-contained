@@ -591,11 +591,24 @@ class BusinessController extends Controller
      *
      *
      *     *  *       @OA\Property(property="pin", type="string", format="string",example="1"),
-     *        @OA\Property(property="overall_review", type="boolean", format="boolean",example="1"),
-     *        @OA\Property(property="survey", type="boolean", format="boolean",example="1"),
-     *         @OA\Property(property="show_stuffs", type="boolean", format="boolean",example="1"),
-     *         @OA\Property(property="show_stuff_image", type="boolean", format="boolean",example="1"),
-     *         @OA\Property(property="show_stuff_name", type="boolean", format="boolean",example="1"),
+     * 
+     *   *        @OA\Property(property="is_registered_user_overall_review", type="boolean", format="boolean",example="1"),
+     *        @OA\Property(property="is_registered_user_survey", type="boolean", format="boolean",example="1"),
+     *         @OA\Property(property="is_registered_user_survey_required", type="boolean", format="boolean",example="1"),
+     *         @OA\Property(property="is_registered_user_show_stuffs", type="boolean", format="boolean",example="1"),
+     *         @OA\Property(property="is_registered_user_show_stuff_image", type="boolean", format="boolean",example="1"),
+     *      *         @OA\Property(property="is_registered_user_show_stuff_name", type="boolean", format="boolean",example="1"),
+     * 
+     * 
+     * 
+     * 
+     * 
+     *        @OA\Property(property="is_guest_user_overall_review", type="boolean", format="boolean",example="1"),
+     *        @OA\Property(property="is_guest_user_survey", type="boolean", format="boolean",example="1"),
+     *         @OA\Property(property="is_guest_user_survey_required", type="boolean", format="boolean",example="1"),
+     *         @OA\Property(property="is_guest_user_show_stuffs", type="boolean", format="boolean",example="1"),
+     *         @OA\Property(property="is_guest_user_show_stuff_image", type="boolean", format="boolean",example="1"),
+     *      *         @OA\Property(property="is_guest_user_show_stuff_name", type="boolean", format="boolean",example="1"),
 
      *
      *
@@ -689,11 +702,20 @@ class BusinessController extends Controller
           
             "time_zone",
 
-             'overall_review',
-                'survey',
-                'show_stuffs',
-                'show_stuff_image',
-                'show_stuff_name',
+           'is_guest_user_overall_review',
+                'is_guest_user_survey',
+                'is_guest_user_survey_required',
+                'is_guest_user_show_stuffs',
+                'is_guest_user_show_stuff_image',
+                'is_guest_user_show_stuff_name',
+
+                // Registered user fields
+                'is_registered_user_overall_review',
+                'is_registered_user_survey',
+                'is_registered_user_survey_required',
+                'is_registered_user_show_stuffs',
+                'is_registered_user_show_stuff_image',
+                'is_registered_user_show_stuff_name',
 
         ))
             // ->with("somthing")

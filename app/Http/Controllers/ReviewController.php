@@ -43,7 +43,6 @@ class ReviewController extends Controller
         ])
             ->get();
 
-
         return response($reviewValues, 200);
     }
     // ##################################################
