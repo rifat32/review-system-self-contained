@@ -1266,6 +1266,7 @@ class ReviewNewController extends Controller
         // }
         // else {
         $query =  Question::where(["business_id" => $request->business_id, "is_default" => 0])
+        ->where(["show_in_guest_user" => 1])
             ->when(request()->filled("is_active"), function ($query) {
                 $query->where("questions.is_active", request()->input("is_active"));
             })
@@ -1394,8 +1395,8 @@ class ReviewNewController extends Controller
         }
 
 
-        $query =  Question::where(["business_id" => $request->business_id, "is_default" => $is_dafault]);
-
+        $query =  Question::where(["business_id" => $request->business_id, "is_default" => $is_dafault])
+ ->where(["show_in_user" => 1]);
 
         $questions =  $query->get();
 

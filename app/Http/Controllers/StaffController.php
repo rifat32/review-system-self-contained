@@ -355,7 +355,7 @@ class StaffController extends Controller
      *     name="search_key",
      *     in="query",
      *     required=false,
-     *     description="Search by first_name or last_name (LIKE %search_key%).",
+     *     description="Search by first_Name or last_name (LIKE %search_key%).",
      *     @OA\Schema(type="string"),
      *     example="john"
      *   ),
@@ -386,8 +386,8 @@ class StaffController extends Controller
      *         @OA\Items(
      *           type="object",
      *           @OA\Property(property="id", type="integer", example=12),
-     *           @OA\Property(property="first_name", type="string", example="John"),
-     *           @OA\Property(property="last_name", type="string", example="Doe"),
+     *           @OA\Property(property="first_Name", type="string", example="John"),
+     *           @OA\Property(property="last_Name", type="string", example="Doe"),
      *           @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *           @OA\Property(property="phone", type="string", example="+8801765432109"),
      *           @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
@@ -442,8 +442,8 @@ class StaffController extends Controller
             ->when($request->filled('search_key'), function ($qq) use ($request) {
                 $s = $request->input('search_key');
                 $qq->where(function ($w) use ($s) {
-                    $w->where('first_name', 'like', "%$s%")
-                        ->orWhere('last_name', 'like', "%$s%");
+                    $w->where('first_Name', 'like', "%$s%")
+                        ->orWhere('last_Name', 'like', "%$s%");
                 });
             })
             ->orderByDesc('id');
@@ -481,8 +481,8 @@ class StaffController extends Controller
      *         property="data",
      *         type="object",
      *         @OA\Property(property="id", type="integer", example=12),
-     *         @OA\Property(property="first_name", type="string", example="John"),
-     *         @OA\Property(property="last_name", type="string", example="Doe"),
+     *         @OA\Property(property="first_Name", type="string", example="John"),
+     *         @OA\Property(property="last_Name", type="string", example="Doe"),
      *         @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *         @OA\Property(property="phone", type="string", example="+8801765432109"),
      *         @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
@@ -549,7 +549,7 @@ class StaffController extends Controller
      *     name="search_key",
      *     in="query",
      *     required=false,
-     *     description="Search by first_name or last_name (LIKE %search_key%).",
+     *     description="Search by first_Name or last_name (LIKE %search_key%).",
      *     @OA\Schema(type="string"),
      *     example="john"
      *   ),
@@ -588,7 +588,7 @@ class StaffController extends Controller
      *         @OA\Items(
      *           type="object",
      *           @OA\Property(property="id", type="integer", example=12),
-     *           @OA\Property(property="first_name", type="string", example="John"),
+     *           @OA\Property(property="first_Name", type="string", example="John"),
      *           @OA\Property(property="last_name", type="string", example="Doe"),
      *           @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *           @OA\Property(property="phone", type="string", example="+8801765432109"),
@@ -648,8 +648,8 @@ class StaffController extends Controller
             ->when($request->filled('search_key'), function ($qq) use ($request) {
                 $s = $request->input('search_key');
                 $qq->where(function ($w) use ($s) {
-                    $w->where('first_name', 'like', "%$s%")
-                        ->orWhere('last_name', 'like', "%$s%");
+                    $w->where('first_Name', 'like', "%$s%")
+                        ->orWhere('last_Name', 'like', "%$s%");
                 });
             })
             ->orderByDesc('id');

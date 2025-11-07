@@ -311,6 +311,8 @@ Route::middleware(['auth:api'])->group(function () {
     Route::put('/review-new/update/active_state/questions', [ReviewNewController::class, "updateQuestionActiveState"]);
 
     Route::get('/review-new/get/questions', [ReviewNewController::class, "getQuestion"]);
+
+    
     Route::get('/review-new/get/questions-all', [ReviewNewController::class, "getQuestionAll"]);
 
 
