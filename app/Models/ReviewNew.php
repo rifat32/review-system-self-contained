@@ -14,11 +14,17 @@ class ReviewNew extends Model
         'rate',
         'user_id',
         'comment',
-        'guest_id'
+        'guest_id',
         // "question_id",
         // 'tag_id' ,
         // 'star_id',
+        'raw_text',
+        'emotion',
+        'key_phrases',
 
+    ];
+      protected $casts = [
+        'key_phrases' => 'array',
     ];
     // public function question() {
     //     return $this->hasOne(Question::class,'id','question_id');
