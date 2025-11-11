@@ -220,7 +220,7 @@ class LeafletController extends Controller
 
     /**
      * @OA\Post(
-     *   path="/v1.0/v1.0/leaflet-image",
+     *   path="/v1.0/leaflet-image",
      *   operationId="insertLeafletImage",
      *   tags={"leaflet"},
      *   security={{"bearerAuth": {}}},

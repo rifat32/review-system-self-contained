@@ -27,7 +27,8 @@ class User extends Authenticatable
         "door_no",
         "type",
         "business_id",
-        "date_of_birth"
+        "date_of_birth",
+        "image"
     ];
 
     /**
