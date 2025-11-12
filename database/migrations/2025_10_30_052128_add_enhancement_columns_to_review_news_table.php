@@ -11,6 +11,7 @@ class AddEnhancementColumnsToReviewNewsTable extends Migration
     public function up(): void
     {
         Schema::table('review_news', function (Blueprint $table) {
+            
             $table->string('source')->nullable()->after('id'); // e.g., website, mobile, qr_code
             $table->string('language')->nullable()->after('source'); // e.g., en, de
             $table->timestamp('responded_at')->nullable()->after('language'); // when business responded
@@ -20,7 +21,7 @@ class AddEnhancementColumnsToReviewNewsTable extends Migration
             $table->boolean('verified')->default(false);
             $table->unsignedBigInteger('topic_id')->nullable();
             $table->text('reply_content')->nullable();
-            $table->timestamp('responded_at')->nullable();
+
         });
     }
 

@@ -6,11 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 class AddReviewRulesToBusinessesTable extends Migration
 {
+
     /**
      * Run the migrations.
      *
      * @return void
      */
+    
    public function up()
     {
         Schema::table('businesses', function (Blueprint $table) {
