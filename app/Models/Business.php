@@ -64,6 +64,12 @@ class Business extends Model
                 'is_registered_user_show_stuff_image',
                 'is_registered_user_show_stuff_name',
 
+                  'enable_ip_check',
+        'enable_location_check',
+        'latitude',
+        'longitude',
+        'review_distance_limit',
+
 
     ];
 

@@ -13,7 +13,6 @@ use App\Models\Star;
 use App\Models\StarTag;
 use App\Models\StarTagQuestion;
 use App\Models\Tag;
-use App\Models\TagReview;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
@@ -528,239 +527,303 @@ class ReviewNewController extends Controller
     // This method is to store review
     // ##################################################
 
-  // ##################################################
-// Authenticated user review
-// ##################################################
-/**
- * @OA\Post(
- *      path="/review-new/{businessId}",
- *      operationId="storeReview",
- *      tags={"review"},
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          required=true,
- *          example="1"
- *      ),
- *      security={{"bearerAuth": {}}},
- *      summary="Store review by authenticated user",
- *      description="Store review with optional audio transcription and AI analysis",
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\JsonContent(
- *              required={"description","rate","comment","values"},
- *              @OA\Property(property="description", type="string", example="Test"),
- *              @OA\Property(property="rate", type="string", example="2.5"),
- *              @OA\Property(property="comment", type="string", example="Not good"),
- *              @OA\Property(
- *                  property="values",
- *                  type="array",
- *                  @OA\Items(
- *                      @OA\Property(property="question_id", type="integer", example=1),
- *                      @OA\Property(property="tag_id", type="integer", example=2),
- *                      @OA\Property(property="star_id", type="integer", example=4)
- *                  )
- *              )
- *          )
- *      ),
- *      @OA\Response(response=201, description="Created successfully"),
- *      @OA\Response(response=400, description="Bad Request"),
- *      @OA\Response(response=401, description="Unauthenticated"),
- *      @OA\Response(response=422, description="Unprocessable Content")
- * )
- */
-public function storeReview($businessId, Request $request)
-{
-    $raw_text = $request->input('description', '');
+    // ##################################################
+    // Authenticated user review
+    // ##################################################
+    /**
+     * @OA\Post(
+     *      path="/review-new/{businessId}",
+     *      operationId="storeReview",
+     *      tags={"review"},
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      security={{"bearerAuth": {}}},
+     *      summary="Store review by authenticated user",
+     *      description="Store review with optional audio transcription and AI analysis",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"description","rate","comment","values"},
+     *              @OA\Property(property="description", type="string", example="Test"),
+     *              @OA\Property(property="rate", type="string", example="2.5"),
+     *              @OA\Property(property="comment", type="string", example="Not good"),
+     *              @OA\Property(property="is_overall", type="string", example="is_overall"),
+     * 
+     *              @OA\Property(
+     *                  property="values",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="question_id", type="integer", example=1),
+     *                      @OA\Property(property="tag_id", type="integer", example=2),
+     *                      @OA\Property(property="star_id", type="integer", example=4)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(response=201, description="Created successfully"),
+     *      @OA\Response(response=400, description="Bad Request"),
+     *      @OA\Response(response=401, description="Unauthenticated"),
+     *      @OA\Response(response=422, description="Unprocessable Content")
+     * )
+     */
+    public function storeReview($businessId, Request $request)
+    {
+        $raw_text = $request->input('description', '');
 
-    if ($request->hasFile('audio')) {
-        $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
-    }
-
-    $emotion = $this->detectEmotion($raw_text);
-    $key_phrases = $this->extractKeyPhrases($raw_text);
-
-    $review = ReviewNew::create([
-        'description' => $request->description,
-        'business_id' => $businessId,
-        'rate' => $request->rate,
-        'user_id' => $request->user()->id,
-        'comment' => $request->comment,
-        'raw_text' => $raw_text,
-        'emotion' => $emotion,
-        'key_phrases' => $key_phrases,
-    ]);
-
-    $this->storeReviewValues($review, $request->values);
-
-    return response(["message" => "created successfully"], 201);
-}
-
-// ##################################################
-// Guest user review
-// ##################################################
-/**
- * @OA\Post(
- *      path="/review-new-guest/{businessId}",
- *      operationId="storeReviewByGuest",
- *      tags={"review"},
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          required=true,
- *          example="1"
- *      ),
- *      security={{"bearerAuth": {}}},
- *      summary="Store review by guest user",
- *      description="Store guest review with optional audio transcription and AI analysis",
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\JsonContent(
- *              required={"guest_full_name","guest_phone","description","rate","comment","values"},
- *              @OA\Property(property="guest_full_name", type="string", example="Rifat"),
- *              @OA\Property(property="guest_phone", type="string", example="0177"),
- *              @OA\Property(property="description", type="string", example="Test"),
- *              @OA\Property(property="rate", type="string", example="2.5"),
- *              @OA\Property(property="comment", type="string", example="Not good"),
- *              @OA\Property(
- *                  property="values",
- *                  type="array",
- *                  @OA\Items(
- *                      @OA\Property(property="question_id", type="integer", example=1),
- *                      @OA\Property(property="tag_id", type="integer", example=2),
- *                      @OA\Property(property="star_id", type="integer", example=4)
- *                  )
- *              )
- *          )
- *      ),
- *      @OA\Response(response=201, description="Created successfully"),
- *      @OA\Response(response=400, description="Bad Request"),
- *      @OA\Response(response=401, description="Unauthenticated"),
- *      @OA\Response(response=422, description="Unprocessable Content")
- * )
- */
-public function storeReviewByGuest($businessId, Request $request)
-{
-    $guest = GuestUser::create([
-        'full_name' => $request->guest_full_name,
-        'phone' => $request->guest_phone,
-    ]);
-
-    $raw_text = $request->input('description', '');
-
-    if ($request->hasFile('audio')) {
-        $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
-    }
-
-    $emotion = $this->detectEmotion($raw_text);
-    $key_phrases = $this->extractKeyPhrases($raw_text);
-
-    $review = ReviewNew::create([
-        'description' => $request->description,
-        'business_id' => $businessId,
-        'rate' => $request->rate,
-        'guest_id' => $guest->id,
-        'comment' => $request->comment,
-        'raw_text' => $raw_text,
-        'emotion' => $emotion,
-        'key_phrases' => $key_phrases,
-    ]);
-
-    $this->storeReviewValues($review, $request->values);
-
-    return response(["message" => "created successfully"], 201);
-}
-
-// ##################################################
-// Helper to store review values (question/star)
-private function storeReviewValues($review, $values)
-{
-    $rate = 0;
-    $previousQuestionId = null;
-
-    foreach ($values as $value) {
-        if (!$previousQuestionId || $value['question_id'] != $previousQuestionId) {
-            $rate += $value['star_id'];
-            $previousQuestionId = $value['question_id'];
+        if ($request->hasFile('audio')) {
+            $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
         }
 
-        $value['review_id'] = $review->id;
-        ReviewValueNew::create($value);
+        $emotion = $this->detectEmotion($raw_text);
+        $key_phrases = $this->extractKeyPhrases($raw_text);
+
+        $review = ReviewNew::create([
+            'description' => $request->description,
+            'business_id' => $businessId,
+            'rate' => $request->rate,
+            'user_id' => $request->user()->id,
+            'comment' => $request->comment,
+            'raw_text' => $raw_text,
+            'emotion' => $emotion,
+            'key_phrases' => $key_phrases,
+            "ip_address" => $request->ip(),
+            "is_overall" => $request->is_overall ?? 0,
+        ]);
+
+        $this->storeReviewValues($review, $request->values);
+
+        return response(["message" => "created successfully"], 201);
     }
 
-    $review->rate = $rate;
-    $review->save();
-}
+    // ##################################################
+    // Guest user review
+    // ##################################################
 
-// ##################################################
-// AI Helpers
-// ##################################################
-private function transcribeAudio($filePath)
+    private function getDistanceMeters($lat1, $lon1, $lat2, $lon2)
 {
-    $api_key = env('HF_API_KEY');
-    $audio = file_get_contents($filePath);
-
-    $ch = curl_init("https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3");
-    curl_setopt_array($ch, [
-        CURLOPT_HTTPHEADER => [
-            "Authorization: Bearer $api_key",
-            "Content-Type: audio/mpeg"
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $audio,
-        CURLOPT_RETURNTRANSFER => true,
-    ]);
-
-    $result = curl_exec($ch);
-    curl_close($ch);
-
-    $data = json_decode($result, true);
-    return $data['text'] ?? '';
+    $earth_radius = 6371000; // meters
+    $dLat = deg2rad($lat2 - $lat1);
+    $dLon = deg2rad($lon2 - $lon1);
+    $a = sin($dLat / 2) * sin($dLat / 2) +
+        cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+        sin($dLon / 2) * sin($dLon / 2);
+    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+    return $earth_radius * $c;
 }
 
-private function detectEmotion($text)
-{
-    $api_key = env('HF_API_KEY');
 
-    $ch = curl_init("https://router.huggingface.co/hf-inference/models/j-hartmann/emotion-english-distilroberta-base");
-    curl_setopt_array($ch, [
-        CURLOPT_HTTPHEADER => [
-            "Authorization: Bearer $api_key",
-            "Content-Type: application/json"
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode(['inputs' => $text]),
-        CURLOPT_RETURNTRANSFER => true,
-    ]);
+    
+    /**
+     * @OA\Post(
+     *      path="/review-new-guest/{businessId}",
+     *      operationId="storeReviewByGuest",
+     *      tags={"review"},
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      security={{"bearerAuth": {}}},
+     *      summary="Store review by guest user",
+     *      description="Store guest review with optional audio transcription and AI analysis",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"guest_full_name","guest_phone","description","rate","comment","values"},
+     *              @OA\Property(property="guest_full_name", type="string", example="Rifat"),
+     *              @OA\Property(property="guest_phone", type="string", example="0177"),
+     *              @OA\Property(property="description", type="string", example="Test"),
+     *              @OA\Property(property="rate", type="string", example="2.5"),
+     *              @OA\Property(property="comment", type="string", example="Not good"),
+     *              @OA\Property(property="is_overall", type="string", example="is_overall"),
+     * @OA\Property(property="latitude", type="number", example="23.8103"),
+    *  @OA\Property(property="longitude", type="number", example="90.4125"),
+     *              @OA\Property(
+     *                  property="values",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="question_id", type="integer", example=1),
+     *                      @OA\Property(property="tag_id", type="integer", example=2),
+     *                      @OA\Property(property="star_id", type="integer", example=4)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(response=201, description="Created successfully"),
+     *      @OA\Response(response=400, description="Bad Request"),
+     *      @OA\Response(response=401, description="Unauthenticated"),
+     *      @OA\Response(response=422, description="Unprocessable Content")
+     * )
+     */
+    public function storeReviewByGuest($businessId, Request $request)
+    {
+ 
+        $business = Business::findOrFail($businessId);
+    $ip_address = $request->ip();
 
-    $result = curl_exec($ch);
-    curl_close($ch);
+    // ✅ Step 1: IP restriction check
+    if ($business->enable_ip_check) {
+        $existing_review = ReviewNew::where('business_id', $businessId)
+            ->where('ip_address', $ip_address)
+            ->whereDate('created_at', now()->toDateString())
+            ->first();
 
-    $data = json_decode($result, true);
-    return $data[0]['label'] ?? null;
-}
+        if ($existing_review) {
+            return response([
+                "message" => "You have already submitted a review today from this IP."
+            ], 400);
+        }
+    }
 
-private function extractKeyPhrases($text)
-{
-    $api_key = env('HF_API_KEY');
+    // ✅ Step 2: Location restriction check
+    if ($business->enable_location_check) {
+        $guest_lat = $request->input('latitude');
+        $guest_lon = $request->input('longitude');
 
-    $ch = curl_init("https://router.huggingface.co/hf-inference/models/ml6team/keyphrase-extraction-kbir-inspec");
-    curl_setopt_array($ch, [
-        CURLOPT_HTTPHEADER => [
-            "Authorization: Bearer $api_key",
-            "Content-Type: application/json"
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode(['inputs' => $text]),
-        CURLOPT_RETURNTRANSFER => true,
-    ]);
+        if (!$guest_lat || !$guest_lon) {
+            return response(["message" => "Location data required for review."], 400);
+        }
 
-    $result = curl_exec($ch);
-    curl_close($ch);
+        if ($business->latitude && $business->longitude) {
+            $distance = $this->getDistanceMeters($guest_lat, $guest_lon, $business->latitude, $business->longitude);
+            if ($distance > $business->review_distance_limit) {
+                return response([
+                    "message" => "You are too far from the business location to review (limit {$business->review_distance_limit}m)."
+                ], 400);
+            }
+        }
+    }
 
-    $data = json_decode($result, true);
-    return $data['keyphrases'] ?? [];
-}
+
+
+
+        $guest = GuestUser::create([
+            'full_name' => request()->guest_full_name,
+            'phone' => request()->guest_phone,
+        ]);
+
+        $raw_text = request()->input('comment', '');
+
+        if (request()->hasFile('audio')) {
+            $raw_text = $this->transcribeAudio(request()->file('audio')->getRealPath());
+        }
+
+        $emotion = $this->detectEmotion($raw_text);
+        $key_phrases = $this->extractKeyPhrases($raw_text);
+
+        $review = ReviewNew::create([
+            'description' => request()->description,
+            'business_id' => $businessId,
+            'rate' => request()->rate,
+            'guest_id' => $guest->id,
+            'comment' => request()->comment,
+            'raw_text' => $raw_text,
+            'emotion' => $emotion,
+            'key_phrases' => $key_phrases,
+            "ip_address" => request()->ip(),
+            "is_overall" => request()->is_overall ?? 0,
+        ]);
+
+        $this->storeReviewValues($review, $request->values);
+
+        return response(["message" => "created successfully"], 201);
+    }
+
+    // ##################################################
+    // Helper to store review values (question/star)
+    private function storeReviewValues($review, $values)
+    {
+        $rate = 0;
+        $previousQuestionId = null;
+
+        foreach ($values as $value) {
+            if (!$previousQuestionId || $value['question_id'] != $previousQuestionId) {
+                $rate += $value['star_id'];
+                $previousQuestionId = $value['question_id'];
+            }
+
+            $value['review_id'] = $review->id;
+            ReviewValueNew::create($value);
+        }
+
+        $review->rate = $rate;
+        $review->save();
+    }
+
+    // ##################################################
+    // AI Helpers
+    // ##################################################
+    private function transcribeAudio($filePath)
+    {
+        $api_key = env('HF_API_KEY');
+        $audio = file_get_contents($filePath);
+
+        $ch = curl_init("https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3");
+        curl_setopt_array($ch, [
+            CURLOPT_HTTPHEADER => [
+                "Authorization: Bearer $api_key",
+                "Content-Type: audio/mpeg"
+            ],
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $audio,
+            CURLOPT_RETURNTRANSFER => true,
+        ]);
+
+        $result = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($result, true);
+        return $data['text'] ?? '';
+    }
+
+    private function detectEmotion($text)
+    {
+        $api_key = env('HF_API_KEY');
+
+        $ch = curl_init("https://router.huggingface.co/hf-inference/models/j-hartmann/emotion-english-distilroberta-base");
+        curl_setopt_array($ch, [
+            CURLOPT_HTTPHEADER => [
+                "Authorization: Bearer $api_key",
+                "Content-Type: application/json"
+            ],
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode(['inputs' => $text]),
+            CURLOPT_RETURNTRANSFER => true,
+        ]);
+
+        $result = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($result, true);
+        return $data[0]['label'] ?? null;
+    }
+
+    private function extractKeyPhrases($text)
+    {
+        $api_key = env('HF_API_KEY');
+
+        $ch = curl_init("https://router.huggingface.co/hf-inference/models/ml6team/keyphrase-extraction-kbir-inspec");
+        curl_setopt_array($ch, [
+            CURLOPT_HTTPHEADER => [
+                "Authorization: Bearer $api_key",
+                "Content-Type: application/json"
+            ],
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode(['inputs' => $text]),
+            CURLOPT_RETURNTRANSFER => true,
+        ]);
+
+        $result = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($result, true);
+        return $data['keyphrases'] ?? [];
+    }
 
     // ##################################################
     // This method is to store question
@@ -1258,20 +1321,17 @@ private function extractKeyPhrases($text)
         // }
         // else {
         $query =  Question::where(["business_id" => $request->business_id, "is_default" => 0])
-        ->where(["show_in_guest_user" => 1])
+            ->where(["show_in_guest_user" => 1])
             ->when(request()->filled("is_active"), function ($query) {
                 $query->where("questions.is_active", request()->input("is_active"));
             })
             ->when(request()->filled("is_overall"), function ($query) {
-                $query->when(request()->boolean("is_overall"), function($query) {
-                   $query->where("questions.is_overall", 1);
-                }, function($query) {
-                   $query->where("questions.is_overall", 0);
+                $query->when(request()->boolean("is_overall"), function ($query) {
+                    $query->where("questions.is_overall", 1);
+                }, function ($query) {
+                    $query->where("questions.is_overall", 0);
                 });
-                
-            })
-            
-            ;
+            });
         // }
 
 
@@ -1381,12 +1441,11 @@ private function extractKeyPhrases($text)
             if (!$business && !$request->user()->hasRole("superadmin")) {
                 return response("No Business Found", 404);
             }
-           
         }
 
 
         $query =  Question::where(["business_id" => $request->business_id, "is_default" => $is_dafault])
-        ->where(["show_in_user" => 1]);
+            ->where(["show_in_user" => 1]);
 
         $questions =  $query->get();
 

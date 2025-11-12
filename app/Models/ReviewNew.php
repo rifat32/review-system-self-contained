@@ -21,6 +21,8 @@ class ReviewNew extends Model
         'raw_text',
         'emotion',
         'key_phrases',
+        "ip_address",
+        "is_overall",
 
     ];
       protected $casts = [
@@ -55,13 +57,7 @@ class ReviewNew extends Model
     // In your QuestionValue model (or the model that has 'value' relation)
 public function scopeFilterByOverall($query, $is_overall)
 {
-    return $query->when(isset($is_overall), function ($q) use ($is_overall) {
-        $q->whereHas('value', function ($q2) use ($is_overall) {
-            $q2->whereHas('question', function ($q3) use ($is_overall) {
-                $q3->where('is_overall', $is_overall ? 1 : 0);
-            });
-        });
-    });
+    return $query->where('is_overall', $is_overall ? 1 : 0);
 }
 
 

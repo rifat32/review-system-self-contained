@@ -600,6 +600,16 @@ class BusinessController extends Controller
      *      *         @OA\Property(property="is_registered_user_show_stuff_name", type="boolean", format="boolean",example="1"),
      * 
      * 
+     *      @OA\Property(property="enable_ip_check", type="boolean", format="boolean",example="1"),
+     *      @OA\Property(property="enable_location_check", type="boolean", format="boolean",example="1"), 
+     *      @OA\Property(property="latitude", type="boolean", format="boolean",example="1"),
+     * 
+      *      @OA\Property(property="longitude", type="boolean", format="boolean",example="1"),
+     * 
+     *      @OA\Property(property="review_distance_limit", type="boolean", format="boolean",example="1"),
+     * 
+     * 
+     * 
      * 
      * 
      * 
@@ -716,6 +726,13 @@ class BusinessController extends Controller
                 'is_registered_user_show_stuffs',
                 'is_registered_user_show_stuff_image',
                 'is_registered_user_show_stuff_name',
+
+
+                  'enable_ip_check',
+        'enable_location_check',
+        'latitude',
+        'longitude',
+        'review_distance_limit',
 
         ))
             // ->with("somthing")
