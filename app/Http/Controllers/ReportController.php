@@ -1176,7 +1176,162 @@ class ReportController extends Controller
             'after_reply_avg' => round($review_with_replies->avg('star_after_reply') ?? 0, 2)
         ];
 
+// ----------------------------
+// 🌐 API & PROCESSING METRICS (Using existing fields only)
+// ----------------------------
 
+// Review Source Analytics (using existing 'source' field if available, otherwise infer)
+$data['review_source_breakdown'] = (clone $review_query)
+    ->select('source', DB::raw('count(*) as total'))
+    ->groupBy('source')
+    ->get()
+    ->mapWithKeys(fn($item) => [$item->source => $item->total])
+    ->toArray();
+
+// AI Processing Metrics (using existing fields from your controller)
+$data['ai_processing_metrics'] = [
+    'total_reviews_with_ai_data' => (clone $review_query)
+        ->whereNotNull('raw_text')
+        ->where('raw_text', '!=', '')
+        ->orWhereNotNull('emotion')
+        ->orWhereNotNull('key_phrases')
+        ->count(),
+    
+    'reviews_with_emotion_analysis' => (clone $review_query)->whereNotNull('emotion')->count(),
+    'reviews_with_key_phrases' => (clone $review_query)->whereNotNull('key_phrases')->count(),
+    'reviews_with_raw_text' => (clone $review_query)->whereNotNull('raw_text')->where('raw_text', '!=', '')->count(),
+    
+    // Emotion distribution from existing emotion field
+    'emotion_distribution' => (clone $review_query)
+        ->whereNotNull('emotion')
+        ->select('emotion', DB::raw('count(*) as total'))
+        ->groupBy('emotion')
+        ->get()
+        ->mapWithKeys(fn($item) => [$item->emotion => $item->total])
+        ->toArray(),
+];
+
+// User Type Metrics (using guest_id and user_id fields)
+$data['user_type_metrics'] = [
+    'total_guest_reviews' => (clone $review_query)->whereNotNull('guest_id')->count(),
+    'total_authenticated_reviews' => (clone $review_query)->whereNotNull('user_id')->count(),
+    'guest_review_percentage' => $total_reviews > 0 ? 
+        round((clone $review_query)->whereNotNull('guest_id')->count() / $total_reviews * 100, 2) : 0,
+    
+    // Rating comparison between user types
+    'average_rating_guest' => round((clone $review_query)->whereNotNull('guest_id')->avg('rate') ?? 0, 2),
+    'average_rating_authenticated' => round((clone $review_query)->whereNotNull('user_id')->avg('rate') ?? 0, 2),
+];
+
+// IP & Security Metrics (using existing ip_address field)
+$data['security_metrics'] = [
+    'unique_ip_addresses' => (clone $review_query)->distinct('ip_address')->count('ip_address'),
+    'reviews_from_same_ip' => (clone $review_query)
+        ->select('ip_address', DB::raw('count(*) as total'))
+        ->groupBy('ip_address')
+        ->having('total', '>', 1)
+        ->count(),
+    
+    'reviews_today_by_ip' => (clone $review_query)
+        ->whereDate('created_at', today())
+        ->distinct('ip_address')
+        ->count('ip_address'),
+];
+
+// Review Timing & Response Metrics (using existing fields)
+$data['response_metrics'] = [
+    'total_responded_reviews' => (clone $review_query)->whereNotNull('responded_at')->count(),
+    'response_rate' => $total_reviews > 0 ? 
+        round((clone $review_query)->whereNotNull('responded_at')->count() / $total_reviews * 100, 2) : 0,
+    
+    'average_response_time_hours' => $data['average_response_time_hours'] ?? 0, // From your existing calculation
+];
+
+// Review Content Quality Metrics
+$data['content_quality_metrics'] = [
+    'reviews_with_detailed_comments' => (clone $review_query)
+        ->whereNotNull('comment')
+        ->where('comment', '!=', '')
+        ->whereRaw('LENGTH(comment) > 20')
+        ->count(),
+    
+    'reviews_with_audio_transcription' => (clone $review_query)
+        ->whereNotNull('raw_text')
+        ->where('raw_text', '!=', '')
+        ->where('raw_text', '!=', function($query) {
+            $query->select('comment')->from('review_news')->whereColumn('id', 'review_news.id');
+        })
+        ->count(),
+];
+
+// Integration with your existing star rating system
+$data['api_enhanced_metrics'] = [
+    'ai_analyzed_reviews_this_month' => (clone $review_query)
+        ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+        ->whereNotNull('emotion')
+        ->whereNotNull('key_phrases')
+        ->count(),
+    
+    'guest_reviews_with_ai' => (clone $review_query)
+        ->whereNotNull('guest_id')
+        ->whereNotNull('emotion')
+        ->count(),
+];
+
+// Add to your existing advanced_insights
+$data['advanced_insights']['api_usage_patterns'] = [
+    'peak_ai_processing_hours' => collect(range(0, 23))
+        ->mapWithKeys(function ($h) use ($review_query) {
+            return [$h => (clone $review_query)
+                ->whereNotNull('emotion')
+                ->whereRaw('HOUR(created_at) = ?', [$h])
+                ->count()];
+        })
+        ->sortDesc()
+        ->take(3)
+        ->toArray(),
+    
+    'emotion_impact_on_ratings' => (clone $review_query)
+        ->whereNotNull('emotion')
+        ->select('emotion', DB::raw('AVG(rate) as avg_rating'))
+        ->groupBy('emotion')
+        ->get()
+        ->mapWithKeys(fn($item) => [$item->emotion => round($item->avg_rating, 2)])
+        ->toArray(),
+];
+
+// Enhanced growth rates with AI focus
+$data['ai_growth_metrics'] = [
+    'ai_processed_reviews_growth' => function() use ($review_query) {
+        $current_month = (clone $review_query)
+            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->whereNotNull('emotion')
+            ->count();
+        
+        $last_month = (clone $review_query)
+            ->whereBetween('created_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
+            ->whereNotNull('emotion')
+            ->count();
+        
+        return $last_month > 0 ? round((($current_month - $last_month) / $last_month) * 100, 2) : ($current_month > 0 ? 100 : 0);
+    },
+    
+    'guest_review_growth_with_ai' => function() use ($review_query) {
+        $current_month = (clone $review_query)
+            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->whereNotNull('guest_id')
+            ->whereNotNull('emotion')
+            ->count();
+        
+        $last_month = (clone $review_query)
+            ->whereBetween('created_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
+            ->whereNotNull('guest_id')
+            ->whereNotNull('emotion')
+            ->count();
+        
+        return $last_month > 0 ? round((($current_month - $last_month) / $last_month) * 100, 2) : ($current_month > 0 ? 100 : 0);
+    },
+];
 
         return response()->json($data, 200);
     }

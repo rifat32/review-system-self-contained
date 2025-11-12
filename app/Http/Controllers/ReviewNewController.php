@@ -552,6 +552,7 @@ class ReviewNewController extends Controller
      *              @OA\Property(property="rate", type="string", example="2.5"),
      *              @OA\Property(property="comment", type="string", example="Not good"),
      *              @OA\Property(property="is_overall", type="string", example="is_overall"),
+     *             @OA\Property(property="staff_id", type="integer", example="1"),
      * 
      *              @OA\Property(
      *                  property="values",
@@ -592,6 +593,7 @@ class ReviewNewController extends Controller
             'key_phrases' => $key_phrases,
             "ip_address" => $request->ip(),
             "is_overall" => $request->is_overall ?? 0,
+            "staff_id" => $request->staff_id ?? null,
         ]);
 
         $this->storeReviewValues($review, $request->values);
@@ -643,6 +645,8 @@ class ReviewNewController extends Controller
      *              @OA\Property(property="is_overall", type="string", example="is_overall"),
      * @OA\Property(property="latitude", type="number", example="23.8103"),
     *  @OA\Property(property="longitude", type="number", example="90.4125"),
+    * @OA\Property(property="staff_id", type="number", example="1"),
+    * 
      *              @OA\Property(
      *                  property="values",
      *                  type="array",
@@ -727,6 +731,7 @@ class ReviewNewController extends Controller
             'key_phrases' => $key_phrases,
             "ip_address" => request()->ip(),
             "is_overall" => request()->is_overall ?? 0,
+            "staff_id" => $request->staff_id ?? null,
         ]);
 
         $this->storeReviewValues($review, $request->values);

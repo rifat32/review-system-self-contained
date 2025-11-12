@@ -23,6 +23,7 @@ class ReviewNew extends Model
         'key_phrases',
         "ip_address",
         "is_overall",
+        'staff_id',
 
     ];
       protected $casts = [
