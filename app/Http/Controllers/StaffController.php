@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateStaffRequest;
 use App\Models\User;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class StaffController extends Controller
 {
@@ -108,6 +112,7 @@ class StaffController extends Controller
                 'role'     => 'required|string|in:staff',
             ]);
 
+
             $user = User::create([
                 'first_Name'     => $request->first_Name,
                 'last_Name'     => $request->last_Name,
@@ -115,10 +120,11 @@ class StaffController extends Controller
                 'password' => Hash::make($request->password),
                 'phone'     => $request->phone,
                 'date_of_birth'     => $request->date_of_birth,
-                'business_id' => auth()->user()->business_id
+                'business_id' =>  auth()->user()->business()->value('id'),
             ]);
 
             // $user->assignRole("$request->role" . "#" . $request->business_id);
+            Log::info('Staff created', ['business' => json_encode(auth()->user()->business)]);
             $user->assignRole($request->role);
 
 
@@ -237,7 +243,7 @@ class StaffController extends Controller
     {
         DB::beginTransaction();
         try {
-            $user = User::where('business_id', auth()->user()->business_id)
+            $user = User::where('business_id', auth()->user()->business()->value('id'))
                 ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
                 ->find($id);
 
@@ -327,7 +333,7 @@ class StaffController extends Controller
     // DELETE (soft delete if your model uses SoftDeletes)
     public function deleteStaff($id)
     {
-        $user = User::where('business_id', auth()->user()->business_id)
+        $user = User::where('business_id', auth()->user()->business()->value('id'))
             ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
             ->find($id);
 
@@ -347,7 +353,7 @@ class StaffController extends Controller
      *   path="/v1.0/staffs",
      *   operationId="getAllStaffs",
      *   tags={"staff_management"},
-     *   summary="List staff (paginated)",
+     *   summary="List staff",
      *   description="Returns staff users for the authenticated user's business. Supports simple name search and pagination.",
      *   security={{"bearerAuth":{}}},
      *
@@ -357,23 +363,23 @@ class StaffController extends Controller
      *     required=false,
      *     description="Search by first_Name or last_name (LIKE %search_key%).",
      *     @OA\Schema(type="string"),
-     *     example="john"
+     *     example=""
      *   ),
      *   @OA\Parameter(
      *     name="per_page",
      *     in="query",
      *     required=false,
-     *     description="Items per page (default 15).",
-     *     @OA\Schema(type="integer", minimum=1, maximum=200),
-     *     example=15
+     *     description="Items per page",
+     *     @OA\Schema(type="integer"),
+     *     example=""
      *   ),
      *   @OA\Parameter(
      *     name="page",
      *     in="query",
      *     required=false,
-     *     description="Page number (default 1).",
-     *     @OA\Schema(type="integer", minimum=1),
-     *     example=1
+     *     description="Page number",
+     *     @OA\Schema(type="integer"),
+     *     example=""
      *   ),
      *
      *   @OA\Response(
@@ -437,7 +443,7 @@ class StaffController extends Controller
     {
 
         $q = User::query()
-            ->where('business_id', auth()->user()->business_id)
+            ->where('business_id', auth()->user()->business()->value('id'))
             ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
             ->when($request->filled('search_key'), function ($qq) use ($request) {
                 $s = $request->input('search_key');
@@ -523,7 +529,7 @@ class StaffController extends Controller
 
         $user = User::with('roles', function ($query) {
             $query->select('name', 'id');
-        })->where('business_id', auth()->user()->business_id)
+        })->where('business_id', auth()->user()->business()->value('id'))
             ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
             ->find($id);
 
@@ -657,5 +663,76 @@ class StaffController extends Controller
         $data = $q->get()->toArray();
 
         return response()->json($data, 200);
+    }
+
+    /**
+     * @OA\Post(
+     *   path="/v1.0/staff-image",
+     *   operationId="uploadStaffImage",
+     *   tags={"staff_management"},
+     *   security={{"bearerAuth": {}}},
+     *   summary="Upload a staff image",
+     *   description="Upload and store a staff image (returns the stored path)",
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\MediaType(
+     *       mediaType="multipart/form-data",
+     *       @OA\Schema(
+     *         type="object",
+     *         required={"image"},
+     *         @OA\Property(
+     *           property="image",
+     *           description="Image to upload",
+     *           type="string",
+     *           format="binary"
+     *         )
+     *       )
+     *     )
+     *   ),
+     *   @OA\Response(response=200, description="OK"),
+     *   @OA\Response(response=401, description="Unauthenticated"),
+     *   @OA\Response(response=403, description="Forbidden"),
+     *   @OA\Response(response=422, description="Validation error")
+     * )
+     */
+    public function uploadStaffImage(Request $request)
+    {
+        try {
+            $data = $request->validate([
+                'image' => 'required|image|mimes:jpeg,png,jpg|max:5024', // 5MB max
+            ]);
+
+            $location = "image";
+            $directory = public_path($location);
+
+            // Ensure the directory exists
+            if (!File::exists($directory)) {
+                File::makeDirectory($directory, 0755, true);
+            }
+
+            // Generate a unique filename
+            $extension = $data['image']->getClientOriginalExtension();
+            $newFileName = Str::uuid() . '.' . $extension;
+
+            $data['image']->move($directory, $newFileName);
+
+            $image_path = "/" . $location . "/" . $newFileName;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Image uploaded successfully',
+                'data' => [
+                    'image' => $image_path
+                ],
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            return response()->json(['message' => 'Upload failed'], 500);
+        }
     }
 }

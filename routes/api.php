@@ -142,6 +142,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/v1.0/staffs',        [StaffController::class, 'createStaff']);   // create
     Route::patch('/v1.0/staffs/{id}',   [StaffController::class, 'updateStaff']);  // update (partial)
     Route::delete('/v1.0/staffs/{id}',   [StaffController::class, 'deleteStaff']); // delete
+    Route::post('/v1.0/staff-image',    [StaffController::class, 'uploadStaffImage']); // upload image
 
 
     // #################
@@ -312,7 +313,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/review-new/get/questions', [ReviewNewController::class, "getQuestion"]);
 
-    
+
     Route::get('/review-new/get/questions-all', [ReviewNewController::class, "getQuestionAll"]);
 
 
