@@ -70,11 +70,14 @@ class Business extends Model
         'longitude',
         'review_distance_limit',
         'threshold_rating',
+        'review_labels',
 
 
     ];
 
-    
+    protected $casts = [
+        'review_labels' => 'array',
+    ];
 
 
     

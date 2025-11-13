@@ -607,6 +607,8 @@ class BusinessController extends Controller
       *      @OA\Property(property="longitude", type="boolean", format="boolean",example="1"),
      * 
      *      @OA\Property(property="review_distance_limit", type="boolean", format="boolean",example="1"),
+     *     *      @OA\Property(property="review_labels", type="string", format="string",example="['a','b']"),
+     * 
      * 
      * 
      *      @OA\Property(property="threshold_rating", type="boolean", format="boolean",example="1"), 
@@ -734,6 +736,7 @@ class BusinessController extends Controller
         'longitude',
         'review_distance_limit',
         'threshold_rating',
+        'review_labels',
 
         ))
             // ->with("somthing")

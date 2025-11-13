@@ -1102,6 +1102,101 @@
                                         "type": "string",
                                         "format": "string",
                                         "example": "1"
+                                    },
+                                    "is_registered_user_overall_review": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_registered_user_survey": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_registered_user_survey_required": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_registered_user_show_stuffs": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_registered_user_show_stuff_image": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_registered_user_show_stuff_name": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "enable_ip_check": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "enable_location_check": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "latitude": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "longitude": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "review_distance_limit": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "review_labels": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "['a','b']"
+                                    },
+                                    "threshold_rating": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_guest_user_overall_review": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_guest_user_survey": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_guest_user_survey_required": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_guest_user_show_stuffs": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_guest_user_show_stuff_image": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_guest_user_show_stuff_name": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
                                     }
                                 },
                                 "type": "object"
@@ -3137,6 +3232,342 @@
                         }
                     }
                 }
+            }
+        },
+        "/v1.0/leaflet/create": {
+            "post": {
+                "tags": [
+                    "leaflet"
+                ],
+                "summary": "Create a leaflet",
+                "description": "Store a new leaflet for a business",
+                "operationId": "insertLeaflet",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title",
+                                    "business_id",
+                                    "leaflet_data",
+                                    "type"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Promo Leaflet Q4"
+                                    },
+                                    "business_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "thumbnail": {
+                                        "type": "string",
+                                        "example": ""
+                                    },
+                                    "leaflet_data": {
+                                        "properties": {
+                                            "pages": {
+                                                "type": "integer",
+                                                "example": 2
+                                            },
+                                            "elements": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object"
+                                                }
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "example": "menu"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Business not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/leaflet": {
+            "put": {
+                "tags": [
+                    "leaflet"
+                ],
+                "summary": "Update a leaflet",
+                "description": "Update an existing leaflet for a business.",
+                "operationId": "editLeaflet",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "business_id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Updated Promo Leaflet"
+                                    },
+                                    "business_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "thumbnail": {
+                                        "type": "string",
+                                        "example": ""
+                                    },
+                                    "leaflet_data": {
+                                        "properties": {
+                                            "pages": {
+                                                "type": "integer",
+                                                "example": 2
+                                            },
+                                            "elements": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object"
+                                                }
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "example": "menu"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Business/Leaflet not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/leaflet/get": {
+            "get": {
+                "tags": [
+                    "leaflet"
+                ],
+                "summary": "List leaflets",
+                "description": "Get leaflets filtered by business and/or type",
+                "operationId": "getAllLeaflet",
+                "parameters": [
+                    {
+                        "name": "business_id",
+                        "in": "query",
+                        "description": "Filter by business id",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "Filter by leaflet type",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "menu"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/v1.0/leaflet/get/{id}": {
+            "get": {
+                "tags": [
+                    "leaflet"
+                ],
+                "summary": "Get a leaflet by id",
+                "description": "Get a single leaflet by id",
+                "operationId": "leafletById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Leaflet id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/v1.0/leaflet/{business_id}/{id}": {
+            "delete": {
+                "tags": [
+                    "leaflet"
+                ],
+                "summary": "Delete a leaflet by id",
+                "description": "Delete a leaflet by id for a business",
+                "operationId": "leafletDeleteById",
+                "parameters": [
+                    {
+                        "name": "business_id",
+                        "in": "path",
+                        "description": "Business id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Leaflet id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 5
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Business/Leaflet not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/leaflet-image": {
+            "post": {
+                "tags": [
+                    "leaflet"
+                ],
+                "summary": "Upload a leaflet image",
+                "description": "Upload and store a leaflet image (returns the stored path)",
+                "operationId": "insertLeafletImage",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "image"
+                                ],
+                                "properties": {
+                                    "image": {
+                                        "description": "Image to upload",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/notification": {
@@ -5656,14 +6087,13 @@
                 "tags": [
                     "review"
                 ],
-                "summary": "This method is to store review",
-                "description": "This method is to store review",
+                "summary": "Store review by authenticated user",
+                "description": "Store review with optional audio transcription and AI analysis",
                 "operationId": "storeReview",
                 "parameters": [
                     {
                         "name": "businessId",
                         "in": "path",
-                        "description": "businessId",
                         "required": true,
                         "example": "1"
                     }
@@ -5682,34 +6112,43 @@
                                 "properties": {
                                     "description": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "test"
+                                        "example": "Test"
                                     },
                                     "rate": {
                                         "type": "string",
-                                        "format": "string",
                                         "example": "2.5"
                                     },
                                     "comment": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "not good"
+                                        "example": "Not good"
+                                    },
+                                    "is_overall": {
+                                        "type": "string",
+                                        "example": "is_overall"
+                                    },
+                                    "staff_id": {
+                                        "type": "integer",
+                                        "example": "1"
                                     },
                                     "values": {
-                                        "type": "string",
-                                        "format": "array",
-                                        "example": [
-                                            {
-                                                "question_id": 1,
-                                                "tag_id": 2,
-                                                "star_id": 1
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "question_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "tag_id": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "star_id": {
+                                                    "type": "integer",
+                                                    "example": 4
+                                                }
                                             },
-                                            {
-                                                "question_id": 2,
-                                                "tag_id": 1,
-                                                "star_id": 4
-                                            }
-                                        ]
+                                            "type": "object"
+                                        }
                                     }
                                 },
                                 "type": "object"
@@ -5718,37 +6157,17 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request"
                     },
                     "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                        "description": "Unauthenticated"
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                        "description": "Unprocessable Content"
                     }
                 },
                 "security": [
@@ -5763,14 +6182,13 @@
                 "tags": [
                     "review"
                 ],
-                "summary": "This method is to store review by guest user",
-                "description": "This method is to store review by guest user",
+                "summary": "Store review by guest user",
+                "description": "Store guest review with optional audio transcription and AI analysis",
                 "operationId": "storeReviewByGuest",
                 "parameters": [
                     {
                         "name": "businessId",
                         "in": "path",
-                        "description": "businessId",
                         "required": true,
                         "example": "1"
                     }
@@ -5791,44 +6209,59 @@
                                 "properties": {
                                     "guest_full_name": {
                                         "type": "string",
-                                        "format": "string",
                                         "example": "Rifat"
                                     },
                                     "guest_phone": {
                                         "type": "string",
-                                        "format": "string",
                                         "example": "0177"
                                     },
                                     "description": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "test"
+                                        "example": "Test"
                                     },
                                     "rate": {
                                         "type": "string",
-                                        "format": "string",
                                         "example": "2.5"
                                     },
                                     "comment": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "not good"
+                                        "example": "Not good"
+                                    },
+                                    "is_overall": {
+                                        "type": "string",
+                                        "example": "is_overall"
+                                    },
+                                    "latitude": {
+                                        "type": "number",
+                                        "example": "23.8103"
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "example": "90.4125"
+                                    },
+                                    "staff_id": {
+                                        "type": "number",
+                                        "example": "1"
                                     },
                                     "values": {
-                                        "type": "string",
-                                        "format": "array",
-                                        "example": [
-                                            {
-                                                "question_id": 1,
-                                                "tag_id": 2,
-                                                "star_id": 1
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "question_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "tag_id": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "star_id": {
+                                                    "type": "integer",
+                                                    "example": 4
+                                                }
                                             },
-                                            {
-                                                "question_id": 2,
-                                                "tag_id": 1,
-                                                "star_id": 4
-                                            }
-                                        ]
+                                            "type": "object"
+                                        }
                                     }
                                 },
                                 "type": "object"
@@ -5837,37 +6270,17 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request"
                     },
                     "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                        "description": "Unauthenticated"
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                        "description": "Unprocessable Content"
                     }
                 },
                 "security": [
@@ -5908,6 +6321,16 @@
                                         "example": "1"
                                     },
                                     "is_active": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "show_in_guest_user": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "show_in_user": {
                                         "type": "boolean",
                                         "format": "boolean",
                                         "example": "1"
@@ -5999,6 +6422,16 @@
                                         "format": "string",
                                         "example": "star"
                                     },
+                                    "show_in_guest_user": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "show_in_user": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
                                     "is_active": {
                                         "type": "boolean",
                                         "format": "boolean",
@@ -6045,6 +6478,71 @@
                     },
                     "403": {
                         "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/set-overall-question": {
+            "put": {
+                "tags": [
+                    "review.setting.question"
+                ],
+                "summary": "Set a question as overall and make all others non-overall",
+                "description": "This method marks one question as overall and updates all other questions for the same business to non-overall.",
+                "operationId": "setOverallQuestion",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question_id",
+                                    "business_id"
+                                ],
+                                "properties": {
+                                    "question_id": {
+                                        "type": "number",
+                                        "example": 1
+                                    },
+                                    "business_id": {
+                                        "type": "number",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -8369,6 +8867,1063 @@
                 ]
             }
         },
+        "/v1.0/staffs": {
+            "get": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "List staff",
+                "description": "Returns staff users for the authenticated user's business. Supports simple name search and pagination.",
+                "operationId": "getAllStaffs",
+                "parameters": [
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "Search by first_Name or last_name (LIKE %search_key%).",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": ""
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": ""
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": ""
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "first_Name": {
+                                                        "type": "string",
+                                                        "example": "John"
+                                                    },
+                                                    "last_Name": {
+                                                        "type": "string",
+                                                        "example": "Doe"
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "format": "email",
+                                                        "example": "john.doe@example.com"
+                                                    },
+                                                    "phone": {
+                                                        "type": "string",
+                                                        "example": "+8801765432109"
+                                                    },
+                                                    "date_of_birth": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "1995-06-15"
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "links": {
+                                            "properties": {
+                                                "first": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs?page=1"
+                                                },
+                                                "last": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs?page=10"
+                                                },
+                                                "prev": {
+                                                    "type": "string",
+                                                    "example": null,
+                                                    "nullable": true
+                                                },
+                                                "next": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs?page=2",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "from": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "path": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "to": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Create a staff member",
+                "description": "Registers a new staff user in the authenticated user's business.",
+                "operationId": "createStaff",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "first_Name",
+                                    "last_Name",
+                                    "email",
+                                    "password",
+                                    "phone",
+                                    "date_of_birth",
+                                    "role"
+                                ],
+                                "properties": {
+                                    "first_Name": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "John"
+                                    },
+                                    "last_Name": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john.doe@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "minLength": 8,
+                                        "example": "StrongP@ssw0rd"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "+8801765432109"
+                                    },
+                                    "date_of_birth": {
+                                        "type": "string",
+                                        "example": "1995-06-15"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "staff"
+                                        ],
+                                        "example": "staff"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User registered successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User registered successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 42
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email",
+                                                    "example": "john.doe@example.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+8801765432109"
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "example": "1995-06-15"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "staff"
+                                                },
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eXAiOiJKV1QiLCJhbGciOi..."
+                                                },
+                                                "business": {
+                                                    "description": "Authenticated user's business object",
+                                                    "type": "object",
+                                                    "example": {
+                                                        "id": 1,
+                                                        "name": "Acme Corp"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "email": [
+                                                    "The email has already been taken."
+                                                ],
+                                                "password": [
+                                                    "The password must be at least 8 characters."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Server error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/staffs/{id}": {
+            "get": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Get a single staff member by ID",
+                "description": "Returns a staff user for the authenticated user's business.",
+                "operationId": "getStaffById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Staff user ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 12
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email",
+                                                    "example": "john.doe@example.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+8801765432109"
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1995-06-15"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "staff"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Staff not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Delete a staff member",
+                "description": "Soft-deletes the staff user (if the model uses SoftDeletes) within the authenticated user's business.",
+                "operationId": "deleteStaff",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Staff user ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 12
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff deleted"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Staff not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Update a staff member (partial)",
+                "description": "Updates selected fields of a staff user in the authenticated user's business.",
+                "operationId": "updateStaff",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Staff user ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 12
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "first_Name": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "John"
+                                    },
+                                    "last_Name": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john.doe@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "maxLength": 50,
+                                        "example": "+8801765432109"
+                                    },
+                                    "date_of_birth": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "1995-06-15"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "minLength": 8,
+                                        "example": "NewPassw0rd!"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Staff updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff updated"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email",
+                                                    "example": "john.doe@example.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+8801765432109"
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1995-06-15"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "staff"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Staff not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/client/staffs": {
+            "get": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "List staff (paginated)",
+                "description": "Returns staff users for the authenticated user's business. Supports simple name search and pagination.",
+                "operationId": "getClientAllStaffs",
+                "parameters": [
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "Search by first_Name or last_name (LIKE %search_key%).",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "john"
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page (default 15).",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 200,
+                            "minimum": 1
+                        },
+                        "example": 15
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number (default 1).",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "business_id",
+                        "in": "query",
+                        "description": "Business number (default 1).",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "first_Name": {
+                                                        "type": "string",
+                                                        "example": "John"
+                                                    },
+                                                    "last_name": {
+                                                        "type": "string",
+                                                        "example": "Doe"
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "format": "email",
+                                                        "example": "john.doe@example.com"
+                                                    },
+                                                    "phone": {
+                                                        "type": "string",
+                                                        "example": "+8801765432109"
+                                                    },
+                                                    "date_of_birth": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "1995-06-15"
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "links": {
+                                            "properties": {
+                                                "first": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs?page=1"
+                                                },
+                                                "last": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs?page=10"
+                                                },
+                                                "prev": {
+                                                    "type": "string",
+                                                    "example": null,
+                                                    "nullable": true
+                                                },
+                                                "next": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs?page=2",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "from": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "path": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "to": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1.0/staff-image": {
+            "post": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Upload a staff image",
+                "description": "Upload and store a staff image (returns the stored path)",
+                "operationId": "uploadStaffImage",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "image"
+                                ],
+                                "properties": {
+                                    "image": {
+                                        "description": "Image to upload",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/business/UpdateResturantStripeDetails/{restaurentId}": {
             "patch": {
                 "tags": [
@@ -9114,6 +10669,10 @@
             "description": "forgot_password"
         },
         {
+            "name": "leaflet",
+            "description": "leaflet"
+        },
+        {
             "name": "notification",
             "description": "notification"
         },
@@ -9144,6 +10703,10 @@
         {
             "name": "user_management.role",
             "description": "user_management.role"
+        },
+        {
+            "name": "staff_management",
+            "description": "staff_management"
         },
         {
             "name": "super_admin_report",

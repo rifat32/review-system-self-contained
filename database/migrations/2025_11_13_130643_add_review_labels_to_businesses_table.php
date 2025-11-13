@@ -4,13 +4,13 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddThresholdRatingToBusinessesTable extends Migration
+class AddReviewLabelsToBusinessesTable extends Migration
 {
-    public function up(): void
+   public function up(): void
     {
         Schema::table('businesses', function (Blueprint $table) {
             $table->json('review_labels')->nullable()->after('threshold_rating');
-            // example: {"positive": "Excellent service", "negative": "Needs improvement"}
+  
         });
     }
 
@@ -21,7 +21,4 @@ class AddThresholdRatingToBusinessesTable extends Migration
         });
     }
 
-
-
-    
 }
