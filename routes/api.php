@@ -408,66 +408,26 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/superadmin/dashboard-report/total-reviews', [SuperAdminReportController::class, "getTotalReviews"]);
         Route::get('/superadmin/dashboard-report/today-reviews', [SuperAdminReportController::class, "getTodayReviews"]);
         Route::get('/superadmin/dashboard-report/review-report', [SuperAdminReportController::class, "getReviewReport"]);
-
-
-
-
-
         Route::get('/superadmin/customer-list/{perPage}', [UserController::class, "getCustomerReportSuperadmin"]);
-
         Route::get('/superadmin/owner-list/{perPage}', [UserController::class, "getOwnerReport"]);
-
         Route::delete('/superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
-
-
-
-
         Route::put('/v1.0/email-template-wrappers', [EmailTemplateWrapperController::class, "updateEmailTemplateWrapper"]);
         Route::get('/v1.0/email-template-wrappers/{perPage}', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
         Route::get('/v1.0/email-template-wrappers/single/{id}', [EmailTemplateWrapperController::class, "getEmailTemplateWrapperById"]);
-
-
-
-
-
         Route::post('/v1.0/email-templates', [EmailTemplateController::class, "createEmailTemplate"]);
         Route::put('/v1.0/email-templates', [EmailTemplateController::class, "updateEmailTemplate"]);
         Route::get('/v1.0/email-templates/{perPage}', [EmailTemplateController::class, "getEmailTemplates"]);
         Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
         Route::delete('/v1.0/email-templates/{id}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
         Route::get('/v1.0/email-templates/single/{id}', [EmailTemplateController::class, "getEmailTemplateById"]);
+
     });
-
-
-
-
-
-
-
-
-
-
-
 
     Route::get('/customer-report', [ReportController::class, "customerDashboardReport"]);
     Route::get('/business-report', [ReportController::class, "businessDashboardReport"]);
-
-
-
     Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
-
-
-
-
-
     Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
-
-
-
-
     Route::get('/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
-
-    Route::get('/dashboard-report2', [ReportController::class, "getDashboardReport2"]);
     Route::get('/dashboard-report3', [ReportController::class, "getDashboardReport3"]);
     Route::get('/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
 
