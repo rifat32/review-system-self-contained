@@ -609,7 +609,7 @@ class BusinessController extends Controller
      *      @OA\Property(property="review_distance_limit", type="boolean", format="boolean",example="1"),
      * 
      * 
-     * 
+     *      @OA\Property(property="threshold_rating", type="boolean", format="boolean",example="1"), 
      * 
      * 
      * 
@@ -728,11 +728,12 @@ class BusinessController extends Controller
                 'is_registered_user_show_stuff_name',
 
 
-                  'enable_ip_check',
+        'enable_ip_check',
         'enable_location_check',
         'latitude',
         'longitude',
         'review_distance_limit',
+        'threshold_rating',
 
         ))
             // ->with("somthing")

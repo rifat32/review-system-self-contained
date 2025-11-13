@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReviewNewController extends Controller
 {
+  
     // ##################################################
     // This method is to store   ReviewValue
     // ##################################################
@@ -573,6 +574,7 @@ class ReviewNewController extends Controller
      */
     public function storeReview($businessId, Request $request)
     {
+        $business = Business::findOrFail($businessId);
         $raw_text = $request->input('description', '');
 
         if ($request->hasFile('audio')) {
@@ -596,7 +598,8 @@ class ReviewNewController extends Controller
             "staff_id" => $request->staff_id ?? null,
         ]);
 
-        $this->storeReviewValues($review, $request->values);
+        $this->storeReviewValues($review, $request->values, $business);
+
 
         return response(["message" => "created successfully"], 201);
     }
@@ -734,14 +737,15 @@ class ReviewNewController extends Controller
             "staff_id" => $request->staff_id ?? null,
         ]);
 
-        $this->storeReviewValues($review, $request->values);
+        $this->storeReviewValues($review, $request->values, $business);
+
 
         return response(["message" => "created successfully"], 201);
     }
 
     // ##################################################
     // Helper to store review values (question/star)
-    private function storeReviewValues($review, $values)
+    private function storeReviewValues($review, $values, $business)
     {
         $rate = 0;
         $previousQuestionId = null;
@@ -758,6 +762,18 @@ class ReviewNewController extends Controller
 
         $review->rate = $rate;
         $review->save();
+
+     
+    if ($business) {
+        $average_rating = ReviewNew::where('business_id', $business->id)->avg('rate');
+
+        if ($average_rating >= $business->threshold_rating) {
+            $review->status = 'published';
+        } else {
+            $review->status = 'pending';
+        }
+        $review->save();
+    }
     }
 
     // ##################################################
@@ -829,6 +845,9 @@ class ReviewNewController extends Controller
         $data = json_decode($result, true);
         return $data['keyphrases'] ?? [];
     }
+
+  
+
 
     // ##################################################
     // This method is to store question

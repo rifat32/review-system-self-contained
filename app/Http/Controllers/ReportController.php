@@ -642,10 +642,9 @@ class ReportController extends Controller
             }
 
             $data["selected_tags"][$key]["tag_id"] = $tag_selected->tag_id;
-            $data["selected_tags"][$key]["tag_selected_time_previous_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->where((!$request->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_tags"][$key]["tag_selected_time_previous_week"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
 
                     "tag_id" =>  $tag_selected->tag_id
@@ -656,10 +655,9 @@ class ReportController extends Controller
                 )
                 ->count();
 
-            $data["selected_tags"][$key]["tag_selected_time_this_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->where((!$request->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_tags"][$key]["tag_selected_time_this_week"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
@@ -668,10 +666,9 @@ class ReportController extends Controller
                 ->get()
                 ->count();
 
-            $data["selected_tags"][$key]["tag_selected_time_this_month"] =       ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->where((!$request->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_tags"][$key]["tag_selected_time_this_month"] =       ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
 
                     "tag_id" =>  $tag_selected->tag_id
@@ -1068,7 +1065,8 @@ class ReportController extends Controller
         // 🏷️ TAG REPORT ENHANCEMENTS
         // ----------------------------
         $tags_with_reviews = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
             ->select('review_news.id as review_id', 'review_value_news.tag_id')
             ->get()
             ->groupBy('review_id');
@@ -1104,17 +1102,30 @@ class ReportController extends Controller
         $data['question_completion_rate'] = $questions->mapWithKeys(fn($qst) => [
             $qst->id => [
                 'question_text' => $qst->text,
-                'completion_rate' => $total_users ? round(ReviewValueNew::where('question_id', $qst->id)->whereHas('review', fn($r) => $r->where('business_id', $businessId))->count() / $total_users * 100, 2) : 0
+                'completion_rate' => $total_users ? round(ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
+                ->where('question_id', $qst->id)
+                ->count() / $total_users * 100, 2) : 0
             ]
         ])->toArray();
 
         $data['average_response_per_question'] = $questions->mapWithKeys(fn($qst) => [
-            $qst->id => ReviewValueNew::where('question_id', $qst->id)->whereHas('review', fn($r) => $r->where('business_id', $businessId))->count()
+            $qst->id => ReviewValueNew::
+            leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
+            ->where('question_id', $qst->id)
+            ->count()
         ])->toArray();
 
         $data['response_distribution'] = $questions->mapWithKeys(fn($qst) => [
             $qst->id => collect($qst->options ?? [])->mapWithKeys(fn($opt) => [
-                $opt => ReviewValueNew::where('question_id', $qst->id)->where('answer', $opt)->whereHas('review', fn($r) => $r->where('business_id', $businessId))->count()
+                $opt => ReviewValueNew::
+                leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
+                ->where('question_id', $qst->id)->where('answer', $opt)->count()
             ])->toArray()
         ])->toArray();
 
@@ -1123,7 +1134,8 @@ class ReportController extends Controller
         // ----------------------------
         $total_review_count = $review_query->count();
         $avg_star = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
             ->avg('star_id');
 
         $data['dashboard_trends'] = [
@@ -1158,7 +1170,8 @@ class ReportController extends Controller
         $data['advanced_insights']['customer_retention_rate'] = $total_customers ? round($repeat_reviewers_count / $total_customers * 100, 2) : 0;
 
         $data['advanced_insights']['topic_analysis'] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
             ->select('tag_id', DB::raw('count(*) as total'))
             ->groupBy('tag_id')
             ->get()
@@ -1438,6 +1451,7 @@ $data['ai_growth_metrics'] = [
             $data["monthly_data"]["monthly_reviews"][$i]["value"] = ReviewNew::where((!request()->user()->hasRole("superadmin") ? [
                 "review_news.business_id" => $businessId
             ] : []))
+            ->where("status", "published")
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
             ->filterByOverall($is_overall)
             ->count();
@@ -1451,6 +1465,7 @@ $data['ai_growth_metrics'] = [
         ] : []))
             ->whereDate('created_at', Carbon::today()) 
            ->filterByOverall($is_overall)
+            ->where("status", "published")
             ->count();
 
         // Count total reviews created within the last 30 days (approximate current month)
@@ -1459,6 +1474,7 @@ $data['ai_growth_metrics'] = [
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay()) // Filter reviews created in the last 30 days
             ->filterByOverall($is_overall)
+             ->where("status", "published")
             ->count();
 
 
@@ -1473,6 +1489,7 @@ $data['ai_growth_metrics'] = [
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)] // Date range for the previous month
             )
              ->filterByOverall($is_overall)
+              ->where("status", "published")
             ->count();
 
         // Count total reviews overall (all-time count)
@@ -1480,6 +1497,7 @@ $data['ai_growth_metrics'] = [
             "business_id" => $businessId
         ] : []))
          ->filterByOverall($is_overall)
+          ->where("status", "published")
             ->count();
 
         // Count total reviews from the previous week (last full week)
@@ -1491,6 +1509,7 @@ $data['ai_growth_metrics'] = [
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()] // Start and end of last week
             )
             ->filterByOverall($is_overall)
+             ->where("status", "published")
             ->count();
 
 
@@ -1500,13 +1519,13 @@ $data['ai_growth_metrics'] = [
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]) // Filter by current week range
             ->filterByOverall($is_overall)
+             ->where("status", "published")
             ->count();
 
         // Get distinct star ratings selected in reviews
-        $total_stars_selected = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id') // Join review values with their related reviews
-            ->where((!request()->user()->hasRole("superadmin") ? [
-                "review_news.business_id" => $businessId
-            ] : []))
+        $total_stars_selected = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
              ->filterByOverall($is_overall)
             ->select("review_value_news.star_id") // Select only the star_id field
             ->distinct() // Ensure only unique star IDs are fetched
@@ -1525,10 +1544,9 @@ $data['ai_growth_metrics'] = [
                 ->first();
 
             // Count total times this star was selected overall
-            $data["selected_stars"][$key]["star_selected_time"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id') // Join with reviews
-                ->where((!request()->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_stars"][$key]["star_selected_time"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
                     "star_id" => $star_selected->star_id
                 ])
@@ -1547,10 +1565,9 @@ $data['ai_growth_metrics'] = [
                 $data["monthly_data"]["selected_stars"][$key]["star_selected_time_monthly"][$i]["month"] = $month;
 
                 // Count times this star was selected in the given month
-                $data["monthly_data"]["selected_stars"][$key]["star_selected_time_monthly"][$i]["value"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                    ->where((!request()->user()->hasRole("superadmin") ? [
-                        "review_news.business_id" => $businessId
-                    ] : []))
+                $data["monthly_data"]["selected_stars"][$key]["star_selected_time_monthly"][$i]["value"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                     ->where([
                         "star_id" => $star_selected->star_id
                     ])
@@ -1560,10 +1577,9 @@ $data['ai_growth_metrics'] = [
             }
 
             // Count times this star was selected in the previous week
-            $data["selected_stars"][$key]["star_selected_time_previous_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->where((!request()->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_stars"][$key]["star_selected_time_previous_week"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
                     "star_id" => $star_selected->star_id
                 ])
@@ -1575,10 +1591,9 @@ $data['ai_growth_metrics'] = [
                 ->count();
 
             // Count times this star was selected in the current week
-            $data["selected_stars"][$key]["star_selected_time_this_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->where((!request()->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_stars"][$key]["star_selected_time_this_week"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
                     "star_id" => $star_selected->star_id
                 ])
@@ -1592,10 +1607,9 @@ $data['ai_growth_metrics'] = [
 
 
         // Get all distinct tags selected in reviews
-        $total_tag_selected = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id') // Join review values with reviews
-            ->where((!request()->user()->hasRole("superadmin") ? [
-                "review_news.business_id" => $businessId
-            ] : [])) // Filter by business ID if user is not superadmin
+        $total_tag_selected = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published") // Filter by business ID if user is not superadmin
             ->select("review_value_news.tag_id") 
             ->filterByOverall($is_overall)
             ->distinct() // Ensure only unique tag IDs are retrieved
@@ -1612,10 +1626,9 @@ $data['ai_growth_metrics'] = [
                 ->first();
 
             // Count total times this tag was selected overall
-            $data["selected_tags"][$key]["tag_selected_time"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id') // Join with reviews
-                ->where((!request()->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_tags"][$key]["tag_selected_time"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
@@ -1634,10 +1647,9 @@ $data['ai_growth_metrics'] = [
                 $data["monthly_data"]["selected_tags"][$key]["tag_selected_time_monthly"][$i]["month"] = $month;
 
                 // Count times this tag was selected in the given month
-                $data["monthly_data"]["selected_tags"][$key]["tag_selected_time_monthly"][$i]["value"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                    ->where((!request()->user()->hasRole("superadmin") ? [
-                        "review_news.business_id" => $businessId
-                    ] : []))
+                $data["monthly_data"]["selected_tags"][$key]["tag_selected_time_monthly"][$i]["value"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                     ->where([
                         "tag_id" =>  $tag_selected->tag_id
                     ])
@@ -1653,10 +1665,9 @@ $data['ai_growth_metrics'] = [
             $data["selected_tags"][$key]["tag_id"] = $tag_selected->tag_id;
 
             // Count times this tag was selected in the previous week
-            $data["selected_tags"][$key]["tag_selected_time_previous_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->where((!request()->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_tags"][$key]["tag_selected_time_previous_week"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
@@ -1668,10 +1679,9 @@ $data['ai_growth_metrics'] = [
                 ->count();
 
             // Count times this tag was selected in the current week
-            $data["selected_tags"][$key]["tag_selected_time_this_week"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->where((!request()->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_tags"][$key]["tag_selected_time_this_week"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
@@ -1681,10 +1691,9 @@ $data['ai_growth_metrics'] = [
                 ->count();
 
             // Count times this tag was selected in the last 30 days (approximate current month)
-            $data["selected_tags"][$key]["tag_selected_time_this_month"] = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->where((!request()->user()->hasRole("superadmin") ? [
-                    "review_news.business_id" => $businessId
-                ] : []))
+            $data["selected_tags"][$key]["tag_selected_time_this_month"] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
@@ -1714,6 +1723,7 @@ $data['ai_growth_metrics'] = [
                         [$startDateOfMonth,$endDateOfMonth]
                     )
                     ->whereNotNull('user_id')
+                    ->where("status", "published")
                     ->distinct()
                     ->count();
         }
@@ -1737,6 +1747,7 @@ $data['ai_growth_metrics'] = [
             ] : []))
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->filterByOverall($is_overall)
+                 ->where("status", "published")
                 ->get()
                 ->count();
         }
@@ -1750,6 +1761,7 @@ $data['ai_growth_metrics'] = [
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay())
             ->filterByOverall($is_overall)
+             ->where("status", "published")
             ->count();
 
         // Count guest reviews from the previous month (between 30 and 60 days ago)
@@ -1762,6 +1774,7 @@ $data['ai_growth_metrics'] = [
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
             )
             ->filterByOverall($is_overall)
+             ->where("status", "published")
             ->get()
             ->count();
 
@@ -1772,8 +1785,10 @@ $data['ai_growth_metrics'] = [
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->filterByOverall($is_overall)
+             ->where("status", "published")
             ->get()
             ->count();
+
 
         // Count guest reviews created in the previous week
         $data["previous_week_guest_review_count"] = ReviewNew::where((!request()->user()->hasRole("superadmin") ? [
@@ -1785,6 +1800,7 @@ $data['ai_growth_metrics'] = [
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
             )
             ->filterByOverall($is_overall)
+            ->where("status", "published")
             ->get()
             ->count();
 
@@ -1794,6 +1810,7 @@ $data['ai_growth_metrics'] = [
             "user_id" => NULL
         ] : []))
         ->filterByOverall($is_overall)
+        ->where("status", "published")
             ->get()
             ->count();
 
@@ -1805,6 +1822,7 @@ $data['ai_growth_metrics'] = [
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
+                ->where("status", "published")
                 ->get()
                 ->count();
 
@@ -1823,6 +1841,7 @@ $data['ai_growth_metrics'] = [
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
+                ->where("status", "published")
                 ->get()
                 ->count();
 
@@ -1852,6 +1871,7 @@ $data['ai_growth_metrics'] = [
             ] : []))
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->filterByOverall($is_overall)
+                ->where("status", "published")
                 ->count();
         }
 
@@ -1862,6 +1882,7 @@ $data['ai_growth_metrics'] = [
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay())
             ->filterByOverall($is_overall)
+            ->where("status", "published")
             ->get()
             ->count();
 
@@ -1875,6 +1896,7 @@ $data['ai_growth_metrics'] = [
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
             )
             ->filterByOverall($is_overall)
+            ->where("status", "published")
             ->get()
             ->count();
 
@@ -1885,6 +1907,7 @@ $data['ai_growth_metrics'] = [
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->filterByOverall($is_overall)
+            ->where("status", "published")
             ->get()
             ->count();
 
@@ -1898,6 +1921,7 @@ $data['ai_growth_metrics'] = [
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
             )
             ->filterByOverall($is_overall)
+            ->where("status", "published")
             ->get()
             ->count();
 
@@ -1907,6 +1931,7 @@ $data['ai_growth_metrics'] = [
             "guest_id" => NULL
         ] : []))
         ->filterByOverall($is_overall)
+        ->where("status", "published")
             ->get()
             ->count();
 
@@ -1921,6 +1946,7 @@ $data['ai_growth_metrics'] = [
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
+                ->where("status", "published")
                 ->get()
                 ->count();
 
@@ -1939,6 +1965,7 @@ $data['ai_growth_metrics'] = [
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
+                ->where("status", "published")
                 ->get()
                 ->count();
 
@@ -2169,6 +2196,7 @@ $data['ai_growth_metrics'] = [
         // ----------------------------
         // Clone base review query with business filter if not superadmin
         $review_query = ReviewNew::when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
+        ->where("status", "published")
         ->filterByOverall($is_overall);
 
         // Count previous month reviews
@@ -2270,6 +2298,7 @@ $data['ai_growth_metrics'] = [
         $low_rating_last_week = (clone $review_query)->whereBetween('created_at', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])->whereIn('rate', [1, 2])->count();
         // Calculate increase percent and determine alert
         $low_rating_increase = $low_rating_last_week ? round(($low_rating_this_week - $low_rating_last_week) / $low_rating_last_week * 100, 2) : ($low_rating_this_week ? 100 : 0);
+
         $data['low_rating_alert'] = [
             'this_week_low_ratings' => $low_rating_this_week,
             'last_week_low_ratings' => $low_rating_last_week,
@@ -2284,6 +2313,7 @@ $data['ai_growth_metrics'] = [
         // Get all tags per review
         $tags_with_reviews = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
             ->filterByOverall($is_overall)
             ->select('review_news.id as review_id', 'review_value_news.tag_id')
             ->get()
@@ -2312,12 +2342,11 @@ $data['ai_growth_metrics'] = [
                     ->where('review_value_news.tag_id', $tag->id)
                     ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
                     ->filterByOverall($is_overall)
+                    ->where("status", "published")
                     ->avg('review_news.rate') ?? 0,
                 2
             )
         ])->toArray();
-
-
 
 
         // ----------------------------
@@ -2336,8 +2365,11 @@ $data['ai_growth_metrics'] = [
             $qst->id => [
                 'question_text' => $qst->text,
                 'completion_rate' => $total_users ? round(
-                    ReviewValueNew::where('question_id', $qst->id)
-                        ->whereHas('review', fn($r) => $r->where('business_id', $businessId))
+                    ReviewValueNew::
+                    leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
+                    ->where('question_id', $qst->id)
                         ->filterByOverall($is_overall)
                         ->count() / $total_users * 100,
                     2
@@ -2347,8 +2379,12 @@ $data['ai_growth_metrics'] = [
 
         // Calculate total responses per question
         $data['average_response_per_question'] = $questions->mapWithKeys(fn($qst) => [
-            $qst->id => ReviewValueNew::where('question_id', $qst->id)
-                ->whereHas('review', fn($r) => $r->where('business_id', $businessId))
+            $qst->id => ReviewValueNew::
+            leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
+            ->where('question_id', $qst->id)
+                
                 ->filterByOverall($is_overall)
                 ->count()
         ])->toArray();
@@ -2356,9 +2392,12 @@ $data['ai_growth_metrics'] = [
         // Response distribution per question option
         $data['response_distribution'] = $questions->mapWithKeys(fn($qst) => [
             $qst->id => collect($qst->options ?? [])->mapWithKeys(fn($opt) => [
-                $opt => ReviewValueNew::where('question_id', $qst->id)
+                $opt => ReviewValueNew::
+                leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
+                ->where('question_id', $qst->id)
                     ->where('answer', $opt)
-                    ->whereHas('review', fn($r) => $r->where('business_id', $businessId))
                     ->filterByOverall($is_overall)
                     ->count()
             ])->toArray()
@@ -2371,6 +2410,7 @@ $data['ai_growth_metrics'] = [
         $total_review_count = $review_query->count();
         $avg_star = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
             ->filterByOverall($is_overall)
             ->avg('star_id');
 
@@ -2378,7 +2418,6 @@ $data['ai_growth_metrics'] = [
         $data['dashboard_trends'] = [
             'engagement_index' => round($total_review_count * ($avg_star ?? 0), 2),
             'performance_vs_target' => round(($total_review_count / 100) * 100, 2), // assuming 100 target
-
             // Reviews by hour of day (0–23)
             'time_of_day_trends' => collect(range(0, 23))
                 ->mapWithKeys(function ($h) use ($review_query) {
@@ -2387,7 +2426,6 @@ $data['ai_growth_metrics'] = [
                         ->count()];
                 })
                 ->toArray(),
-
             // Reviews by day of week (0 = Sunday, 6 = Saturday)
             'day_of_week_trends' => collect(range(0, 6))
                 ->mapWithKeys(function ($d) use ($review_query) {
@@ -2412,6 +2450,7 @@ $data['ai_growth_metrics'] = [
         // Topic/tag analysis: count of reviews per tag
         $data['advanced_insights']['topic_analysis'] = ReviewValueNew::leftJoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
+            ->where("review_news.status", "published")
             ->filterByOverall($is_overall)
             ->select('tag_id', DB::raw('count(*) as total'))
             ->groupBy('tag_id')
@@ -2438,4 +2477,5 @@ $data['ai_growth_metrics'] = [
 
         return $data;
     }
+    
 }

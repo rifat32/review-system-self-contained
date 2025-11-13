@@ -11,8 +11,6 @@ trait DiscountUtil
 {
 
 
-
-
     // this function do all the task and returns transaction id or -1
     public function getCouponDiscount($garage_id, $code, $amount)
     {

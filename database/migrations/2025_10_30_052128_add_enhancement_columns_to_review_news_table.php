@@ -18,7 +18,7 @@ class AddEnhancementColumnsToReviewNewsTable extends Migration
 
             $table->string('review_type')->nullable();
             $table->enum('sentiment', ['positive', 'neutral', 'negative'])->nullable();
-            $table->boolean('verified')->default(false);
+ 
             $table->unsignedBigInteger('topic_id')->nullable();
             $table->text('reply_content')->nullable();
 
@@ -34,7 +34,6 @@ class AddEnhancementColumnsToReviewNewsTable extends Migration
                 'responded_at',
                 'review_type',
                 'sentiment',
-                'verified',
                 'topic_id',
                 'reply_content',
             ]);

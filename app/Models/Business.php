@@ -69,6 +69,7 @@ class Business extends Model
         'latitude',
         'longitude',
         'review_distance_limit',
+        'threshold_rating',
 
 
     ];

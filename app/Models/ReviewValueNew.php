@@ -44,5 +44,15 @@ public function scopeFilterByOverall($query, $is_overall)
     });
 }
 
+public function scopeFilterByBusiness($query, $businessId)
+{
+    return $query->whereHas('review', function ($query) use ($businessId) {
+        $query->where('status', 'published')
+              ->when(!request()->user()->hasRole('superadmin'), function ($q) use ($businessId) {
+                  $q->where('business_id', $businessId);
+              });
+    });
+}
+
 
 }
