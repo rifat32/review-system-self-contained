@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReviewNewController extends Controller
 {
-  
+
     // ##################################################
     // This method is to store   ReviewValue
     // ##################################################
@@ -610,19 +610,19 @@ class ReviewNewController extends Controller
     // ##################################################
 
     private function getDistanceMeters($lat1, $lon1, $lat2, $lon2)
-{
-    $earth_radius = 6371000; // meters
-    $dLat = deg2rad($lat2 - $lat1);
-    $dLon = deg2rad($lon2 - $lon1);
-    $a = sin($dLat / 2) * sin($dLat / 2) +
-        cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-        sin($dLon / 2) * sin($dLon / 2);
-    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-    return $earth_radius * $c;
-}
+    {
+        $earth_radius = 6371000; // meters
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+            sin($dLon / 2) * sin($dLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        return $earth_radius * $c;
+    }
 
 
-    
+
     /**
      * @OA\Post(
      *      path="/review-new-guest/{businessId}",
@@ -648,9 +648,9 @@ class ReviewNewController extends Controller
      *              @OA\Property(property="comment", type="string", example="Not good"),
      *              @OA\Property(property="is_overall", type="string", example="is_overall"),
      * @OA\Property(property="latitude", type="number", example="23.8103"),
-    *  @OA\Property(property="longitude", type="number", example="90.4125"),
-    * @OA\Property(property="staff_id", type="number", example="1"),
-    * 
+     *  @OA\Property(property="longitude", type="number", example="90.4125"),
+     * @OA\Property(property="staff_id", type="number", example="1"),
+     * 
      *              @OA\Property(
      *                  property="values",
      *                  type="array",
@@ -670,42 +670,42 @@ class ReviewNewController extends Controller
      */
     public function storeReviewByGuest($businessId, Request $request)
     {
- 
+
         $business = Business::findOrFail($businessId);
-    $ip_address = $request->ip();
+        $ip_address = $request->ip();
 
-    // ✅ Step 1: IP restriction check
-    if ($business->enable_ip_check) {
-        $existing_review = ReviewNew::where('business_id', $businessId)
-            ->where('ip_address', $ip_address)
-            ->whereDate('created_at', now()->toDateString())
-            ->first();
+        // ✅ Step 1: IP restriction check
+        if ($business->enable_ip_check) {
+            $existing_review = ReviewNew::where('business_id', $businessId)
+                ->where('ip_address', $ip_address)
+                ->whereDate('created_at', now()->toDateString())
+                ->first();
 
-        if ($existing_review) {
-            return response([
-                "message" => "You have already submitted a review today from this IP."
-            ], 400);
-        }
-    }
-
-    // ✅ Step 2: Location restriction check
-    if ($business->enable_location_check) {
-        $guest_lat = $request->input('latitude');
-        $guest_lon = $request->input('longitude');
-
-        if (!$guest_lat || !$guest_lon) {
-            return response(["message" => "Location data required for review."], 400);
-        }
-
-        if ($business->latitude && $business->longitude) {
-            $distance = $this->getDistanceMeters($guest_lat, $guest_lon, $business->latitude, $business->longitude);
-            if ($distance > $business->review_distance_limit) {
+            if ($existing_review) {
                 return response([
-                    "message" => "You are too far from the business location to review (limit {$business->review_distance_limit}m)."
+                    "message" => "You have already submitted a review today from this IP."
                 ], 400);
             }
         }
-    }
+
+        // ✅ Step 2: Location restriction check
+        if ($business->enable_location_check) {
+            $guest_lat = $request->input('latitude');
+            $guest_lon = $request->input('longitude');
+
+            if (!$guest_lat || !$guest_lon) {
+                return response(["message" => "Location data required for review."], 400);
+            }
+
+            if ($business->latitude && $business->longitude) {
+                $distance = $this->getDistanceMeters($guest_lat, $guest_lon, $business->latitude, $business->longitude);
+                if ($distance > $business->review_distance_limit) {
+                    return response([
+                        "message" => "You are too far from the business location to review (limit {$business->review_distance_limit}m)."
+                    ], 400);
+                }
+            }
+        }
 
 
 
@@ -764,17 +764,17 @@ class ReviewNewController extends Controller
         $review->rate = $rate;
         $review->save();
 
-     
-    if ($business) {
-        $average_rating = ReviewNew::where('business_id', $business->id)->avg('rate');
 
-        if ($average_rating >= $business->threshold_rating) {
-            $review->status = 'published';
-        } else {
-            $review->status = 'pending';
+        if ($business) {
+            $average_rating = ReviewNew::where('business_id', $business->id)->avg('rate');
+
+            if ($average_rating >= $business->threshold_rating) {
+                $review->status = 'published';
+            } else {
+                $review->status = 'pending';
+            }
+            $review->save();
         }
-        $review->save();
-    }
     }
 
     // ##################################################
@@ -944,13 +944,13 @@ class ReviewNewController extends Controller
         }
 
 
-       
+
 
         $createdQuestion =    Question::create($question);
         $createdQuestion->info = "supported value is of type is 'star','emoji','numbers','heart'";
 
-         if(request()->has('survey_id')){
-           SurveyQuestion::create([
+        if (request()->has('survey_id')) {
+            SurveyQuestion::create([
                 'survey_id' => request()->survey_id,
                 'question_id' => $createdQuestion->id,
             ]);
@@ -1286,6 +1286,9 @@ class ReviewNewController extends Controller
             })
             ->when(request()->filled("survey_name"), function ($query) {
                 $query->where("questions.survey_name", request()->input("survey_name"));
+            })
+            ->when($request->filled("ids"), function ($q) use ($request) {
+                return $q->whereIn("id", explode(",", $request->query("ids")));
             });
 
 
@@ -1296,7 +1299,7 @@ class ReviewNewController extends Controller
     }
 
 
-      /**
+    /**
      *
      * @OA\Get(
      *      path="/review-new/get/questions-all-overall/customer",
@@ -1370,8 +1373,7 @@ class ReviewNewController extends Controller
         //     $query =  Question::where(["is_default" => 1]);
         // }
         // else {
-        $query =  Question::
-        where(["business_id" => $request->business_id, "is_default" => 0])
+        $query =  Question::where(["business_id" => $request->business_id, "is_default" => 0])
 
             ->when(request()->filled("is_active"), function ($query) {
                 $query->where("questions.is_active", request()->input("is_active"));
@@ -1611,7 +1613,7 @@ class ReviewNewController extends Controller
 
         $query =  Question::where(["business_id" => $request->business_id, "is_default" => $is_dafault])
             ->where(["show_in_user" => 1])
-             ->when(request()->filled("is_overall"), function ($query) {
+            ->when(request()->filled("is_overall"), function ($query) {
                 $query->when(request()->boolean("is_overall"), function ($query) {
                     $query->where("questions.is_overall", 1);
                 }, function ($query) {
@@ -1620,10 +1622,9 @@ class ReviewNewController extends Controller
             })
             ->when(request()->filled('survey_name'), function ($query) {
                 $query->where('survey_name', request()->input('survey_name'));
-                   
             });
 
-            
+
 
         $questions =  $query->get();
 
