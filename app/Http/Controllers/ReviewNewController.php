@@ -12,6 +12,7 @@ use App\Models\ReviewValueNew;
 use App\Models\Star;
 use App\Models\StarTag;
 use App\Models\StarTagQuestion;
+use App\Models\SurveyQuestion;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -874,6 +875,8 @@ class ReviewNewController extends Controller
      * *  @OA\Property(property="is_active", type="boolean", format="boolean",example="1"),
      *      *  *  @OA\Property(property="show_in_guest_user", type="boolean", format="boolean",example="1"),
      * *  *  @OA\Property(property="show_in_user", type="boolean", format="boolean",example="1"),
+     * *  *  @OA\Property(property="survey_name", type="boolean", format="boolean",example="1"),
+     *   * *  *  @OA\Property(property="survey_id", type="boolean", format="boolean",example="1"),
      * * *  @OA\Property(property="type", type="string", format="string",example="star"),
      *
      *
@@ -922,6 +925,7 @@ class ReviewNewController extends Controller
             'type' => !empty($request->type) ? $request->type : "star",
             'show_in_guest_user' => $request->show_in_guest_user,
             'show_in_user' => $request->show_in_user,
+            'survey_name' => $request->survey_name,
             "is_overall" => $request->is_overall ?? 0,
         ];
         if ($request->user()->hasRole("superadmin")) {
@@ -939,8 +943,18 @@ class ReviewNewController extends Controller
             }
         }
 
+
+       
+
         $createdQuestion =    Question::create($question);
         $createdQuestion->info = "supported value is of type is 'star','emoji','numbers','heart'";
+
+         if(request()->has('survey_id')){
+           SurveyQuestion::create([
+                'survey_id' => request()->survey_id,
+                'question_id' => $createdQuestion->id,
+            ]);
+        }
 
         return response($createdQuestion, 201);
     }
@@ -969,6 +983,8 @@ class ReviewNewController extends Controller
      *  *            @OA\Property(property="type", type="string", format="string",example="star"),
      *     *  *  @OA\Property(property="show_in_guest_user", type="boolean", format="boolean",example="1"),
      * *  *  @OA\Property(property="show_in_user", type="boolean", format="boolean",example="1"),
+     *  * *  *  @OA\Property(property="survey_name", type="boolean", format="boolean",example="1"),
+     * 
 
      *   @OA\Property(property="is_active", type="boolean", format="boolean",example="1"),
      *
@@ -1018,6 +1034,7 @@ class ReviewNewController extends Controller
             'question' => $request->question,
             'show_in_guest_user' => $request->show_in_guest_user,
             'show_in_user' => $request->show_in_user,
+            'survey_name' => $request->survey_name,
             "is_active" => $request->is_active,
         ];
         $checkQuestion =    Question::where(["id" => $request->id])->first();
@@ -1266,6 +1283,9 @@ class ReviewNewController extends Controller
             })
             ->when($request->boolean("exclude_guest_user"), function ($q) use ($request) {
                 return $q->where("show_in_guest_user", false);
+            })
+            ->when(request()->filled("survey_name"), function ($query) {
+                $query->where("questions.survey_name", request()->input("survey_name"));
             });
 
 
@@ -1274,6 +1294,127 @@ class ReviewNewController extends Controller
 
         return response($questions, 200);
     }
+
+
+      /**
+     *
+     * @OA\Get(
+     *      path="/review-new/get/questions-all-overall/customer",
+     *      operationId="getQuestionAllUnauthorizedOverall",
+     *      tags={"review.setting.question"},
+     *
+     * 
+     *      summary="This method is to get all question without pagination",
+     *      description="This method is to get all question without pagination",
+     *
+     * 
+     *         @OA\Parameter(
+     *         name="business_id",
+     *         in="query",
+     *         description="business Id",
+     *         required=false,
+     *      ),
+     * 
+     * *         @OA\Parameter(
+     *         name="is_active",
+     *         in="query",
+     *         description="is_active",
+     *         required=false,
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *           @OA\Response(
+     *          response=201,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocesseble Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+    public function  getQuestionAllUnauthorizedOverall(Request $request)
+    {
+        $is_dafault = false;
+
+        $business =    Business::where(["id" => $request->business_id])->first();
+        if (!$business) {
+            return response("No Business Found", 404);
+        }
+
+        // if ($business->enable_question == true) {
+        //     $query =  Question::where(["is_default" => 1]);
+        // }
+        // else {
+        $query =  Question::
+        where(["business_id" => $request->business_id, "is_default" => 0])
+
+            ->when(request()->filled("is_active"), function ($query) {
+                $query->where("questions.is_active", request()->input("is_active"));
+            })
+
+            ->when(request()->filled("is_overall"), function ($query) {
+                $query->when(request()->boolean("is_overall"), function ($query) {
+                    $query->where("questions.is_overall", 1);
+                }, function ($query) {
+                    $query->where("questions.is_overall", 0);
+                });
+            });
+
+
+        // }
+
+
+
+
+
+        $questions =  $query->get();
+
+        $data =  json_decode(json_encode($questions), true);
+        foreach ($questions as $key1 => $question) {
+
+            foreach ($question->question_stars as $key2 => $questionStar) {
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
+
+
+                $data[$key1]["stars"][$key2]["tags"] = [];
+                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+                    if ($starTag->question_id == $question->id) {
+
+                        array_push($data[$key1]["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
+                    }
+                }
+            }
+        }
+        return response($data, 200);
+    }
+
+
+
 
     /**
      *
@@ -1469,7 +1610,20 @@ class ReviewNewController extends Controller
 
 
         $query =  Question::where(["business_id" => $request->business_id, "is_default" => $is_dafault])
-            ->where(["show_in_user" => 1]);
+            ->where(["show_in_user" => 1])
+             ->when(request()->filled("is_overall"), function ($query) {
+                $query->when(request()->boolean("is_overall"), function ($query) {
+                    $query->where("questions.is_overall", 1);
+                }, function ($query) {
+                    $query->where("questions.is_overall", 0);
+                });
+            })
+            ->when(request()->filled('survey_name'), function ($query) {
+                $query->where('survey_name', request()->input('survey_name'));
+                   
+            });
+
+            
 
         $questions =  $query->get();
 

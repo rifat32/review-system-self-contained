@@ -15,6 +15,7 @@ class Question extends Model
        "is_active",
        "show_in_guest_user",
        "show_in_user",
+       'survey_name',
        "type"
     ];
 

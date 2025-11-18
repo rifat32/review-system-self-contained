@@ -22,6 +22,7 @@ use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SuperAdminReportController;
+use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\UserController;
 
 use Illuminate\Http\Request;
@@ -111,6 +112,10 @@ Route::get('/business/{businessId}', [BusinessController::class, "getbusinessByI
 
 Route::get('/review-new/get/questions-all/customer', [ReviewNewController::class, "getQuestionAllUnauthorized"]);
 
+Route::get('/review-new/get/questions-all-overall/customer', [ReviewNewController::class, "getQuestionAllUnauthorizedOverall"]);
+
+
+
 
 Route::get('/review-new/get/questions-all-report/unauthorized', [ReviewNewController::class, "getQuestionAllReportUnauthorized"]);
 
@@ -189,6 +194,20 @@ Route::middleware(['auth:api'])->group(function () {
     // #################
     // Restaurent Routes
     // #################
+
+
+
+    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // expense type management section
+    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    Route::post('/v1.0/surveys', [SurveyController::class, "createSurvey"]);
+    Route::put('/v1.0/surveys', [SurveyController::class, "updateSurvey"]);
+    Route::get('/v1.0/surveys/{business_id}/{perPage}', [SurveyController::class, "getSurveyes"]);
+    Route::get('/v1.0/surveys/{business_id}', [SurveyController::class, "getAllSurveyes"]);
+    Route::delete('/v1.0/surveys/{id}', [SurveyController::class, "deleteSurveyById"]);
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    // expense type management section
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Utils;
 use Exception;
 use Illuminate\Http\Request;
