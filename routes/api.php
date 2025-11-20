@@ -135,10 +135,10 @@ Route::middleware(['auth:api'])->group(function () {
 
     // Leaflet CRUD
     Route::post('/v1.0/leaflet/create',        [LeafletController::class, 'insertLeaflet']);
-    Route::put('/v1.0/leaflet/update',        [LeafletController::class, 'editLeaflet']);
+    Route::put('/v1.0/leaflet/update/{id}',        [LeafletController::class, 'editLeaflet']);
     Route::get('/v1.0/leaflet/get',           [LeafletController::class, 'getAllLeaflet']);
     Route::get('/v1.0/leaflet/get/{id}',      [LeafletController::class, 'leafletById']);
-    Route::delete('/v1.0/leaflet/{business_id}/{id}', [LeafletController::class, 'leafletDeleteById']);
+    Route::delete('/v1.0/leaflet/{ids}', [LeafletController::class, 'leafletDeleteById']);
     Route::post('/v1.0/leaflet-image',         [LeafletController::class, 'insertLeafletImage']);
 
 
@@ -467,7 +467,7 @@ Route::middleware(['auth:api'])->group(function () {
 // forget password Routes
 // #################
 
-Route::post('/forgetpassword', [ForgotPasswordController::class, "storeForgetPassword"]);
+Route::post('/v1.0/forgot-password', [ForgotPasswordController::class, "storeForgetPassword"]);
 Route::patch('/forgetpassword/reset/{token}', [ForgotPasswordController::class, "changePasswordByToken"]);
 
 Route::post('webhooks/stripe', [CustomWebhookController::class, "handleStripeWebhook"]);
