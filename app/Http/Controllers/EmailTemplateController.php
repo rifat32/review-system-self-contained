@@ -77,13 +77,10 @@ class EmailTemplateController extends Controller
         try {
             return    DB::transaction(function () use (&$request) {
 
+                $request_payload = $request->validated();
+                $template =  EmailTemplate::create($request_payload);
 
-                $insertableData = $request->validated();
-                $template =  EmailTemplate::create($insertableData);
-
-
-
-//  if the template is active then other templates of this type will deactive
+                //  if the template is active then other templates of this type will
                 if ($template->is_active) {
                     EmailTemplate::where("id", "!=", $template->id)
                         ->where([
@@ -164,10 +161,10 @@ class EmailTemplateController extends Controller
 
             return    DB::transaction(function () use (&$request) {
 
-                $updatableData = $request->validated();
+                $request_payload = $request->validated();
 
-                $template  =  tap(EmailTemplate::where(["id" => $updatableData["id"]]))->update(
-                    collect($updatableData)->only([
+                $template  =  tap(EmailTemplate::where(["id" => $request_payload["id"]]))->update(
+                    collect($request_payload)->only([
                         "template",
 
                     ])->toArray()
@@ -176,7 +173,7 @@ class EmailTemplateController extends Controller
 
                     ->first();
 
-         //    if the template is active then other templates of this type will deactive
+                //    if the template is active then other templates of this type will
                 if ($template->is_active) {
                     EmailTemplate::where("id", "!=", $template->id)
                         ->where([
@@ -195,7 +192,7 @@ class EmailTemplateController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/v1.0/email-templates/{perPage}",
+     *      path="/v1.0/email-templates",
      *      operationId="getEmailTemplates",
      *      tags={"template_management.email"},
      *       security={
@@ -204,10 +201,31 @@ class EmailTemplateController extends Controller
 
      *              @OA\Parameter(
      *         name="perPage",
-     *         in="path",
+     *         in="query",
      *         description="perPage",
-     *         required=true,
+     *         required=false,
      *  example="6"
+     *      ),
+     *              @OA\Parameter(
+     *         name="search_key",
+     *         in="query",
+     *         description="search_key",
+     *         required=false,
+     *  example="email_verification"
+     *      ),
+     *              @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="start_date",
+     *         required=false,
+     *  example="2023-01-01"
+     *      ),
+     *              @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="end_date",
+     *         required=false,
+     *  example="2023-12-31"
      *      ),
      *      summary="This method is to get email templates",
      *      description="This method is to get email templates",
@@ -247,30 +265,18 @@ class EmailTemplateController extends Controller
      *     )
      */
 
-    public function getEmailTemplates($perPage, Request $request)
+    public function getEmailTemplates(Request $request)
     {
         try {
+            $templateQuery = EmailTemplate::filter()
+                ->orderByDesc("id");
 
-
-
-
-            $templateQuery = new EmailTemplate();
-
-            if (!empty($request->search_key)) {
-                $templateQuery = $templateQuery->where(function ($query) use ($request) {
-                    $term = $request->search_key;
-                    $query->where("type", "like", "%" . $term . "%");
-                });
+            if ($request->has('perPage')) {
+                $templates = $templateQuery->paginate($request->perPage);
+            } else {
+                $templates = $templateQuery->get();
             }
 
-            if (!empty($request->start_date) && !empty($request->end_date)) {
-                $templateQuery = $templateQuery->whereBetween('created_at', [
-                    $request->start_date,
-                    $request->end_date
-                ]);
-            }
-
-            $templates = $templateQuery->orderByDesc("id")->paginate($perPage);
             return response()->json($templates, 200);
         } catch (Exception $e) {
 
@@ -278,7 +284,7 @@ class EmailTemplateController extends Controller
         }
     }
 
-     /**
+    /**
      *
      * @OA\Get(
      *      path="/v1.0/email-template-types",
@@ -326,12 +332,12 @@ class EmailTemplateController extends Controller
      *     )
      */
 
-    public function getEmailTemplateTypes( Request $request)
+    public function getEmailTemplateTypes(Request $request)
     {
         try {
 
 
-$types = ["email_verification_mail","forget_password_mail","welcome_message"];
+            $types = ["email_verification_mail", "forget_password_mail", "welcome_message"];
 
 
             return response()->json($types, 200);
@@ -341,24 +347,24 @@ $types = ["email_verification_mail","forget_password_mail","welcome_message"];
         }
     }
 
-     /**
-        *
+    /**
+     *
      *     @OA\Delete(
-     *      path="/v1.0/email-templates/{id}",
+     *      path="/v1.0/email-templates/{ids}",
      *      operationId="deleteEmailTemplateById",
      *      tags={"z.unused"},
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *              @OA\Parameter(
-     *         name="id",
+     *         name="ids",
      *         in="path",
-     *         description="id",
+     *         description="ids",
      *         required=true,
-     *  example="1"
+     *  example="1,2,3"
      *      ),
-     *      summary="This method is to delete email template by id",
-     *      description="This method is to delete email template by id",
+     *      summary="This method is to delete email templates by ids",
+     *      description="This method is to delete email templates by ids",
      *
 
      *      @OA\Response(
@@ -395,24 +401,36 @@ $types = ["email_verification_mail","forget_password_mail","welcome_message"];
      *     )
      */
 
-    public function deleteEmailTemplateById($id,Request $request) {
+    public function deleteEmailTemplateById($ids, Request $request)
+    {
+        try {
+            $idsArray = explode(',', $ids);
+            $idsArray = array_map('intval', $idsArray);
 
-        try{
+            $existingIds = EmailTemplate::whereIn('id', $idsArray)->pluck('id')->toArray();
 
-           EmailTemplate::where([
-            "id" => $id
-           ])
-           ->delete();
+            $nonExistingIds = array_diff($idsArray, $existingIds);
 
-            return response()->json(["ok" => true], 200);
-        } catch(Exception $e){
+            if (!empty($nonExistingIds)) {
+                return response()->json([
+                    "message" => "Some email templates were not found",
+                    "non_existing_ids" => array_values($nonExistingIds)
+                ], 404);
+            }
 
+            EmailTemplate::whereIn('id', $idsArray)->delete();
+
+            return response()->json([
+                "ok" => true,
+                "message" => "Email templates deleted successfully",
+                "deleted_count" => count($existingIds)
+            ], 200);
+        } catch (Exception $e) {
             return $e->getMessage();
         }
-
     }
 
-     /**
+    /**
      *
      * @OA\Get(
      *      path="/v1.0/email-templates/single/{id}",
@@ -476,16 +494,14 @@ $types = ["email_verification_mail","forget_password_mail","welcome_message"];
             $template = EmailTemplate::where([
                 "id" => $id
             ])
-            ->first();
-            if(!$template){
+                ->first();
+            if (!$template) {
                 return response()->json([
-                     "message" => "no data found"
+                    "message" => "no data found"
                 ], 404);
             }
             return response()->json($template, 200);
         } catch (Exception $e) {
-
-
         }
     }
 }

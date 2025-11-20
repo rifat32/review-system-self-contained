@@ -435,11 +435,10 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/v1.0/email-template-wrappers/single/{id}', [EmailTemplateWrapperController::class, "getEmailTemplateWrapperById"]);
         Route::post('/v1.0/email-templates', [EmailTemplateController::class, "createEmailTemplate"]);
         Route::put('/v1.0/email-templates', [EmailTemplateController::class, "updateEmailTemplate"]);
-        Route::get('/v1.0/email-templates/{perPage}', [EmailTemplateController::class, "getEmailTemplates"]);
         Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
-        Route::delete('/v1.0/email-templates/{id}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
+        Route::delete('/v1.0/email-templates/{ids}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
         Route::get('/v1.0/email-templates/single/{id}', [EmailTemplateController::class, "getEmailTemplateById"]);
-
+        Route::get('/v1.0/email-templates', [EmailTemplateController::class, "getEmailTemplates"]);
     });
 
     Route::get('/customer-report', [ReportController::class, "customerDashboardReport"]);
