@@ -431,8 +431,8 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/superadmin/owner-list/{perPage}', [UserController::class, "getOwnerReport"]);
         Route::delete('/superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
         Route::put('/v1.0/email-template-wrappers', [EmailTemplateWrapperController::class, "updateEmailTemplateWrapper"]);
-        Route::get('/v1.0/email-template-wrappers/{perPage}', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
         Route::get('/v1.0/email-template-wrappers/single/{id}', [EmailTemplateWrapperController::class, "getEmailTemplateWrapperById"]);
+        Route::get('/v1.0/email-template-wrappers', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
         Route::post('/v1.0/email-templates', [EmailTemplateController::class, "createEmailTemplate"]);
         Route::put('/v1.0/email-templates', [EmailTemplateController::class, "updateEmailTemplate"]);
         Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
