@@ -40,13 +40,7 @@ Route::get('/swagger-refresh', function () {
 });
 
 
-Route::get('/passport', function () {
-
-    ini_set('memory_limit', '512M');
-
-    Artisan::call('passport:install');
-    return "passport";
-});
+Route::get('/setup-passport', [SetupController::class, "setupPassport"])->name('setup.passport');
 
 
 Route::get('/pdf', function () {

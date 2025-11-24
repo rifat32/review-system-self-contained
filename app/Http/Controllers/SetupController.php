@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Utils\ErrorUtil;
 use App\Models\User;
 use App\Models\ActivityLog;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,33 @@ use Spatie\Permission\Models\Permission;
 class SetupController extends Controller
 {
     use ErrorUtil;
+
+    public function setupPassport()
+    {
+        try {
+            // Clear caches
+            Artisan::call('config:clear');
+            Artisan::call('cache:clear');
+            Artisan::call('route:clear');
+            Artisan::call('view:clear');
+
+            // Generate Passport keys manually to avoid STDIN issues
+            Artisan::call('passport:keys', ['--force' => true]);
+
+            // Run Passport migrations if needed
+            Artisan::call('migrate', ['--path' => 'vendor/laravel/passport/database/migrations']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Passport Setup Complete'
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Passport setup failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
 
     public function setup()

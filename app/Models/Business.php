@@ -49,22 +49,22 @@ class Business extends Model
         "time_zone",
 
 
-                'is_guest_user_overall_review',
-                'is_guest_user_survey',
-                'is_guest_user_survey_required',
-                'is_guest_user_show_stuffs',
-                'is_guest_user_show_stuff_image',
-                'is_guest_user_show_stuff_name',
+        'is_guest_user_overall_review',
+        'is_guest_user_survey',
+        'is_guest_user_survey_required',
+        'is_guest_user_show_stuffs',
+        'is_guest_user_show_stuff_image',
+        'is_guest_user_show_stuff_name',
 
-                // Registered user fields
-                'is_registered_user_overall_review',
-                'is_registered_user_survey',
-                'is_registered_user_survey_required',
-                'is_registered_user_show_stuffs',
-                'is_registered_user_show_stuff_image',
-                'is_registered_user_show_stuff_name',
+        // Registered user fields
+        'is_registered_user_overall_review',
+        'is_registered_user_survey',
+        'is_registered_user_survey_required',
+        'is_registered_user_show_stuffs',
+        'is_registered_user_show_stuff_image',
+        'is_registered_user_show_stuff_name',
 
-                  'enable_ip_check',
+        'enable_ip_check',
         'enable_location_check',
         'latitude',
         'longitude',
@@ -80,31 +80,35 @@ class Business extends Model
     ];
 
 
-    
 
 
-    public function times() {
-        return $this->hasMany(BusinessDay::class,'business_id','id');
+
+    public function times()
+    {
+        return $this->hasMany(BusinessDay::class, 'business_id', 'id');
     }
 
 
-    public function customers(){
-        return $this->belongsToMany(User::class, "review_news",'business_id', 'user_id');
+    public function customers()
+    {
+        return $this->belongsToMany(User::class, "review_news", 'business_id', 'user_id');
     }
 
 
 
 
-    public function owner() {
-        return $this->hasOne(User::class,'id','OwnerID');
+    public function owner()
+    {
+        return $this->hasOne(User::class, 'id', 'OwnerID');
     }
-    public function table() {
-        return $this->hasMany(BusinessTable::class,'id','business_id');
+    public function table()
+    {
+        return $this->hasMany(BusinessTable::class, 'id', 'business_id');
     }
     protected $hidden = [
-      "pin",
-      "STRIPE_KEY",
-      "STRIPE_SECRET"
+        "pin",
+        "STRIPE_KEY",
+        "STRIPE_SECRET"
 
     ];
 }
