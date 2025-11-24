@@ -25,10 +25,10 @@ class User extends Authenticatable
         "post_code",
         "Address",
         "door_no",
-        "type",
         "business_id",
         "date_of_birth",
-        "image"
+        "image",
+        "job_title"
     ];
 
     /**

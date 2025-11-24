@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Utils\ErrorUtil;
 use App\Models\User;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +74,21 @@ class SetupController extends Controller
         $this->storeActivity($request, "DUMMY activity", "DUMMY description");
         Artisan::call('check:migrate');
         return "migrated";
+    }
+
+    public function clearCache(Request $request)
+    {
+
+        Artisan::call('optimize:clear');
+        Artisan::call('route:clear');
+        Artisan::call('config:clear');
+        Artisan::call('view:clear');
+        Artisan::call('cache:clear');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cache cleared successfully'
+        ], 200);
     }
 
     public function roleRefreshFunc()

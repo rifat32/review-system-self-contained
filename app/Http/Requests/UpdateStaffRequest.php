@@ -26,6 +26,8 @@ class UpdateStaffRequest extends FormRequest
             'email'         => ['nullable', 'email'],
             'phone'         => ['nullable', 'string', 'max:50'],
             'date_of_birth' => ['nullable', 'string'],
+            'job_title'     => ['nullable', 'string', 'max:255'],
+            'image'         => ['nullable', 'string', 'max:255'],
             'role'          => ['nullable', 'string', Rule::in(['staff'])],
         ];
     }

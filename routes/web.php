@@ -8,7 +8,6 @@ use App\Http\Controllers\TestController;
 
 use App\Models\EmailTemplate;
 use App\Models\EmailTemplateWrapper;
-use App\Models\Order;
 
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -28,6 +27,11 @@ use Illuminate\Support\Facades\Hash;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
 
 
 Route::get('/swagger-refresh', function () {
@@ -51,16 +55,10 @@ Route::get('/pdf', function () {
     return "pdf generated";
 });
 
-Route::get('/delete-order-where-there-is-no-user', function () {
-    Order::leftJoin('users', 'users.id', '=', 'orders.customer_id')
-        ->whereNull('users.id')
-        ->delete();
-
-    return "success";
-});
 
 Route::get('/migrate', [SetUpController::class, "migrate"]);
 
+Route::get('/clear-cache', [SetupController::class, "clearCache"]);
 
 Route::get('/change-password', function () {
     $user = User::where('email', 'test.tags@yopmail.com')->firstOrFail();
@@ -70,9 +68,6 @@ Route::get('/change-password', function () {
 });
 
 
-Route::get('/', function () {
-    return view('welcome');
-});
 
 Route::get("/swagger-login", [SwaggerLoginController::class, "login"])->name("login.view");
 Route::post("/swagger-login", [SwaggerLoginController::class, "passUser"]);
@@ -146,16 +141,3 @@ Route::get("/orders/redirect-to-stripe", [StripeController::class, "redirectUser
 
 Route::get("/orders/get-success-payment", [StripeController::class, "stripePaymentSuccess"])->name("order.success_payment");
 Route::get("/orders/get-failed-payment", [StripeController::class, "stripePaymentFailed"])->name("order.failed_payment");
-
-
-
-
-Route::get(
-    "/query",
-    function () {
-      
-
-        return "query run";
-    }
-
-);

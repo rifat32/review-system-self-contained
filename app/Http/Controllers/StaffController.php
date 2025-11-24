@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StaffRequest;
 use App\Http\Requests\UpdateStaffRequest;
 use App\Models\User;
 use Exception;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class StaffController extends Controller
 {
@@ -98,39 +100,27 @@ class StaffController extends Controller
      */
 
 
-    public function createStaff(Request $request)
+    public function createStaff(StaffRequest $request)
     {
         try {
             DB::beginTransaction();
-            $request->validate([
-                'first_Name'     => 'required|string|max:255',
-                'last_Name'     => 'required|string|max:255',
-                'email'    => 'required|email|unique:users,email',
-                'password' => 'required|string|min:8',
-                'phone'     => 'required|string|max:255',
-                'date_of_birth'     => 'required|string|max:255',
-                'role'     => 'required|string|in:staff',
-            ]);
+            $request_payload = $request->validated();
 
 
-            $user = User::create([
-                'first_Name'     => $request->first_Name,
-                'last_Name'     => $request->last_Name,
-                'email'    => $request->email,
-                'password' => Hash::make($request->password),
-                'phone'     => $request->phone,
-                'date_of_birth'     => $request->date_of_birth,
-                'business_id' =>  auth()->user()->business()->value('id'),
-            ]);
+            $request_payload['password'] = Hash::make($request_payload['password']);
+            $request_payload['business_id'] =  auth()->user()->business()->value('id');
 
-            // $user->assignRole("$request->role" . "#" . $request->business_id);
-            Log::info('Staff created', ['business' => json_encode(auth()->user()->business)]);
-            $user->assignRole($request->role);
+
+            $user = User::create($request_payload);
+            $user->assignRole($request_payload['role']);
 
 
             // Generate Passport token
             $token = $user->createToken('API Token')->accessToken;
 
+            // Add token and business to user for response
+            $user->token = $token;
+            $user->business = auth()->user()->business;
 
             // Commit the transaction
             DB::commit();
@@ -139,21 +129,11 @@ class StaffController extends Controller
                 [
                     'success' => true,
                     'message' => 'User registered successfully',
-                    'data' => [
-                        'id' => $user->id,
-                        'first_Name'    => $user->first_Name,
-                        'last_Name'    => $user->last_Name,
-                        'email'   => $user->email,
-                        'phone'    => $user->phone,
-                        'date_of_birth'    => $user->date_of_birth,
-                        'role'    => $user->roles->pluck('name')->first(),
-                        'token'   => $token,
-                        'business' => auth()->user()->business
-                    ]
+                    'data' => $user
                 ],
                 201
             );
-        } catch (\Throwable $th) {
+        } catch (Throwable $th) {
             DB::rollBack();
             throw $th;
         }
@@ -186,7 +166,9 @@ class StaffController extends Controller
      *       @OA\Property(property="email",      type="string", format="email", example="john.doe@example.com"),
      *       @OA\Property(property="phone",      type="string", maxLength=50, example="+8801765432109"),
      *       @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
-     *       @OA\Property(property="password",   type="string", format="password", minLength=8, example="NewPassw0rd!")
+     *       @OA\Property(property="job_title", type="string", maxLength=255, example="Manager"),
+     *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
+     *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff")
      *     )
      *   ),
      *
@@ -200,13 +182,15 @@ class StaffController extends Controller
      *       @OA\Property(
      *         property="data",
      *         type="object",
-     *         @OA\Property(property="id", type="integer", example=12),
-     *         @OA\Property(property="first_Name", type="string", example="John"),
-     *         @OA\Property(property="last_Name", type="string", example="Doe"),
-     *         @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
-     *         @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *         @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
-     *         @OA\Property(property="role", type="string", example="staff")
+     *       @OA\Property(property="id", type="integer", example=12),
+     *       @OA\Property(property="first_Name", type="string", example="John"),
+     *       @OA\Property(property="last_Name", type="string", example="Doe"),
+     *       @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *       @OA\Property(property="phone", type="string", example="+8801765432109"),
+     *       @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
+     *       @OA\Property(property="job_title", type="string", example="Manager"),
+     *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
+     *       @OA\Property(property="role", type="string", example="staff")
      *       )
      *     )
      *   ),
@@ -255,22 +239,13 @@ class StaffController extends Controller
 
             $user->update($request_payload);
 
-
             DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'Staff updated',
-                'data' => [
-                    'id'           => $user->id,
-                    'first_Name'   => $user->first_Name,
-                    'last_Name'    => $user->last_Name,
-                    'email'        => $user->email,
-                    'phone'        => $user->phone,
-                    'date_of_birth' => $user->date_of_birth,
-                    'role'         => $user->roles->pluck('name')->first(),
-                ]
+                'data' => $user
             ], 200);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             DB::rollBack();
             throw $e;
         }
