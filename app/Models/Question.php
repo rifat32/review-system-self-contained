@@ -39,8 +39,9 @@ class Question extends Model
 
     public function surveys()
     {
-        return $this->belongsToMany(Survey::class, 'survey_questions', 'question_id', 'survey_id');
+        return $this->belongsToMany(Survey::class, 'survey_questions', 'survey_id', 'question_id');
     }
+
 
     public function scopeFilterByOverall($query, $is_overall)
     {

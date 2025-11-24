@@ -19,10 +19,10 @@ class ForgotPasswordController extends Controller
         // This method is to store token
         // ##################################################
 
-   /**
-        *
+    /**
+     *
      * @OA\Post(
-     *      path="/forgetpassword",
+     *      path="/v1.0/forgot-password",
      *      operationId="storeForgetPassword",
      *      tags={"forgot_password"},
 
@@ -49,7 +49,7 @@ class ForgotPasswordController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -76,10 +76,6 @@ class ForgotPasswordController extends Controller
     public function storeForgetPassword(Request $request)
     {
 
-
-
-
-
         $user = User::where(["email" => $request->email])->first();
         if (!$user) {
             return response()->json(["message" => "no user found"], 404);
@@ -90,16 +86,18 @@ class ForgotPasswordController extends Controller
         $user->resetPasswordExpires = Carbon::now()->subDays(-1);
         $user->save();
         Mail::to($request->email)->send(new ForgetPasswordMail($user));
+
+        // RETURN RESPONSE
         return response()->json([
             "message" => "please check email"
-        ]);
+        ], 200);
     }
     // ##################################################
     // This method is to change password
     // ##################################################
 
- /**
-        *
+    /**
+     *
      * @OA\Patch(
      *      path="/auth/changepassword",
      *      operationId="changePassword",
@@ -107,7 +105,7 @@ class ForgotPasswordController extends Controller
 
      *      summary="This method is to change password",
      *      description="This method is to change password",
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *  @OA\RequestBody(
@@ -116,7 +114,7 @@ class ForgotPasswordController extends Controller
      *            required={"password","cpassword"},
      *
      *     @OA\Property(property="password", type="string", format="string",* example="aaaaaaaa"),
-     *     @OA\Property(property="cpassword", type="string", format="string",* example="aaaaaaaa"),
+     *     @OA\Property(property="password", type="string", format="string",* example="aaaaaaaa"),
      *         ),
      *      ),
      *      @OA\Response(
@@ -175,8 +173,8 @@ class ForgotPasswordController extends Controller
             "message" => "password changed"
         ], 200);;
     }
-     /**
-        *
+    /**
+     *
      * @OA\Patch(
      *      path="/superadmin/auth/changepassword",
      *      operationId="changePasswordBySuperAdmin",
@@ -184,7 +182,7 @@ class ForgotPasswordController extends Controller
 
      *      summary="This method is to change password by super admin",
      *      description="This method is to change password by super admin",
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *  @OA\RequestBody(
@@ -238,7 +236,7 @@ class ForgotPasswordController extends Controller
         $user = User::where([
             "id" => $request->user_id
         ])
-        ->first();
+            ->first();
 
         $password = Hash::make($request->password);
         $user->password = $password;
@@ -254,8 +252,8 @@ class ForgotPasswordController extends Controller
     }
 
 
-      /**
-        *
+    /**
+     *
      * @OA\Patch(
      *      path="/superadmin/auth/change-email",
      *      operationId="changeEmailBySuperAdmin",
@@ -263,7 +261,7 @@ class ForgotPasswordController extends Controller
 
      *      summary="This method is to change email by super admin",
      *      description="This method is to change email by super admin",
-    *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *  @OA\RequestBody(
@@ -315,12 +313,12 @@ class ForgotPasswordController extends Controller
     {
 
         $emailFound = User::where([
-           "email" => $request->email
+            "email" => $request->email
         ])->first();
-        if($emailFound) {
-return response()->json([
-    "message" => "email already taken"
-],409);
+        if ($emailFound) {
+            return response()->json([
+                "message" => "email already taken"
+            ], 409);
         }
 
 
@@ -328,7 +326,7 @@ return response()->json([
         $user = User::where([
             "id" => $request->user_id
         ])
-        ->first();
+            ->first();
 
         $user->update([
             "email" => $request->email
@@ -342,19 +340,19 @@ return response()->json([
     // ##################################################
 
 
-/**
-        *
+    /**
+     *
      * @OA\Patch(
      *      path="/forgetpassword/reset/{token}",
      *      operationId="changePasswordByToken",
      *      tags={"forgot_password"},
      *  @OA\Parameter(
-* name="token",
-* in="path",
-* description="token",
-* required=true,
-* example="1"
-* ),
+     * name="token",
+     * in="path",
+     * description="token",
+     * required=true,
+     * example="1"
+     * ),
      *      summary="This method is to change password",
      *      description="This method is to change password",
 

@@ -83,11 +83,9 @@ class EmailTemplateWrapperController extends Controller
                         "template"
                     ])->toArray()
                 )
-
-
                     ->first();
 
-                //    if the template is active then other templates of this type will deactive
+                // if the template is active then other templates of this type will
                 if ($template->is_active) {
                     EmailTemplateWrapper::where("id", "!=", $template->id)
                         ->where([
@@ -100,13 +98,13 @@ class EmailTemplateWrapperController extends Controller
                 return response($template, 201);
             });
         } catch (Exception $e) {
-            return response()->json(["message" => $e->getMessage()],500);
+            return response()->json(["message" => $e->getMessage()], 500);
         }
     }
     /**
      *
      * @OA\Get(
-     *      path="/v1.0/email-template-wrappers/{perPage}",
+     *      path="/v1.0/email-template-wrappers",
      *      operationId="getEmailTemplateWrappers",
      *      tags={"template_management.wrapper.email"},
      *       security={
@@ -115,10 +113,31 @@ class EmailTemplateWrapperController extends Controller
 
      *              @OA\Parameter(
      *         name="perPage",
-     *         in="path",
+     *         in="query",
      *         description="perPage",
-     *         required=true,
+     *         required=false,
      *  example="6"
+     *      ),
+     *              @OA\Parameter(
+     *         name="search_key",
+     *         in="query",
+     *         description="search_key",
+     *         required=false,
+     *  example="email_verification"
+     *      ),
+     *              @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="start_date",
+     *         required=false,
+     *  example="2023-01-01"
+     *      ),
+     *              @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="end_date",
+     *         required=false,
+     *  example="2023-12-31"
      *      ),
      *      summary="This method is to get email template  wrappers ",
      *      description="This method is to get email template wrappers",
@@ -136,7 +155,7 @@ class EmailTemplateWrapperController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -158,37 +177,26 @@ class EmailTemplateWrapperController extends Controller
      *     )
      */
 
-    public function getEmailTemplateWrappers($perPage, Request $request)
+    public function getEmailTemplateWrappers(Request $request)
     {
         try {
+            $templateQuery = EmailTemplateWrapper::filter()
+                ->orderByDesc("id");
 
-
-
-            $templateQuery = new EmailTemplateWrapper();
-
-            if (!empty($request->search_key)) {
-                $templateQuery = $templateQuery->where(function ($query) use ($request) {
-                    $term = $request->search_key;
-                    $query->where("type", "like", "%" . $term . "%");
-                });
+            if ($request->has('perPage')) {
+                $templates = $templateQuery->paginate($request->perPage);
+            } else {
+                $templates = $templateQuery->get();
             }
 
-            if (!empty($request->start_date) && !empty($request->end_date)) {
-                $templateQuery = $templateQuery->whereBetween('created_at', [
-                    $request->start_date,
-                    $request->end_date
-                ]);
-            }
-
-            $templates = $templateQuery->orderByDesc("id")->paginate($perPage);
             return response()->json($templates, 200);
         } catch (Exception $e) {
-            return response()->json(["message" => $e->getMessage()],500);
+            return response()->json(["message" => $e->getMessage()], 500);
         }
     }
 
 
-     /**
+    /**
      *
      * @OA\Get(
      *      path="/v1.0/email-template-wrappers/single/{id}",
@@ -252,18 +260,16 @@ class EmailTemplateWrapperController extends Controller
             $template = EmailTemplateWrapper::where([
                 "id" => $id
             ])
-            ->first();
-            if(!$template){
+                ->first();
+            if (!$template) {
                 return response()->json([
-                     "message" => "no data found"
+                    "message" => "no data found"
                 ], 404);
             }
             return response()->json($template, 200);
         } catch (Exception $e) {
 
-            return response()->json(["message" => $e->getMessage()],500);
+            return response()->json(["message" => $e->getMessage()], 500);
         }
     }
-
-
 }

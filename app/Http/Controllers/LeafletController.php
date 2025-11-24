@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ImageUploadRequest;
+use App\Http\Requests\LeafletCreateRequest;
+use App\Http\Requests\LeafletUpdateRequest;
 use App\Models\Business;
 use App\Models\Leaflet;
 use Exception;
@@ -44,12 +46,12 @@ class LeafletController extends Controller
      * )
      */
 
-    public function insertLeaflet(Request $request)
+    public function insertLeaflet(LeafletCreateRequest $request)
     {
-        $body = $request->toArray();
+        $body = $request->validated();
 
         if (!$request->user()->hasRole('superadmin')) {
-            $business = Business::where('id', $body['business_id'] ?? null)->first();
+            $business = Business::where('id', $body['business_id'])->first();
             if (!$business) {
                 return response()->json(['message' => 'business not found'], 404);
             }
@@ -61,18 +63,21 @@ class LeafletController extends Controller
 
     /**
      * @OA\Put(
-     *   path="/v1.0/leaflet",
+     *   path="/v1.0/leaflet/update/{id}",
      *   operationId="editLeaflet",
      *   tags={"leaflet"},
      *   security={{"bearerAuth": {}}},
      *   summary="Update a leaflet",
      *   description="Update an existing leaflet for a business.",
+     *   @OA\Parameter(
+     *     name="id", in="path", required=true,
+     *     description="Leaflet id", @OA\Schema(type="integer"), example=1
+     *   ),
      *   @OA\RequestBody(
      *     required=true,
      *     @OA\JsonContent(
      *       type="object",
      *       required={"business_id"},
-     *       @OA\Property(property="id", type="integer", example=1),
      *       @OA\Property(property="title", type="string", example="Updated Promo Leaflet"),
      *       @OA\Property(property="business_id", type="integer", example=1),
      *       @OA\Property(property="thumbnail", type="string", example=""),
@@ -96,18 +101,18 @@ class LeafletController extends Controller
      * )
      */
 
-    public function editLeaflet(Request $request)
+    public function editLeaflet($id, LeafletUpdateRequest $request)
     {
-        $body = $request->toArray();
+        $body = $request->validated();
 
         if (!$request->user()->hasRole('superadmin')) {
-            $business = Business::where('id', $body['business_id'] ?? null)->first();
+            $business = Business::where('id', $body['business_id'])->first();
             if (!$business) {
                 return response()->json(['message' => 'business not found'], 404);
             }
         }
 
-        $leaflet = tap(Leaflet::where(['id' => $body['id'] ?? null]))
+        $leaflet = tap(Leaflet::where(['id' => $id]))
             ->update($body)
             ->first();
 
@@ -142,16 +147,15 @@ class LeafletController extends Controller
      */
     public function getAllLeaflet(Request $request)
     {
-        $leafletsQuery = Leaflet::query();
+        $leafletsQuery = Leaflet::filter()
+            ->orderByDesc('id');
 
-        if (!empty($request->business_id)) {
-            $leafletsQuery->where('business_id', $request->business_id);
-        }
-        if (!empty($request->type)) {
-            $leafletsQuery->where('type', $request->type);
+        if ($request->has('perPage')) {
+            $leaflets = $leafletsQuery->paginate($request->perPage);
+        } else {
+            $leaflets = $leafletsQuery->get();
         }
 
-        $leaflets = $leafletsQuery->orderByDesc('id')->get();
         return response($leaflets, 200);
     }
 
@@ -181,41 +185,63 @@ class LeafletController extends Controller
 
     /**
      * @OA\Delete(
-     *   path="/v1.0/leaflet/{business_id}/{id}",
+     *   path="/v1.0/leaflet/{ids}",
      *   operationId="leafletDeleteById",
      *   tags={"leaflet"},
      *   security={{"bearerAuth": {}}},
-     *   summary="Delete a leaflet by id",
-     *   description="Delete a leaflet by id for a business",
+     *   summary="Delete leaflets by ids",
+     *   description="Delete one or multiple leaflets by ids for the authenticated user's business",
      *   @OA\Parameter(
-     *     name="business_id", in="path", required=true,
-     *     description="Business id", @OA\Schema(type="integer"), example=1
-     *   ),
-     *   @OA\Parameter(
-     *     name="id", in="path", required=true,
-     *     description="Leaflet id", @OA\Schema(type="integer"), example=5
+     *     name="ids", in="path", required=true,
+     *     description="Leaflet ids (comma-separated for multiple)", @OA\Schema(type="string"), example="1,2,3"
      *   ),
      *   @OA\Response(response=200, description="OK"),
      *   @OA\Response(response=401, description="Unauthenticated"),
      *   @OA\Response(response=403, description="Forbidden"),
-     *   @OA\Response(response=404, description="Business/Leaflet not found")
+     *   @OA\Response(response=404, description="Leaflet(s) not found")
      * )
      */
-    public function leafletDeleteById($business_id, $id, Request $request)
+    public function leafletDeleteById($ids, Request $request)
     {
-        if (!$request->user()->hasRole('superadmin')) {
-            $business = Business::where('id', $business_id)->first();
-            if (!$business) {
-                return response()->json(['message' => 'business not found'], 404);
+        try {
+            $idsArray = explode(',', $ids);
+            $idsArray = array_map('intval', $idsArray);
+
+            $businessId = $request->user()->business_id;
+
+            if (!$request->user()->hasRole('superadmin')) {
+                $business = Business::where('id', $businessId)->first();
+                if (!$business) {
+                    return response()->json(['message' => 'business not found'], 404);
+                }
             }
-        }
 
-        $deleted = Leaflet::where('id', $id)->delete();
-        if (!$deleted) {
-            return response()->json(['message' => 'leaflet not found'], 404);
-        }
+            $existingIds = Leaflet::whereIn('id', $idsArray)
+                ->where('business_id', $businessId)
+                ->pluck('id')
+                ->toArray();
 
-        return response(['ok' => true], 200);
+            $nonExistingIds = array_diff($idsArray, $existingIds);
+
+            if (!empty($nonExistingIds)) {
+                return response()->json([
+                    'message' => 'Some leaflets were not found or do not belong to your business',
+                    'non_existing_ids' => array_values($nonExistingIds)
+                ], 404);
+            }
+
+            Leaflet::whereIn('id', $idsArray)
+                ->where('business_id', $businessId)
+                ->delete();
+
+            return response()->json([
+                'ok' => true,
+                'message' => 'Leaflets deleted successfully',
+                'deleted_count' => count($existingIds)
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
     }
 
     /**

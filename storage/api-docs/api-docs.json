@@ -10660,7 +10660,7 @@
         "/v1.0/surveys/{business_id}": {
             "get": {
                 "tags": [
-                    "servey_management"
+                    "survey_management"
                 ],
                 "summary": "This method is to get expense types ",
                 "description": "This method is to get expense types",
@@ -11219,10 +11219,6 @@
         {
             "name": "survey_management",
             "description": "survey_management"
-        },
-        {
-            "name": "servey_management",
-            "description": "servey_management"
         },
         {
             "name": "super_admin_report.customer",

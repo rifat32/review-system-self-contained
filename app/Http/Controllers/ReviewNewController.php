@@ -1291,8 +1291,8 @@ class ReviewNewController extends Controller
                 return $q->whereIn("id", explode(",", $request->query("ids")));
             })
             ->when($request->filled("survey_id"), function ($q) use ($request) {
-                return $q->whereHas('surveys', function ($subQ) use ($request) {
-                    $subQ->whereIn('surveys.id', explode(",", $request->query("survey_id")));
+                return $q->whereHas("surveys", function ($q2) use ($request) {
+                    $q2->where("survey_id", $request->survey_id);
                 });
             });
 

@@ -135,10 +135,10 @@ Route::middleware(['auth:api'])->group(function () {
 
     // Leaflet CRUD
     Route::post('/v1.0/leaflet/create',        [LeafletController::class, 'insertLeaflet']);
-    Route::put('/v1.0/leaflet/update',        [LeafletController::class, 'editLeaflet']);
+    Route::put('/v1.0/leaflet/update/{id}',        [LeafletController::class, 'editLeaflet']);
     Route::get('/v1.0/leaflet/get',           [LeafletController::class, 'getAllLeaflet']);
     Route::get('/v1.0/leaflet/get/{id}',      [LeafletController::class, 'leafletById']);
-    Route::delete('/v1.0/leaflet/{business_id}/{id}', [LeafletController::class, 'leafletDeleteById']);
+    Route::delete('/v1.0/leaflet/{ids}', [LeafletController::class, 'leafletDeleteById']);
     Route::post('/v1.0/leaflet-image',         [LeafletController::class, 'insertLeafletImage']);
 
 
@@ -431,15 +431,14 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/superadmin/owner-list/{perPage}', [UserController::class, "getOwnerReport"]);
         Route::delete('/superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
         Route::put('/v1.0/email-template-wrappers', [EmailTemplateWrapperController::class, "updateEmailTemplateWrapper"]);
-        Route::get('/v1.0/email-template-wrappers/{perPage}', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
         Route::get('/v1.0/email-template-wrappers/single/{id}', [EmailTemplateWrapperController::class, "getEmailTemplateWrapperById"]);
+        Route::get('/v1.0/email-template-wrappers', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
         Route::post('/v1.0/email-templates', [EmailTemplateController::class, "createEmailTemplate"]);
         Route::put('/v1.0/email-templates', [EmailTemplateController::class, "updateEmailTemplate"]);
-        Route::get('/v1.0/email-templates/{perPage}', [EmailTemplateController::class, "getEmailTemplates"]);
         Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
-        Route::delete('/v1.0/email-templates/{id}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
+        Route::delete('/v1.0/email-templates/{ids}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
         Route::get('/v1.0/email-templates/single/{id}', [EmailTemplateController::class, "getEmailTemplateById"]);
-
+        Route::get('/v1.0/email-templates', [EmailTemplateController::class, "getEmailTemplates"]);
     });
 
     Route::get('/customer-report', [ReportController::class, "customerDashboardReport"]);
@@ -468,7 +467,7 @@ Route::middleware(['auth:api'])->group(function () {
 // forget password Routes
 // #################
 
-Route::post('/forgetpassword', [ForgotPasswordController::class, "storeForgetPassword"]);
+Route::post('/v1.0/forgot-password', [ForgotPasswordController::class, "storeForgetPassword"]);
 Route::patch('/forgetpassword/reset/{token}', [ForgotPasswordController::class, "changePasswordByToken"]);
 
 Route::post('webhooks/stripe', [CustomWebhookController::class, "handleStripeWebhook"]);
