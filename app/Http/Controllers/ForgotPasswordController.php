@@ -113,8 +113,8 @@ class ForgotPasswordController extends Controller
      *         @OA\JsonContent(
      *            required={"password","cpassword"},
      *
-     *     @OA\Property(property="password", type="string", format="string",* example="aaaaaaaa"),
-     *     @OA\Property(property="password", type="string", format="string",* example="aaaaaaaa"),
+     *     @OA\Property(property="password", type="string", format="string", example="aaaaaaaa"),
+     *     @OA\Property(property="cpassword", type="string", format="string", example="aaaaaaaa"),
      *         ),
      *      ),
      *      @OA\Response(
