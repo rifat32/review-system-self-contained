@@ -8,6 +8,7 @@ use App\Models\QusetionStar;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\ReviewValue;
+use App\Models\Survey;
 use App\Models\ReviewValueNew;
 use App\Models\Star;
 use App\Models\StarTag;
@@ -1292,7 +1293,7 @@ class ReviewNewController extends Controller
             })
             ->when($request->filled("survey_id"), function ($q) use ($request) {
                 return $q->whereHas("surveys", function ($q2) use ($request) {
-                    $q2->where("survey_id", $request->survey_id);
+                    $q2->where("id", $request->survey_id);
                 });
             });
 
@@ -1374,6 +1375,14 @@ class ReviewNewController extends Controller
             return response("No Business Found", 404);
         }
 
+        // Validate survey_id if provided
+        if ($request->filled('survey_id')) {
+            $survey = Survey::find($request->survey_id);
+            if (!$survey) {
+                return response("Survey not found", 404);
+            }
+        }
+
         // if ($business->enable_question == true) {
         //     $query =  Question::where(["is_default" => 1]);
         // }
@@ -1389,6 +1398,11 @@ class ReviewNewController extends Controller
                     $query->where("questions.is_overall", 1);
                 }, function ($query) {
                     $query->where("questions.is_overall", 0);
+                });
+            })
+            ->when(request()->filled('survey_id'), function ($query) {
+                $query->whereHas('surveys', function ($q) {
+                    $q->where('id', request()->input('survey_id'));
                 });
             });
 
@@ -1462,7 +1476,7 @@ class ReviewNewController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -1488,6 +1502,18 @@ class ReviewNewController extends Controller
         if (!$business) {
             return response("No Business Found", 404);
         }
+
+        // Validate survey_id if provided
+        if ($request->filled('survey_id')) {
+            $survey = Survey::find($request->survey_id);
+            if (!$survey) {
+                return response([
+                    "status" => false,
+                    "message" => 'Survey not found' . $request->survey_id
+                ], 404);
+            }
+        }
+
         // if ($business->enable_question == true) {
         //     $query =  Question::where(["is_default" => 1]);
         // }
@@ -1502,6 +1528,11 @@ class ReviewNewController extends Controller
                     $query->where("questions.is_overall", 1);
                 }, function ($query) {
                     $query->where("questions.is_overall", 0);
+                });
+            })
+            ->when(request()->filled('survey_id'), function ($query) {
+                $query->whereHas('surveys', function ($q) {
+                    $q->where('id', request()->input('survey_id'));
                 });
             });
         // }
@@ -1615,6 +1646,14 @@ class ReviewNewController extends Controller
             }
         }
 
+        // Validate survey_id if provided
+        if ($request->filled('survey_id')) {
+            $survey = Survey::find($request->survey_id);
+            if (!$survey) {
+                return response("Survey not found", 404);
+            }
+        }
+
 
         $query =  Question::where(["business_id" => $request->business_id, "is_default" => $is_dafault])
             ->where(["show_in_user" => 1])
@@ -1627,6 +1666,11 @@ class ReviewNewController extends Controller
             })
             ->when(request()->filled('survey_name'), function ($query) {
                 $query->where('survey_name', request()->input('survey_name'));
+            })
+            ->when(request()->filled('survey_id'), function ($query) {
+                $query->whereHas('surveys', function ($q) {
+                    $q->where('id', request()->input('survey_id'));
+                });
             });
 
 
