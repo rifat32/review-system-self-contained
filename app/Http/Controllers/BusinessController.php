@@ -99,7 +99,7 @@ class BusinessController extends Controller
             'PostCode' => 'required',
             'enable_question' => 'required',
 
-        
+
 
         ]);
 
@@ -115,7 +115,7 @@ class BusinessController extends Controller
 
 
 
-     
+
 
 
         $business =  Business::create($validatedData);
@@ -196,7 +196,7 @@ class BusinessController extends Controller
             'OwnerID' => 'required',
             'enable_question' => 'required',
 
-     
+
 
         ]);
 
@@ -210,7 +210,7 @@ class BusinessController extends Controller
         $validatedData["Key_ID"] = Str::random(10);
         $validatedData["expiry_date"] = Date('y:m:d', strtotime('+15 days'));
 
-       
+
 
 
 
@@ -361,16 +361,15 @@ class BusinessController extends Controller
             ])
                 ->delete();
             DailyView::where(["business_id" => $id])->delete();
- 
+
             Notification::where(["business_id" => $id])->delete();
-           
+
             Question::where(["business_id" => $id])->delete();
-           
+
             Review::where(["business_id" => $id])->delete();
             ReviewNew::where(["business_id" => $id])->delete();
             ReviewValue::where(["business_id" => $id])->delete();
             Tag::where(["business_id" => $id])->delete();
-   
         }
 
         return response(["ok" => true], 200);
@@ -604,7 +603,7 @@ class BusinessController extends Controller
      *      @OA\Property(property="enable_location_check", type="boolean", format="boolean",example="1"), 
      *      @OA\Property(property="latitude", type="boolean", format="boolean",example="1"),
      * 
-      *      @OA\Property(property="longitude", type="boolean", format="boolean",example="1"),
+     *      @OA\Property(property="longitude", type="boolean", format="boolean",example="1"),
      * 
      *      @OA\Property(property="review_distance_limit", type="boolean", format="boolean",example="1"),
      *     *      @OA\Property(property="review_labels", type="string", format="string",example="['a','b']"),
@@ -694,7 +693,7 @@ class BusinessController extends Controller
 
             "header_image",
 
-         
+
 
             "primary_color",
             "secondary_color",
@@ -711,32 +710,34 @@ class BusinessController extends Controller
             "is_report_email_enabled",
 
 
-          
+
             "time_zone",
 
-           'is_guest_user_overall_review',
-                'is_guest_user_survey',
-                'is_guest_user_survey_required',
-                'is_guest_user_show_stuffs',
-                'is_guest_user_show_stuff_image',
-                'is_guest_user_show_stuff_name',
+            'is_guest_user_overall_review',
+            'is_guest_user_survey',
+            'is_guest_user_survey_required',
+            'is_guest_user_show_stuffs',
+            'is_guest_user_show_stuff_image',
+            'is_guest_user_show_stuff_name',
 
-                // Registered user fields
-                'is_registered_user_overall_review',
-                'is_registered_user_survey',
-                'is_registered_user_survey_required',
-                'is_registered_user_show_stuffs',
-                'is_registered_user_show_stuff_image',
-                'is_registered_user_show_stuff_name',
+            // Registered user fields
+            'is_registered_user_overall_review',
+            'is_registered_user_survey',
+            'is_registered_user_survey_required',
+            'is_registered_user_show_stuffs',
+            'is_registered_user_show_stuff_image',
+            'is_registered_user_show_stuff_name',
 
 
-        'enable_ip_check',
-        'enable_location_check',
-        'latitude',
-        'longitude',
-        'review_distance_limit',
-        'threshold_rating',
-        'review_labels',
+            'enable_ip_check',
+            'enable_location_check',
+            'latitude',
+            'longitude',
+            'review_distance_limit',
+            'threshold_rating',
+            'review_labels',
+            'guest_survey_id',
+            'registered_user_survey_id'
 
         ))
             // ->with("somthing")
@@ -784,14 +785,14 @@ class BusinessController extends Controller
             "GoogleMapApi",
 
 
-     
+
             'Is_guest_user',
             'is_review_silder',
             "review_only",
 
             "header_image",
 
-           
+
 
             "primary_color",
             "secondary_color",
@@ -801,7 +802,9 @@ class BusinessController extends Controller
             "client_tertiary_color",
             "user_review_report",
             "guest_user_review_report",
-            "time_zone"
+            "time_zone",
+            'guest_survey_id',
+            'registered_user_survey_id'
         ))
             // ->with("somthing")
 
@@ -876,8 +879,8 @@ class BusinessController extends Controller
         $data["business"] =   Business::with([
             "owner"
         ])
-        
-        ->where(["id" => $businessId])->first();
+
+            ->where(["id" => $businessId])->first();
         $data["ok"] = true;
 
         if (!$data["business"]) {
@@ -1049,16 +1052,15 @@ class BusinessController extends Controller
 
         $businessQuery =  Business::withCount(
 
-                "customers"
-            )
+            "customers"
+        )
             ->with(
                 "owner",
 
             )
             ->when(request()->filled("Status"), function ($query) {
                 $query->where("Status", request()->input("Status"));
-            })
-          ;
+            });
 
         if (!empty($request->search_key)) {
             $businessQuery = $businessQuery->where(function ($query) use ($request) {
@@ -1199,46 +1201,44 @@ class BusinessController extends Controller
             ->paginate($perPage);
 
 
-      $businesses->getCollection()->transform(function ($business) use ($today, $request) {
-    $totalCount = 0;
-    $totalRating = 0;
+        $businesses->getCollection()->transform(function ($business) use ($today, $request) {
+            $totalCount = 0;
+            $totalRating = 0;
 
-    foreach (Star::get() as $star) {
-        $selectedCount = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->where([
-                "review_news.business_id" => $business->id,
-                "star_id" => $star->id,
-            ])
-            ->distinct("review_value_news.review_id", "review_value_news.question_id");
+            foreach (Star::get() as $star) {
+                $selectedCount = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                    ->where([
+                        "review_news.business_id" => $business->id,
+                        "star_id" => $star->id,
+                    ])
+                    ->distinct("review_value_news.review_id", "review_value_news.question_id");
 
-        if (!empty($request->start_date) && !empty($request->end_date)) {
-            $selectedCount = $selectedCount->whereBetween('review_news.created_at', [
-                $request->start_date,
-                $request->end_date
-            ]);
-        }
+                if (!empty($request->start_date) && !empty($request->end_date)) {
+                    $selectedCount = $selectedCount->whereBetween('review_news.created_at', [
+                        $request->start_date,
+                        $request->end_date
+                    ]);
+                }
 
-        $selectedCount = $selectedCount->count();
+                $selectedCount = $selectedCount->count();
 
-        $totalCount += $selectedCount * $star->value;
-        $totalRating += $selectedCount;
-    }
+                $totalCount += $selectedCount * $star->value;
+                $totalRating += $selectedCount;
+            }
 
-    $average_rating = $totalCount > 0 ? $totalCount / $totalRating : 0;
+            $average_rating = $totalCount > 0 ? $totalCount / $totalRating : 0;
 
-    $timing = $business->times()->with("timeSlots")->where('day', $today)->first();
+            $timing = $business->times()->with("timeSlots")->where('day', $today)->first();
 
-    $business->average_rating = $average_rating;
-    $business->total_rating_count = $totalCount;
-    $business->out_of = 5;
-    $business->timing = $timing;
+            $business->average_rating = $average_rating;
+            $business->total_rating_count = $totalCount;
+            $business->out_of = 5;
+            $business->timing = $timing;
 
-    return $business;
-});
+            return $business;
+        });
 
-return response()->json($businesses, 200);
-
-  
+        return response()->json($businesses, 200);
     }
 
 

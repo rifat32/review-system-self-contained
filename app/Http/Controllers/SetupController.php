@@ -103,7 +103,28 @@ class SetupController extends Controller
         Artisan::call('check:migrate');
         return "migrated";
     }
+    public function rollbackMigration(Request $request)
+    {
+        try {
+            $result = Artisan::call('migrate:rollback');
 
+            return response()->json([
+                'message' => 'Last Migration Rolled Back',
+                'data' => $result
+            ], 200);
+        } catch (Exception $e) {
+            // LOG ERROR MESSAGE
+            // log_message([
+            //     'message' => 'Migration Roll Back Failed',
+            //     'data' => $e->getMessage()
+            // ], 'roll_back.log');
+
+            return response()->json([
+                'message' => 'Last Migration Rolled Back',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
     public function clearCache(Request $request)
     {
 

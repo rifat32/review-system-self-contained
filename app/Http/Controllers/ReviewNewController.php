@@ -1513,12 +1513,11 @@ class ReviewNewController extends Controller
             }
         }
 
-        $query = Question::with('surveys')
-            ->where([
-                'business_id'        => $request->business_id,
-                // 'is_default'         => 0,
-                // 'show_in_guest_user' => $request->boolean('show_in_guest_user', true),
-            ])
+        $query = Question::where([
+            'business_id'        => $request->business_id,
+            // 'is_default'         => 0,
+            // 'show_in_guest_user' => $request->boolean('show_in_guest_user', true),
+        ])
             ->when($request->filled('is_active'), function ($q) use ($request) {
                 $q->where('questions.is_active', $request->input('is_active'));
             })

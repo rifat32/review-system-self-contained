@@ -72,6 +72,10 @@ class Business extends Model
         'threshold_rating',
         'review_labels',
 
+        // 
+        'guest_survey_id',
+        'registered_user_survey_id'
+
 
     ];
 
@@ -79,7 +83,12 @@ class Business extends Model
         'review_labels' => 'array',
     ];
 
+    protected $hidden = [
+        "pin",
+        "STRIPE_KEY",
+        "STRIPE_SECRET"
 
+    ];
 
 
 
@@ -101,14 +110,15 @@ class Business extends Model
     {
         return $this->hasOne(User::class, 'id', 'OwnerID');
     }
-    public function table()
-    {
-        return $this->hasMany(BusinessTable::class, 'id', 'business_id');
-    }
-    protected $hidden = [
-        "pin",
-        "STRIPE_KEY",
-        "STRIPE_SECRET"
 
-    ];
+
+    public function guest_survey()
+    {
+        return $this->belongsTo(Survey::class, 'guest_survey_id', 'id');
+    }
+
+    public function registered_user_survey()
+    {
+        return $this->belongsTo(Survey::class, 'registered_user_survey_id', 'id');
+    }
 }

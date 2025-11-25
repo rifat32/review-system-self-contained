@@ -50,7 +50,9 @@ Route::get('/pdf', function () {
 });
 
 
-Route::get('/migrate', [SetUpController::class, "migrate"]);
+Route::get('/migrate', [SetupController::class, "migrate"]);
+Route::get('/rollback-migrate', [SetupController::class, 'rollbackMigration'])->name('rollbackMigration');
+
 
 Route::get('/clear-cache', [SetupController::class, "clearCache"]);
 
