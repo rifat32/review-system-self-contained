@@ -1504,7 +1504,7 @@ class ReviewNewController extends Controller
 
         // Validate survey_id if provided
         if ($request->filled('survey_id')) {
-            $survey = Survey::find($request->survey_id);
+            $survey = Survey::with('questions')->find($request->survey_id);
             if (!$survey) {
                 return response([
                     "status" => false,
@@ -1513,21 +1513,26 @@ class ReviewNewController extends Controller
             }
         }
 
-        $query =  Question::where(["business_id" => $request->business_id, "is_default" => 0])
-            ->where(["show_in_guest_user" => 1])
-            ->when(request()->filled("is_active"), function ($query) {
-                $query->where("questions.is_active", request()->input("is_active"));
+        $query = Question::with('surveys')
+            ->where([
+                'business_id'        => $request->business_id,
+                // 'is_default'         => 0,
+                // 'show_in_guest_user' => $request->boolean('show_in_guest_user', true),
+            ])
+            ->when($request->filled('is_active'), function ($q) use ($request) {
+                $q->where('questions.is_active', $request->input('is_active'));
             })
-            ->when(request()->filled("is_overall"), function ($query) {
-                $query->when(request()->boolean("is_overall"), function ($query) {
-                    $query->where("questions.is_overall", 1);
-                }, function ($query) {
-                    $query->where("questions.is_overall", 0);
+            ->when($request->filled('is_overall'), function ($q) use ($request) {
+                $q->when($request->boolean('is_overall'), function ($q) {
+                    $q->where('questions.is_overall', 1);
+                }, function ($q) {
+                    $q->where('questions.is_overall', 0);
                 });
             })
-            ->when(request()->filled('survey_id'), function ($query) {
-                $query->whereHas('surveys', function ($q) {
-                    $q->whereRaw('`surveys`.`id` = ?', [request()->input('survey_id')]);
+            ->when($request->filled('survey_id'), function ($q) use ($request) {
+                $surveyId = $request->input('survey_id');
+                $q->whereHas('surveys', function ($sub) use ($surveyId) {
+                    $sub->where('surveys.id', $surveyId);
                 });
             });
 
@@ -1553,7 +1558,11 @@ class ReviewNewController extends Controller
                 }
             }
         }
-        return response($data, 200);
+        return response([
+            "status" => true,
+            "message" => "Questions retrieved successfully",
+            "data" => $data
+        ], 200);
     }
 
 

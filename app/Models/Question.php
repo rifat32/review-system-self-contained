@@ -37,10 +37,12 @@ class Question extends Model
         return $this->hasMany(ReviewValueNew::class, 'question_id', 'id');
     }
 
+    // Question
     public function surveys()
     {
         return $this->belongsToMany(Survey::class, 'survey_questions', 'question_id', 'survey_id');
     }
+
 
 
     public function scopeFilterByOverall($query, $is_overall)

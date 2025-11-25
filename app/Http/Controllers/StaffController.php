@@ -7,12 +7,11 @@ use App\Http\Requests\UpdateStaffRequest;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class StaffController extends Controller
@@ -36,7 +35,6 @@ class StaffController extends Controller
      *       @OA\Property(property="email",      type="string", format="email", example="john.doe@example.com"),
      *       @OA\Property(property="password",   type="string", format="password", minLength=8, example="StrongP@ssw0rd"),
      *       @OA\Property(property="phone",      type="string", maxLength=255, example="+8801765432109"),
-     *       @OA\Property(property="date_of_birth", type="string", example="1995-06-15"),
      *       @OA\Property(property="job_title", type="string", maxLength=255, example="Manager"),
      *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
      *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff")
@@ -58,7 +56,6 @@ class StaffController extends Controller
      *         @OA\Property(property="last_Name", type="string", example="Doe"),
      *         @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *         @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *         @OA\Property(property="date_of_birth", type="string", example="1995-06-15"),
      *         @OA\Property(property="role", type="string", example="staff"),
      *         @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOi..."),
      *         @OA\Property(
@@ -168,7 +165,6 @@ class StaffController extends Controller
      *       @OA\Property(property="last_Name",  type="string", maxLength=255, example="Doe"),
      *       @OA\Property(property="email",      type="string", format="email", example="john.doe@example.com"),
      *       @OA\Property(property="phone",      type="string", maxLength=50, example="+8801765432109"),
-     *       @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
      *       @OA\Property(property="job_title", type="string", maxLength=255, example="Manager"),
      *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
      *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff")
@@ -190,7 +186,6 @@ class StaffController extends Controller
      *       @OA\Property(property="last_Name", type="string", example="Doe"),
      *       @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *       @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *       @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
      *       @OA\Property(property="job_title", type="string", example="Manager"),
      *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
      *       @OA\Property(property="role", type="string", example="staff")
@@ -382,7 +377,6 @@ class StaffController extends Controller
      *           @OA\Property(property="last_Name", type="string", example="Doe"),
      *           @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *           @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *           @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
      *           @OA\Property(property="business_id", type="integer", example=3)
      *         )
      *       ),
@@ -508,7 +502,6 @@ class StaffController extends Controller
      *         @OA\Property(property="last_Name", type="string", example="Doe"),
      *         @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *         @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *         @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
      *         @OA\Property(property="role", type="string", example="staff")
      *       )
      *     )
@@ -620,7 +613,6 @@ class StaffController extends Controller
      *           @OA\Property(property="last_name", type="string", example="Doe"),
      *           @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *           @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *           @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
      *           @OA\Property(property="business_id", type="integer", example=3)
      *         )
      *       ),
@@ -822,7 +814,7 @@ class StaffController extends Controller
                     'image' => $image_path
                 ],
             ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',

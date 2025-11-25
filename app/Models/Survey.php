@@ -10,15 +10,16 @@ class Survey extends Model
     use HasFactory;
 
     protected $fillable = [
-       "name",
-       "business_id",
-       "show_in_guest_user",
-       "show_in_user",
+        "name",
+        "business_id",
+        "show_in_guest_user",
+        "show_in_user",
     ];
 
 
-    public function questions() {
+    // Survey
+    public function questions()
+    {
         return $this->belongsToMany(Question::class, 'survey_questions', 'survey_id', 'question_id');
     }
-
 }
