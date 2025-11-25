@@ -1293,7 +1293,7 @@ class ReviewNewController extends Controller
             })
             ->when($request->filled("survey_id"), function ($q) use ($request) {
                 return $q->whereHas("surveys", function ($q2) use ($request) {
-                    $q2->where("id", $request->survey_id);
+                    $q2->whereRaw('`surveys`.`id` = ?', [$request->survey_id]);
                 });
             });
 
@@ -1402,7 +1402,7 @@ class ReviewNewController extends Controller
             })
             ->when(request()->filled('survey_id'), function ($query) {
                 $query->whereHas('surveys', function ($q) {
-                    $q->where('id', request()->input('survey_id'));
+                    $q->whereRaw('`surveys`.`id` = ?', [request()->input('survey_id')]);
                 });
             });
 
@@ -1496,7 +1496,6 @@ class ReviewNewController extends Controller
      */
     public function   getQuestionAllUnauthorized(Request $request)
     {
-        $is_dafault = false;
 
         $business =    Business::where(["id" => $request->business_id])->first();
         if (!$business) {
@@ -1514,10 +1513,6 @@ class ReviewNewController extends Controller
             }
         }
 
-        // if ($business->enable_question == true) {
-        //     $query =  Question::where(["is_default" => 1]);
-        // }
-        // else {
         $query =  Question::where(["business_id" => $request->business_id, "is_default" => 0])
             ->where(["show_in_guest_user" => 1])
             ->when(request()->filled("is_active"), function ($query) {
@@ -1532,10 +1527,9 @@ class ReviewNewController extends Controller
             })
             ->when(request()->filled('survey_id'), function ($query) {
                 $query->whereHas('surveys', function ($q) {
-                    $q->where('id', request()->input('survey_id'));
+                    $q->whereRaw('`surveys`.`id` = ?', [request()->input('survey_id')]);
                 });
             });
-        // }
 
 
 
@@ -1669,7 +1663,7 @@ class ReviewNewController extends Controller
             })
             ->when(request()->filled('survey_id'), function ($query) {
                 $query->whereHas('surveys', function ($q) {
-                    $q->where('id', request()->input('survey_id'));
+                    $q->whereRaw('`surveys`.`id` = ?', [request()->input('survey_id')]);
                 });
             });
 
