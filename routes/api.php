@@ -237,7 +237,7 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     Route::patch('/business/uploadimage/{restaurentId}', [BusinessController::class, "uploadRestaurentImage"]);
-    Route::patch('/business/UpdateResturantDetails/{restaurentId}', [BusinessController::class, "UpdateResturantDetails"]);
+    Route::patch('/v1.0/business/{businessId}', [BusinessController::class, "UpdateBusiness"]);
 
 
 
