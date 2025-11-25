@@ -1,3 +1,0 @@
-/migrate
-
-update resource > views (welcome.blade.php, test_api_custom.blade.php)
