@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateStaffRequest;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
@@ -29,13 +30,15 @@ class StaffController extends Controller
      *     required=true,
      *     @OA\JsonContent(
      *       type="object",
-     *       required={"first_Name","last_Name","email","password","phone","date_of_birth","role"},
+     *       required={"first_Name","last_Name","email","password","role"},
      *       @OA\Property(property="first_Name", type="string", maxLength=255, example="John"),
      *       @OA\Property(property="last_Name",  type="string", maxLength=255, example="Doe"),
      *       @OA\Property(property="email",      type="string", format="email", example="john.doe@example.com"),
      *       @OA\Property(property="password",   type="string", format="password", minLength=8, example="StrongP@ssw0rd"),
      *       @OA\Property(property="phone",      type="string", maxLength=255, example="+8801765432109"),
      *       @OA\Property(property="date_of_birth", type="string", example="1995-06-15"),
+     *       @OA\Property(property="job_title", type="string", maxLength=255, example="Manager"),
+     *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
      *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff")
      *     )
      *   ),
@@ -158,7 +161,7 @@ class StaffController extends Controller
      *   ),
      *
      *   @OA\RequestBody(
-     *     required=true,
+     *     required=false,
      *     @OA\JsonContent(
      *       type="object",
      *       @OA\Property(property="first_Name", type="string", maxLength=255, example="John"),
@@ -232,7 +235,10 @@ class StaffController extends Controller
                 ->find($id);
 
             if (!$user) {
-                return response()->json(['message' => 'Staff not found'], 404);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Staff not found'
+                ], 404);
             }
 
             $request_payload = $request->validated();
@@ -313,7 +319,10 @@ class StaffController extends Controller
             ->find($id);
 
         if (!$user) {
-            return response()->json(['message' => 'Staff not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff not found'
+            ], 404);
         }
 
         $user->delete();
@@ -344,7 +353,7 @@ class StaffController extends Controller
      *     name="per_page",
      *     in="query",
      *     required=false,
-     *     description="Items per page",
+     *     description="Number of staff per page (optional, if not provided returns all staff)",
      *     @OA\Schema(type="integer"),
      *     example=""
      *   ),
@@ -359,8 +368,10 @@ class StaffController extends Controller
      *
      *   @OA\Response(
      *     response=200,
-     *     description="OK",
+     *     description="Staff retrieved successfully",
      *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="Staff retrieved successfully"),
      *       @OA\Property(
      *         property="data",
      *         type="array",
@@ -416,23 +427,54 @@ class StaffController extends Controller
     // LIST with simple filters & pagination
     public function getAllStaffs(Request $request)
     {
+        try {
+            $businessId = auth()->user()->business()->value('id');
+            $query = User::filterStaff($businessId)->orderByDesc('id');
 
-        $q = User::query()
-            ->where('business_id', auth()->user()->business()->value('id'))
-            ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
-            ->when($request->filled('search_key'), function ($qq) use ($request) {
-                $s = $request->input('search_key');
-                $qq->where(function ($w) use ($s) {
-                    $w->where('first_Name', 'like', "%$s%")
-                        ->orWhere('last_Name', 'like', "%$s%");
-                });
-            })
-            ->orderByDesc('id');
+            // Check if pagination is requested
+            if ($request->filled('per_page')) {
+                $perPage = (int) $request->per_page;
 
-        // $perPage = (int)($request->input('per_page', 15));
-        $data = $q->get()->toArray();
+                // Validate per_page parameter
+                if ($perPage < 1 || $perPage > 100) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid per_page value. Must be between 1 and 100'
+                    ], 400);
+                }
 
-        return response()->json($data, 200);
+                $paginatedStaff = $query->paginate($perPage);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Staff retrieved successfully',
+                    'data' => $paginatedStaff->items(),
+                    'meta' => [
+                        'current_page' => $paginatedStaff->currentPage(),
+                        'per_page' => $paginatedStaff->perPage(),
+                        'total' => $paginatedStaff->total(),
+                        'last_page' => $paginatedStaff->lastPage(),
+                        'from' => $paginatedStaff->firstItem(),
+                        'to' => $paginatedStaff->lastItem(),
+                    ]
+                ], 200);
+            } else {
+                // Return all staff without pagination
+                $staff = $query->get();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Staff retrieved successfully',
+                    'data' => $staff
+                ], 200);
+            }
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve staff',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -509,10 +551,15 @@ class StaffController extends Controller
             ->find($id);
 
         if (!$user) {
-            return response()->json(['message' => 'Staff not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff not found'
+            ], 404);
         }
 
         return response()->json([
+            'success' => true,
+            'message' => 'Staff retrieved successfully',
             'data' => $user
         ], 200);
     }
@@ -618,26 +665,61 @@ class StaffController extends Controller
     // LIST with simple filters & pagination
     public function getClientAllStaffs(Request $request)
     {
+        try {
+            if (!$request->query('business_id')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Business id is required'
+                ], 400);
+            }
 
-        if (!$request->query('business_id')) {
-            return response()->json(['message' => 'Business id is required.'], 422);
+            $businessId = $request->input('business_id');
+            $query = User::filterStaff($businessId)->orderByDesc('id');
+
+            // Check if pagination is requested
+            if ($request->filled('per_page')) {
+                $perPage = (int) $request->per_page;
+
+                // Validate per_page parameter
+                if ($perPage < 1 || $perPage > 100) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid per_page value. Must be between 1 and 100'
+                    ], 400);
+                }
+
+                $paginatedStaff = $query->paginate($perPage);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Staff retrieved successfully',
+                    'data' => $paginatedStaff->items(),
+                    'meta' => [
+                        'current_page' => $paginatedStaff->currentPage(),
+                        'per_page' => $paginatedStaff->perPage(),
+                        'total' => $paginatedStaff->total(),
+                        'last_page' => $paginatedStaff->lastPage(),
+                        'from' => $paginatedStaff->firstItem(),
+                        'to' => $paginatedStaff->lastItem(),
+                    ]
+                ], 200);
+            } else {
+                // Return all staff without pagination
+                $staff = $query->get();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Staff retrieved successfully',
+                    'data' => $staff
+                ], 200);
+            }
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve staff',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $q = User::query()
-            ->where('business_id', $request->input('business_id'))
-            ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
-            ->when($request->filled('search_key'), function ($qq) use ($request) {
-                $s = $request->input('search_key');
-                $qq->where(function ($w) use ($s) {
-                    $w->where('first_Name', 'like', "%$s%")
-                        ->orWhere('last_Name', 'like', "%$s%");
-                });
-            })
-            ->orderByDesc('id');
-
-        $data = $q->get()->toArray();
-
-        return response()->json($data, 200);
     }
 
     /**
@@ -664,10 +746,50 @@ class StaffController extends Controller
      *       )
      *     )
      *   ),
-     *   @OA\Response(response=200, description="OK"),
-     *   @OA\Response(response=401, description="Unauthenticated"),
-     *   @OA\Response(response=403, description="Forbidden"),
-     *   @OA\Response(response=422, description="Validation error")
+     *   @OA\Response(
+     *     response=200,
+     *     description="Image uploaded successfully",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="Image uploaded successfully"),
+     *       @OA\Property(
+     *         property="data",
+     *         type="object",
+     *         @OA\Property(property="image", type="string", example="/image/uuid.jpg")
+     *       )
+     *     )
+     *   ),
+     *   @OA\Response(
+     *     response=401,
+     *     description="Unauthenticated",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="message", type="string", example="Unauthenticated")
+     *     )
+     *   ),
+     *   @OA\Response(
+     *     response=403,
+     *     description="Forbidden",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="message", type="string", example="Forbidden")
+     *     )
+     *   ),
+     *   @OA\Response(
+     *     response=422,
+     *     description="Validation error",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Validation failed"),
+     *       @OA\Property(property="errors", type="object")
+     *     )
+     *   ),
+     *   @OA\Response(
+     *     response=500,
+     *     description="Upload failed",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Upload failed")
+     *     )
+     *   )
      * )
      */
     public function uploadStaffImage(Request $request)
@@ -702,12 +824,17 @@ class StaffController extends Controller
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
+                'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
         } catch (Exception $e) {
             error_log($e->getMessage());
-            return response()->json(['message' => 'Upload failed'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Upload failed',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

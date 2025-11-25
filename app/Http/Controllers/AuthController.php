@@ -30,7 +30,7 @@ class AuthController extends Controller
     /**
      * @OA\Post(
      *      path="/resend-email-verify-mail",
-     *      operationId="resendEmailVerifyToken",
+     *      operationId="resendEmailVerifyByToken",
      *      tags={"auth"},
      *      summary="Resend email verification token",
      *      description="Resend email verification token to user's email address",
@@ -76,7 +76,7 @@ class AuthController extends Controller
      * )
      */
 
-    public function resendEmailVerifyToken(EmailVerifyTokenRequest $request): JsonResponse
+    public function resendEmailVerifyByToken(EmailVerifyTokenRequest $request): JsonResponse
     {
         try {
             return DB::transaction(function () use ($request) {
@@ -123,7 +123,7 @@ class AuthController extends Controller
     /**
      * @OA\Post(
      *      path="/auth/register",
-     *      operationId="register",
+     *      operationId="userRegister",
      *      tags={"auth"},
      *      summary="Register a new user",
      *      description="Register a new user with email and password",
@@ -143,7 +143,39 @@ class AuthController extends Controller
      *          @OA\JsonContent(
      *              @OA\Property(property="success", type="boolean", example=true),
      *              @OA\Property(property="message", type="string", example="User registered successfully"),
-     *              @OA\Property(property="data", ref="#/components/schemas/User")
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="first_Name", type="string", example="John"),
+     *                  @OA\Property(property="last_Name", type="string", example="Doe"),
+     *                  @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                  @OA\Property(property="phone", type="string", example="+8801765432109"),
+     *                  @OA\Property(property="type", type="string", example="user"),
+     *                  @OA\Property(property="post_code", type="string", example="12345"),
+     *                  @OA\Property(property="Address", type="string", example="123 Main St"),
+     *                  @OA\Property(property="door_no", type="string", example="A1"),
+     *                  @OA\Property(property="business_id", type="integer", example=1),
+     *                  @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
+     *                  @OA\Property(property="image", type="string", example="/images/user.jpg"),
+     *                  @OA\Property(property="job_title", type="string", example="Manager"),
+     *                  @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."),
+     *                  @OA\Property(
+     *                      property="business",
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="name", type="string", example="ABC Company")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="roles",
+     *                      type="array",
+     *                      @OA\Items(
+     *                          type="object",
+     *                          @OA\Property(property="id", type="integer", example=1),
+     *                          @OA\Property(property="name", type="string", example="admin")
+     *                      )
+     *                  )
+     *              )
      *          )
      *      ),
      *      @OA\Response(
@@ -167,7 +199,7 @@ class AuthController extends Controller
      */
 
 
-    public function register(AuthRegisterRequest $request): JsonResponse
+    public function userRegister(AuthRegisterRequest $request): JsonResponse
     {
         try {
             return DB::transaction(function () use ($request) {
@@ -205,7 +237,7 @@ class AuthController extends Controller
     /**
      * @OA\Post(
      *      path="/auth",
-     *      operationId="login",
+     *      operationId="userLogin",
      *      tags={"auth"},
      *      summary="Authenticate user login",
      *      description="Authenticate user with email and password, returns access token on success",
@@ -223,7 +255,44 @@ class AuthController extends Controller
      *          @OA\JsonContent(
      *              @OA\Property(property="success", type="boolean", example=true),
      *              @OA\Property(property="message", type="string", example="Login successful"),
-     *              @OA\Property(property="data", ref="#/components/schemas/User")
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="first_Name", type="string", example="John"),
+     *                  @OA\Property(property="last_Name", type="string", example="Doe"),
+     *                  @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                  @OA\Property(property="phone", type="string", example="+8801765432109"),
+     *                  @OA\Property(property="type", type="string", example="user"),
+     *                  @OA\Property(property="post_code", type="string", example="12345"),
+     *                  @OA\Property(property="Address", type="string", example="123 Main St"),
+     *                  @OA\Property(property="door_no", type="string", example="A1"),
+     *                  @OA\Property(property="business_id", type="integer", example=1),
+     *                  @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
+     *                  @OA\Property(property="image", type="string", example="/images/user.jpg"),
+     *                  @OA\Property(property="job_title", type="string", example="Manager"),
+     *                  @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."),
+     *                  @OA\Property(
+     *                      property="permissions",
+     *                      type="array",
+     *                      @OA\Items(type="string", example="create-users")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="business",
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="name", type="string", example="ABC Company")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="roles",
+     *                      type="array",
+     *                      @OA\Items(
+     *                          type="object",
+     *                          @OA\Property(property="id", type="integer", example=1),
+     *                          @OA\Property(property="name", type="string", example="admin")
+     *                      )
+     *                  )
+     *              )
      *          )
      *      ),
      *      @OA\Response(
@@ -261,7 +330,7 @@ class AuthController extends Controller
      *      )
      * )
      */
-    public function login(AuthLoginRequest $request): JsonResponse
+    public function userLogin(AuthLoginRequest $request): JsonResponse
     {
         try {
             $credentials = $request->validated();
@@ -394,7 +463,7 @@ class AuthController extends Controller
     /**
      * @OA\Post(
      *      path="/auth/check-pin/{id}",
-     *      operationId="checkPin",
+     *      operationId="verifyPin",
      *      tags={"auth"},
      *      security={{"bearerAuth": {}}},
      *      summary="Verify user PIN",
@@ -472,7 +541,7 @@ class AuthController extends Controller
      *      )
      * )
      */
-    public function checkPin($id, CheckPinRequest $request): JsonResponse
+    public function verifyPin($id, CheckPinRequest $request): JsonResponse
     {
         try {
             $pinData = $request->validated();
@@ -527,7 +596,7 @@ class AuthController extends Controller
     /**
      * @OA\Get(
      *      path="/auth",
-     *      operationId="getUserWithRestaurant",
+     *      operationId="getUsersWithRestaurants",
      *      tags={"auth"},
      *      security={{"bearerAuth": {}}},
      *      summary="Get authenticated user with business details",
@@ -537,7 +606,40 @@ class AuthController extends Controller
      *          description="User data retrieved successfully",
      *          @OA\JsonContent(
      *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="data", ref="#/components/schemas/User")
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="first_Name", type="string", example="John"),
+     *                  @OA\Property(property="last_Name", type="string", example="Doe"),
+     *                  @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                  @OA\Property(property="phone", type="string", example="+8801765432109"),
+     *                  @OA\Property(property="type", type="string", example="user"),
+     *                  @OA\Property(property="post_code", type="string", example="12345"),
+     *                  @OA\Property(property="Address", type="string", example="123 Main St"),
+     *                  @OA\Property(property="door_no", type="string", example="A1"),
+     *                  @OA\Property(property="business_id", type="integer", example=1),
+     *                  @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
+     *                  @OA\Property(property="image", type="string", example="/images/user.jpg"),
+     *                  @OA\Property(property="job_title", type="string", example="Manager"),
+     *                  @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."),
+     *                  @OA\Property(
+     *                      property="permissions",
+     *                      type="array",
+     *                      @OA\Items(type="string", example="create-users")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="business",
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="name", type="string", example="ABC Company")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="roles",
+     *                      type="array",
+     *                      @OA\Items(type="string", example="admin")
+     *                  )
+     *              )
      *          )
      *      ),
      *      @OA\Response(
@@ -566,7 +668,7 @@ class AuthController extends Controller
      *      )
      * )
      */
-    public function getUserWithRestaurant(Request $request): JsonResponse
+    public function getUsersWithRestaurants(Request $request): JsonResponse
     {
         try {
             $user = User::with('business', 'roles')
@@ -604,7 +706,7 @@ class AuthController extends Controller
     /**
      * @OA\Get(
      *      path="/v1.0/user",
-     *      operationId="getUser",
+     *      operationId="getAllUser",
      *      tags={"auth"},
      *      security={{"bearerAuth": {}}},
      *      summary="Get authenticated user details",
@@ -615,7 +717,40 @@ class AuthController extends Controller
      *          @OA\JsonContent(
      *              @OA\Property(property="success", type="boolean", example=true),
      *              @OA\Property(property="message", type="string", example="User data retrieved successfully"),
-     *              @OA\Property(property="data", ref="#/components/schemas/User")
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="first_Name", type="string", example="John"),
+     *                  @OA\Property(property="last_Name", type="string", example="Doe"),
+     *                  @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                  @OA\Property(property="phone", type="string", example="+8801765432109"),
+     *                  @OA\Property(property="type", type="string", example="user"),
+     *                  @OA\Property(property="post_code", type="string", example="12345"),
+     *                  @OA\Property(property="Address", type="string", example="123 Main St"),
+     *                  @OA\Property(property="door_no", type="string", example="A1"),
+     *                  @OA\Property(property="business_id", type="integer", example=1),
+     *                  @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
+     *                  @OA\Property(property="image", type="string", example="/images/user.jpg"),
+     *                  @OA\Property(property="job_title", type="string", example="Manager"),
+     *                  @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."),
+     *                  @OA\Property(
+     *                      property="permissions",
+     *                      type="array",
+     *                      @OA\Items(type="string", example="create-users")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="business",
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="name", type="string", example="ABC Company")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="roles",
+     *                      type="array",
+     *                      @OA\Items(type="string", example="admin")
+     *                  )
+     *              )
      *          )
      *      ),
      *      @OA\Response(
@@ -646,7 +781,7 @@ class AuthController extends Controller
      */
 
 
-    public function getUser(Request $request): JsonResponse
+    public function getAllUser(Request $request): JsonResponse
     {
         try {
             $user = User::with('business', 'roles')
@@ -682,7 +817,7 @@ class AuthController extends Controller
      *
      * @OA\Get(
      *      path="/auth/users",
-     *      operationId="getUsers",
+     *      operationId="getAllUsers",
      *      tags={"auth"},
      *       security={
      *           {"bearerAuth": {}}
@@ -715,12 +850,62 @@ class AuthController extends Controller
      *                  oneOf={
      *                      @OA\Schema(
      *                          type="array",
-     *                          @OA\Items(ref="#/components/schemas/User")
+     *                          @OA\Items(
+     *                              type="object",
+     *                              @OA\Property(property="id", type="integer", example=1),
+     *                              @OA\Property(property="first_Name", type="string", example="John"),
+     *                              @OA\Property(property="last_Name", type="string", example="Doe"),
+     *                              @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                              @OA\Property(property="phone", type="string", example="+8801765432109"),
+     *                              @OA\Property(property="type", type="string", example="user"),
+     *                              @OA\Property(property="business_id", type="integer", example=1),
+     *                              @OA\Property(
+     *                                  property="business",
+     *                                  type="object",
+     *                                  @OA\Property(property="id", type="integer", example=1),
+     *                                  @OA\Property(property="name", type="string", example="ABC Company")
+     *                              ),
+     *                              @OA\Property(
+     *                                  property="roles",
+     *                                  type="array",
+     *                                  @OA\Items(
+     *                                      type="object",
+     *                                      @OA\Property(property="id", type="integer", example=1),
+     *                                      @OA\Property(property="name", type="string", example="admin")
+     *                                  )
+     *                              )
+     *                          )
      *                      ),
      *                      @OA\Schema(
      *                          type="object",
      *                          @OA\Property(property="current_page", type="integer"),
-     *                          @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/User")),
+     *                          @OA\Property(property="data", type="array",
+     *                              @OA\Items(
+     *                                  type="object",
+     *                                  @OA\Property(property="id", type="integer", example=1),
+     *                                  @OA\Property(property="first_Name", type="string", example="John"),
+     *                                  @OA\Property(property="last_Name", type="string", example="Doe"),
+     *                                  @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                                  @OA\Property(property="phone", type="string", example="+8801765432109"),
+     *                                  @OA\Property(property="type", type="string", example="user"),
+     *                                  @OA\Property(property="business_id", type="integer", example=1),
+     *                                  @OA\Property(
+     *                                      property="business",
+     *                                      type="object",
+     *                                      @OA\Property(property="id", type="integer", example=1),
+     *                                      @OA\Property(property="name", type="string", example="ABC Company")
+     *                                  ),
+     *                                  @OA\Property(
+     *                                      property="roles",
+     *                                      type="array",
+     *                                      @OA\Items(
+     *                                          type="object",
+     *                                          @OA\Property(property="id", type="integer", example=1),
+     *                                          @OA\Property(property="name", type="string", example="admin")
+     *                                      )
+     *                                  )
+     *                              )
+     *                          ),
      *                          @OA\Property(property="first_page_url", type="string"),
      *                          @OA\Property(property="from", type="integer"),
      *                          @OA\Property(property="last_page", type="integer"),
@@ -754,7 +939,7 @@ class AuthController extends Controller
      *      )
      * )
      */
-    public function getUsers(Request $request): JsonResponse
+    public function getAllUsers(Request $request): JsonResponse
     {
         try {
             $query = User::with('business', 'roles')->filter();

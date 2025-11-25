@@ -90,4 +90,24 @@ class User extends Authenticatable
 
         return $query;
     }
+
+    /**
+     * Scope a query to filter staff users for a specific business
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $businessId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFilterStaff($query, $businessId)
+    {
+        return $query->where('business_id', $businessId)
+            ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
+            ->when(request()->filled('search_key'), function ($qq) {
+                $s = request()->input('search_key');
+                $qq->where(function ($w) use ($s) {
+                    $w->where('first_Name', 'like', "%$s%")
+                        ->orWhere('last_Name', 'like', "%$s%");
+                });
+            });
+    }
 }

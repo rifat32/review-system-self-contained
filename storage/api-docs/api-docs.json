@@ -24,8 +24,8 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "This method is to resend email verify mail",
-                "description": "This method is to resend email verify mail",
+                "summary": "Resend email verification token",
+                "description": "Resend email verification token to user's email address",
                 "operationId": "resendEmailVerifyToken",
                 "requestBody": {
                     "required": true,
@@ -38,8 +38,8 @@
                                 "properties": {
                                     "email": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "test@g.c"
+                                        "format": "email",
+                                        "example": "user@example.com"
                                     }
                                 },
                                 "type": "object"
@@ -49,34 +49,82 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "Verification email sent successfully",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Verification email has been sent. Please check your inbox."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthenticated",
+                    "400": {
+                        "description": "Bad Request - Email already verified",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Email is already verified"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "422": {
-                        "description": "Unprocesseble Content",
+                    "404": {
+                        "description": "User not found",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No user found with this email address"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
+                    "500": {
+                        "description": "Internal Server Error",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to send verification email. Please try again later."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -88,8 +136,8 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "This method is to register a user",
-                "description": "This method is to register a user",
+                "summary": "Register a new user",
+                "description": "Register a new user with email and password",
                 "operationId": "register",
                 "requestBody": {
                     "required": true,
@@ -103,13 +151,21 @@
                                 "properties": {
                                     "email": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "test@gmail.com"
+                                        "format": "email",
+                                        "example": "user@example.com"
                                     },
                                     "password": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "yourPassword"
+                                        "format": "password",
+                                        "example": "securePassword123"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "John Doe"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+1234567890"
                                     }
                                 },
                                 "type": "object"
@@ -118,35 +174,158 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Successful operation",
+                    "201": {
+                        "description": "User registered successfully",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User registered successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email",
+                                                    "example": "john.doe@example.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+8801765432109"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "user"
+                                                },
+                                                "post_code": {
+                                                    "type": "string",
+                                                    "example": "12345"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main St"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "A1"
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1995-06-15"
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": "/images/user.jpg"
+                                                },
+                                                "job_title": {
+                                                    "type": "string",
+                                                    "example": "Manager"
+                                                },
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+                                                },
+                                                "business": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "ABC Company"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "roles": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "admin"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Validation error",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
+                    "500": {
+                        "description": "Internal Server Error",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Registration failed. Please try again."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -158,15 +337,113 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "This method is to get user with business",
-                "description": "This method is to get user with business",
-                "operationId": "getUserWithRestaurent",
+                "summary": "Get authenticated user with business details",
+                "description": "Retrieve the currently authenticated user's information including business and roles",
+                "operationId": "getUserWithRestaurant",
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "User data retrieved successfully",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email",
+                                                    "example": "john.doe@example.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+8801765432109"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "user"
+                                                },
+                                                "post_code": {
+                                                    "type": "string",
+                                                    "example": "12345"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main St"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "A1"
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1995-06-15"
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": "/images/user.jpg"
+                                                },
+                                                "job_title": {
+                                                    "type": "string",
+                                                    "example": "Manager"
+                                                },
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+                                                },
+                                                "permissions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "create-users"
+                                                    }
+                                                },
+                                                "business": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "ABC Company"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "roles": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "admin"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -174,23 +451,59 @@
                         "description": "Unauthenticated",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "422": {
-                        "description": "Unprocesseble Content",
+                    "404": {
+                        "description": "User not found",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
+                    "500": {
+                        "description": "Internal Server Error",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to retrieve user data"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -205,8 +518,8 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "This method is to login a user",
-                "description": "This method is to login a user",
+                "summary": "Authenticate user login",
+                "description": "Authenticate user with email and password, returns access token on success",
                 "operationId": "login",
                 "requestBody": {
                     "required": true,
@@ -220,13 +533,13 @@
                                 "properties": {
                                     "email": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "test@gmail.com"
+                                        "format": "email",
+                                        "example": "user@example.com"
                                     },
                                     "password": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "yourPassword"
+                                        "format": "password",
+                                        "example": "securePassword123"
                                     }
                                 },
                                 "type": "object"
@@ -236,54 +549,228 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "Login successful",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Login successful"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email",
+                                                    "example": "john.doe@example.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+8801765432109"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "user"
+                                                },
+                                                "post_code": {
+                                                    "type": "string",
+                                                    "example": "12345"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main St"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "A1"
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1995-06-15"
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": "/images/user.jpg"
+                                                },
+                                                "job_title": {
+                                                    "type": "string",
+                                                    "example": "Manager"
+                                                },
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+                                                },
+                                                "permissions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "create-users"
+                                                    }
+                                                },
+                                                "business": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "ABC Company"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "roles": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "admin"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "401": {
-                        "description": "Unauthenticated",
+                        "description": "Invalid credentials",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid email or password"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "403": {
-                        "description": "Forbidden",
+                        "description": "Account locked or email not verified",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Account locked due to 5 failed login attempts. Please reset your password or wait 15 minutes."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Login failed. Please try again."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
                 }
             }
         },
-        "/auth/checkpin/{id}": {
+        "/auth/check-pin/{id}": {
             "post": {
                 "tags": [
                     "auth"
                 ],
-                "summary": "This method is to check pin",
-                "description": "This method is to check pin",
+                "summary": "Verify user PIN",
+                "description": "Verify the PIN for a specific user (users can only verify their own PIN)",
                 "operationId": "checkPin",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "user Id",
-                        "required": true
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
                     }
                 ],
                 "requestBody": {
@@ -297,7 +784,7 @@
                                 "properties": {
                                     "pin": {
                                         "type": "string",
-                                        "format": "string",
+                                        "format": "password",
                                         "example": "1234"
                                     }
                                 },
@@ -308,34 +795,145 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "PIN verified successfully",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "PIN verified successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - No PIN set",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No PIN set for this user"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "401": {
-                        "description": "Unauthenticated",
+                        "description": "Invalid PIN",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid PIN"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "403": {
-                        "description": "Forbidden",
+                        "description": "Forbidden - Unauthorized access",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized to check this PIN"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "PIN verification failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -352,15 +950,117 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "This method is to get  user ",
-                "description": "This method is to get user",
+                "summary": "Get authenticated user details",
+                "description": "Retrieve the currently authenticated user's information including business, roles, and permissions",
                 "operationId": "getUser",
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "User data retrieved successfully",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User data retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email",
+                                                    "example": "john.doe@example.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+8801765432109"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "user"
+                                                },
+                                                "post_code": {
+                                                    "type": "string",
+                                                    "example": "12345"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main St"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "A1"
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1995-06-15"
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": "/images/user.jpg"
+                                                },
+                                                "job_title": {
+                                                    "type": "string",
+                                                    "example": "Manager"
+                                                },
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+                                                },
+                                                "permissions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "create-users"
+                                                    }
+                                                },
+                                                "business": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "ABC Company"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "roles": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "admin"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -368,39 +1068,59 @@
                         "description": "Unauthenticated",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "404": {
-                        "description": "not found",
+                        "description": "User not found",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to retrieve user data"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -412,60 +1132,271 @@
                 ]
             }
         },
-        "/auth/users/{perPage}": {
+        "/auth/users": {
             "get": {
                 "tags": [
                     "auth"
                 ],
-                "summary": "This method is to get users",
-                "description": "This method is to get users",
+                "summary": "Get users with optional pagination and search",
+                "description": "Retrieve users with optional pagination and search functionality",
                 "operationId": "getUsers",
                 "parameters": [
                     {
-                        "name": "perPage",
-                        "in": "path",
-                        "description": "perPage",
-                        "required": true,
-                        "example": "6"
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of users per page (optional, if not provided returns all users)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        },
+                        "example": 10
                     },
                     {
                         "name": "search_key",
                         "in": "query",
-                        "description": "search_key",
-                        "required": true,
-                        "example": "6"
+                        "description": "Search term to filter users",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "john"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "Users retrieved successfully",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Users retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "oneOf": [
+                                                {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "first_Name": {
+                                                                "type": "string",
+                                                                "example": "John"
+                                                            },
+                                                            "last_Name": {
+                                                                "type": "string",
+                                                                "example": "Doe"
+                                                            },
+                                                            "email": {
+                                                                "type": "string",
+                                                                "format": "email",
+                                                                "example": "john.doe@example.com"
+                                                            },
+                                                            "phone": {
+                                                                "type": "string",
+                                                                "example": "+8801765432109"
+                                                            },
+                                                            "type": {
+                                                                "type": "string",
+                                                                "example": "user"
+                                                            },
+                                                            "business_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "business": {
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer",
+                                                                        "example": 1
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string",
+                                                                        "example": "ABC Company"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "roles": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "properties": {
+                                                                        "id": {
+                                                                            "type": "integer",
+                                                                            "example": 1
+                                                                        },
+                                                                        "name": {
+                                                                            "type": "string",
+                                                                            "example": "admin"
+                                                                        }
+                                                                    },
+                                                                    "type": "object"
+                                                                }
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "current_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "data": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer",
+                                                                        "example": 1
+                                                                    },
+                                                                    "first_Name": {
+                                                                        "type": "string",
+                                                                        "example": "John"
+                                                                    },
+                                                                    "last_Name": {
+                                                                        "type": "string",
+                                                                        "example": "Doe"
+                                                                    },
+                                                                    "email": {
+                                                                        "type": "string",
+                                                                        "format": "email",
+                                                                        "example": "john.doe@example.com"
+                                                                    },
+                                                                    "phone": {
+                                                                        "type": "string",
+                                                                        "example": "+8801765432109"
+                                                                    },
+                                                                    "type": {
+                                                                        "type": "string",
+                                                                        "example": "user"
+                                                                    },
+                                                                    "business_id": {
+                                                                        "type": "integer",
+                                                                        "example": 1
+                                                                    },
+                                                                    "business": {
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "type": "integer",
+                                                                                "example": 1
+                                                                            },
+                                                                            "name": {
+                                                                                "type": "string",
+                                                                                "example": "ABC Company"
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    },
+                                                                    "roles": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "properties": {
+                                                                                "id": {
+                                                                                    "type": "integer",
+                                                                                    "example": 1
+                                                                                },
+                                                                                "name": {
+                                                                                    "type": "string",
+                                                                                    "example": "admin"
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "first_page_url": {
+                                                            "type": "string"
+                                                        },
+                                                        "from": {
+                                                            "type": "integer"
+                                                        },
+                                                        "last_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "last_page_url": {
+                                                            "type": "string"
+                                                        },
+                                                        "next_page_url": {
+                                                            "type": "string"
+                                                        },
+                                                        "path": {
+                                                            "type": "string"
+                                                        },
+                                                        "per_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "prev_page_url": {
+                                                            "type": "string"
+                                                        },
+                                                        "to": {
+                                                            "type": "integer"
+                                                        },
+                                                        "total": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthenticated",
+                    "400": {
+                        "description": "Bad Request - Invalid per_page value",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid per_page value. Must be between 1 and 100"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "422": {
-                        "description": "Unprocesseble Content",
+                    "500": {
+                        "description": "Internal Server Error",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to retrieve users"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -2142,6 +3073,99 @@
             }
         },
         "/v1.0/email-templates": {
+            "get": {
+                "tags": [
+                    "template_management.email"
+                ],
+                "summary": "This method is to get email templates",
+                "description": "This method is to get email templates",
+                "operationId": "getEmailTemplates",
+                "parameters": [
+                    {
+                        "name": "perPage",
+                        "in": "query",
+                        "description": "perPage",
+                        "required": false,
+                        "example": "6"
+                    },
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "search_key",
+                        "required": false,
+                        "example": "email_verification"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "start_date",
+                        "required": false,
+                        "example": "2023-01-01"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "end_date",
+                        "required": false,
+                        "example": "2023-12-31"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
             "put": {
                 "tags": [
                     "template_management.email"
@@ -2334,80 +3358,6 @@
                 ]
             }
         },
-        "/v1.0/email-templates/{perPage}": {
-            "get": {
-                "tags": [
-                    "template_management.email"
-                ],
-                "summary": "This method is to get email templates",
-                "description": "This method is to get email templates",
-                "operationId": "getEmailTemplates",
-                "parameters": [
-                    {
-                        "name": "perPage",
-                        "in": "path",
-                        "description": "perPage",
-                        "required": true,
-                        "example": "6"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
         "/v1.0/email-template-types": {
             "get": {
                 "tags": [
@@ -2473,21 +3423,21 @@
                 ]
             }
         },
-        "/v1.0/email-templates/{id}": {
+        "/v1.0/email-templates/{ids}": {
             "delete": {
                 "tags": [
                     "z.unused"
                 ],
-                "summary": "This method is to delete email template by id",
-                "description": "This method is to delete email template by id",
+                "summary": "This method is to delete email templates by ids",
+                "description": "This method is to delete email templates by ids",
                 "operationId": "deleteEmailTemplateById",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "ids",
                         "in": "path",
-                        "description": "id",
+                        "description": "ids",
                         "required": true,
-                        "example": "1"
+                        "example": "1,2,3"
                     }
                 ],
                 "responses": {
@@ -2622,6 +3572,99 @@
             }
         },
         "/v1.0/email-template-wrappers": {
+            "get": {
+                "tags": [
+                    "template_management.wrapper.email"
+                ],
+                "summary": "This method is to get email template  wrappers ",
+                "description": "This method is to get email template wrappers",
+                "operationId": "getEmailTemplateWrappers",
+                "parameters": [
+                    {
+                        "name": "perPage",
+                        "in": "query",
+                        "description": "perPage",
+                        "required": false,
+                        "example": "6"
+                    },
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "search_key",
+                        "required": false,
+                        "example": "email_verification"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "start_date",
+                        "required": false,
+                        "example": "2023-01-01"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "end_date",
+                        "required": false,
+                        "example": "2023-12-31"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
             "put": {
                 "tags": [
                     "template_management.wrapper.email"
@@ -2667,80 +3710,6 @@
                         }
                     }
                 },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/email-template-wrappers/{perPage}": {
-            "get": {
-                "tags": [
-                    "template_management.wrapper.email"
-                ],
-                "summary": "This method is to get email template  wrappers ",
-                "description": "This method is to get email template wrappers",
-                "operationId": "getEmailTemplateWrappers",
-                "parameters": [
-                    {
-                        "name": "perPage",
-                        "in": "path",
-                        "description": "perPage",
-                        "required": true,
-                        "example": "6"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -2872,7 +3841,7 @@
                 ]
             }
         },
-        "/forgetpassword": {
+        "/v1.0/forgot-password": {
             "post": {
                 "tags": [
                     "forgot_password"
@@ -2918,7 +3887,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -3315,7 +4284,7 @@
                 ]
             }
         },
-        "/v1.0/leaflet": {
+        "/v1.0/leaflet/update/{id}": {
             "put": {
                 "tags": [
                     "leaflet"
@@ -3323,6 +4292,18 @@
                 "summary": "Update a leaflet",
                 "description": "Update an existing leaflet for a business.",
                 "operationId": "editLeaflet",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Leaflet id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -3332,10 +4313,6 @@
                                     "business_id"
                                 ],
                                 "properties": {
-                                    "id": {
-                                        "type": "integer",
-                                        "example": 1
-                                    },
                                     "title": {
                                         "type": "string",
                                         "example": "Updated Promo Leaflet"
@@ -3470,34 +4447,24 @@
                 }
             }
         },
-        "/v1.0/leaflet/{business_id}/{id}": {
+        "/v1.0/leaflet/{ids}": {
             "delete": {
                 "tags": [
                     "leaflet"
                 ],
-                "summary": "Delete a leaflet by id",
-                "description": "Delete a leaflet by id for a business",
+                "summary": "Delete leaflets by ids",
+                "description": "Delete one or multiple leaflets by ids for the authenticated user's business",
                 "operationId": "leafletDeleteById",
                 "parameters": [
                     {
-                        "name": "business_id",
+                        "name": "ids",
                         "in": "path",
-                        "description": "Business id",
+                        "description": "Leaflet ids (comma-separated for multiple)",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         },
-                        "example": 1
-                    },
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "Leaflet id",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        },
-                        "example": 5
+                        "example": "1,2,3"
                     }
                 ],
                 "responses": {
@@ -3511,7 +4478,7 @@
                         "description": "Forbidden"
                     },
                     "404": {
-                        "description": "Business/Leaflet not found"
+                        "description": "Leaflet(s) not found"
                     }
                 },
                 "security": [
@@ -3934,7 +4901,7 @@
                 ]
             }
         },
-        "/owner/role/getrole": {
+        "/owner/role/get-role": {
             "get": {
                 "tags": [
                     "owner"
@@ -3960,7 +4927,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -4807,7 +5774,7 @@
                 }
             }
         },
-        "/owner/updateuser": {
+        "/owner/update-user": {
             "patch": {
                 "tags": [
                     "owner"
@@ -4896,7 +5863,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -4919,7 +5886,7 @@
                 ]
             }
         },
-        "/owner/updateuser/by-user": {
+        "/owner/update-user/by-user": {
             "patch": {
                 "tags": [
                     "owner"
@@ -5003,7 +5970,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -6776,7 +7743,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -8912,7 +9879,7 @@
                     {
                         "name": "per_page",
                         "in": "query",
-                        "description": "Items per page",
+                        "description": "Number of staff per page (optional, if not provided returns all staff)",
                         "required": false,
                         "schema": {
                             "type": "integer"
@@ -8932,11 +9899,19 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Staff retrieved successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff retrieved successfully"
+                                        },
                                         "data": {
                                             "type": "array",
                                             "items": {
@@ -9093,8 +10068,6 @@
                                     "last_Name",
                                     "email",
                                     "password",
-                                    "phone",
-                                    "date_of_birth",
                                     "role"
                                 ],
                                 "properties": {
@@ -9127,6 +10100,15 @@
                                     "date_of_birth": {
                                         "type": "string",
                                         "example": "1995-06-15"
+                                    },
+                                    "job_title": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Manager"
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "example": "/image/uuid.jpg"
                                     },
                                     "role": {
                                         "type": "string",
@@ -9529,7 +10511,7 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
+                    "required": false,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -9559,11 +10541,21 @@
                                         "format": "date",
                                         "example": "1995-06-15"
                                     },
-                                    "password": {
+                                    "job_title": {
                                         "type": "string",
-                                        "format": "password",
-                                        "minLength": 8,
-                                        "example": "NewPassw0rd!"
+                                        "maxLength": 255,
+                                        "example": "Manager"
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "example": "/image/uuid.jpg"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "staff"
+                                        ],
+                                        "example": "staff"
                                     }
                                 },
                                 "type": "object"
@@ -9613,6 +10605,14 @@
                                                     "type": "string",
                                                     "format": "date",
                                                     "example": "1995-06-15"
+                                                },
+                                                "job_title": {
+                                                    "type": "string",
+                                                    "example": "Manager"
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": "/image/uuid.jpg"
                                                 },
                                                 "role": {
                                                     "type": "string",
@@ -9928,16 +10928,108 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Image uploaded successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Image uploaded successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": "/image/uuid.jpg"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
-                        "description": "Unauthenticated"
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "403": {
-                        "description": "Forbidden"
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "422": {
-                        "description": "Validation error"
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Upload failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Upload failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -10664,7 +11756,7 @@
                 ],
                 "summary": "This method is to get expense types ",
                 "description": "This method is to get expense types",
-                "operationId": "getAllSurveyes",
+                "operationId": "getAllSurveys",
                 "parameters": [
                     {
                         "name": "business_id",
@@ -10713,7 +11805,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -10759,7 +11851,7 @@
                 ],
                 "summary": "This method is to get expense types ",
                 "description": "This method is to get expense types",
-                "operationId": "getSurveyes",
+                "operationId": "getSurveys",
                 "parameters": [
                     {
                         "name": "business_id",
@@ -10822,7 +11914,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}

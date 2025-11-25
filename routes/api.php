@@ -69,9 +69,9 @@ Route::patch('/health', function () {
 // /review-new/get/questions-all-report/guest
 
 // Auth Route login user
-Route::post('/resend-email-verify-mail', [AuthController::class, "resendEmailVerifyToken"]);
-Route::post('/auth', [AuthController::class, "login"]);
-Route::post('/auth/register', [AuthController::class, "register"]);
+Route::post('/resend-email-verify-mail', [AuthController::class, "resendEmailVerifyByToken"]);
+Route::post('/auth', [AuthController::class, "userLogin"]);
+Route::post('/auth/register', [AuthController::class, "userRegister"]);
 
 
 
@@ -162,7 +162,7 @@ Route::middleware(['auth:api'])->group(function () {
 
 
 
-    Route::get('/v1.0/user', [AuthController::class, "getUser"]);
+    Route::get('/v1.0/user', [AuthController::class, "getAllUser"]);
 
 
 
@@ -187,9 +187,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/owner/profileimage', [OwnerController::class, "updateImage"]);
     Route::get('/owner/role/get-role', [OwnerController::class, "getRole"]);
 
-    Route::post('/auth/check-pin/{id}', [AuthController::class, "checkPin"]);
-    Route::get('/auth', [AuthController::class, "getUserWithRestaurant"]);
-    Route::get('/auth/users', [AuthController::class, "getUsers"]);
+    Route::post('/auth/check-pin/{id}', [AuthController::class, "verifyPin"]);
+    Route::get('/auth', [AuthController::class, "getUsersWithRestaurants"]);
+    Route::get('/auth/users', [AuthController::class, "getAllUsers"]);
 
     // #################
     // Restaurant Routes
