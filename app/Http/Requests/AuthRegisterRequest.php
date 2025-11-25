@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\UniqueEmail;
 
 class AuthRegisterRequest extends FormRequest
 {
@@ -24,7 +25,7 @@ class AuthRegisterRequest extends FormRequest
     public function rules()
     {
         return [
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => ['required', 'string', 'email', 'max:255', new UniqueEmail()],
             'password' => 'required|string|min:6',
         ];
     }

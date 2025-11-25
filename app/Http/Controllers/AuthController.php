@@ -47,7 +47,7 @@ class AuthController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -72,9 +72,9 @@ class AuthController extends Controller
         try {
 
             return DB::transaction(function () use (&$request) {
-                $insertableData = $request->validated();
+                $payload_data = $request->validated();
 
-                $user = User::where(["email" => $insertableData["email"]])->first();
+                $user = User::where(["email" => $payload_data["email"]])->first();
                 if (!$user) {
                     return response()->json(["message" => "no user found"], 404);
                 }
@@ -92,12 +92,14 @@ class AuthController extends Controller
 
 
                 return response()->json([
+                    'success' => true,
                     "message" => "please check email"
                 ]);
             });
         } catch (Exception $e) {
 
             return response()->json([
+                "success" => false,
                 "message" => $e->getMessage()
             ], 500);
         }
@@ -131,7 +133,7 @@ class AuthController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -141,6 +143,8 @@ class AuthController extends Controller
      *      )
      *     )
      */
+
+
     public function register(AuthRegisterRequest $request)
     {
         // Hash password and set remember token
@@ -159,6 +163,9 @@ class AuthController extends Controller
         // Return same format as login response
         return response()->json($user, 200);
     }
+
+
+
     // ##################################################
     // This method is to login a user
     // ##################################################

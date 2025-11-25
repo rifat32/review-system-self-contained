@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\UniqueEmail;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,7 @@ class UpdateStaffRequest extends FormRequest
         return [
             'first_Name'    => ['nullable', 'string', 'max:255'],
             'last_Name'     => ['nullable', 'string', 'max:255'],
-            'email'         => ['nullable', 'email'],
+            'email'         => ['nullable', 'email', new UniqueEmail($id)],
             'phone'         => ['nullable', 'string', 'max:50'],
             'date_of_birth' => ['nullable', 'string'],
             'job_title'     => ['nullable', 'string', 'max:255'],

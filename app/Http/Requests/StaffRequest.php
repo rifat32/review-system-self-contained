@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\UniqueEmail;
 
 class StaffRequest extends FormRequest
 {
@@ -24,7 +25,7 @@ class StaffRequest extends FormRequest
         $rules = [
             'first_Name'     => 'required|string|max:255',
             'last_Name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
+            'email'    => ['required', 'email', new UniqueEmail()],
             'password' => 'required|string|min:8',
             'phone'     => 'nullable|string|max:255',
             'date_of_birth'     => 'nullable|string|max:255',

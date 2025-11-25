@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\UniqueEmail;
 
 class OwnerRequest extends FormRequest
 {
@@ -24,7 +25,7 @@ class OwnerRequest extends FormRequest
     public function rules()
     {
         return [
-            'email' => 'email|required|unique:users,email',
+            'email' => ['email', 'required', new UniqueEmail()],
             'password' => 'required|string|min:6',
             'first_Name' => 'required',
             'phone' => 'nullable',
