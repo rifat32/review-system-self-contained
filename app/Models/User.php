@@ -65,4 +65,29 @@ class User extends Authenticatable
     {
         return $this->hasMany(ReviewNew::class, 'user_id', 'id');
     }
+
+    /**
+     * Scope a query to filter users based on search criteria
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFilter($query)
+    {
+        if (request()->filled('search_key')) {
+            $searchTerm = request()->search_key;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('first_Name', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('last_Name', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('email', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('phone', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('type', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('post_code', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('Address', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('door_no', 'like', '%' . $searchTerm . '%');
+            });
+        }
+
+        return $query;
+    }
 }

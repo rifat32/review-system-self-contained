@@ -87,9 +87,9 @@ class SurveyController extends Controller
                 $business = Business::where([
                     "OwnerID" => auth()->user()->id
                 ])
-                ->first();
+                    ->first();
                 $insertable_data["business_id"] = $business->id;
-                
+
                 $survey =  Survey::create($insertable_data);
 
 
@@ -98,14 +98,12 @@ class SurveyController extends Controller
 
 
                 return response($survey, 201);
-
-
             });
         } catch (Exception $e) {
             return response()->json([
                 "message" => "some thing went wrong",
                 "original_message" => $e->getMessage()
-            ],404);
+            ], 404);
         }
     }
 
@@ -121,7 +119,7 @@ class SurveyController extends Controller
      *      summary="This method is to update expense type",
      *      description="This method is to update expense type",
      *
-       *  @OA\RequestBody(
+     *  @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *            required={"name"},
@@ -183,10 +181,10 @@ class SurveyController extends Controller
                 ])->first();
 
 
-                    if(!$survey) {
-                        return response()->json([
-                            "message" => "no survey type found"
-                    ],404);
+                if (!$survey) {
+                    return response()->json([
+                        "message" => "no survey type found"
+                    ], 404);
                 }
 
                 $survey->fill($request_data);
@@ -200,20 +198,20 @@ class SurveyController extends Controller
             return response()->json([
                 "message" => "some thing went wrong",
                 "original_message" => $e->getMessage()
-            ],404);
+            ], 404);
         }
     }
-        /**
+    /**
      *
      * @OA\Get(
      *      path="/v1.0/surveys/{business_id}",
-     *      operationId="getAllSurveyes",
+     *      operationId="getAllSurveys",
      *      tags={"survey_management"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
 
-  *              @OA\Parameter(
+     *              @OA\Parameter(
      *         name="business_id",
      *         in="path",
      *         description="business_id",
@@ -222,26 +220,26 @@ class SurveyController extends Controller
      *      ),
 
      *      * *  @OA\Parameter(
-* name="start_date",
-* in="query",
-* description="start_date",
-* required=true,
-* example="2019-06-29"
-* ),
+     * name="start_date",
+     * in="query",
+     * description="start_date",
+     * required=true,
+     * example="2019-06-29"
+     * ),
      * *  @OA\Parameter(
-* name="end_date",
-* in="query",
-* description="end_date",
-* required=true,
-* example="2019-06-29"
-* ),
+     * name="end_date",
+     * in="query",
+     * description="end_date",
+     * required=true,
+     * example="2019-06-29"
+     * ),
      * *  @OA\Parameter(
-* name="search_key",
-* in="query",
-* description="search_key",
-* required=true,
-* example="search_key"
-* ),
+     * name="search_key",
+     * in="query",
+     * description="search_key",
+     * required=true,
+     * example="search_key"
+     * ),
      *      summary="This method is to get expense types ",
      *      description="This method is to get expense types",
      *
@@ -258,7 +256,7 @@ class SurveyController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -280,42 +278,40 @@ class SurveyController extends Controller
      *     )
      */
 
-     public function getAllSurveyes($business_id, Request $request)
-     {
-         try {
+    public function getAllSurveys($business_id, Request $request)
+    {
+        try {
 
 
-             $surveyQuery =  Survey::
-             with('questions')
-             ->where([
-                 "business_id" => $business_id
-             ]);
+            $surveyQuery =  Survey::with('questions')
+                ->where([
+                    "business_id" => $business_id
+                ]);
 
-             $surveys = $surveyQuery->orderByDesc("id")->get();
+            $surveys = $surveyQuery->orderByDesc("id")->get();
 
 
-             return response()->json($surveys, 200);
-
-         } catch (Exception $e) {
-             return response()->json([
-                 "message" => "some thing went wrong",
-                 "original_message" => $e->getMessage()
-             ],404);
-         }
-     }
+            return response()->json($surveys, 200);
+        } catch (Exception $e) {
+            return response()->json([
+                "message" => "some thing went wrong",
+                "original_message" => $e->getMessage()
+            ], 404);
+        }
+    }
 
 
     /**
      *
      * @OA\Get(
      *      path="/v1.0/surveys/{business_id}/{perPage}",
-     *      operationId="getSurveyes",
+     *      operationId="getSurveys",
      *      tags={"survey_management"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
 
-  *              @OA\Parameter(
+     *              @OA\Parameter(
      *         name="business_id",
      *         in="path",
      *         description="business_id",
@@ -330,33 +326,33 @@ class SurveyController extends Controller
      *  example="6"
      *      ),
      *      * *  @OA\Parameter(
-* name="start_date",
-* in="query",
-* description="start_date",
-* required=true,
-* example="2019-06-29"
-* ),
+     * name="start_date",
+     * in="query",
+     * description="start_date",
+     * required=true,
+     * example="2019-06-29"
+     * ),
      * *  @OA\Parameter(
-* name="end_date",
-* in="query",
-* description="end_date",
-* required=true,
-* example="2019-06-29"
-* ),
+     * name="end_date",
+     * in="query",
+     * description="end_date",
+     * required=true,
+     * example="2019-06-29"
+     * ),
      * *  @OA\Parameter(
-* name="search_key",
-* in="query",
-* description="search_key",
-* required=true,
-* example="search_key"
-* ),
+     * name="search_key",
+     * in="query",
+     * description="search_key",
+     * required=true,
+     * example="search_key"
+     * ),
      * *  @OA\Parameter(
-* name="is_active",
-* in="query",
-* description="is_active",
-* required=true,
-* example="is_active"
-* ),
+     * name="is_active",
+     * in="query",
+     * description="is_active",
+     * required=true,
+     * example="is_active"
+     * ),
      *      summary="This method is to get expense types ",
      *      description="This method is to get expense types",
      *
@@ -373,7 +369,7 @@ class SurveyController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -395,19 +391,18 @@ class SurveyController extends Controller
      *     )
      */
 
-    public function getSurveyes($business_id,$perPage, Request $request)
+    public function getSurveys($business_id, $perPage, Request $request)
     {
         try {
 
 
 
-            $surveyQuery =  Survey::
-            with('questions')
-            ->where([
-                "business_id" => $business_id
-            ]);
+            $surveyQuery =  Survey::with('questions')
+                ->where([
+                    "business_id" => $business_id
+                ]);
 
-        
+
             $surveys = $surveyQuery->orderByDesc("id")->paginate($perPage);
 
 
@@ -416,7 +411,7 @@ class SurveyController extends Controller
             return response()->json([
                 "message" => "some thing went wrong",
                 "original_message" => $e->getMessage()
-            ],404);
+            ], 404);
         }
     }
 
@@ -479,25 +474,17 @@ class SurveyController extends Controller
 
         try {
 
-            Survey::
-             where([
+            Survey::where([
                 "id" => $id
             ])
-            ->delete();
+                ->delete();
 
             return response()->json(["ok" => true], 200);
-
-
         } catch (Exception $e) {
             return response()->json([
                 "message" => "some thing went wrong",
                 "original_message" => $e->getMessage()
-            ],404);
+            ], 404);
         }
     }
-
-
-
-
-
 }

@@ -145,7 +145,7 @@ class OwnerController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/owner/role/getrole",
+     *      path="/owner/role/get-role",
      *      operationId="getRole",
      *      tags={"owner"},
      *       security={
@@ -170,7 +170,7 @@ class OwnerController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -262,48 +262,48 @@ class OwnerController extends Controller
 
 
     public function createUser2(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'email' => 'email|required|unique:users,email',
-        'password' => 'required|string|min:6',
-        'first_Name' => 'required',
-        'phone' => 'nullable',
-        'type' => 'nullable',
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'email|required|unique:users,email',
+            'password' => 'required|string|min:6',
+            'first_Name' => 'required',
+            'phone' => 'nullable',
+            'type' => 'nullable',
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 422);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $validatedData = $validator->validated();
+
+        $validatedData['password'] = Hash::make($validatedData['password']);
+        $validatedData['remember_token'] = Str::random(10);
+
+        $user = User::create($validatedData);
+
+        // email verification token
+        $email_token = Str::random(30);
+        $user->email_verify_token = $email_token;
+        $user->email_verify_token_expires = Carbon::now()->addDay();
+        $user->save();
+
+        // send verification email
+        if (env("SEND_EMAIL") == "TRUE") {
+            Mail::to($validatedData["email"])->send(new NotifyMail($user));
+        }
+
+        // generate access token
+        $token = $user->createToken('Laravel Password Grant Client')->accessToken;
+
+        // load relationships if needed
+        $user = User::with("business", "roles")->find($user->id);
+
+        // attach token to response (same style as login)
+        $user->token = $token;
+
+        return response()->json($user, 200);
     }
-
-    $validatedData = $validator->validated();
-
-    $validatedData['password'] = Hash::make($validatedData['password']);
-    $validatedData['remember_token'] = Str::random(10);
-
-    $user = User::create($validatedData);
-
-    // email verification token
-    $email_token = Str::random(30);
-    $user->email_verify_token = $email_token;
-    $user->email_verify_token_expires = Carbon::now()->addDay();
-    $user->save();
-
-    // send verification email
-    if (env("SEND_EMAIL") == "TRUE") {
-        Mail::to($validatedData["email"])->send(new NotifyMail($user));
-    }
-
-    // generate access token
-    $token = $user->createToken('Laravel Password Grant Client')->accessToken;
-
-    // load relationships if needed
-    $user = User::with("business", "roles")->find($user->id);
-
-    // attach token to response (same style as login)
-    $user->token = $token;
-
-    return response()->json($user, 200);
-}
 
 
 
@@ -375,19 +375,19 @@ class OwnerController extends Controller
      *    *    *  *  *  *    *   *  *        @OA\Property(property="guest_user_review_report", type="boolean", format="boolean",example="1"),
      *
      *            @OA\Property(property="times", type="array",
- *                @OA\Items(
- *                    @OA\Property(property="day", type="integer", example=0),
- *                    @OA\Property(property="start_at", type="string", format="time", example="10:00"),
- *                    @OA\Property(property="end_at", type="string", format="time", example="22:00"),
- *                    @OA\Property(property="is_weekend", type="boolean", example=true),
- *                    @OA\Property(property="time_slots", type="array",
- *                        @OA\Items(
- *                            @OA\Property(property="start_at", type="string", format="time", example="10:00"),
- *                            @OA\Property(property="end_at", type="string", format="time", example="11:00")
- *                        )
- *                    )
- *                )
- *            ),
+     *                @OA\Items(
+     *                    @OA\Property(property="day", type="integer", example=0),
+     *                    @OA\Property(property="start_at", type="string", format="time", example="10:00"),
+     *                    @OA\Property(property="end_at", type="string", format="time", example="22:00"),
+     *                    @OA\Property(property="is_weekend", type="boolean", example=true),
+     *                    @OA\Property(property="time_slots", type="array",
+     *                        @OA\Items(
+     *                            @OA\Property(property="start_at", type="string", format="time", example="10:00"),
+     *                            @OA\Property(property="end_at", type="string", format="time", example="11:00")
+     *                        )
+     *                    )
+     *                )
+     *            ),
 
 
      *
@@ -451,19 +451,19 @@ class OwnerController extends Controller
                 "Is_guest_user" => "nullable",
                 "is_review_silder" => "nullable",
                 "review_only" => "nullable",
-        
+
                 'review_type' => 'nullable',
                 "google_map_iframe" => "nullable",
                 "show_image" => "nullable",
-     
 
 
-             
+
+
                 "header_image" => "nullable",
                 "rating_page_image" => "nullable",
                 "placeholder_image" => "nullable",
 
-          
+
                 "primary_color" => "nullable",
                 "secondary_color" => "nullable",
                 "client_primary_color" => "nullable",
@@ -516,13 +516,12 @@ class OwnerController extends Controller
             $token = $user->createToken('Laravel Password Grant Client')->accessToken;
             $data["user"] = $user;
             // email_verify_token
-            if(env("SEND_EMAIL")=="TRUE") {
+            if (env("SEND_EMAIL") == "TRUE") {
                 $email_token = Str::random(30);
                 $user->email_verify_token = $email_token;
                 $user->email_verify_token_expires = Carbon::now()->subDays(-1);
                 $user->save();
                 Mail::to($validatedData["email"])->send(new NotifyMail($user));
-
             }
 
             $validatedData = $validator->validated();
@@ -537,7 +536,7 @@ class OwnerController extends Controller
                 'PostCode' => $validatedData["business_postcode"],
                 'enable_question' => $validatedData["business_enable_question"],
                 'GoogleMapApi' => !empty($validatedData["business_GoogleMapApi"]) ? $validatedData["business_GoogleMapApi"] : "",
-              
+
                 'homeText' => $validatedData["business_homeText"],
                 'AdditionalInformation' => $validatedData["business_AdditionalInformation"],
                 'Webpage' => !empty($validatedData["business_Webpage"]) ? $validatedData["business_Webpage"] : "",
@@ -546,9 +545,9 @@ class OwnerController extends Controller
                 'Layout' => $validatedData["business_Layout"],
                 'EmailAddress' => !empty($validatedData["business_EmailAddress"]) ? $validatedData["business_EmailAddress"] : "",
 
-            
 
-          
+
+
 
                 'header_image' => !empty($validatedData["header_image"]) ? $validatedData["header_image"] : "/header_image/default.webp",
 
@@ -558,11 +557,11 @@ class OwnerController extends Controller
 
 
 
-        
 
 
 
-            
+
+
 
 
 
@@ -586,7 +585,7 @@ class OwnerController extends Controller
                 'google_map_iframe' => !empty($validatedData["google_map_iframe"]) ? $validatedData["google_map_iframe"] : "",
 
                 'show_image' => !empty($validatedData["show_image"]) ? $validatedData["show_image"] : "",
-           
+
 
 
 
@@ -595,7 +594,7 @@ class OwnerController extends Controller
                 'is_review_silder' => !empty($validatedData["is_review_silder"]) ? $validatedData["is_review_silder"] : false,
                 'review_only' => !empty($validatedData["review_only"]) ? $validatedData["review_only"] : true,
 
-          
+
 
             ]);
 
@@ -1236,7 +1235,7 @@ class OwnerController extends Controller
     /**
      *
      * @OA\Patch(
-     *      path="/owner/updateuser",
+     *      path="/owner/update-user",
      *      operationId="updateUser",
      *      tags={"owner"},
      *       security={
@@ -1279,7 +1278,7 @@ class OwnerController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -1359,7 +1358,7 @@ class OwnerController extends Controller
     /**
      *
      * @OA\Patch(
-     *      path="/owner/updateuser/by-user",
+     *      path="/owner/update-user/by-user",
      *      operationId="updateUserByUser",
      *      tags={"owner"},
      *       security={
@@ -1401,7 +1400,7 @@ class OwnerController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -1590,25 +1589,26 @@ class OwnerController extends Controller
 
         $imageName = "img/user/" . $imageName;
 
-        $data["user"] =    User::
-          when(request()->filled("owner_id"), function($query) {
-            $query->where([
-                "id" => request()->input("owner_id")
+        $data["user"] =    User::when(
+            request()->filled("owner_id"),
+            function ($query) {
+                $query->where([
+                    "id" => request()->input("owner_id")
 
-            ]);
-          },
-          function($query) {
-            $query->where([
-                "id" => auth()->user()->id
-            ]);
-          }
-          )
-          ->first();
-          if (!$data["user"]) {
+                ]);
+            },
+            function ($query) {
+                $query->where([
+                    "id" => auth()->user()->id
+                ]);
+            }
+        )
+            ->first();
+        if (!$data["user"]) {
             return response()->json(["message" => "No User Found"], 404);
         }
 
-       $data["user"]->image = $imageName;
+        $data["user"]->image = $imageName;
 
         $data["user"]->save();
 
@@ -1730,7 +1730,7 @@ class OwnerController extends Controller
     }
 
 
-       /**
+    /**
      *
      * @OA\Post(
      *      path="/v1.0/placeholder-image/{business_id}",
@@ -1796,39 +1796,39 @@ class OwnerController extends Controller
      *     )
      */
 
-     public function createPlaceholderImage($business_id, ImageUploadRequest $request)
-     {
-         try {
+    public function createPlaceholderImage($business_id, ImageUploadRequest $request)
+    {
+        try {
 
-             $insertableData = $request->validated();
+            $insertableData = $request->validated();
 
-             $checkBusiness =    Business::where(["id" => $business_id])->first();
+            $checkBusiness =    Business::where(["id" => $business_id])->first();
 
-             if ($checkBusiness->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
-                 return response()->json(["message" => "This is not your business", 401]);
-             }
+            if ($checkBusiness->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
+                return response()->json(["message" => "This is not your business", 401]);
+            }
 
-             $location =  "placeholder_image";
+            $location =  "placeholder_image";
 
-             $new_file_name = time() . '_' . $insertableData["image"]->getClientOriginalName();
+            $new_file_name = time() . '_' . $insertableData["image"]->getClientOriginalName();
 
-             $insertableData["image"]->move(public_path($location), $new_file_name);
+            $insertableData["image"]->move(public_path($location), $new_file_name);
 
-             $business =   tap(Business::where(["id" => $business_id]))->update([
-                 "placeholder_image" => ("/" . $location . "/" . $new_file_name)
-             ])
-                 // ->with("somthing")
+            $business =   tap(Business::where(["id" => $business_id]))->update([
+                "placeholder_image" => ("/" . $location . "/" . $new_file_name)
+            ])
+                // ->with("somthing")
 
-                 ->first();
-             return response()->json([
-                 "business" => $business,
+                ->first();
+            return response()->json([
+                "business" => $business,
 
-             ], 200);
-         } catch (Exception $e) {
-             error_log($e->getMessage());
-             return response()->json(["message" => $e->getMessage()], 500);
-         }
-     }
+            ], 200);
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            return response()->json(["message" => $e->getMessage()], 500);
+        }
+    }
 
 
 
@@ -1938,9 +1938,4 @@ class OwnerController extends Controller
             return response()->json(["message" => $e->getMessage()], 500);
         }
     }
-
-
-
-
-
 }

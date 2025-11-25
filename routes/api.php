@@ -181,18 +181,18 @@ Route::middleware(['auth:api'])->group(function () {
     // Auth Routes
     // #################
 
-    Route::patch('/owner/updateuser', [OwnerController::class, "updateUser"]);
-    Route::patch('/owner/updateuser/by-user', [OwnerController::class, "updateUserByUser"]);
+    Route::patch('/owner/update-user', [OwnerController::class, "updateUser"]);
+    Route::patch('/owner/update-user/by-user', [OwnerController::class, "updateUserByUser"]);
 
     Route::patch('/owner/profileimage', [OwnerController::class, "updateImage"]);
-    Route::get('/owner/role/getrole', [OwnerController::class, "getRole"]);
+    Route::get('/owner/role/get-role', [OwnerController::class, "getRole"]);
 
-    Route::post('/auth/checkpin/{id}', [AuthController::class, "checkPin"]);
-    Route::get('/auth', [AuthController::class, "getUserWithRestaurent"]);
-    Route::get('/auth/users/{perPage}', [AuthController::class, "getUsers"]);
+    Route::post('/auth/check-pin/{id}', [AuthController::class, "checkPin"]);
+    Route::get('/auth', [AuthController::class, "getUserWithRestaurant"]);
+    Route::get('/auth/users', [AuthController::class, "getUsers"]);
 
     // #################
-    // Restaurent Routes
+    // Restaurant Routes
     // #################
 
 
@@ -202,8 +202,8 @@ Route::middleware(['auth:api'])->group(function () {
     // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     Route::post('/v1.0/surveys', [SurveyController::class, "createSurvey"]);
     Route::put('/v1.0/surveys', [SurveyController::class, "updateSurvey"]);
-    Route::get('/v1.0/surveys/{business_id}/{perPage}', [SurveyController::class, "getSurveyes"]);
-    Route::get('/v1.0/surveys/{business_id}', [SurveyController::class, "getAllSurveyes"]);
+    Route::get('/v1.0/surveys/{business_id}/{perPage}', [SurveyController::class, "getSurveys"]);
+    Route::get('/v1.0/surveys/{business_id}', [SurveyController::class, "getAllSurveys"]);
     Route::delete('/v1.0/surveys/{id}', [SurveyController::class, "deleteSurveyById"]);
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // expense type management section
