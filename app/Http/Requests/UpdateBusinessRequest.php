@@ -36,7 +36,7 @@ class UpdateBusinessRequest extends FormRequest
             'Address' => 'required|string',
             'PostCode' => 'required|string',
             'enable_question' => 'required|boolean',
-            'show_image' => 'nullable|string',
+            'show_image' => 'nullable|boolean',
             'review_type' => 'nullable|string',
             'google_map_iframe' => 'nullable|string',
             'Key_ID' => 'nullable|string',
