@@ -1408,70 +1408,14 @@
                 ]
             }
         },
-        "/business": {
-            "get": {
-                "tags": [
-                    "business"
-                ],
-                "summary": "This method is to get all business ",
-                "description": "This method is to get all business ",
-                "operationId": "getAllBusinesses",
-                "parameters": [
-                    {
-                        "name": "search_key",
-                        "in": "query",
-                        "description": "search_key",
-                        "required": true,
-                        "example": "business name"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            },
+        "/v1.0/business": {
             "post": {
                 "tags": [
                     "business"
                 ],
-                "summary": "This method is to store business",
-                "description": "This method is to store business",
-                "operationId": "storeRestaurent",
+                "summary": "Store a new business",
+                "description": "Create a new business with the provided details",
+                "operationId": "storeRestaurant",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1486,23 +1430,19 @@
                                 "properties": {
                                     "Name": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "example": "My Restaurant"
                                     },
                                     "Address": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "example": "123 Main Street, City"
                                     },
                                     "PostCode": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "example": "SW1A 1AA"
                                     },
                                     "enable_question": {
                                         "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
+                                        "example": true
                                     }
                                 },
                                 "type": "object"
@@ -1511,11 +1451,65 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Successful operation",
+                    "201": {
+                        "description": "Business created successfully",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business created successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "Name": {
+                                                    "type": "string",
+                                                    "example": "My Restaurant"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main Street, City"
+                                                },
+                                                "PostCode": {
+                                                    "type": "string",
+                                                    "example": "SW1A 1AA"
+                                                },
+                                                "enable_question": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "OwnerID": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "Status": {
+                                                    "type": "string",
+                                                    "example": "Inactive"
+                                                },
+                                                "Key_ID": {
+                                                    "type": "string",
+                                                    "example": "abc123"
+                                                },
+                                                "expiry_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "15-12-2025"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -1523,23 +1517,34 @@
                         "description": "Unauthenticated",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Validation failed",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -1556,9 +1561,9 @@
                 "tags": [
                     "business"
                 ],
-                "summary": "This method is to store business by owner id",
-                "description": "This method is to store business by owner id",
-                "operationId": "storeRestaurentByOwnerId",
+                "summary": "Store a new business by specifying owner ID",
+                "description": "Create a new business with the provided details and specified owner ID",
+                "operationId": "storeRestaurantByOwnerId",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1568,33 +1573,29 @@
                                     "Name",
                                     "Address",
                                     "PostCode",
+                                    "OwnerID",
                                     "enable_question"
                                 ],
                                 "properties": {
                                     "Name": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "example": "My Restaurant"
                                     },
                                     "Address": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "example": "123 Main Street, City"
                                     },
                                     "PostCode": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "example": "SW1A 1AA"
                                     },
                                     "OwnerID": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "type": "integer",
+                                        "example": 1
                                     },
                                     "enable_question": {
                                         "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
+                                        "example": true
                                     }
                                 },
                                 "type": "object"
@@ -1603,11 +1604,65 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Successful operation",
+                    "201": {
+                        "description": "Business created successfully",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business created successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "Name": {
+                                                    "type": "string",
+                                                    "example": "My Restaurant"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main Street, City"
+                                                },
+                                                "PostCode": {
+                                                    "type": "string",
+                                                    "example": "SW1A 1AA"
+                                                },
+                                                "OwnerID": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "enable_question": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "Status": {
+                                                    "type": "string",
+                                                    "example": "Inactive"
+                                                },
+                                                "Key_ID": {
+                                                    "type": "string",
+                                                    "example": "abc123d"
+                                                },
+                                                "expiry_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "15-12-2025"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -1615,23 +1670,34 @@
                         "description": "Unauthenticated",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Validation failed",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -2239,6 +2305,64 @@
                         "description": "method",
                         "required": true,
                         "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/business": {
+            "get": {
+                "tags": [
+                    "business"
+                ],
+                "summary": "This method is to get all business ",
+                "description": "This method is to get all business ",
+                "operationId": "getAllBusinesses",
+                "parameters": [
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "search_key",
+                        "required": true,
+                        "example": "business name"
                     }
                 ],
                 "responses": {

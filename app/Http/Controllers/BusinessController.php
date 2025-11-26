@@ -18,6 +18,7 @@ use App\Models\Tag;
 use App\Models\User;
 
 use App\Http\Requests\StoreBusinessRequest;
+use App\Http\Requests\StoreBusinessByOwnerRequest;
 use App\Http\Requests\UpdateBusinessRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -61,8 +62,7 @@ class BusinessController extends Controller
      *              @OA\Property(property="success", type="boolean", example=true),
      *              @OA\Property(property="message", type="string", example="Business created successfully"),
      *              @OA\Property(property="data", type="object",
-     *                  @OA\Property(property="business", type="object",
-     *                      @OA\Property(property="id", type="integer", example=1),
+     *                   @OA\Property(property="id", type="integer", example=1),
      *                      @OA\Property(property="Name", type="string", example="My Restaurant"),
      *                      @OA\Property(property="Address", type="string", example="123 Main Street, City"),
      *                      @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
@@ -71,7 +71,6 @@ class BusinessController extends Controller
      *                      @OA\Property(property="Status", type="string", example="Inactive"),
      *                      @OA\Property(property="Key_ID", type="string", example="abc123"),
      *                      @OA\Property(property="expiry_date", type="string", format="date", example="15-12-2025")
-     *                  )
      *              )
      *          )
      *      ),
@@ -125,95 +124,84 @@ class BusinessController extends Controller
      *
      * @OA\Post(
      *      path="/business/by-owner-id",
-     *      operationId="storeRestaurentByOwnerId",
+     *      operationId="storeRestaurantByOwnerId",
      *      tags={"business"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
-     *      summary="This method is to store business by owner id",
-     *      description="This method is to store business by owner id",
+     *      summary="Store a new business by specifying owner ID",
+     *      description="Create a new business with the provided details and specified owner ID",
      *
      *  @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *            required={"Name","Address","PostCode","enable_question"},
-     *             @OA\Property(property="Name", type="string", format="string",example="How was this?"),
-     *            @OA\Property(property="Address", type="string", format="string",example="How was this?"),
-
-     *
-     *            @OA\Property(property="PostCode", type="string", format="string",example="How was this?"),
-     *            @OA\Property(property="OwnerID", type="string", format="string",example="How was this?"),
-     *
-
-     * *  @OA\Property(property="enable_question", type="boolean", format="boolean",example="1"),
-   
-  
-     *
-     *         ),
+     *            required={"Name","Address","PostCode","OwnerID","enable_question"},
+     *            @OA\Property(property="Name", type="string", example="My Restaurant"),
+     *            @OA\Property(property="Address", type="string", example="123 Main Street, City"),
+     *            @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
+     *            @OA\Property(property="OwnerID", type="integer", example=1),
+     *            @OA\Property(property="enable_question", type="boolean", example=true)
+     *         )
      *      ),
      *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          response=201,
+     *          description="Business created successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Business created successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="Name", type="string", example="My Restaurant"),
+     *                  @OA\Property(property="Address", type="string", example="123 Main Street, City"),
+     *                  @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
+     *                  @OA\Property(property="OwnerID", type="integer", example=1),
+     *                  @OA\Property(property="enable_question", type="boolean", example=true),
+     *                  @OA\Property(property="Status", type="string", example="Inactive"),
+     *                  @OA\Property(property="Key_ID", type="string", example="abc123d"),
+     *                  @OA\Property(property="expiry_date", type="string", format="date", example="15-12-2025")
+     *              )
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      ),
      *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
+     *          response=422,
+     *          description="Validation failed",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Validation failed"),
+     *              @OA\Property(property="errors", type="object")
+     *          )
      *      )
-     *     )
+     * )
      */
 
-    public function storeRestaurentByOwnerId(Request $request)
+    public function storeRestaurantByOwnerId(StoreBusinessByOwnerRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'Name' => 'required|unique:businesses,Name',
-            'Address' => 'required|string',
-            'PostCode' => 'required',
-            'OwnerID' => 'required',
-            'enable_question' => 'required',
+        // VALIDATE REQUEST
+        $payload_data = $request->validated();
+
+        // ADD STATUS
+        $payload_data["Status"] = "Inactive";
+
+        // ADD KEY AND EXPIRY DATE
+        $payload_data["Key_ID"] = Str::random(10);
+        $payload_data["expiry_date"] = now()->addDays(15)->format('d-m-Y');
+
+        // CREATE BUSINESS
+        $business = Business::create($payload_data);
 
 
-
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors(), 422]);
-        }
-        $validatedData = $validator->validated();
-
-        $validatedData["Status"] = "Inactive";
-
-        $validatedData["Key_ID"] = Str::random(10);
-        $validatedData["expiry_date"] = Date('y:m:d', strtotime('+15 days'));
-
-
-
-
-
-
-        $business =  Business::create($validatedData);
-
-
-        return response($business, 200);
+        // RETURN RESPONSE
+        return response()->json([
+            "success" => true,
+            "message" => "Business created successfully",
+            "data" => $business
+        ], 201);
     }
     /**
      *

@@ -230,7 +230,7 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     Route::post('/v1.0/business', [BusinessController::class, "storeRestaurant"]);
-    Route::post('/business/by-owner-id', [BusinessController::class, "storeRestaurentByOwnerId"]);
+    Route::post('/v1.0/business/by-owner-id', [BusinessController::class, "storeRestaurantByOwnerId"]);
     Route::delete('/business/delete/{id}', [BusinessController::class, "deleteBusinessByRestaurentId"]);
 
     Route::delete('/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurentIdForceDelete"]);
