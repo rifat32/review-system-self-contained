@@ -323,7 +323,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::put('/review-new/update/questions', [ReviewNewController::class, "updateQuestion"]);
 
 
-    Route::put('/review-new/set-overall-question', [ReviewNewController::class, "setOverallQuestion"]);
+    Route::put('/v1.0/review-new/set-overall-question', [ReviewNewController::class, "setOverallQuestion"]);
 
 
 

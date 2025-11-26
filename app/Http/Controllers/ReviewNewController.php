@@ -16,6 +16,8 @@ use App\Models\StarTagQuestion;
 use App\Models\SurveyQuestion;
 use App\Models\Tag;
 use App\Models\User;
+use App\Http\Requests\SetOverallQuestionRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\DB;
@@ -1056,58 +1058,104 @@ class ReviewNewController extends Controller
     /**
      *
      * @OA\Put(
-     *      path="/review-new/set-overall-question",
+     *      path="/v1.0/review-new/set-overall-question",
      *      operationId="setOverallQuestion",
      *      tags={"review.setting.question"},
      *      security={{"bearerAuth": {}}},
-     *      summary="Set a question as overall and make all others non-overall",
-     *      description="This method marks one question as overall and updates all other questions for the same business to non-overall.",
+     *      summary="Set questions as overall and make all others non-overall",
+     *      description="This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
      *
      *  @OA\RequestBody(
      *      required=true,
      *      @OA\JsonContent(
-     *          required={"question_id","business_id"},
-     *          @OA\Property(property="question_id", type="number", example=1),
-     *          @OA\Property(property="business_id", type="number", example=1)
+     *          required={"question_ids","business_id"},
+     *          @OA\Property(
+     *              property="question_ids",
+     *              type="array",
+     *              @OA\Items(type="integer", example=1),
+     *              description="Array of question IDs to set as overall"
+     *          ),
+     *          @OA\Property(property="business_id", type="integer", example=1)
      *      )
      *  ),
-     *  @OA\Response(response=200, description="Successful operation", @OA\JsonContent()),
-     *  @OA\Response(response=400, description="Bad Request", @OA\JsonContent()),
-     *  @OA\Response(response=404, description="Not Found", @OA\JsonContent())
+     *  @OA\Response(
+     *      response=200,
+     *      description="Successful operation",
+     *      @OA\JsonContent(
+     *          @OA\Property(property="success", type="boolean", example=true),
+     *          @OA\Property(property="message", type="string", example="Overall questions updated successfully"),
+     *          @OA\Property(
+     *              property="overall_questions",
+     *              type="array",
+     *              @OA\Items(
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="question", type="string", example="What was your overall experience?"),
+     *                  @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
+     *                  @OA\Property(property="business_id", type="integer", nullable=true, example=1),
+     *                  @OA\Property(property="is_default", type="boolean", example=false),
+     *                  @OA\Property(property="is_active", type="boolean", example=true),
+     *                  @OA\Property(property="sentiment", type="string", enum={"positive","neutral","negative"}, nullable=true, example="positive"),
+     *                  @OA\Property(property="is_overall", type="boolean", example=true),
+     *                  @OA\Property(property="show_in_guest_user", type="boolean", example=true),
+     *                  @OA\Property(property="show_in_user", type="boolean", example=true),
+     *                  @OA\Property(property="survey_name", type="string", nullable=true, example="Customer Satisfaction")
+     *              )
+     *          )
+     *      )
+     *  ),
+     *  @OA\Response(
+     *      response=400,
+     *      description="Bad Request",
+     *      @OA\JsonContent(
+     *          @OA\Property(property="message", type="string", example="Validation error")
+     *      )
+     *  ),
+     *  @OA\Response(
+     *      response=403,
+     *      description="Forbidden",
+     *      @OA\JsonContent(
+     *          @OA\Property(property="message", type="string", example="Unauthorized")
+     *      )
+     *  ),
+     *  @OA\Response(
+     *      response=404,
+     *      description="Not Found",
+     *      @OA\JsonContent(
+     *          @OA\Property(property="message", type="string", example="Business not found")
+     *      )
+     *  )
      * )
      */
-    public function setOverallQuestion(Request $request)
+    public function setOverallQuestion(SetOverallQuestionRequest $request): JsonResponse
     {
-        $request->validate([
-            'question_id' => 'required|integer|exists:questions,id',
-            'business_id' => 'required|integer|exists:businesses,id',
-        ]);
+        // Already validated & passed ValidBusiness + ValidQuestion
+        $data        = $request->validated();
+        $businessId  = $data['business_id'];
+        $questionIds = $data['question_ids'];
 
-        // Check if user owns the business or is superadmin
-        $business = Business::where('id', $request->business_id)
-            ->when(!$request->user()->hasRole('superadmin'), function ($q) use ($request) {
-                $q->where('OwnerID', $request->user()->id);
-            })->first();
+        // Perform the update within a transaction
+        DB::transaction(function () use ($businessId, $questionIds) {
+            // Reset all questions for this business
+            Question::where('business_id', $businessId)
+                ->update(['is_overall' => false]);
 
-        if (!$business) {
-            return response()->json(['message' => 'Business not found or access denied'], 400);
-        }
-
-        // Start transaction
-        DB::transaction(function () use ($request) {
-            // Make all questions non-overall for this business
-            Question::where('business_id', $request->business_id)
-                ->update(['is_overall' => 0]);
-
-            // Set the selected question as overall
-            Question::where('id', $request->question_id)
-                ->update(['is_overall' => 1]);
+            // Mark selected questions as overall
+            Question::where('business_id', $businessId)
+                ->whereIn('id', $questionIds)
+                ->update(['is_overall' => true]);
         });
 
-        $overall_question = Question::find($request->question_id);
+        // Fetch updated overall questions
+        $overallQuestions = Question::where('business_id', $businessId)
+            ->where('is_overall', true)
+            ->get();
+
+        // send response
         return response()->json([
-            'message' => 'Overall question updated successfully',
-            'overall_question' => $overall_question
+            'success'           => true,
+            'message'           => 'Overall questions updated successfully.',
+            'data' => $overallQuestions,
         ], 200);
     }
 

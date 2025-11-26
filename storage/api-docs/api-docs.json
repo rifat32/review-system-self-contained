@@ -26,7 +26,7 @@
                 ],
                 "summary": "Resend email verification token",
                 "description": "Resend email verification token to user's email address",
-                "operationId": "resendEmailVerifyToken",
+                "operationId": "resendEmailVerifyByToken",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -138,7 +138,7 @@
                 ],
                 "summary": "Register a new user",
                 "description": "Register a new user with email and password",
-                "operationId": "register",
+                "operationId": "userRegister",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -339,7 +339,7 @@
                 ],
                 "summary": "Get authenticated user with business details",
                 "description": "Retrieve the currently authenticated user's information including business and roles",
-                "operationId": "getUserWithRestaurant",
+                "operationId": "getUsersWithRestaurants",
                 "responses": {
                     "200": {
                         "description": "User data retrieved successfully",
@@ -520,7 +520,7 @@
                 ],
                 "summary": "Authenticate user login",
                 "description": "Authenticate user with email and password, returns access token on success",
-                "operationId": "login",
+                "operationId": "userLogin",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -760,7 +760,7 @@
                 ],
                 "summary": "Verify user PIN",
                 "description": "Verify the PIN for a specific user (users can only verify their own PIN)",
-                "operationId": "checkPin",
+                "operationId": "verifyPin",
                 "parameters": [
                     {
                         "name": "id",
@@ -952,7 +952,7 @@
                 ],
                 "summary": "Get authenticated user details",
                 "description": "Retrieve the currently authenticated user's information including business, roles, and permissions",
-                "operationId": "getUser",
+                "operationId": "getAllUser",
                 "responses": {
                     "200": {
                         "description": "User data retrieved successfully",
@@ -1139,7 +1139,7 @@
                 ],
                 "summary": "Get users with optional pagination and search",
                 "description": "Retrieve users with optional pagination and search functionality",
-                "operationId": "getUsers",
+                "operationId": "getAllUsers",
                 "parameters": [
                     {
                         "name": "per_page",
@@ -1857,26 +1857,26 @@
                 ]
             }
         },
-        "/business/UpdateResturantDetails/{restaurentId}": {
+        "/v1.0/business/{businessId}": {
             "patch": {
                 "tags": [
                     "business"
                 ],
                 "summary": "This method is to update business",
                 "description": "This method is to update business",
-                "operationId": "UpdateResturantDetails",
+                "operationId": "UpdateBusiness",
                 "parameters": [
                     {
-                        "name": "restaurentId",
+                        "name": "businessId",
                         "in": "path",
-                        "description": "method",
+                        "description": "Business ID",
                         "required": true,
                         "example": "1"
                     },
                     {
                         "name": "_method",
                         "in": "query",
-                        "description": "method",
+                        "description": "HTTP method override",
                         "required": true,
                         "example": "PATCH"
                     }
@@ -1907,7 +1907,7 @@
                                     "EmailAddress": {
                                         "type": "string",
                                         "format": "string",
-                                        "example": "How was this?"
+                                        "example": "test@example.com"
                                     },
                                     "homeText": {
                                         "type": "string",
@@ -1922,17 +1922,17 @@
                                     "PostCode": {
                                         "type": "string",
                                         "format": "string",
-                                        "example": "How was this?"
+                                        "example": "12345"
                                     },
                                     "Webpage": {
                                         "type": "string",
                                         "format": "string",
-                                        "example": "How was this?"
+                                        "example": "https://example.com"
                                     },
                                     "PhoneNumber": {
                                         "type": "string",
                                         "format": "string",
-                                        "example": "How was this?"
+                                        "example": "+44123456789"
                                     },
                                     "About": {
                                         "type": "string",
@@ -1947,7 +1947,7 @@
                                     "Address": {
                                         "type": "string",
                                         "format": "string",
-                                        "example": "How was this?"
+                                        "example": "Street 1, City"
                                     },
                                     "enable_question": {
                                         "type": "boolean",
@@ -2137,10 +2137,26 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "Business updated successfully",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business updated successfully"
+                                        },
+                                        "business": {
+                                            "description": "Updated business object",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -2153,7 +2169,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -2161,10 +2177,42 @@
                         }
                     },
                     "403": {
-                        "description": "Forbidden",
+                        "description": "This is not your business",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "This is not your business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No Business Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No Business Found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -7416,13 +7464,13 @@
                 ]
             }
         },
-        "/review-new/set-overall-question": {
+        "/v1.0/review-new/set-overall-question": {
             "put": {
                 "tags": [
                     "review.setting.question"
                 ],
-                "summary": "Set a question as overall and make all others non-overall",
-                "description": "This method marks one question as overall and updates all other questions for the same business to non-overall.",
+                "summary": "Set questions as overall and make all others non-overall",
+                "description": "This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
                 "operationId": "setOverallQuestion",
                 "requestBody": {
                     "required": true,
@@ -7430,16 +7478,20 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "question_id",
+                                    "question_ids",
                                     "business_id"
                                 ],
                                 "properties": {
-                                    "question_id": {
-                                        "type": "number",
-                                        "example": 1
+                                    "question_ids": {
+                                        "description": "Array of question IDs to set as overall",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
                                     },
                                     "business_id": {
-                                        "type": "number",
+                                        "type": "integer",
                                         "example": 1
                                     }
                                 },
@@ -7453,7 +7505,85 @@
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Overall questions updated successfully"
+                                        },
+                                        "overall_questions": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "question": {
+                                                        "type": "string",
+                                                        "example": "What was your overall experience?"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "star",
+                                                            "emoji",
+                                                            "numbers",
+                                                            "heart"
+                                                        ],
+                                                        "example": "star"
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 1,
+                                                        "nullable": true
+                                                    },
+                                                    "is_default": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "sentiment": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "positive",
+                                                            "neutral",
+                                                            "negative"
+                                                        ],
+                                                        "example": "positive",
+                                                        "nullable": true
+                                                    },
+                                                    "is_overall": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "show_in_guest_user": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "show_in_user": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "survey_name": {
+                                                        "type": "string",
+                                                        "example": "Customer Satisfaction",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -7461,7 +7591,31 @@
                         "description": "Bad Request",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -7469,7 +7623,15 @@
                         "description": "Not Found",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -9937,11 +10099,6 @@
                                                         "type": "string",
                                                         "example": "+8801765432109"
                                                     },
-                                                    "date_of_birth": {
-                                                        "type": "string",
-                                                        "format": "date",
-                                                        "example": "1995-06-15"
-                                                    },
                                                     "business_id": {
                                                         "type": "integer",
                                                         "example": 3
@@ -10097,10 +10254,6 @@
                                         "maxLength": 255,
                                         "example": "+8801765432109"
                                     },
-                                    "date_of_birth": {
-                                        "type": "string",
-                                        "example": "1995-06-15"
-                                    },
                                     "job_title": {
                                         "type": "string",
                                         "maxLength": 255,
@@ -10160,10 +10313,6 @@
                                                 "phone": {
                                                     "type": "string",
                                                     "example": "+8801765432109"
-                                                },
-                                                "date_of_birth": {
-                                                    "type": "string",
-                                                    "example": "1995-06-15"
                                                 },
                                                 "role": {
                                                     "type": "string",
@@ -10322,11 +10471,6 @@
                                                 "phone": {
                                                     "type": "string",
                                                     "example": "+8801765432109"
-                                                },
-                                                "date_of_birth": {
-                                                    "type": "string",
-                                                    "format": "date",
-                                                    "example": "1995-06-15"
                                                 },
                                                 "role": {
                                                     "type": "string",
@@ -10536,11 +10680,6 @@
                                         "maxLength": 50,
                                         "example": "+8801765432109"
                                     },
-                                    "date_of_birth": {
-                                        "type": "string",
-                                        "format": "date",
-                                        "example": "1995-06-15"
-                                    },
                                     "job_title": {
                                         "type": "string",
                                         "maxLength": 255,
@@ -10600,11 +10739,6 @@
                                                 "phone": {
                                                     "type": "string",
                                                     "example": "+8801765432109"
-                                                },
-                                                "date_of_birth": {
-                                                    "type": "string",
-                                                    "format": "date",
-                                                    "example": "1995-06-15"
                                                 },
                                                 "job_title": {
                                                     "type": "string",
@@ -10787,11 +10921,6 @@
                                                     "phone": {
                                                         "type": "string",
                                                         "example": "+8801765432109"
-                                                    },
-                                                    "date_of_birth": {
-                                                        "type": "string",
-                                                        "format": "date",
-                                                        "example": "1995-06-15"
                                                     },
                                                     "business_id": {
                                                         "type": "integer",
