@@ -20,8 +20,10 @@ use App\Models\User;
 use App\Http\Requests\StoreBusinessRequest;
 use App\Http\Requests\StoreBusinessByOwnerRequest;
 use App\Http\Requests\UpdateBusinessRequest;
+use App\Services\BusinessService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use PDF;
@@ -29,6 +31,17 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class BusinessController extends Controller
 {
+    protected $businessService;
+
+    /**
+     * Constructor to inject BusinessService
+     *
+     * @param BusinessService $businessService
+     */
+    public function __construct(BusinessService $businessService)
+    {
+        $this->businessService = $businessService;
+    }
 
     // ##################################################
     // This method is to store business
@@ -206,156 +219,225 @@ class BusinessController extends Controller
     /**
      *
      * @OA\Delete(
-     *      path="/business/delete/{id}",
-     *      operationId="deleteBusinessByRestaurentId",
+     *      path="/v1.0/business/{id}",
+     *      operationId="deleteBusinessById",
      *      tags={"business"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *  @OA\Parameter(
-     * name="id",
-     * in="path",
-     * description="id",
-     * required=true,
-     * example="1"
-     * ),
-     *      summary="This method is to delete business by id",
-     *      description="This method is to delete business by id",
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Delete business by ID (Super Admin only)",
+     *      description="Delete a business and its associated daily views. Only super admins can perform this action.",
      *
-
+     *      @OA\Parameter(
+     *          name="id",
+     *          in="path",
+     *          description="Business ID to delete",
+     *          required=true,
+     *          example="1",
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
      *      @OA\Response(
      *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          description="Business deleted successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Business deleted successfully")
+     *          )
+     *      ),
+     *
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
+     *
      *      @OA\Response(
      *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
+     *          description="Forbidden - Super admin access required",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="You do not have permission to delete businesses")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=404,
+     *          description="Business not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Business not found")
+     *          )
      *      )
-     *     )
+     * )
      */
-
-    public function deleteBusinessByRestaurentId($id, Request $request)
+    public function deleteBusinessById($id, Request $request)
     {
-
+        // CHECK SUPER ADMIN PERMISSION
         if (!$request->user()->hasRole("superadmin")) {
-            return response()->json(["message" => "You do not have permission", 401]);
+            return response()->json([
+                "success" => false,
+                "message" => "You do not have permission to delete businesses"
+            ], 403);
         }
 
+        // CHECK IF BUSINESS EXISTS
+        $business = Business::find($id);
+        if (!$business) {
+            return response()->json([
+                "success" => false,
+                "message" => "Business not found"
+            ], 404);
+        }
 
+        // EXECUTE DELETION WITHIN DATABASE TRANSACTION
+        DB::transaction(function () use ($business, $id) {
+            // DELETE BUSINESS
+            $business->delete();
 
-        Business::where(["id" => $id])->delete();
+            // DELETE ASSOCIATED DAILY VIEWS
+            DailyView::where("business_id", $id)->delete();
+        });
 
-
-
-        DailyView::where(["business_id" => $id])->delete();
-
-
-
-        return response(["ok" => true], 200);
+        // RETURN SUCCESS RESPONSE
+        return response()->json([
+            "success" => true,
+            "message" => "Business deleted successfully"
+        ], 200);
     }
 
     /**
      *
      * @OA\Delete(
-     *      path="/business/delete/force-delete/{email}",
-     *      operationId="deleteBusinessByRestaurentIdForceDelete",
+     *      path="/v1.0/business/delete/force-delete/{email}",
+     *      operationId="deleteBusinessByRestaurantIdForceDelete",
      *      tags={"business"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *  @OA\Parameter(
-     * name="email",
-     * in="path",
-     * description="email",
-     * required=true,
-     * example="1"
-     * ),
-     *      summary="This method is to delete business by id",
-     *      description="This method is to delete business by id",
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Force delete business by email (Super Admin only - within 5 minutes of creation)",
+     *      description="Force delete a business and all its associated data by email address. Only super admins can perform this action, and only if the business was created within the last 5 minutes.",
      *
-
+     *      @OA\Parameter(
+     *          name="email",
+     *          in="path",
+     *          description="Email address of the business to force delete",
+     *          required=true,
+     *          example="business@example.com",
+     *          @OA\Schema(type="string", format="email")
+     *      ),
+     *
      *      @OA\Response(
      *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          description="Business force deleted successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Business and all associated data force deleted successfully")
+     *          )
+     *      ),
+     *
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
+     *
      *      @OA\Response(
      *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
+     *          description="Forbidden - Super admin access required",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="You do not have permission to force delete businesses")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=404,
+     *          description="Business not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Business not found")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=422,
+     *          description="Business is too old to force delete",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Business can only be force deleted within 5 minutes of creation")
+     *          )
      *      )
-     *     )
+     * )
      */
-
-    public function deleteBusinessByRestaurentIdForceDelete($email, Request $request)
+    public function deleteBusinessByRestaurantIdForceDelete($email, Request $request)
     {
-
+        // CHECK SUPER ADMIN PERMISSION
         if (!$request->user()->hasRole("superadmin")) {
-            return response()->json(["message" => "You do not have permission", 401]);
+            return response()->json([
+                "success" => false,
+                "message" => "You do not have permission to force delete businesses"
+            ], 403);
         }
 
+        // FIND BUSINESS BY EMAIL
+        $business = Business::where("EmailAddress", $email)->first();
 
+        // CHECK IF BUSINESS EXISTS
+        if (!$business) {
+            return response()->json([
+                "success" => false,
+                "message" => "Business not found"
+            ], 404);
+        }
 
-        $business = Business::where(["EmailAddress" => $email])->first();
-        $id = $business->id;
+        // CHECK IF BUSINESS WAS CREATED WITHIN LAST 5 MINUTES
+        if ($business->created_at < Carbon::now()->subMinutes(5)) {
+            return response()->json([
+                "success" => false,
+                "message" => "Business can only be force deleted within 5 minutes of creation"
+            ], 422);
+        }
 
-        if ($business && $business->created_at >= Carbon::now()->subMinutes(5)) {
+        // GET BUSINESS ID FOR RELATED DELETIONS
+        $businessId = $business->id;
+        $ownerId = $business->OwnerID;
+
+        // EXECUTE FORCE DELETION WITHIN DATABASE TRANSACTION
+        DB::transaction(function () use ($business, $businessId, $ownerId) {
+            // FORCE DELETE BUSINESS
             $business->forceDelete();
-            User::where([
-                "id" => $business->OwnerID
-            ])
-                ->delete();
-            DailyView::where(["business_id" => $id])->delete();
 
-            Notification::where(["business_id" => $id])->delete();
+            // DELETE ASSOCIATED OWNER USER
+            User::where("id", $ownerId)->delete();
 
-            Question::where(["business_id" => $id])->delete();
+            // DELETE ASSOCIATED DAILY VIEWS
+            DailyView::where("business_id", $businessId)->delete();
 
-            Review::where(["business_id" => $id])->delete();
-            ReviewNew::where(["business_id" => $id])->delete();
-            ReviewValue::where(["business_id" => $id])->delete();
-            Tag::where(["business_id" => $id])->delete();
-        }
+            // DELETE ASSOCIATED NOTIFICATIONS
+            Notification::where("business_id", $businessId)->delete();
 
-        return response(["ok" => true], 200);
+            // DELETE ASSOCIATED QUESTIONS
+            Question::where("business_id", $businessId)->delete();
+
+            // DELETE ASSOCIATED REVIEWS
+            Review::where("business_id", $businessId)->delete();
+            ReviewNew::where("business_id", $businessId)->delete();
+            ReviewValue::where("business_id", $businessId)->delete();
+
+            // DELETE ASSOCIATED TAGS
+            Tag::where("business_id", $businessId)->delete();
+        });
+
+        // RETURN SUCCESS RESPONSE
+        return response()->json([
+            "success" => true,
+            "message" => "Business and all associated data force deleted successfully"
+        ], 200);
     }
 
 
@@ -365,111 +447,142 @@ class BusinessController extends Controller
     /**
      *
      * @OA\Post(
-     *      path="/business/uploadimage/{restaurentId}",
-     *      operationId="uploadRestaurentImage",
+     *      path="/v1.0/business/upload-image/{businessId}",
+     *      operationId="uploadRestaurantImage",
      *      tags={"business"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to upload business image",
-     *      description="This method is to upload business image",
-     *        @OA\Parameter(
-     *         name="restaurentId",
-     *         in="path",
-     *         description="restaurent Id",
-     *         required=false,
-     *      ),
-     *            @OA\Parameter(
-     *         name="_method",
-     *         in="query",
-     *         description="method",
-     *         required=false,
-     * example="PATCH"
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Upload business logo image",
+     *      description="Upload and update the logo image for a specific business. Only business owners or super admins can perform this action.",
+     *
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          description="Business ID",
+     *          required=true,
+     *          example="1",
+     *          @OA\Schema(type="integer")
      *      ),
      *
-     *  @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="multipart/form-data",
-     *             @OA\Schema(
-     *                 @OA\Property(
-     *                     description="file to upload",
-     *                     property="logo",
-     *                     type="file",
-     *                ),
-     *                 required={"logo"}
-     *             )
-     *         )
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\MediaType(
+     *              mediaType="multipart/form-data",
+     *              @OA\Schema(
+     *                  @OA\Property(
+     *                      property="logo",
+     *                      type="string",
+     *                      format="binary",
+     *                      description="Image file to upload (jpeg, png, jpg, gif, svg - max 2MB)"
+     *                  ),
+     *                  required={"logo"}
+     *              )
+     *          )
      *      ),
+     *
      *      @OA\Response(
      *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          description="Business logo uploaded successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Business logo uploaded successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="Name", type="string", example="My Restaurant"),
+     *                  @OA\Property(property="Logo", type="string", example="img/business/1234567890_abc123.png")
+     *              )
+     *          )
+     *      ),
+     *
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
+     *
      *      @OA\Response(
      *          response=403,
-     *          description="Forbidden",
-     * @OA\JsonContent()
-     * ),
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request",
-     * @OA\JsonContent()
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found",
-     *     @OA\JsonContent()
-     *   )
-
+     *          description="Forbidden - Not business owner or super admin",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="You do not have permission to update this business")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=404,
+     *          description="Business not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Business not found")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=422,
+     *          description="Validation failed",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Validation failed"),
+     *              @OA\Property(property="errors", type="object")
+     *          )
      *      )
-     *     )
+     * )
      */
-    public function uploadRestaurentImage($restaurentId, Request $request)
+    public function uploadRestaurantImage($businessId, Request $request)
     {
-
+        // VALIDATE REQUEST
         $request->validate([
-
             'logo' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-
         ]);
-        $checkBusiness =    Business::where(["id" => $restaurentId])->first();
-        if ($checkBusiness->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
-            return response()->json(["message" => "This is not your business", 401]);
+
+        // CHECK IF BUSINESS EXISTS
+        $business = Business::find($businessId);
+        if (!$business) {
+            return response()->json([
+                "success" => false,
+                "message" => "Business not found"
+            ], 404);
         }
 
-
-        $imageName = time() . '.' . $request->logo->extension();
-
-
-
-        $request->logo->move(public_path('img/business'), $imageName);
-
-        $imageName = "img/business/" . $imageName;
-
-        $data["restaurent"] =    tap(Business::where(["id" => $restaurentId]))->update([
-            "Logo" => $imageName
-        ])
-            // ->with("somthing")
-
-            ->first();
-
-
-        if (!$data["restaurent"]) {
-            return response()->json(["message" => "No User Found"], 404);
+        // CHECK OWNERSHIP OR SUPER ADMIN PERMISSION
+        if ($business->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
+            return response()->json([
+                "success" => false,
+                "message" => "You do not have permission to update this business"
+            ], 403);
         }
 
-        $data["message"] = "business image updates successfully";
-        return response()->json($data, 200);
+        // GENERATE UNIQUE FILENAME
+        $imageName = time() . '_' . uniqid() . '.' . $request->logo->extension();
+
+        // MOVE FILE TO PUBLIC DIRECTORY
+        $destinationPath = public_path('img/business');
+        $request->logo->move($destinationPath, $imageName);
+
+        // BUILD FULL IMAGE PATH
+        $imagePath = "img/business/" . $imageName;
+
+        // UPDATE BUSINESS LOGO
+        $business->update([
+            "Logo" => $imagePath
+        ]);
+
+        // RETURN SUCCESS RESPONSE
+        return response()->json([
+            "success" => true,
+            "message" => "Business logo uploaded successfully",
+            "data" => [
+                "id" => $business->id,
+                "Name" => $business->Name,
+                "Logo" => $business->Logo
+            ]
+        ], 200);
     }
     // ##################################################
     // This method is to update business details
@@ -650,493 +763,495 @@ class BusinessController extends Controller
         ], 200);
     }
     // ##################################################
-    // This method is to update business details by admin
+    // This method is to get business by id
     // ##################################################
-    public function UpdateResturantDetailsByAdmin($restaurentId, Request $request)
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/business/{businessId}",
+     *      operationId="getBusinessById",
+     *      tags={"business"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get business details by ID",
+     *      description="Retrieve detailed information about a specific business including owner information",
+     *
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          description="Business ID",
+     *          required=true,
+     *          example="1",
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=200,
+     *          description="Business found successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Business found successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="Name", type="string", example="My Restaurant"),
+     *                  @OA\Property(property="Address", type="string", example="123 Main Street, City"),
+     *                  @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
+     *                  @OA\Property(property="EmailAddress", type="string", example="business@example.com"),
+     *                  @OA\Property(property="PhoneNumber", type="string", example="+44123456789"),
+     *                  @OA\Property(property="Webpage", type="string", example="https://example.com"),
+     *                  @OA\Property(property="About", type="string", example="About the business"),
+     *                  @OA\Property(property="Logo", type="string", example="img/business/logo.png"),
+     *                  @OA\Property(property="Status", type="string", example="Active"),
+     *                  @OA\Property(property="Key_ID", type="string", example="abc123"),
+     *                  @OA\Property(property="OwnerID", type="integer", example=1),
+     *                  @OA\Property(property="enable_question", type="boolean", example=true),
+     *                  @OA\Property(property="expiry_date", type="string", format="date", example="15-12-2025"),
+     *                  @OA\Property(property="created_at", type="string", format="datetime", example="2025-01-01T12:00:00.000000Z"),
+     *                  @OA\Property(property="updated_at", type="string", format="datetime", example="2025-01-15T12:00:00.000000Z"),
+     *                  @OA\Property(
+     *                      property="owner",
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="name", type="string", example="John Doe"),
+     *                      @OA\Property(property="email", type="string", example="owner@example.com")
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=404,
+     *          description="Business not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Business not found")
+     *          )
+     *      )
+     * )
+     */
+    public function getBusinessById($businessId)
     {
-        $checkBusiness =    Business::where(["id" => $restaurentId])->first();
-        if ($checkBusiness->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
-            return response()->json(["message" => "This is not your business", 401]);
-        }
 
-        $data["business"] =    tap(Business::where(["id" => $restaurentId]))->update($request->only(
-            "show_image",
-
-            "review_type",
-            "google_map_iframe",
-            "Key_ID",
-            "Status",
-            "About",
-            "Name",
-            "Layout",
-            "Address",
-            "PostCode",
-            "enable_question",
-            "Webpage",
-            "PhoneNumber",
-            "EmailAddress",
-            "homeText",
-            "AdditionalInformation",
-
-            "GoogleMapApi",
-
-
-
-            'Is_guest_user',
-            'is_review_silder',
-            "review_only",
-
-            "header_image",
-
-
-
-            "primary_color",
-            "secondary_color",
-
-            "client_primary_color",
-            "client_secondary_color",
-            "client_tertiary_color",
-            "user_review_report",
-            "guest_user_review_report",
-            "time_zone",
-            'guest_survey_id',
-            'registered_user_survey_id'
-        ))
-            // ->with("somthing")
-
+        // GET BUSINESS WITH OWNER
+        $business = Business::with("owner")
+            ->where("id", $businessId)
             ->first();
 
-
-        if (!$data["business"]) {
-            return response()->json(["message" => "No Business Found"], 404);
+        // CHECK IF BUSINESS EXISTS
+        if (!$business) {
+            return response()->json([
+                "success" => false,
+                "message" => "Business not found"
+            ], 404);
         }
 
-
-        $data["message"] = "Business updates successfully";
-        return response()->json($data, 200);
+        // RETURN RESPONSE
+        return response()->json([
+            "success" => true,
+            "message" => "Business found successfully",
+            "data" => $business
+        ], 200);
     }
+
+
+
     // ##################################################
-    // This method is to get business by id
+    // This method is to get all businesses
     // ##################################################
     /**
      *
      * @OA\Get(
-     *      path="/business/{businessId}",
-     *      operationId="getbusinessById",
-     *      tags={"business"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to get business by id",
-     *      description="This method is to get business by id",
-     *
-     *  *            @OA\Parameter(
-     *         name="businessId",
-     *         in="path",
-     *         description="method",
-     *         required=true,
-     * example="1"
-     *      ),
-     *
-
-
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function getbusinessById($businessId)
-    {
-        $data["business"] =   Business::with([
-            "owner"
-        ])
-
-            ->where(["id" => $businessId])->first();
-        $data["ok"] = true;
-
-        if (!$data["business"]) {
-            return response(["message" => "No Business Found"], 404);
-        }
-        return response($data, 200);
-    }
-    // ##################################################
-    // This method is to get business all
-    // ##################################################
-    // ##################################################
-    // This method is to get business by id
-    // ##################################################
-    /**
-     *
-     * @OA\Get(
-     *      path="/business",
+     *      path="/v1.0/business",
      *      operationId="getAllBusinesses",
      *      tags={"business"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-
-     *    *  @OA\Parameter(
-     * name="search_key",
-     * in="query",
-     * description="search_key",
-     * required=true,
-     * example="business name"
-     * ),
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get all businesses with optional filters and pagination",
+     *      description="Retrieve a list of all businesses with optional search and filtering capabilities. Supports both paginated and non-paginated responses.",
      *
+     *      @OA\Parameter(
+     *          name="search_key",
+     *          in="query",
+     *          description="Search term to filter businesses by name",
+     *          required=false,
+     *          example="Restaurant",
+     *          @OA\Schema(type="string")
+     *      ),
      *
-     *      summary="This method is to get all business ",
-     *      description="This method is to get all business ",
+     *      @OA\Parameter(
+     *          name="Status",
+     *          in="query",
+     *          description="Filter by business status (Active, Inactive)",
+     *          required=false,
+     *          example="Active",
+     *          @OA\Schema(type="string", enum={"Active", "Inactive"})
+     *      ),
      *
+     *      @OA\Parameter(
+     *          name="owner_id",
+     *          in="query",
+     *          description="Filter by owner ID",
+     *          required=false,
+     *          example="1",
+     *          @OA\Schema(type="integer")
+     *      ),
      *
-
-
+     *      @OA\Parameter(
+     *          name="per_page",
+     *          in="query",
+     *          description="Number of items per page (if pagination is required)",
+     *          required=false,
+     *          example="15",
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="page",
+     *          in="query",
+     *          description="Page number for pagination",
+     *          required=false,
+     *          example="1",
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="response_type",
+     *          in="query",
+     *          description="Export format (PDF, CSV, or JSON by default)",
+     *          required=false,
+     *          example="json",
+     *          @OA\Schema(type="string", enum={"json", "pdf", "csv"})
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="file_name",
+     *          in="query",
+     *          description="Custom filename for PDF/CSV export (without extension)",
+     *          required=false,
+     *          example="businesses_export",
+     *          @OA\Schema(type="string")
+     *      ),
+     *
      *      @OA\Response(
      *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          description="Businesses retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Businesses retrieved successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="array",
+     *                  description="Array of business objects",
+     *                  @OA\Items(
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="Name", type="string", example="My Restaurant"),
+     *                      @OA\Property(property="Address", type="string", example="123 Main Street"),
+     *                      @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
+     *                      @OA\Property(property="Status", type="string", example="Active"),
+     *                      @OA\Property(property="OwnerID", type="integer", example=1),
+     *                      @OA\Property(property="enable_question", type="boolean", example=true),
+     *                      @OA\Property(
+     *                          property="owner",
+     *                          type="object",
+     *                          @OA\Property(property="id", type="integer", example=1),
+     *                          @OA\Property(property="name", type="string", example="John Doe"),
+     *                          @OA\Property(property="email", type="string", example="owner@example.com")
+     *                      )
+     *                  )
+     *              ),
+     *              @OA\Property(
+     *                  property="meta",
+     *                  type="object",
+     *                  description="Pagination metadata (only when per_page is provided)",
+     *                  @OA\Property(property="current_page", type="integer", example=1),
+     *                  @OA\Property(property="from", type="integer", example=1),
+     *                  @OA\Property(property="to", type="integer", example=15),
+     *                  @OA\Property(property="per_page", type="integer", example=15),
+     *                  @OA\Property(property="last_page", type="integer", example=5),
+     *                  @OA\Property(property="total", type="integer", example=75),
+     *                  @OA\Property(property="path", type="string", example="http://api.example.com/v1.0/business"),
+     *                  @OA\Property(property="first_page_url", type="string", example="http://api.example.com/v1.0/business?page=1"),
+     *                  @OA\Property(property="last_page_url", type="string", example="http://api.example.com/v1.0/business?page=5"),
+     *                  @OA\Property(property="next_page_url", type="string", nullable=true, example="http://api.example.com/v1.0/business?page=2"),
+     *                  @OA\Property(property="prev_page_url", type="string", nullable=true, example=null)
+     *              )
+     *          )
+     *      ),
+     *
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      )
-     *     )
+     * )
      */
     public function getAllBusinesses(Request $request)
     {
+        // BUILD QUERY WITH FILTER SCOPE
+        $businessQuery = Business::with("owner")->filter();
 
+        // HANDLE PDF/CSV EXPORT
+        if ($request->filled('response_type') && in_array(strtoupper($request->response_type), ['PDF', 'CSV'])) {
+            $businesses = $businessQuery->get();
 
-        $businessQuery =  Business::with("owner");
-
-        if (!empty($request->search_key)) {
-            $businessQuery = $businessQuery->where(function ($query) use ($request) {
-                $term = $request->search_key;
-                $query->where("Name", "like", "%" . $term . "%");
-            });
-        }
-
-
-
-        $data["business"] =   $businessQuery->get();
-        $data["ok"] = true;
-
-
-
-
-
-
-        //         if(!$data["business"]) {
-        //   return response([ "message" => "No Business Found"], 404);
-        //         }
-        return response($data, 200);
-    }
-    /**
-     *
-     * @OA\Get(
-     *      path="/businesses/{perPage}",
-     *      operationId="getBusinesses",
-     *      tags={"business"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *  *   *              @OA\Parameter(
-     *         name="response_type",
-     *         in="query",
-     *         description="response_type: in pdf,csv,json",
-     *         required=true,
-     *  example="json"
-     *      ),
-     *    *  @OA\Parameter(
-     * name="perPage",
-     * in="path",
-     * description="perPage",
-     * required=true,
-     * example="10"
-     * ),
-     *    *  @OA\Parameter(
-     * name="search_key",
-     * in="query",
-     * description="search_key",
-     * required=true,
-     * example="business name"
-     * ),
-     *
-     *
-     *      summary="This method is to get all business ",
-     *      description="This method is to get all business ",
-     *
-     *
-
-
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function getBusinesses($perPage, Request $request)
-    {
-
-        //  customers
-
-        $businessQuery =  Business::withCount(
-
-            "customers"
-        )
-            ->with(
-                "owner",
-
-            )
-            ->when(request()->filled("Status"), function ($query) {
-                $query->where("Status", request()->input("Status"));
-            });
-
-        if (!empty($request->search_key)) {
-            $businessQuery = $businessQuery->where(function ($query) use ($request) {
-                $term = $request->search_key;
-                $query->where("Name", "like", "%" . $term . "%")
-                    ->orWhere("Address", "like", "%" . $term . "%")
-                    ->orWhere("PostCode", "like", "%" . $term . "%")
-                    ->orWhere("Status", "like", "%" . $term . "%")
-                    ->orWhere("About", "like", "%" . $term . "%")
-                    ->orWhere("PhoneNumber", "like", "%" . $term . "%")
-                    ->orWhere("EmailAddress", "like", "%" . $term . "%");
-            });
-        }
-
-
-
-
-        $businesses =   $businessQuery->paginate($perPage);
-
-        if (!empty($request->response_type) && in_array(strtoupper($request->response_type), ['PDF', 'CSV'])) {
             if (strtoupper($request->response_type) == 'PDF') {
-                if (empty($businesses->count())) {
+                if ($businesses->isEmpty()) {
                     $pdf = PDF::loadView('pdf.no_data', []);
                 } else {
                     $pdf = PDF::loadView('pdf.businesses', ["businesses" => $businesses]);
                 }
-
-                return $pdf->download(((!empty($request->file_name) ? $request->file_name : 'attendance') . '.pdf'));
+                return $pdf->download(($request->input('file_name', 'businesses') . '.pdf'));
             } elseif (strtoupper($request->response_type) === 'CSV') {
-
-                return Excel::download(new BusinessExport($businesses), ((!empty($request->file_name) ? $request->file_name : 'businesses') . '.csv'));
+                return Excel::download(
+                    new BusinessExport($businesses),
+                    ($request->input('file_name', 'businesses') . '.csv')
+                );
             }
-        } else {
-            return response()->json($businesses, 200);
         }
+
+        // CONDITIONAL PAGINATION
+        if ($request->filled('per_page')) {
+            $perPage = $request->input('per_page', 15);
+            $businesses = $businessQuery->paginate($perPage);
+
+            return response()->json([
+                "success" => true,
+                "message" => "Businesses retrieved successfully",
+                "data" => $businesses->items(),
+                "meta" => [
+                    "current_page" => $businesses->currentPage(),
+                    "from" => $businesses->firstItem(),
+                    "to" => $businesses->lastItem(),
+                    "per_page" => $businesses->perPage(),
+                    "last_page" => $businesses->lastPage(),
+                    "total" => $businesses->total(),
+                    "path" => $businesses->path(),
+                    "first_page_url" => $businesses->url(1),
+                    "last_page_url" => $businesses->url($businesses->lastPage()),
+                    "next_page_url" => $businesses->nextPageUrl(),
+                    "prev_page_url" => $businesses->previousPageUrl()
+                ]
+            ], 200);
+        }
+
+        // GET ALL WITHOUT PAGINATION
+        $businesses = $businessQuery->get();
+
+        return response()->json([
+            "success" => true,
+            "message" => "Businesses retrieved successfully",
+            "data" => $businesses
+        ], 200);
     }
 
     /**
      *
      * @OA\Get(
-     *      path="/client/businesses/{perPage}",
+     *      path="/v1.0/client/businesses",
      *      operationId="getBusinessesClients",
      *      tags={"business"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *    *  @OA\Parameter(
-     * name="perPage",
-     * in="path",
-     * description="perPage",
-     * required=true,
-     * example="10"
-     * ),
-     *    *  @OA\Parameter(
-     * name="sort_by",
-     * in="query",
-     * description="sort_by",
-     * required=true,
-     * example="sort_by"
-     * ),
-     *    *  @OA\Parameter(
-     * name="sort_type",
-     * in="query",
-     * description="sort_type",
-     * required=true,
-     * example="sort_type"
-     * ),
-
-
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get businesses for client view with ratings and timing",
+     *      description="Retrieve businesses with calculated ratings, timing information, and optional pagination",
      *
+     *      @OA\Parameter(
+     *          name="per_page",
+     *          in="query",
+     *          description="Number of items per page (if pagination is required)",
+     *          required=false,
+     *          example="15",
+     *          @OA\Schema(type="integer")
+     *      ),
      *
-     *      summary="This method is to get all business ",
-     *      description="This method is to get all business ",
+     *      @OA\Parameter(
+     *          name="page",
+     *          in="query",
+     *          description="Page number for pagination",
+     *          required=false,
+     *          example="1",
+     *          @OA\Schema(type="integer")
+     *      ),
      *
+     *      @OA\Parameter(
+     *          name="sort_by",
+     *          in="query",
+     *          description="Field to sort by (e.g., Name, Address, created_at)",
+     *          required=false,
+     *          example="Name",
+     *          @OA\Schema(type="string")
+     *      ),
      *
-
-
+     *      @OA\Parameter(
+     *          name="sort_type",
+     *          in="query",
+     *          description="Sort direction (asc or desc)",
+     *          required=false,
+     *          example="asc",
+     *          @OA\Schema(type="string", enum={"asc", "desc"})
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="search_key",
+     *          in="query",
+     *          description="Search term to filter businesses by name",
+     *          required=false,
+     *          example="Restaurant",
+     *          @OA\Schema(type="string")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="start_date",
+     *          in="query",
+     *          description="Start date for filtering reviews (Y-m-d format)",
+     *          required=false,
+     *          example="2025-01-01",
+     *          @OA\Schema(type="string", format="date")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="end_date",
+     *          in="query",
+     *          description="End date for filtering reviews (Y-m-d format)",
+     *          required=false,
+     *          example="2025-12-31",
+     *          @OA\Schema(type="string", format="date")
+     *      ),
+     *
      *      @OA\Response(
      *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          description="Businesses retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Businesses retrieved successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="Name", type="string", example="My Restaurant"),
+     *                      @OA\Property(property="header_image", type="string", example="/header_image/default.png"),
+     *                      @OA\Property(property="rating_page_image", type="string", example="/rating_image/default.png"),
+     *                      @OA\Property(property="placeholder_image", type="string", example="/placeholder/default.png"),
+     *                      @OA\Property(property="Logo", type="string", example="img/business/logo.png"),
+     *                      @OA\Property(property="Address", type="string", example="123 Main Street"),
+     *                      @OA\Property(property="average_rating", type="number", format="float", example=4.5),
+     *                      @OA\Property(property="total_rating_count", type="integer", example=120),
+     *                      @OA\Property(property="out_of", type="integer", example=5),
+     *                      @OA\Property(
+     *                          property="timing",
+     *                          type="object",
+     *                          description="Business timing for current day",
+     *                          @OA\Property(property="day", type="integer", example=1),
+     *                          @OA\Property(
+     *                              property="timeSlots",
+     *                              type="array",
+     *                              @OA\Items(
+     *                                  type="object",
+     *                                  @OA\Property(property="start_time", type="string", example="09:00"),
+     *                                  @OA\Property(property="end_time", type="string", example="17:00")
+     *                              )
+     *                          )
+     *                      )
+     *                  )
+     *              ),
+     *              @OA\Property(
+     *                  property="meta",
+     *                  type="object",
+     *                  description="Pagination metadata (only when per_page is provided)",
+     *                  @OA\Property(property="current_page", type="integer", example=1),
+     *                  @OA\Property(property="from", type="integer", example=1),
+     *                  @OA\Property(property="to", type="integer", example=15),
+     *                  @OA\Property(property="per_page", type="integer", example=15),
+     *                  @OA\Property(property="last_page", type="integer", example=5),
+     *                  @OA\Property(property="total", type="integer", example=75),
+     *                  @OA\Property(property="path", type="string", example="http://api.example.com/client/businesses"),
+     *                  @OA\Property(property="first_page_url", type="string", example="http://api.example.com/client/businesses?page=1"),
+     *                  @OA\Property(property="last_page_url", type="string", example="http://api.example.com/client/businesses?page=5"),
+     *                  @OA\Property(property="next_page_url", type="string", nullable=true, example="http://api.example.com/client/businesses?page=2"),
+     *                  @OA\Property(property="prev_page_url", type="string", nullable=true, example=null)
+     *              )
+     *          )
+     *      ),
+     *
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      )
-     *     )
+     * )
      */
-    public function getBusinessesClients($perPage, Request $request)
+    public function getBusinessesClients(Request $request)
     {
-
         // Get today's day (0 for Sunday, 1 for Monday, ..., 6 for Saturday)
         $today = Carbon::now()->dayOfWeek;
 
-        $businessQuery = Business::when((!empty($request->sort_type) && !empty($request->sort_by)), function ($query) use ($request) {
-            $query->orderBy($request->sort_by, $request->sort_type);
-        });
+        // BUILD QUERY WITH FILTER SCOPE
+        $businessQuery = Business::filterClients();
 
+        // CONDITIONAL PAGINATION
+        if ($request->filled('per_page')) {
+            $perPage = $request->input('per_page', 15);
+            $businesses = $businessQuery->paginate($perPage);
 
-
-        if (!empty($request->search_key)) {
-            $businessQuery->where(function ($query) use ($request) {
-                $term = $request->search_key;
-                $query->where("Name", "like", "%" . $term . "%");
+            // Transform collection with ratings and timing
+            $businesses->getCollection()->transform(function ($business) use ($today, $request) {
+                return $this->businessService->enrichBusinessWithRatingsAndTiming($business, $today, $request);
             });
+
+            return response()->json([
+                "success" => true,
+                "message" => "Businesses retrieved successfully",
+                "data" => $businesses->items(),
+                "meta" => [
+                    "current_page" => $businesses->currentPage(),
+                    "from" => $businesses->firstItem(),
+                    "to" => $businesses->lastItem(),
+                    "per_page" => $businesses->perPage(),
+                    "last_page" => $businesses->lastPage(),
+                    "total" => $businesses->total(),
+                    "path" => $businesses->path(),
+                    "first_page_url" => $businesses->url(1),
+                    "last_page_url" => $businesses->url($businesses->lastPage()),
+                    "next_page_url" => $businesses->nextPageUrl(),
+                    "prev_page_url" => $businesses->previousPageUrl()
+                ]
+            ], 200);
         }
 
-        $businesses = $businessQuery
-            ->select(
-                "id",
-                "Name",
-                "header_image",
-                "rating_page_image",
-                "placeholder_image",
-                "Logo",
-                "Address"
-            )
+        // GET ALL WITHOUT PAGINATION
+        $businesses = $businessQuery->get();
 
-            ->paginate($perPage);
-
-
-        $businesses->getCollection()->transform(function ($business) use ($today, $request) {
-            $totalCount = 0;
-            $totalRating = 0;
-
-            foreach (Star::get() as $star) {
-                $selectedCount = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                    ->where([
-                        "review_news.business_id" => $business->id,
-                        "star_id" => $star->id,
-                    ])
-                    ->distinct("review_value_news.review_id", "review_value_news.question_id");
-
-                if (!empty($request->start_date) && !empty($request->end_date)) {
-                    $selectedCount = $selectedCount->whereBetween('review_news.created_at', [
-                        $request->start_date,
-                        $request->end_date
-                    ]);
-                }
-
-                $selectedCount = $selectedCount->count();
-
-                $totalCount += $selectedCount * $star->value;
-                $totalRating += $selectedCount;
-            }
-
-            $average_rating = $totalCount > 0 ? $totalCount / $totalRating : 0;
-
-            $timing = $business->times()->with("timeSlots")->where('day', $today)->first();
-
-            $business->average_rating = $average_rating;
-            $business->total_rating_count = $totalCount;
-            $business->out_of = 5;
-            $business->timing = $timing;
-
-            return $business;
+        // Transform collection with ratings and timing
+        $businesses = $businesses->map(function ($business) use ($today, $request) {
+            return $this->businessService->enrichBusinessWithRatingsAndTiming($business, $today, $request);
         });
 
-        return response()->json($businesses, 200);
+        return response()->json([
+            "success" => true,
+            "message" => "Businesses retrieved successfully",
+            "data" => $businesses
+        ], 200);
     }
-
 
     // ##################################################
     // This method is to get business table by business id
@@ -1144,64 +1259,95 @@ class BusinessController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/business/Restuarant/tables/{businessId}",
-     *      operationId="getbusinessTableByBusinessId",
+     *      path="/v1.0/restaurants/tables/{businessId}",
+     *      operationId="getRestaurantTableByBusinessId",
      *      tags={"business"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to get business with table by business id",
-     *      description="This method is to get business with table by business id",
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get business with tables by business ID",
+     *      description="Retrieve business information including associated tables and owner details",
      *
-     *  *            @OA\Parameter(
-     *         name="businessId",
-     *         in="path",
-     *         description="method",
-     *         required=true,
-     * example="1"
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          description="Business ID",
+     *          required=true,
+     *          example="1",
+     *          @OA\Schema(type="integer")
      *      ),
      *
-
-
      *      @OA\Response(
      *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          description="Business with tables retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Business with tables retrieved successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="Name", type="string", example="My Restaurant"),
+     *                  @OA\Property(property="Address", type="string", example="123 Main Street"),
+     *                  @OA\Property(
+     *                      property="owner",
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="name", type="string", example="John Doe"),
+     *                      @OA\Property(property="email", type="string", example="owner@example.com")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="table",
+     *                      type="array",
+     *                      description="Associated tables",
+     *                      @OA\Items(
+     *                          type="object",
+     *                          @OA\Property(property="id", type="integer", example=1),
+     *                          @OA\Property(property="table_number", type="string", example="T1")
+     *                      )
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
+     *
      *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
+     *          response=404,
+     *          description="Business not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Business not found")
+     *          )
      *      )
-     *     )
+     * )
      */
-
-    public function getbusinessTableByBusinessId($businessId)
+    public function getRestaurantTableByBusinessId($businessId)
     {
-        $data["business"] =   Business::with("owner", "table")->where(["id" => $businessId])->first();
-        $data["ok"] = true;
+        // GET BUSINESS WITH OWNER AND TABLES
+        $business = Business::with("owner", "table")
+            ->where("id", $businessId)
+            ->first();
 
-        if (!$data["business"]) {
-            return response(["message" => "No Business Found"], 404);
+        // CHECK IF BUSINESS EXISTS
+        if (!$business) {
+            return response()->json([
+                "success" => false,
+                "message" => "Business not found"
+            ], 404);
         }
-        return response($data, 200);
+
+        // RETURN RESPONSE
+        return response()->json([
+            "success" => true,
+            "message" => "Business with tables retrieved successfully",
+            "data" => $business
+        ], 200);
     }
 }

@@ -343,7 +343,7 @@ class ForgotPasswordController extends Controller
     /**
      *
      * @OA\Patch(
-     *      path="/forgetpassword/reset/{token}",
+     *      path="/v1.0/forget-password/reset/{token}",
      *      operationId="changePasswordByToken",
      *      tags={"forgot_password"},
      *  @OA\Parameter(

@@ -121,4 +121,77 @@ class Business extends Model
     {
         return $this->belongsTo(Survey::class, 'registered_user_survey_id', 'id');
     }
+
+    /**
+     * Scope a query to filter businesses based on search parameters
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFilter($query)
+    {
+        // Enhanced search across multiple fields
+        if (request()->filled('search_key')) {
+            $searchTerm = request()->input('search_key');
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('Name', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('Address', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('PostCode', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('Status', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('About', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('PhoneNumber', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('EmailAddress', 'like', '%' . $searchTerm . '%');
+            });
+        }
+
+        // Filter by status
+        if (request()->filled('Status')) {
+            $query->where('Status', request()->input('Status'));
+        }
+
+        // Filter by owner ID
+        if (request()->filled('owner_id')) {
+            $query->where('OwnerID', request()->input('owner_id'));
+        }
+
+        // Filter by active status (not deleted)
+        if (request()->boolean('active_only')) {
+            $query->whereNull('deleted_at');
+        }
+
+        return $query;
+    }
+
+    /**
+     * Scope a query to filter businesses for client-facing views
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFilterClients($query)
+    {
+        // Apply sorting if provided
+        if (request()->filled('sort_by') && request()->filled('sort_type')) {
+            $query->orderBy(request()->input('sort_by'), request()->input('sort_type'));
+        }
+
+        // Search by business name
+        if (request()->filled('search_key')) {
+            $searchTerm = request()->input('search_key');
+            $query->where('Name', 'like', '%' . $searchTerm . '%');
+        }
+
+        // Select only necessary fields for client view
+        $query->select(
+            'id',
+            'Name',
+            'header_image',
+            'rating_page_image',
+            'placeholder_image',
+            'Logo',
+            'Address'
+        );
+
+        return $query;
+    }
 }

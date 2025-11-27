@@ -107,7 +107,7 @@ Route::get('/owner/getAllowner/withourbusiness', [OwnerController::class, "getOw
 Route::get('/owner/loaduser/bynumber/{phoneNumber}', [OwnerController::class, "getOwnerByPhoneNumber"]);
 
 
-Route::get('/business/{businessId}', [BusinessController::class, "getbusinessById"]);
+Route::get('/v1.0/business/{businessId}', [BusinessController::class, "getBusinessById"]);
 
 
 Route::get('/review-new/get/questions-all/customer', [ReviewNewController::class, "getQuestionAllUnauthorized"]);
@@ -229,15 +229,18 @@ Route::middleware(['auth:api'])->group(function () {
 
 
 
+    // BUSINESS RELATED API
     Route::post('/v1.0/business', [BusinessController::class, "storeRestaurant"]);
     Route::post('/v1.0/business/by-owner-id', [BusinessController::class, "storeRestaurantByOwnerId"]);
-    Route::delete('/business/delete/{id}', [BusinessController::class, "deleteBusinessByRestaurentId"]);
-
-    Route::delete('/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurentIdForceDelete"]);
-
-
-    Route::patch('/business/uploadimage/{restaurentId}', [BusinessController::class, "uploadRestaurentImage"]);
+    Route::get('/v1.0/business', [BusinessController::class, "getAllBusinesses"]);
     Route::patch('/v1.0/business/{businessId}', [BusinessController::class, "UpdateBusiness"]);
+    Route::delete('/v1.0/business/{id}', [BusinessController::class, "deleteBusinessById"]);
+    Route::get('/v1.0/restaurants/tables/{businessId}', [BusinessController::class, "getRestaurantTableByBusinessId"]);
+
+    Route::delete('/v1.0/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurantIdForceDelete"]);
+
+
+    Route::patch('/v1.0/business/upload-image/{businessId}', [BusinessController::class, "uploadRestaurantImage"]);
 
 
 
@@ -258,14 +261,7 @@ Route::middleware(['auth:api'])->group(function () {
 
 
 
-    Route::patch('/business/UpdateResturantDetails/byadmin/{restaurentId}', [BusinessController::class, "UpdateResturantDetailsByAdmin"]);
 
-    Route::get('/business', [BusinessController::class, "getAllBusinesses"]);
-
-    Route::get('/businesses/{perPage}', [BusinessController::class, "getBusinesses"]);
-
-    Route::get('/business/RestuarantbyID/{businessId}', [BusinessController::class, "getbusinessById"]);
-    Route::get('/business/Restuarant/tables/{businessId}', [BusinessController::class, "getbusinessTableByBusinessId"]);
 
 
 
@@ -468,10 +464,10 @@ Route::middleware(['auth:api'])->group(function () {
 // #################
 
 Route::post('/v1.0/forgot-password', [ForgotPasswordController::class, "storeForgetPassword"]);
-Route::patch('/forgetpassword/reset/{token}', [ForgotPasswordController::class, "changePasswordByToken"]);
+Route::patch('/v1.0/forget-password/reset/{token}', [ForgotPasswordController::class, "changePasswordByToken"]);
 
 Route::post('webhooks/stripe', [CustomWebhookController::class, "handleStripeWebhook"]);
-Route::get('/client/businesses/{perPage}', [BusinessController::class, "getBusinessesClients"]);
+Route::get('/v1.0/client/businesses', [BusinessController::class, "getBusinessesClients"]);
 
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 // coupon management section
