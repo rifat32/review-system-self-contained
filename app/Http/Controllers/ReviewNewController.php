@@ -17,6 +17,7 @@ use App\Models\SurveyQuestion;
 use App\Models\Tag;
 use App\Models\User;
 use App\Http\Requests\SetOverallQuestionRequest;
+use App\Http\Requests\StoreTagMultipleRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
@@ -2309,162 +2310,188 @@ class ReviewNewController extends Controller
     /**
      *
      * @OA\Post(
-     *      path="/review-new/create/tags/multiple/{businessId}",
+     *      path="/v1.0/review-new/create/tags/multiple/{businessId}",
      *      operationId="storeTagMultiple",
      *      tags={"review.setting.tag"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to store tag",
-     *      description="This method is to store tag",
-     *  @OA\Parameter(
-     * name="businessId",
-     * in="path",
-     * description="businessId",
-     * required=true,
-     * example="1"
-     * ),
-     *  @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *            required={"tags"},
-     *  @OA\Property(property="tags", type="string", format="array",example={
-     * "tag1","tag2"
-     * }
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Store multiple tags for a business",
+     *      description="Create multiple tags at once for a specific business. Checks for duplicate tags and validates business ownership.",
      *
-     * ),
-     *
-     *
-     *         ),
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          description="Business ID",
+     *          required=true,
+     *          example="1"
      *      ),
+     *
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"tags"},
+     *              @OA\Property(
+     *                  property="tags",
+     *                  type="array",
+     *                  @OA\Items(type="string"),
+     *                  example={"Excellent Service", "Great Food", "Clean Environment"}
+     *              )
+     *          )
+     *      ),
+     *
      *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          response=201,
+     *          description="Tags created successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Tags created successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="tag", type="string", example="Excellent Service"),
+     *                      @OA\Property(property="business_id", type="integer", example=1),
+     *                      @OA\Property(property="is_default", type="boolean", example=false),
+     *                      @OA\Property(property="is_active", type="boolean", example=true)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
+     *
      *      @OA\Response(
      *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
+     *          description="Forbidden - Not business owner",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="You do not own this business")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=404,
+     *          description="Business not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Business not found")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=409,
+     *          description="Duplicate tags found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Duplicate tags found"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(
+     *                      property="duplicate_indexes",
+     *                      type="array",
+     *                      @OA\Items(type="integer"),
+     *                      example={0, 2}
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=422,
+     *          description="Validation failed",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Validation failed"),
+     *              @OA\Property(property="errors", type="object")
+     *          )
      *      )
-     *     )
+     * )
      */
-    public function storeTagMultiple($businessId, Request $request)
+    public function storeTagMultiple($businessId, StoreTagMultipleRequest $request)
     {
+        // VALIDATE REQUEST (business ownership already checked in request)
+        $validated = $request->validated();
 
+        // GET UNIQUE TAGS
+        $uniqueTags = collect($validated['tags'])->unique()->values()->all();
 
-        $dataArray = [];
-        $duplicate_indexes_array = [];
+        // CHECK FOR DUPLICATES
+        $duplicateIndexes = [];
+        $isSuperAdmin = $request->user()->hasRole("superadmin");
 
-        $uniqueTags = collect($request->tags)->unique()->values()->all();
-
-
-
-
-
-        foreach ($uniqueTags as $index => $tag) {
-            $question = [
-                'tag' => $tag,
-                'business_id' => $businessId
-            ];
-
-
-            if ($request->user()->hasRole("superadmin")) {
-
-
-                $tag_found =    Tag::where([
+        foreach ($uniqueTags as $index => $tagName) {
+            if ($isSuperAdmin) {
+                // Check if default tag already exists
+                $existingTag = Tag::where([
                     "business_id" => NULL,
-                    "tag" => $question["tag"],
+                    "tag" => $tagName,
                     "is_default" => 1
-                ])
-                    ->first();
+                ])->first();
 
-                if ($tag_found) {
-
-                    array_push($duplicate_indexes_array, $index);
+                if ($existingTag) {
+                    $duplicateIndexes[] = $index;
                 }
             } else {
-                $tag_found =    Tag::where(["business_id" => $businessId, "is_default" => 0, "tag" => $question["tag"]])
+                // Check if business-specific tag exists
+                $existingTag = Tag::where([
+                    "business_id" => $businessId,
+                    "is_default" => 0,
+                    "tag" => $tagName
+                ])->first();
 
-                    ->first();
+                // Also check if default tag exists
+                if (!$existingTag) {
+                    $existingTag = Tag::where([
+                        "business_id" => NULL,
+                        "is_default" => 1,
+                        "tag" => $tagName
+                    ])->first();
+                }
 
-                if ($tag_found) {
-
-                    array_push($duplicate_indexes_array, $index);
-                } else {
-                    $tag_found =    Tag::where(["business_id" => NULL, "is_default" => 1, "tag" => $question["tag"]])
-                        ->first();
-                    if ($tag_found) {
-
-                        array_push($duplicate_indexes_array, $index);
-                    }
+                if ($existingTag) {
+                    $duplicateIndexes[] = $index;
                 }
             }
         }
 
-
-
-        if (count($duplicate_indexes_array)) {
-
-            return response([
-                "message" => "duplicate data",
-                "duplicate_indexes_array" => $duplicate_indexes_array
+        // RETURN ERROR IF DUPLICATES FOUND
+        if (count($duplicateIndexes) > 0) {
+            return response()->json([
+                "success" => false,
+                "message" => "Duplicate tags found",
+                "data" => [
+                    "duplicate_indexes" => $duplicateIndexes
+                ]
             ], 409);
-        } else {
-
-            foreach ($uniqueTags as $index => $tag) {
-                $question = [
-                    'tag' => $tag,
-                    'business_id' => $businessId
-                ];
-
-
-                if ($request->user()->hasRole("superadmin")) {
-                    $question["is_default"] = true;
-                    $businessId = NULL;
-                    $question["business_id"] = NULL;
-                } else {
-
-                    $question["is_default"] = false;
-
-                    $business =    Business::where(["id" => $businessId])->first();
-                    if (!$business) {
-                        return response()->json(["message" => "No Business Found"]);
-                    }
-                }
-
-                if (!count($duplicate_indexes_array)) {
-                    $finalTag =  Tag::create($question);
-                    array_push($dataArray, $finalTag);
-                } else {
-                    return response()->json($duplicate_indexes_array, 200);
-                }
-            }
         }
 
+        // CREATE TAGS
+        $createdTags = [];
 
+        foreach ($uniqueTags as $tagName) {
+            $tagData = [
+                'tag' => $tagName,
+                'is_default' => $isSuperAdmin,
+                'business_id' => $isSuperAdmin ? NULL : $businessId
+            ];
 
+            $createdTag = Tag::create($tagData);
+            $createdTags[] = $createdTag;
+        }
 
-
-        return response(["message" => "data inserted", "data" => $dataArray], 201);
+        // RETURN RESPONSE
+        return response()->json([
+            "success" => true,
+            "message" => "Tags created successfully",
+            "data" => $createdTags
+        ], 201);
     }
 
     // ##################################################

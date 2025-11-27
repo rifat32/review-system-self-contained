@@ -356,7 +356,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::post('/review-new/create/tags', [ReviewNewController::class, "storeTag"]);
 
-    Route::post('/review-new/create/tags/multiple/{businessId}', [ReviewNewController::class, "storeTagMultiple"]);
+    Route::post('/v1.0/review-new/create/tags/multiple/{businessId}', [ReviewNewController::class, "storeTagMultiple"]);
 
     Route::put('/review-new/update/tags', [ReviewNewController::class, "updateTag"]);
     Route::get('/review-new/get/tags', [ReviewNewController::class, "getTag"]);
