@@ -1024,38 +1024,14 @@ class BusinessController extends Controller
             }
         }
 
-        // CONDITIONAL PAGINATION
-        if ($request->filled('per_page')) {
-            $perPage = $request->input('per_page', 15);
-            $businesses = $businessQuery->paginate($perPage);
-
-            return response()->json([
-                "success" => true,
-                "message" => "Businesses retrieved successfully",
-                "data" => $businesses->items(),
-                "meta" => [
-                    "current_page" => $businesses->currentPage(),
-                    "from" => $businesses->firstItem(),
-                    "to" => $businesses->lastItem(),
-                    "per_page" => $businesses->perPage(),
-                    "last_page" => $businesses->lastPage(),
-                    "total" => $businesses->total(),
-                    "path" => $businesses->path(),
-                    "first_page_url" => $businesses->url(1),
-                    "last_page_url" => $businesses->url($businesses->lastPage()),
-                    "next_page_url" => $businesses->nextPageUrl(),
-                    "prev_page_url" => $businesses->previousPageUrl()
-                ]
-            ], 200);
-        }
-
-        // GET ALL WITHOUT PAGINATION
-        $businesses = $businessQuery->get();
+        // USE RETRIEVE_DATA HELPER FOR PAGINATION AND DATA RETRIEVAL
+        $result = retrieve_data($businessQuery);
 
         return response()->json([
             "success" => true,
             "message" => "Businesses retrieved successfully",
-            "data" => $businesses
+            "data" => $result['data'],
+            "meta" => $result['meta']
         ], 200);
     }
 
@@ -1208,48 +1184,19 @@ class BusinessController extends Controller
         // BUILD QUERY WITH FILTER SCOPE
         $businessQuery = Business::filterClients();
 
-        // CONDITIONAL PAGINATION
-        if ($request->filled('per_page')) {
-            $perPage = $request->input('per_page', 15);
-            $businesses = $businessQuery->paginate($perPage);
-
-            // Transform collection with ratings and timing
-            $businesses->getCollection()->transform(function ($business) use ($today, $request) {
-                return $this->businessService->enrichBusinessWithRatingsAndTiming($business, $today, $request);
-            });
-
-            return response()->json([
-                "success" => true,
-                "message" => "Businesses retrieved successfully",
-                "data" => $businesses->items(),
-                "meta" => [
-                    "current_page" => $businesses->currentPage(),
-                    "from" => $businesses->firstItem(),
-                    "to" => $businesses->lastItem(),
-                    "per_page" => $businesses->perPage(),
-                    "last_page" => $businesses->lastPage(),
-                    "total" => $businesses->total(),
-                    "path" => $businesses->path(),
-                    "first_page_url" => $businesses->url(1),
-                    "last_page_url" => $businesses->url($businesses->lastPage()),
-                    "next_page_url" => $businesses->nextPageUrl(),
-                    "prev_page_url" => $businesses->previousPageUrl()
-                ]
-            ], 200);
-        }
-
-        // GET ALL WITHOUT PAGINATION
-        $businesses = $businessQuery->get();
+        // USE RETRIEVE_DATA HELPER FOR PAGINATION AND DATA RETRIEVAL
+        $result = retrieve_data($businessQuery);
 
         // Transform collection with ratings and timing
-        $businesses = $businesses->map(function ($business) use ($today, $request) {
+        $result['data'] = collect($result['data'])->map(function ($business) use ($today, $request) {
             return $this->businessService->enrichBusinessWithRatingsAndTiming($business, $today, $request);
-        });
+        })->toArray();
 
         return response()->json([
             "success" => true,
             "message" => "Businesses retrieved successfully",
-            "data" => $businesses
+            "data" => $result['data'],
+            "meta" => $result['meta']
         ], 200);
     }
 
