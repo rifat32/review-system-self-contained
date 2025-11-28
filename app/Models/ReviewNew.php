@@ -60,6 +60,11 @@ public function scopeFilterByOverall($query, $is_overall)
 {
     return $query->where('is_overall', $is_overall ? 1 : 0);
 }
-
+public function scopeFilterByStaff($query)
+{
+    return $query->when(request()->has('staff_id'), function ($q) {
+        $q->where('staff_id', request()->input('staff_id'));
+    });
+}
 
 }

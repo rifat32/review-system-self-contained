@@ -914,7 +914,61 @@ class OwnerController extends Controller
 
 
 
-    public function createStaffUser($businessId, Request $request)
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
+ * This method is to store stalf
+ * This method is to store stalf
+ * @OA\Post(
+ *      path="/owner/{businessId}/staff",
+ *      operationId="createStaffUser",
+ *      tags={"owner"},
+ *      security={{"bearerAuth": {}}},
+ *      summary="This method is to store stalf",
+ *      description="This method is to store stalf",
+ *      @OA\Parameter(
+ *          name="businessId",
+ *          in="path",
+ *          description="method",
+ *          required=true,
+ *          example="1"
+ *      ),
+ *      @OA\RequestBody(
+ *          required=true,
+ *          @OA\JsonContent(
+ *              required={"email","first_Name"},
+ *              @OA\Property(property="email", type="string", format="string",example="test@g.c"),
+ *              @OA\Property(property="type", type="string", format="string",example="12345678"),
+ *              @OA\Property(property="first_Name", type="string", format="string",example="Rifat"),
+ *              @OA\Property(property="phone", type="string", format="string",example="Rifat"),
+ *              @OA\Property(property="password", type="string", format="string",example="Rifat")
+ *          ),
+ *      ),
+ *      @OA\Response(
+ *          response=200,
+ *          description="Successful operation",
+ *          @OA\JsonContent(),
+ *      ),
+ *      @OA\Response(
+ *          response=401,
+ *          description="Unauthenticated",
+ *          @OA\JsonContent(),
+ *      ),
+ *      @OA\Response(
+ *          response=422,
+ *          description="Unprocesseble Content",
+ *          @OA\JsonContent(),
+ *      ),
+ *      @OA\Response(
+ *          response=403,
+ *          description="Forbidden",
+ *          @OA\JsonContent(),
+ *      ),
+ *      @OA\Response(
+ *          response=404,
+ *          description="not found",
+ *          @OA\JsonContent(),
+ *      )
+/*******  1feb5080-907e-48b3-9dc6-9a9cfa79f333  *******/    public function createStaffUser($businessId, Request $request)
     {
 
         $validator = Validator::make($request->all(), [

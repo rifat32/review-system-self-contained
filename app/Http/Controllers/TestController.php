@@ -176,6 +176,7 @@ class TestController extends Controller
     "business_id" => $business->id,
     "guest_id" => NULL,
     ])
+        ->filterByStaff()
     ->whereNotNull("comment")
     ;
     if(!empty($start_date) && !empty($end_date)) {

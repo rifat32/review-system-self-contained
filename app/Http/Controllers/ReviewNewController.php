@@ -211,6 +211,7 @@ class ReviewNewController extends Controller
         $reviews = ReviewNew::where([
             "business_id" => $businessId
         ])
+            ->filterByStaff()
             ->whereBetween('created_at', [$start, $end])
 
             ->get();
@@ -348,6 +349,7 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
             "rate" => $rate
         ])
+            ->filterByStaff()
             ->with("business", "value")
             ->whereBetween('created_at', [$start, $end])
             ->get();
@@ -414,6 +416,7 @@ class ReviewNewController extends Controller
         $reviewValue = ReviewNew::with("value")->where([
             "business_id" => $businessId,
         ])
+            ->filterByStaff()
             ->get();
 
 
@@ -498,6 +501,7 @@ class ReviewNewController extends Controller
         $data["reviews"] = ReviewNew::where([
             "business_id" => $businessId,
         ])
+            ->filterByStaff()
             ->whereBetween('created_at', [$start, $end])
             ->get();
         $data["total"]   = $data["reviews"]->count();
@@ -683,6 +687,7 @@ class ReviewNewController extends Controller
             $existing_review = ReviewNew::where('business_id', $businessId)
                 ->where('ip_address', $ip_address)
                 ->whereDate('created_at', now()->toDateString())
+                    ->filterByStaff()
                 ->first();
 
             if ($existing_review) {
@@ -770,7 +775,10 @@ class ReviewNewController extends Controller
 
 
         if ($business) {
-            $average_rating = ReviewNew::where('business_id', $business->id)->avg('rate');
+            $average_rating = ReviewNew::where('business_id', $business->id)
+                ->filterByStaff()
+            
+            ->avg('rate');
 
             if ($average_rating >= $business->threshold_rating) {
                 $review->status = 'published';
@@ -1964,7 +1972,9 @@ class ReviewNewController extends Controller
             $data2["total_rating"] = 0;
         }
 
-        $data2["total_comment"] = ReviewNew::with("user", "guest_user")->where([
+        $data2["total_comment"] = ReviewNew::with("user", "guest_user")
+        ->filterByStaff()
+        ->where([
             "business_id" => $business->id,
             "guest_id" => NULL,
         ])
@@ -3645,6 +3655,7 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
+            ->filterByStaff()
             ->whereNotNull("comment");
         if (!empty($request->start_date) && !empty($request->end_date)) {
 
@@ -3899,6 +3910,7 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "guest_id" => NULL,
         ])
+            ->filterByStaff()
             ->whereNotNull("comment")
             ->get();
 
@@ -4172,6 +4184,7 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
+            ->filterByStaff()
             ->whereNotNull("comment")
             ->get();
 
@@ -4717,6 +4730,7 @@ class ReviewNewController extends Controller
                 "guest_id" => NULL,
                 "review_news.user_id" => $users->items()[$i]->id
             ])
+                ->filterByStaff()
                 ->whereNotNull("comment");
             if (!empty($request->start_date) && !empty($request->end_date)) {
 
@@ -5003,6 +5017,7 @@ class ReviewNewController extends Controller
                 "guest_id" => $users->items()[$i]->id,
                 "review_news.user_id" => NULL
             ])
+                ->filterByStaff()
                 ->whereNotNull("comment");
             if (!empty($request->start_date) && !empty($request->end_date)) {
 

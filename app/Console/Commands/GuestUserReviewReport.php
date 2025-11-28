@@ -200,8 +200,9 @@ class GuestUserReviewReport extends Command
     "business_id" => $business->id,
     "user_id" => NULL,
     ])
-    ->whereNotNull("comment")
-    ;
+    ->filterByStaff()
+   
+    ->whereNotNull("comment");
     if(!empty($start_date) && !empty($end_date)) {
 
     $data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
