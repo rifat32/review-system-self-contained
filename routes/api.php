@@ -415,9 +415,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::middleware(['superadmin'])->group(function () {
 
-        Route::patch('/superadmin/auth/changepassword', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
-
-        Route::patch('/superadmin/auth/change-email', [ForgotPasswordController::class, "changeEmailBySuperAdmin"]);
+        Route::patch('/v1.0/auth/change-password-by-superadmin', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
 
 
         Route::get('/superadmin/dashboard-report/total-business', [SuperAdminReportController::class, "getTotalBusinessReport"]);
