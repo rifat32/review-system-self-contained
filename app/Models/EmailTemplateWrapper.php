@@ -9,6 +9,13 @@ class EmailTemplateWrapper extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        "name",
+        "type",
+        "template",
+        "is_active"
+    ];
+
     /**
      * Scope a query to filter email template wrappers based on request parameters.
      *
