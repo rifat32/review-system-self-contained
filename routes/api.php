@@ -78,14 +78,13 @@ Route::post('/auth/register', [AuthController::class, "userRegister"]);
 
 
 Route::post('/owner/user/registration', [OwnerController::class, "createUser2"]);
-Route::post('/owner/user/with/business', [OwnerController::class, "createUserWithBusiness"]);
+Route::post('/v1.0/create-user-with-business', [OwnerController::class, "createUserWithBusiness"]);
 
 
 
 
-Route::post('/owner/user/check/email', [OwnerController::class, "checkEmail"]);
+Route::post('/v1.0/auth/check-user-email', [AuthController::class, "checkUserEmail"]);
 
-Route::post('/owner/super/admin', [OwnerController::class, "createsuperAdmin"]);
 
 Route::post('/owner', [OwnerController::class, "createUser"]);
 // #################
@@ -95,7 +94,7 @@ Route::post('/owner', [OwnerController::class, "createUser"]);
 
 
 // guest user
-Route::post('/owner/guestuserregister', [OwnerController::class, "createGuestUser"]);
+Route::post('/v1.0/register-guest-users', [OwnerController::class, "createGuestUser"]);
 // end of guest user
 Route::post('/owner/staffregister/{businessId}', [OwnerController::class, "createStaffUser"]);
 
@@ -182,11 +181,8 @@ Route::middleware(['auth:api'])->group(function () {
     // Auth Routes
     // #################
 
-    Route::patch('/owner/update-user', [OwnerController::class, "updateUser"]);
-    Route::patch('/owner/update-user/by-user', [OwnerController::class, "updateUserByUser"]);
 
-    Route::patch('/owner/profileimage', [OwnerController::class, "updateImage"]);
-    Route::get('/owner/role/get-role', [OwnerController::class, "getRole"]);
+    Route::patch('/v1.0/upload/profile-image', [OwnerController::class, "updateImage"]);
 
     Route::post('/auth/check-pin/{id}', [AuthController::class, "verifyPin"]);
     Route::get('/auth', [AuthController::class, "getUsersWithRestaurants"]);

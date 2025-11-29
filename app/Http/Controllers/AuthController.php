@@ -974,4 +974,85 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     *
+     * @OA\Post(
+     *      path="/v1.0/auth/check-user-email",
+     *      operationId="checkUserEmail",
+     *      tags={"auth"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to check user",
+     *      description="This method is to check user",
+     *
+     *  @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"email"},
+     *
+     *             @OA\Property(property="email", type="string", format="string",example="test@g.c"),
+     *
+     *
+     *         ),
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *   @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+
+    public function checkUserEmail(Request $request)
+    {
+        $request->validate([
+            "email" => "required|email"
+        ]);
+
+        $user = User::where([
+            "email" => $request->email
+        ])->exists();
+
+        // Return true if email exists, false otherwise
+        if ($user) {
+            return response()->json([
+                "success" => true,
+                "message" => "Email already exists",
+                "data" => true
+            ], 200);
+        }
+
+        // Email does not exist
+        return response()->json([
+            "success" => true,
+            "message" => "Email does not exist",
+            "data" => false
+        ], 200);
+    }
 }

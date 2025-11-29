@@ -3,9 +3,14 @@
 namespace App\Services;
 
 use App\Models\Business;
+use App\Models\BusinessDay;
+use App\Models\Question;
 use App\Models\Star;
 use App\Models\ReviewValueNew;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class BusinessService
 {
@@ -53,5 +58,112 @@ class BusinessService
         $business->timing = $timing;
 
         return $business;
+    }
+
+    /**
+     * Create business with schedule and default questions
+     */
+    public function createBusinessWithSchedule(User $user, array $payloadData): Business
+    {
+        $business = $this->createBusiness($user, $payloadData);
+
+        $this->createBusinessSchedule($business, $payloadData['times']);
+
+        // CREATE DEFAULT QUESTIONS IF ENABLE QUESTION IS FALSE
+        if (!$payloadData['business_enable_question']) {
+            $this->createDefaultQuestions($business);
+        }
+
+        return $business->fresh();
+    }
+
+    /**
+     * Create a new business
+     */
+    public function createBusiness(User $user, array $payloadData): Business
+    {
+        return Business::create([
+            'OwnerID' => $user->id,
+            'Status' => 'Inactive',
+            'Key_ID' => Str::random(10),
+            'expiry_date' => now()->addDays(15)->format('d-m-Y'),
+            'Name' => $payloadData['business_name'],
+            'Address' => $payloadData['business_address'],
+            'PostCode' => $payloadData['business_postcode'],
+            'enable_question' => $payloadData['business_enable_question'],
+            'EmailAddress' => $payloadData['business_EmailAddress'] ?? '',
+            'GoogleMapApi' => $payloadData['business_GoogleMapApi'] ?? '',
+            'homeText' => $payloadData['business_homeText'] ?? '',
+            'AdditionalInformation' => $payloadData['business_AdditionalInformation'] ?? '',
+            'Webpage' => $payloadData['business_Webpage'] ?? '',
+            'PhoneNumber' => $payloadData['business_PhoneNumber'] ?? '',
+            'About' => $payloadData['business_About'] ?? '',
+            'Layout' => $payloadData['business_Layout'] ?? '',
+            'header_image' => $payloadData['header_image'] ?? '/header_image/default.webp',
+            'rating_page_image' => $payloadData['rating_page_image'] ?? '/rating_page_image/default.webp',
+            'placeholder_image' => $payloadData['placeholder_image'] ?? '/placeholder_image/default.webp',
+            'primary_color' => $payloadData['primary_color'] ?? '',
+            'secondary_color' => $payloadData['secondary_color'] ?? '',
+            'client_primary_color' => $payloadData['client_primary_color'] ?? '#172c41',
+            'client_secondary_color' => $payloadData['client_secondary_color'] ?? '#ac8538',
+            'client_tertiary_color' => $payloadData['client_tertiary_color'] ?? '#ffffff',
+            'user_review_report' => $payloadData['user_review_report'] ?? false,
+            'guest_user_review_report' => $payloadData['guest_user_review_report'] ?? false,
+            'review_type' => $payloadData['review_type'] ?? 'star',
+            'google_map_iframe' => $payloadData['google_map_iframe'] ?? '',
+            'show_image' => $payloadData['show_image'] ?? '',
+            'Is_guest_user' => $payloadData['Is_guest_user'] ?? false,
+            'is_review_silder' => $payloadData['is_review_silder'] ?? false,
+            'review_only' => $payloadData['review_only'] ?? true,
+        ]);
+    }
+
+    /**
+     * Create business schedule with days and time slots
+     */
+    public function createBusinessSchedule(Business $business, array $times): void
+    {
+        // Remove existing schedule
+        BusinessDay::where('business_id', $business->id)->delete();
+
+        foreach ($times as $dayData) {
+            $businessDay = BusinessDay::create([
+                'business_id' => $business->id,
+                'day' => $dayData['day'],
+                'is_weekend' => $dayData['is_weekend'],
+            ]);
+
+            foreach ($dayData['time_slots'] as $timeSlot) {
+                $businessDay->timeSlots()->create([
+                    'start_at' => $timeSlot['start_at'],
+                    'end_at' => $timeSlot['end_at'],
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Create default questions for business
+     */
+    public function createDefaultQuestions(Business $business): void
+    {
+        DB::transaction(function () use ($business) {
+            $defaultQuestions = Question::where([
+                'business_id' => null,
+                'is_default' => true
+            ])->get();
+
+            $questionsData = $defaultQuestions->map(fn($question) => [
+                'question' => $question->question,
+                'business_id' => $business->id,
+                'is_active' => false,
+                'created_at' => now(),
+                'updated_at' => now()
+            ])->toArray();
+
+            if (!empty($questionsData)) {
+                Question::insert($questionsData);
+            }
+        });
     }
 }
