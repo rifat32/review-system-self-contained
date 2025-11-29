@@ -205,7 +205,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::put('/v1.0/surveys', [SurveyController::class, "updateSurvey"]);
 
     Route::post('/v1.0/surveys/ordering', [SurveyController::class, "orderSurveys"]);
-    
+
     Route::get('/v1.0/surveys/{business_id}/{perPage}', [SurveyController::class, "getSurveys"]);
     Route::get('/v1.0/surveys/{business_id}', [SurveyController::class, "getAllSurveys"]);
     Route::delete('/v1.0/surveys/{id}', [SurveyController::class, "deleteSurveyById"]);
@@ -271,18 +271,17 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     // #################
-    // dailyviews Routes
+    // daily views Routes
+
+    Route::post('/v1.0/daily-views/{businessId}', [DailyViewsController::class, "createDailyView"]);
+    Route::patch('/v1.0/daily-views/update/{businessId}', [DailyViewsController::class, "updateDailyView"]);
 
     // #################
-    Route::post('/dailyviews/{businessId}', [DailyViewsController::class, "store"]);
-    Route::patch('/dailyviews/update/{businessId}', [DailyViewsController::class, "update"]);
-
-    // #################
-    // forggor password Routes
+    // forgot password Routes
 
     // #################
 
-    Route::patch('/auth/changepassword', [ForgotPasswordController::class, "changePassword"]);
+    Route::patch('/v1.0/auth/change-password', [ForgotPasswordController::class, "changePassword"]);
 
 
 

@@ -35,7 +35,7 @@ class ValidBusiness implements ValidationRule
         }
 
         if (!$query->exists()) {
-            $message = $this->checkOwnership
+            $message = $this->checkOwnership && $this->userId
                 ? 'The selected business is invalid or you do not own it.'
                 : 'The selected business is invalid.';
             $fail($message);
