@@ -49,6 +49,10 @@ class ReviewNew extends Model
         return $this->hasOne(Business::class,'id','business_id');
     }
 
+    public function staff() {
+        return $this->hasOne(User::class,'id','staff_id');
+    }
+
     public function user() {
         return $this->hasOne(User::class,'id','user_id');
     }
