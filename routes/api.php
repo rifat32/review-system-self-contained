@@ -441,12 +441,17 @@ Route::middleware(['auth:api'])->group(function () {
         Route::put('/v1.0/email-template-wrappers', [EmailTemplateWrapperController::class, "updateEmailTemplateWrapper"]);
         Route::get('/v1.0/email-template-wrappers/single/{id}', [EmailTemplateWrapperController::class, "getEmailTemplateWrapperById"]);
         Route::get('/v1.0/email-template-wrappers', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
-        Route::post('/v1.0/email-templates', [EmailTemplateController::class, "createEmailTemplate"]);
-        Route::put('/v1.0/email-templates', [EmailTemplateController::class, "updateEmailTemplate"]);
+
+
+        // EMAIL TEMPLATE MANAGEMENT
+        Route::prefix('v1.0/email-templates')->group(function () {
+            Route::post('/', [EmailTemplateController::class, "createEmailTemplate"]);
+            Route::put('/{id}', [EmailTemplateController::class, "updateEmailTemplate"]);
+            Route::get('/', [EmailTemplateController::class, "getEmailTemplates"]);
+            Route::get('/{id}', [EmailTemplateController::class, "getEmailTemplateById"]);
+            Route::delete('/{ids}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
+        });
         Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
-        Route::delete('/v1.0/email-templates/{ids}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
-        Route::get('/v1.0/email-templates/single/{id}', [EmailTemplateController::class, "getEmailTemplateById"]);
-        Route::get('/v1.0/email-templates', [EmailTemplateController::class, "getEmailTemplates"]);
     });
 
     Route::get('/customer-report', [ReportController::class, "customerDashboardReport"]);

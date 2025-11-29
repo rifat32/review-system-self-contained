@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class EmailTemplateUpdateRequest extends FormRequest
+class EmailTemplateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,8 +24,7 @@ class EmailTemplateUpdateRequest extends FormRequest
     public function rules()
     {
         return [
-            "id" => "required|numeric",
-            "name"=>"nullable|string",
+            "name" => "nullable|string",
             "template" => "required|string",
             "is_active" => "required|boolean",
             "wrapper_id" => "nullable|numeric",

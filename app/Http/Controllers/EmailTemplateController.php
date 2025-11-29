@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\EmailTemplateCreateRequest;
-use App\Http\Requests\EmailTemplateUpdateRequest;
+use App\Http\Requests\EmailTemplateRequest;
 use App\Models\EmailTemplate;
 use Exception;
 use Illuminate\Http\Request;
@@ -24,12 +23,12 @@ class EmailTemplateController extends Controller
      *       security={
      *           {"bearerAuth": {}}
      *       },
-     *      summary="This method is to store email template",
-     *      description="This method is to store email template",
+     *      summary="This method is to store Email template",
+     *      description="This method is to store Email template",
      *
      *  @OA\RequestBody(
      *         required=true,
-     *         description="use {{dynamic-username}} {{dynamic-verify-link}} in the template.",
+     *         description="Use {{dynamic-username}} {{dynamic-verify-link}} in the template.",
      *         @OA\JsonContent(
      *            required={"type","template","is_active"},
      *    @OA\Property(property="type", type="string", format="string",example="email_verification_mail"),
@@ -39,40 +38,58 @@ class EmailTemplateController extends Controller
      *         ),
      *      ),
      *      @OA\Response(
-     *          response=200,
+     *          response=201,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Email template created successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      ),
-     *        @OA\Response(
+     *      @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
+     *          description="Unprocessable Content",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Validation errors")
+     *          )
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *   @OA\JsonContent()
-     * ),
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request",
-     *   *@OA\JsonContent()
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found",
-     *   *@OA\JsonContent()
-     *   )
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Forbidden")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Bad Request")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="Not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Not found")
+     *          )
      *      )
      *     )
      */
 
-    public function createEmailTemplate(EmailTemplateCreateRequest $request)
+    public function createEmailTemplate(EmailTemplateRequest $request)
     {
         try {
             return    DB::transaction(function () use (&$request) {
@@ -91,25 +108,29 @@ class EmailTemplateController extends Controller
                         ]);
                 }
 
-
-                return response($template, 201);
+                // return response
+                return response([
+                    "success" => true,
+                    "message" => "Email template created successfully",
+                    "data" => $template
+                ], 201);
             });
         } catch (Exception $e) {
 
-            return $e->getMessage();
+            throw $e;
         }
     }
     /**
      *
      * @OA\Put(
-     *      path="/v1.0/email-templates",
+     *      path="/v1.0/email-templates/{id}",
      *      operationId="updateEmailTemplate",
      *      tags={"template_management.email"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
-     *      summary="This method is to update email template",
-     *      description="This method is to update email template",
+     *      summary="This method is to update Email template",
+     *      description="This method is to update Email template",
      *
      *  @OA\RequestBody(
      *         required=true,
@@ -122,56 +143,74 @@ class EmailTemplateController extends Controller
      *         ),
      *      ),
      *      @OA\Response(
-     *          response=200,
+     *          response=201,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Email template updated successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      ),
-     *        @OA\Response(
+     *      @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
+     *          description="Unprocessable Content",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Validation errors")
+     *          )
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *   @OA\JsonContent()
-     * ),
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request",
-     *   *@OA\JsonContent()
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found",
-     *   *@OA\JsonContent()
-     *   )
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Forbidden")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Bad Request")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="Not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Email template not found")
+     *          )
      *      )
      *     )
      */
 
-    public function updateEmailTemplate(EmailTemplateUpdateRequest $request)
+    public function updateEmailTemplate(EmailTemplateRequest $request, int $id)
     {
         try {
 
-            return    DB::transaction(function () use (&$request) {
-
+            return    DB::transaction(function () use (&$request, $id) {
                 $request_payload = $request->validated();
 
-                $template  =  tap(EmailTemplate::where(["id" => $request_payload["id"]]))->update(
-                    collect($request_payload)->only([
-                        "template",
+                $template  =  EmailTemplate::find($id);
 
-                    ])->toArray()
-                )
+                if (!$template) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "Email template not found"
+                    ], 404);
+                }
 
-
-                    ->first();
+                $template->update($request_payload);
 
                 //    if the template is active then other templates of this type will
                 if ($template->is_active) {
@@ -183,7 +222,11 @@ class EmailTemplateController extends Controller
                             "is_active" => false
                         ]);
                 }
-                return response($template, 201);
+                return response([
+                    "success" => true,
+                    "message" => "Email template updated successfully",
+                    "data" => $template
+                ], 201);
             });
         } catch (Exception $e) {
             return $e->getMessage();
@@ -202,65 +245,83 @@ class EmailTemplateController extends Controller
      *              @OA\Parameter(
      *         name="perPage",
      *         in="query",
-     *         description="perPage",
+     *         description="Per page",
      *         required=false,
      *  example="6"
      *      ),
      *              @OA\Parameter(
      *         name="search_key",
      *         in="query",
-     *         description="search_key",
+     *         description="Search key",
      *         required=false,
      *  example="email_verification"
      *      ),
      *              @OA\Parameter(
      *         name="start_date",
      *         in="query",
-     *         description="start_date",
+     *         description="Start date",
      *         required=false,
      *  example="2023-01-01"
      *      ),
      *              @OA\Parameter(
      *         name="end_date",
      *         in="query",
-     *         description="end_date",
+     *         description="End date",
      *         required=false,
      *  example="2023-12-31"
      *      ),
-     *      summary="This method is to get email templates",
-     *      description="This method is to get email templates",
+     *      summary="This method is to get Email templates",
+     *      description="This method is to get Email templates",
      *
 
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Email templates retrieved successfully"),
+     *              @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
      *      ),
-     *        @OA\Response(
+     *      @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
+     *          description="Unprocessable Content",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Validation errors")
+     *          )
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *   @OA\JsonContent()
-     * ),
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request",
-     *   *@OA\JsonContent()
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found",
-     *   *@OA\JsonContent()
-     *   )
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Forbidden")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Bad Request")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="Not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Not found")
+     *          )
      *      )
      *     )
      */
@@ -277,7 +338,11 @@ class EmailTemplateController extends Controller
                 $templates = $templateQuery->get();
             }
 
-            return response()->json($templates, 200);
+            return response()->json([
+                "success" => true,
+                "message" => "Email templates retrieved successfully",
+                "data" => $templates
+            ], 200);
         } catch (Exception $e) {
 
             return $e->getMessage();
@@ -294,8 +359,8 @@ class EmailTemplateController extends Controller
      *           {"bearerAuth": {}}
      *       },
      *
-     *      summary="This method is to get email template types ",
-     *      description="This method is to get email template types",
+     *      summary="This method is to get Email template types",
+     *      description="This method is to get Email template types",
      *
 
      *      @OA\Response(
@@ -310,7 +375,7 @@ class EmailTemplateController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -332,18 +397,22 @@ class EmailTemplateController extends Controller
      *     )
      */
 
-    public function getEmailTemplateTypes(Request $request)
+    public function getEmailTemplateTypes()
     {
         try {
 
-
+            // define types
             $types = ["email_verification_mail", "forget_password_mail", "welcome_message"];
 
-
-            return response()->json($types, 200);
+            // return response
+            return response()->json([
+                "success" => true,
+                "message" => "Email template types retrieved successfully",
+                "data" => $types
+            ], 200);
         } catch (Exception $e) {
 
-            return $e->getMessage();
+            throw $e;
         }
     }
 
@@ -363,8 +432,8 @@ class EmailTemplateController extends Controller
      *         required=true,
      *  example="1,2,3"
      *      ),
-     *      summary="This method is to delete email templates by ids",
-     *      description="This method is to delete email templates by ids",
+     *      summary="This method is to delete Email templates by ids",
+     *      description="This method is to delete Email templates by ids",
      *
 
      *      @OA\Response(
@@ -379,7 +448,7 @@ class EmailTemplateController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -401,32 +470,39 @@ class EmailTemplateController extends Controller
      *     )
      */
 
-    public function deleteEmailTemplateById($ids, Request $request)
+    public function deleteEmailTemplateById($ids)
     {
         try {
+            // convert ids string to array
             $idsArray = explode(',', $ids);
             $idsArray = array_map('intval', $idsArray);
 
+            // find existing ids
             $existingIds = EmailTemplate::whereIn('id', $idsArray)->pluck('id')->toArray();
 
+            // find non existing ids
             $nonExistingIds = array_diff($idsArray, $existingIds);
 
+            // if non existing ids
             if (!empty($nonExistingIds)) {
                 return response()->json([
+                    "success" => false,
                     "message" => "Some email templates were not found",
                     "non_existing_ids" => array_values($nonExistingIds)
                 ], 404);
             }
 
+            // delete email templates
             EmailTemplate::whereIn('id', $idsArray)->delete();
 
+            // return response
             return response()->json([
-                "ok" => true,
+                "success" => true,
                 "message" => "Email templates deleted successfully",
                 "deleted_count" => count($existingIds)
             ], 200);
         } catch (Exception $e) {
-            return $e->getMessage();
+            throw $e;
         }
     }
 
@@ -447,8 +523,8 @@ class EmailTemplateController extends Controller
      *         required=true,
      *  example="6"
      *      ),
-     *      summary="This method is to get email template by id",
-     *      description="This method is to get email template by id",
+     *      summary="This method is to get Email template by id",
+     *      description="This method is to get Email template by id",
      *
 
      *      @OA\Response(
@@ -463,7 +539,7 @@ class EmailTemplateController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -485,23 +561,27 @@ class EmailTemplateController extends Controller
      *     )
      */
 
-    public function getEmailTemplateById($id, Request $request)
+    public function getEmailTemplateById($id)
     {
         try {
+            $template = EmailTemplate::find($id);
 
-
-
-            $template = EmailTemplate::where([
-                "id" => $id
-            ])
-                ->first();
+            // check if template exists
             if (!$template) {
                 return response()->json([
+                    "success" => false,
                     "message" => "no data found"
                 ], 404);
             }
-            return response()->json($template, 200);
+
+            // return response
+            return response()->json([
+                "success" => true,
+                "message" => "Email template retrieved successfully",
+                "data" => $template
+            ], 200);
         } catch (Exception $e) {
+            throw $e;
         }
     }
 }
