@@ -32,12 +32,14 @@ class StaffController extends Controller
      *       required={"first_Name","last_Name","email","password","role"},
      *       @OA\Property(property="first_Name", type="string", maxLength=255, example="John"),
      *       @OA\Property(property="last_Name",  type="string", maxLength=255, example="Doe"),
-     *       @OA\Property(property="email",      type="string", format="email", example="john.doe@example.com"),
+     *       @OA\Property(property="email",      type="string", format="email", example="john.doe@yopmail.com"),
      *       @OA\Property(property="password",   type="string", format="password", minLength=8, example="StrongP@ssw0rd"),
      *       @OA\Property(property="phone",      type="string", maxLength=255, example="+8801765432109"),
      *       @OA\Property(property="job_title", type="string", maxLength=255, example="Manager"),
      *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
-     *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff")
+     *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff"),
+     *       @OA\Property(property="skills", type="string", example="PHP, Laravel"),
+     *       @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *     )
      *   ),
      *
@@ -54,9 +56,11 @@ class StaffController extends Controller
      *         @OA\Property(property="id", type="integer", example=42),
      *         @OA\Property(property="first_Name", type="string", example="John"),
      *         @OA\Property(property="last_Name", type="string", example="Doe"),
-     *         @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *         @OA\Property(property="email", type="string", format="email", example="john.doe@yopmail.com"),
      *         @OA\Property(property="phone", type="string", example="+8801765432109"),
      *         @OA\Property(property="role", type="string", example="staff"),
+     *         @OA\Property(property="skills", type="string", example="PHP, Laravel"),
+     *         @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01"),
      *         @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOi..."),
      *         @OA\Property(
      *           property="business",
@@ -163,11 +167,13 @@ class StaffController extends Controller
      *       type="object",
      *       @OA\Property(property="first_Name", type="string", maxLength=255, example="John"),
      *       @OA\Property(property="last_Name",  type="string", maxLength=255, example="Doe"),
-     *       @OA\Property(property="email",      type="string", format="email", example="john.doe@example.com"),
+     *       @OA\Property(property="email",      type="string", format="email", example="john.doe@yopmail.com"),
      *       @OA\Property(property="phone",      type="string", maxLength=50, example="+8801765432109"),
      *       @OA\Property(property="job_title", type="string", maxLength=255, example="Manager"),
      *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
-     *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff")
+     *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff"),
+     *       @OA\Property(property="skills", type="string", example="PHP, Laravel"),
+     *       @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *     )
      *   ),
      *
@@ -184,11 +190,13 @@ class StaffController extends Controller
      *       @OA\Property(property="id", type="integer", example=12),
      *       @OA\Property(property="first_Name", type="string", example="John"),
      *       @OA\Property(property="last_Name", type="string", example="Doe"),
-     *       @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *       @OA\Property(property="email", type="string", format="email", example="john.doe@yopmail.com"),
      *       @OA\Property(property="phone", type="string", example="+8801765432109"),
      *       @OA\Property(property="job_title", type="string", example="Manager"),
      *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
-     *       @OA\Property(property="role", type="string", example="staff")
+     *       @OA\Property(property="role", type="string", example="staff"),
+     *       @OA\Property(property="skills", type="string", example="PHP, Laravel"),
+     *       @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *       )
      *     )
      *   ),
@@ -377,7 +385,9 @@ class StaffController extends Controller
      *           @OA\Property(property="last_Name", type="string", example="Doe"),
      *           @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *           @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *           @OA\Property(property="business_id", type="integer", example=3)
+     *           @OA\Property(property="business_id", type="integer", example=3),
+     *           @OA\Property(property="skills", type="string", example="PHP, Laravel"),
+     *           @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *         )
      *       ),
      *       @OA\Property(
@@ -502,7 +512,9 @@ class StaffController extends Controller
      *         @OA\Property(property="last_Name", type="string", example="Doe"),
      *         @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *         @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *         @OA\Property(property="role", type="string", example="staff")
+     *         @OA\Property(property="role", type="string", example="staff"),
+     *         @OA\Property(property="skills", type="string", example="PHP, Laravel"),
+     *         @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *       )
      *     )
      *   ),
@@ -611,9 +623,11 @@ class StaffController extends Controller
      *           @OA\Property(property="id", type="integer", example=12),
      *           @OA\Property(property="first_Name", type="string", example="John"),
      *           @OA\Property(property="last_name", type="string", example="Doe"),
-     *           @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *           @OA\Property(property="email", type="string", format="email", example="john.doe@yopmaill.com"),
      *           @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *           @OA\Property(property="business_id", type="integer", example=3)
+     *           @OA\Property(property="business_id", type="integer", example=3),
+     *           @OA\Property(property="skills", type="string", example="PHP, Laravel"),
+     *           @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *         )
      *       ),
      *       @OA\Property(
