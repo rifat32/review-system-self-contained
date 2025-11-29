@@ -30,7 +30,15 @@ class ReviewNew extends Model
                 'topics', 
                 'moderation_results',
                 'ai_suggestions',
-                'staff_suggestions'
+                'staff_suggestions',
+                "status",
+                  'source',
+                'language',
+                'responded_at',
+                'review_type',
+                'sentiment',
+                'topic_id',
+                'reply_content',
 
     ];
       protected $casts = [
