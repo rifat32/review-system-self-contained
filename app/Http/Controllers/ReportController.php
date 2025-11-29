@@ -1833,7 +1833,327 @@ class ReportController extends Controller
     }
 
 
+ /**
+     * @OA\Get(
+     *      path="/reports/staff-performance/{businessId}/{staffId}",
+     *      operationId="staffPerformance",
+     *      tags={"Reports"},
+     *      summary="Get detailed staff performance report",
+     *      description="Get comprehensive performance analysis for a staff member",
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      @OA\Parameter(
+     *          name="staffId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      @OA\Response(response=200, description="Success"),
+     *      @OA\Response(response=404, description="Not Found")
+     * )
+     */
+    public function staffPerformance($businessId, $staffId)
+    {
+        $business = Business::findOrFail($businessId);
+        $staff = User::findOrFail($staffId);
 
+        // Get all reviews for this staff member
+        $reviews = ReviewNew::where('business_id', $businessId)
+            ->where('staff_id', $staffId)
+            ->whereNotNull('sentiment_score')
+            ->get();
+
+        // Calculate tenure
+        $tenure = $this->calculateTenure($staff->join_date);
+        
+        // Get rating trend
+        $ratingTrend = $this->getRatingTrend($reviews);
+        
+        // Get review samples by sentiment
+        $reviewSamples = $this->getReviewSamples($reviews);
+        
+        // Get recommended training
+        $recommendedTraining = $this->getRecommendedTraining($reviews, $staff);
+        
+        // Get AI skill-gap detection
+        $skillGapAnalysis = $this->analyzeSkillGaps($reviews);
+        
+        // Get customer-perceived tone
+        $customerTone = $this->calculateCustomerTone($reviews);
+
+        return response()->json([
+            'staff_profile' => [
+                'id' => $staff->id,
+                'name' => $staff->name,
+                'position' => $staff->position ?? 'Staff',
+                'email' => $staff->email,
+                'tenure' => $tenure,
+                'join_date' => $staff->join_date
+            ],
+            'performance_summary' => [
+                'total_reviews' => $reviews->count(),
+                'avg_rating' => round($reviews->avg('rate'), 1),
+                'sentiment_distribution' => $this->calculateSentimentDistribution($reviews)
+            ],
+            'rating_trend' => $ratingTrend,
+            'review_samples' => $reviewSamples,
+            'recommended_training' => $recommendedTraining,
+            'skill_gap_analysis' => $skillGapAnalysis,
+            'customer_perceived_tone' => $customerTone
+        ]);
+    }
+
+    private function calculateTenure($joinDate)
+    {
+        if (!$joinDate) {
+            return 'Not specified';
+        }
+
+        $join = Carbon::parse($joinDate);
+        $now = Carbon::now();
+        
+        $years = $now->diffInYears($join);
+        $months = $now->diffInMonths($join) % 12;
+        
+        return "{$years} years {$months} months";
+    }
+
+    private function getRatingTrend($reviews)
+    {
+        // Get last 6 months of ratings
+        $sixMonthsAgo = Carbon::now()->subMonths(6);
+        
+        $monthlyRatings = $reviews->where('created_at', '>=', $sixMonthsAgo)
+            ->groupBy(function ($review) {
+                return $review->created_at->format('Y-m');
+            })
+            ->map(function ($monthReviews) {
+                return round($monthReviews->avg('rate'), 1);
+            })
+            ->sortKeys()
+            ->toArray();
+
+        return [
+            'period' => 'last_6_months',
+            'data' => $monthlyRatings,
+            'trend_direction' => $this->calculateTrendDirection($monthlyRatings)
+        ];
+    }
+
+    private function calculateTrendDirection($monthlyRatings)
+    {
+        if (count($monthlyRatings) < 2) {
+            return 'stable';
+        }
+
+        $values = array_values($monthlyRatings);
+        $first = $values[0];
+        $last = end($values);
+
+        if ($last > $first + 0.3) {
+            return 'improving';
+        } elseif ($last < $first - 0.3) {
+            return 'declining';
+        } else {
+            return 'stable';
+        }
+    }
+
+    private function getReviewSamples($reviews, $limit = 2)
+    {
+        $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)
+            ->sortByDesc('created_at')
+            ->take($limit);
+
+        $constructiveReviews = $reviews->whereBetween('sentiment_score', [0.4, 0.69])
+            ->sortByDesc('created_at')
+            ->take($limit);
+
+        $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)
+            ->sortByDesc('created_at')
+            ->take($limit);
+
+        return [
+            'positive' => $positiveReviews->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'comment' => $review->comment,
+                    'sentiment_score' => $review->sentiment_score,
+                    'date' => $review->created_at->diffForHumans(),
+                    'rating' => $review->rate
+                ];
+            })->values()->toArray(),
+            'constructive' => $constructiveReviews->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'comment' => $review->comment,
+                    'sentiment_score' => $review->sentiment_score,
+                    'date' => $review->created_at->diffForHumans(),
+                    'rating' => $review->rate
+                ];
+            })->values()->toArray(),
+            'neutral' => $negativeReviews->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'comment' => $review->comment,
+                    'sentiment_score' => $review->sentiment_score,
+                    'date' => $review->created_at->diffForHumans(),
+                    'rating' => $review->rate
+                ];
+            })->values()->toArray()
+        ];
+    }
+
+    private function getRecommendedTraining($reviews, $staff)
+    {
+        $trainingRecommendations = [];
+        
+        // Analyze reviews for training needs
+        $text = $reviews->pluck('comment')->implode(' ');
+        $textLower = strtolower($text);
+
+        // Check for conflict resolution needs
+        if (strpos($textLower, 'escalat') !== false || strpos($textLower, 'conflict') !== false) {
+            $trainingRecommendations[] = [
+                'title' => 'Advanced Conflict Resolution',
+                'description' => 'Recommended based on feedback regarding complex customer escalations.',
+                'priority' => 'high',
+                'category' => 'communication'
+            ];
+        }
+
+        // Check for technical knowledge gaps
+        if (strpos($textLower, 'technical') !== false || strpos($textLower, 'knowledge') !== false) {
+            $trainingRecommendations[] = [
+                'title' => 'Technical Product Training',
+                'description' => 'Recommended to improve product knowledge and technical expertise.',
+                'priority' => 'medium',
+                'category' => 'knowledge'
+            ];
+        }
+
+        // Check for upselling opportunities
+        if (strpos($textLower, 'upsell') !== false || strpos($textLower, 'recommend') !== false) {
+            $trainingRecommendations[] = [
+                'title' => 'Sales and Upselling Techniques',
+                'description' => 'Recommended to enhance sales skills and product recommendation abilities.',
+                'priority' => 'medium',
+                'category' => 'sales'
+            ];
+        }
+
+        // Default training if no specific needs detected
+        if (empty($trainingRecommendations)) {
+            $trainingRecommendations[] = [
+                'title' => 'Customer Service Excellence',
+                'description' => 'General customer service skills enhancement.',
+                'priority' => 'low',
+                'category' => 'communication'
+            ];
+        }
+
+        return $trainingRecommendations;
+    }
+
+    private function analyzeSkillGaps($reviews)
+    {
+        $strengths = [];
+        $improvement_areas = [];
+
+        $text = $reviews->pluck('comment')->implode(' ');
+        $textLower = strtolower($text);
+
+        // Analyze strengths
+        if (strpos($textLower, 'communicat') !== false || strpos($textLower, 'explain') !== false) {
+            $strengths[] = 'Communication';
+        }
+        if (strpos($textLower, 'solve') !== false || strpos($textLower, 'resolve') !== false) {
+            $strengths[] = 'Problem Solving';
+        }
+        if (strpos($textLower, 'patient') !== false) {
+            $strengths[] = 'Patience';
+        }
+        if (strpos($textLower, 'professional') !== false) {
+            $strengths[] = 'Professionalism';
+        }
+
+        // Analyze improvement areas
+        if (strpos($textLower, 'technical') !== false && strpos($textLower, 'know') === false) {
+            $improvement_areas[] = 'Technical Knowledge';
+        }
+        if (strpos($textLower, 'upsell') !== false) {
+            $improvement_areas[] = 'Upselling';
+        }
+        if (strpos($textLower, 'slow') !== false) {
+            $improvement_areas[] = 'Process Efficiency';
+        }
+
+        // Remove duplicates
+        $strengths = array_unique($strengths);
+        $improvement_areas = array_unique($improvement_areas);
+
+        return [
+            'strengths' => array_values($strengths),
+            'improvement_areas' => array_values($improvement_areas)
+        ];
+    }
+
+    private function calculateCustomerTone($reviews)
+    {
+        $toneMetrics = [
+            'friendliness' => ['friendly', 'nice', 'kind', 'pleasant', 'warm'],
+            'patience' => ['patient', 'calm', 'understanding', 'tolerant'],
+            'professionalism' => ['professional', 'expert', 'knowledgeable', 'competent']
+        ];
+
+        $results = [];
+
+        foreach ($toneMetrics as $tone => $keywords) {
+            $matchingReviews = $reviews->filter(function ($review) use ($keywords) {
+                $text = strtolower($review->raw_text . ' ' . $review->comment);
+                foreach ($keywords as $keyword) {
+                    if (strpos($text, $keyword) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            if ($matchingReviews->count() > 0) {
+                $positiveMatches = $matchingReviews->where('sentiment_score', '>=', 0.7)->count();
+                $percentage = round(($positiveMatches / $matchingReviews->count()) * 100);
+            } else {
+                $percentage = 0;
+            }
+
+            $results[$tone] = $percentage;
+        }
+
+        return $results;
+    }
+
+    private function calculateSentimentDistribution($reviews)
+    {
+        $total = $reviews->count();
+        
+        if ($total === 0) {
+            return ['positive' => 0, 'neutral' => 0, 'negative' => 0];
+        }
+
+        $positive = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $neutral = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
+        $negative = $reviews->where('sentiment_score', '<', 0.4)->count();
+
+        return [
+            'positive' => round(($positive / $total) * 100),
+            'neutral' => round(($neutral / $total) * 100),
+            'negative' => round(($negative / $total) * 100)
+        ];
+    }
 
 
 

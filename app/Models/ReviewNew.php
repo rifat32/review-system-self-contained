@@ -34,6 +34,10 @@ class ReviewNew extends Model
     ];
       protected $casts = [
         'key_phrases' => 'array',
+        'topics' => 'array',
+        'moderation_results' => 'array',
+        'ai_suggestions' => 'array',
+        'staff_suggestions' => 'array',
     ];
     // public function question() {
     //     return $this->hasOne(Question::class,'id','question_id');

@@ -459,6 +459,8 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/reports/staff-comparison/{businessId}', [ReportController::class, 'staffComparison']);
 
+    Route::get('/reports/staff-performance/{businessId}/{staffId}', [ReportController::class, 'staffPerformance']);
+
     // #################
     // Review Owner Routes
     // #################
