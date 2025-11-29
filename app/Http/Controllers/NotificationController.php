@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\NotificationRequest;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -13,13 +14,13 @@ class NotificationController extends Controller
     // ##################################################
 
 
-     /**
-        *
+    /**
+     *
      * @OA\Post(
-     *      path="/notification",
-     *      operationId="storeNotification",
+     *      path="/v1.0/notification",
+     *      operationId="createNotification",
      *      tags={"notification"},
- *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to store notification",
@@ -29,7 +30,7 @@ class NotificationController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *            required={"message","reciever_id"},
-     * *             @OA\Property(property="title", type="string", format="string",example="hello"),
+     *            @OA\Property(property="title", type="string", format="string",example="hello"),
      *             @OA\Property(property="message", type="string", format="string",example="hello"),
      *  @OA\Property(property="reciever_id", type="string", format="string",example="1"),
 
@@ -39,8 +40,12 @@ class NotificationController extends Controller
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Notification created successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
@@ -48,13 +53,13 @@ class NotificationController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -68,54 +73,65 @@ class NotificationController extends Controller
      */
 
 
-    public function storeNotification(Request $request)
+    public function createNotification(NotificationRequest $request)
     {
 
-        $body = $request->toArray();
+        $body = $request->validated();
         $body["sender_id"] = $request->user()->id;
-        $body["status"] = "unRead";
-        $body["sender_type"] = $request->user()->hasRole("superadmin")?"superadmin":"";
+        $body["status"] = "unread";
+        $body["sender_type"] = $request->user()->hasRole("superadmin") ? "superadmin" : "";
         $notification =  Notification::create($body);
 
-        return response($notification, 200);
+        //  SEND RESPONSE
+        return response([
+            "success" => true,
+            "message" => "Notification created successfully",
+            "data" => $notification
+        ], 200);
     }
+
+
     // ##################################################
     // This method is to update notification
     // ##################################################
 
-     /**
-        *
+    /**
+     *
      * @OA\Patch(
-     *      path="/notification/{notificationId}",
+     *      path="/v1.0/notification/{notificationId}",
      *      operationId="updateNotification",
      *      tags={"notification"},
- *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to update notification",
      *      description="This method is to update notification",
      *  @OA\Parameter(
-* name="notificationId",
-* in="path",
-* description="notificationId",
-* required=true,
-* example="1"
-* ),
+     * name="notificationId",
+     * in="path",
+     * description="notificationId",
+     * required=true,
+     * example="1"
+     * ),
      *  @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *            required={"message"},
      *
      *             @OA\Property(property="message", type="string", format="string",example="test@g.c"),
-     *  *             @OA\Property(property="status", type="string", format="string",example="test"),
+     *             @OA\Property(property="status", type="string", format="string",example="test"),
 
      *         ),
      *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Notification updated successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
@@ -123,13 +139,13 @@ class NotificationController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -141,35 +157,40 @@ class NotificationController extends Controller
      *      )
      *     )
      */
-    public function updateNotification($notificationId, Request $request)
+    public function updateNotification($notificationId, NotificationRequest $request)
     {
 
+        // VALIDATE REQUEST
+        $request_payload = $request->validated();
 
+        $notification =    Notification::find($notificationId);
 
-        $notification =    tap(Notification::where(["id" => $notificationId]))->update(
-            $request->only(
-                "message",
-                "status",
+        if (!$notification) {
+            return response([
+                "success" => false,
+                "message" => "Notification not found",
+            ], 404);
+        }
 
-            )
+        // UPDATE Notification
+        $notification->update($request_payload);
 
-        )
-            // ->with("somthing")
-
-            ->first();
-        return response($notification, 200);
+        // SEND RESPONSE
+        return response([
+            "success" => true,
+            "message" => "Notification updated successfully",
+            "data" => $notification
+        ], 200);
     }
-    // ##################################################
-    // This method is to get notification by reciever_id
-    // ##################################################
 
-/**
-        *
+
+    /**
+     *
      * @OA\Get(
-     *      path="/notification",
+     *      path="/v1.0/notification",
      *      operationId="getNotification",
      *      tags={"notification"},
- *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to get notification by reciever_id",
@@ -182,8 +203,15 @@ class NotificationController extends Controller
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Notifications retrieved successfully"),
+     *              @OA\Property(property="meta", type="object",
+     *                  @OA\Property(property="total", type="integer", example=10)
+     *              ),
+     *              @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
@@ -191,13 +219,13 @@ class NotificationController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -209,25 +237,31 @@ class NotificationController extends Controller
      *      )
      *     )
      */
-    public function getNotification( Request $request)
+    public function getNotification(Request $request)
     {
-        $data["content"] = Notification::where(["reciever_id" => $request->user()->id])->get();
-        $data["total"] = $data["content"]->count();
+        $notification = Notification::where(["reciever_id" => $request->user()->id])->get();
 
-        return response($data, 200);
+        return response([
+            "success" => true,
+            "message" => "Notifications retrieved successfully",
+            "meta" => [
+                "total" => $notification->count()
+            ],
+            "data" => $notification
+        ], 200);
     }
 
     // ##################################################
     // This method is to delete notification
     // ##################################################
 
-/**
-        *
+    /**
+     *
      * @OA\Delete(
-     *      path="/notification/{notificationId}",
+     *      path="/v1.0/notification/{notificationId}",
      *      operationId="deleteNotification",
      *      tags={"notification"},
- *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to delete notification",
@@ -242,13 +276,11 @@ class NotificationController extends Controller
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *           @OA\Response(
-     *          response=201,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Notification deleted successfully")
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
@@ -256,13 +288,13 @@ class NotificationController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -278,13 +310,25 @@ class NotificationController extends Controller
 
     public function deleteNotification($notificationId, Request $request)
     {
-        Notification::where([
-            "id" => $notificationId,
-        ])
-            ->delete();
+
+        // FIND Notification
+        $notification = Notification::find($notificationId);
+
+        if (!$notification) {
+            return response([
+                "success" => false,
+                "message" => "Notification not found"
+            ], 404);
+        }
+
+        // DELETE Notification
+        $notification->delete();
 
 
-
-        return response(["message" => "ok"], 201);
+        // SEND RESPONSE
+        return response([
+            "success" => true,
+            "message" => "Notification deleted successfully"
+        ], 200);
     }
 }

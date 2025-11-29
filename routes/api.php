@@ -156,11 +156,10 @@ Route::middleware(['auth:api'])->group(function () {
     // notification  Routes
     // #################
 
-    Route::post('/notification', [NotificationController::class, "storeNotification"]);
-    Route::patch('/notification/{notificationId}', [NotificationController::class, "updateNotification"]);
-    Route::get('/notification', [NotificationController::class, "getNotification"]);
-    Route::delete('/notification/{notificationId}', [NotificationController::class, "deleteNotification"]);
-
+    Route::post('/v1.0/notification', [NotificationController::class, "createNotification"]);
+    Route::patch('/v1.0/notification/{notificationId}', [NotificationController::class, "updateNotification"]);
+    Route::get('/v1.0/notification', [NotificationController::class, "getNotification"]);
+    Route::delete('/v1.0/notification/{notificationId}', [NotificationController::class, "deleteNotification"]);
 
 
 
