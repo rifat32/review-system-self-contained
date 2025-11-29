@@ -9,6 +9,7 @@ class ReviewNew extends Model
 {
     use HasFactory;
     protected $fillable = [
+        'survey_id',
         'description',
         'business_id',
         'rate',
@@ -67,6 +68,11 @@ class ReviewNew extends Model
         'created_at',
         'updated_at',
     ];
+
+    public function survey()
+{
+    return $this->belongsTo(Survey::class);
+}
 
     // In your QuestionValue model (or the model that has 'value' relation)
 public function scopeFilterByOverall($query, $is_overall)

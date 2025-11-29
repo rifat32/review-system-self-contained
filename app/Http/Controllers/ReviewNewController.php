@@ -621,6 +621,7 @@ public function storeReview($businessId, Request $request)
     $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
 
     $review = ReviewNew::create([
+        'survey_id' => $request->survey_id, 
         'description' => $request->description,
         'business_id' => $businessId,
         'rate' => $request->rate,
@@ -781,6 +782,7 @@ public function storeReviewByGuest($businessId, Request $request)
     $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
 
     $review = ReviewNew::create([
+        'survey_id' => $request->survey_id, 
         'description' => request()->description,
         'business_id' => $businessId,
         'rate' => request()->rate,
