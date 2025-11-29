@@ -111,6 +111,11 @@ class Business extends Model
         return $this->hasOne(User::class, 'id', 'OwnerID');
     }
 
+    public function branches()
+    {
+        return $this->hasMany(Branch::class);
+    }
+
 
     public function guest_survey()
     {

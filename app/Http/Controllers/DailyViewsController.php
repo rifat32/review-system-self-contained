@@ -204,19 +204,10 @@ class DailyViewsController extends Controller
      *
      *      @OA\Response(
      *          response=404,
-     *          description="Business not found",
+     *          description="Resource not found - Business not found or daily view not found for this date",
      *          @OA\JsonContent(
      *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="Business not found")
-     *          )
-     *      ),
-     *
-     *      @OA\Response(
-     *          response=404,
-     *          description="Daily view not found for this date",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="Daily view not found for this date")
+     *              @OA\Property(property="message", type="string", example="Business not found or Daily view not found for this date")
      *          )
      *      ),
      *

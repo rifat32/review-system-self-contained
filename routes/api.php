@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BusinessDaysController;
 use App\Http\Controllers\CustomerController;
 
@@ -246,8 +247,16 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::patch('/v1.0/business/upload-image/{businessId}', [BusinessController::class, "uploadRestaurantImage"]);
 
-
-
+    // #################
+    // branch Routes
+    // #################
+    Route::prefix('v1.0/branches')->group(function () {
+        Route::get('/', [BranchController::class, 'getBranches']);
+        Route::post('/', [BranchController::class, 'createBranch']);
+        Route::get('/{id}', [BranchController::class, 'getBranchById']);
+        Route::patch('/{id}', [BranchController::class, 'updateBranch']);
+        Route::delete('/{id}', [BranchController::class, 'deleteBranches']);
+    });
 
     // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     // business Time Management
