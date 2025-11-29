@@ -24,7 +24,12 @@ class ReviewNew extends Model
         "ip_address",
         "is_overall",
         'staff_id',
-        'order_no'
+        'order_no',
+          'sentiment_score',
+                'topics', 
+                'moderation_results',
+                'ai_suggestions',
+                'staff_suggestions'
 
     ];
       protected $casts = [
