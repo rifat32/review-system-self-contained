@@ -14,6 +14,7 @@ class Survey extends Model
         "business_id",
         "show_in_guest_user",
         "show_in_user",
+        'order_no'
     ];
 
 

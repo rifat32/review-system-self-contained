@@ -200,7 +200,8 @@ $data2["total_comment"] = ReviewNew::with("user","guest_user")->where([
 "business_id" => $business->id,
 "guest_id" => NULL,
 ])
-    ->filterByStaff()
+    ->globalFilters()
+    ->orderBy('order_no', 'asc')
 ->whereNotNull("comment")
 ;
 if(!empty($start_date) && !empty($end_date)) {

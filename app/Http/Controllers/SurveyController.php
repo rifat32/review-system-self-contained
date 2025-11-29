@@ -201,6 +201,104 @@ class SurveyController extends Controller
             ], 404);
         }
     }
+
+
+
+
+    /**
+ * @OA\Post(
+ *      path="/v1.0/surveys/ordering",
+ *      operationId="orderSurveys",
+ *      tags={"survey_management"},
+ *      security={
+ *          {"bearerAuth": {}}
+ *      },
+ *      summary="Order surveys by specific sequence",
+ *      description="Update the display order of surveys using order numbers",
+ *
+ *      @OA\RequestBody(
+ *          required=true,
+ *          @OA\JsonContent(
+ *              required={"surveys"},
+ *              @OA\Property(
+ *                  property="surveys",
+ *                  type="array",
+ *                  @OA\Items(
+ *                      type="object",
+ *                      required={"id", "order_no"},
+ *                      @OA\Property(property="id", type="integer", example=1),
+ *                      @OA\Property(property="order_no", type="integer", example=1)
+ *                  )
+ *              )
+ *          )
+ *      ),
+ *      @OA\Response(
+ *          response=200,
+ *          description="Order updated successfully",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="message", type="string", example="Order updated successfully"),
+ *              @OA\Property(property="ok", type="boolean", example=true)
+ *          )
+ *      ),
+ *      @OA\Response(
+ *          response=401,
+ *          description="Unauthenticated",
+ *          @OA\JsonContent()
+ *      ),
+ *      @OA\Response(
+ *          response=403,
+ *          description="Forbidden",
+ *          @OA\JsonContent()
+ *      ),
+ *      @OA\Response(
+ *          response=422,
+ *          description="Unprocessable Content",
+ *          @OA\JsonContent()
+ *      )
+ * )
+ */
+
+public function orderSurveys(Request $request)
+{
+    try {
+        return DB::transaction(function () use ($request) {
+            
+            if (!$request->user()->hasPermissionTo('survey_update')) {
+                return response()->json([
+                    "message" => "You can not perform this action"
+                ], 403);
+            }
+
+            $request->validate([
+                'surveys' => 'required|array',
+                'surveys.*.id' => 'required|integer|exists:surveys,id',
+                'surveys.*.order_no' => 'required|integer|min:1'
+            ]);
+
+            foreach ($request->surveys as $survey) {
+                Survey::where('id', $survey['id'])
+                    ->update([
+                        'order_no' => $survey['order_no']
+                    ]);
+            }
+
+            return response()->json([
+                'message' => 'Order updated successfully',
+                'ok' => true
+            ], 200);
+        });
+        
+    } catch (Exception $e) {
+        return response()->json([
+            "message" => "something went wrong",
+            "original_message" => $e->getMessage()
+        ], 500);
+    }
+}
+
+
+
+
     /**
      *
      * @OA\Get(
@@ -288,7 +386,9 @@ class SurveyController extends Controller
                     "business_id" => $business_id
                 ]);
 
-            $surveys = $surveyQuery->orderByDesc("id")->get();
+            $surveys = $surveyQuery
+           ->orderBy("order_no", "asc")
+            ->get();
 
 
             return response()->json($surveys, 200);
@@ -400,9 +500,12 @@ class SurveyController extends Controller
             $surveyQuery =  Survey::with('questions')
                 ->where([
                     "business_id" => $business_id
-                ]);
+                ])
+                ->orderBy("order_no", "asc")
+                ;
 
 
+            
             $surveys = $surveyQuery->orderByDesc("id")->paginate($perPage);
 
 

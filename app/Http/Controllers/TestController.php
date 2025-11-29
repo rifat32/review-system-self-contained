@@ -176,12 +176,14 @@ class TestController extends Controller
     "business_id" => $business->id,
     "guest_id" => NULL,
     ])
-        ->filterByStaff()
+    ->globalFilters()
+    ->orderBy('order_no', 'asc')
     ->whereNotNull("comment")
     ;
     if(!empty($start_date) && !empty($end_date)) {
 
-    $data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
+    $data2["total_comment"] = $data2["total_comment"]
+    ->whereBetween('review_news.created_at', [
         $start_date,
         $end_date
     ]);

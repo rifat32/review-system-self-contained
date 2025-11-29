@@ -126,6 +126,7 @@ Route::get('/review-new/get/questions-all-report/guest/unauthorized', [ReviewNew
 
 
 Route::post('/review-new-guest/{businessId}', [ReviewNewController::class, "storeReviewByGuest"]);
+Route::post('/v1.0/reviews/overall/ordering', [ReviewNewController::class, "orderOverallReviews"]);
 
 
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -202,6 +203,9 @@ Route::middleware(['auth:api'])->group(function () {
     // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     Route::post('/v1.0/surveys', [SurveyController::class, "createSurvey"]);
     Route::put('/v1.0/surveys', [SurveyController::class, "updateSurvey"]);
+
+    Route::post('/v1.0/surveys/ordering', [SurveyController::class, "orderSurveys"]);
+    
     Route::get('/v1.0/surveys/{business_id}/{perPage}', [SurveyController::class, "getSurveys"]);
     Route::get('/v1.0/surveys/{business_id}', [SurveyController::class, "getAllSurveys"]);
     Route::delete('/v1.0/surveys/{id}', [SurveyController::class, "deleteSurveyById"]);

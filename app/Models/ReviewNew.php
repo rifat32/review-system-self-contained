@@ -24,6 +24,7 @@ class ReviewNew extends Model
         "ip_address",
         "is_overall",
         'staff_id',
+        'order_no'
 
     ];
       protected $casts = [
@@ -39,11 +40,10 @@ class ReviewNew extends Model
         return $this->hasMany(ReviewValueNew::class,'review_id','id');
     }
 
-
-
     public function business() {
         return $this->hasOne(Business::class,'id','business_id');
     }
+
     public function user() {
         return $this->hasOne(User::class,'id','user_id');
     }
@@ -60,11 +60,16 @@ public function scopeFilterByOverall($query, $is_overall)
 {
     return $query->where('is_overall', $is_overall ? 1 : 0);
 }
-public function scopeFilterByStaff($query)
+
+
+public function scopeGlobalFilters($query)
 {
     return $query->when(request()->has('staff_id'), function ($q) {
         $q->where('staff_id', request()->input('staff_id'));
     });
 }
+
+
+
 
 }

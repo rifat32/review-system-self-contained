@@ -346,7 +346,7 @@ class CustomerController extends Controller
     $positive_reviews = ReviewNew::where('review_news.business_id', $business->id)
         ->where('review_news.rate', '>=', 4)
         ->where('review_news.user_id', $user->id)
-            ->filterByStaff()
+            ->globalFilters()
         ->count();
     $user->positive_reviews = $positive_reviews;
 
@@ -354,7 +354,7 @@ class CustomerController extends Controller
     $negative_reviews = ReviewNew::where('review_news.business_id', $business->id)
         ->where('review_news.rate', '<=', 2)
         ->where('review_news.user_id', $user->id)
-            ->filterByStaff()
+            ->globalFilters()
         ->count();
     $user->negative_reviews = $negative_reviews;
 
@@ -364,14 +364,16 @@ class CustomerController extends Controller
         ->where('review_news.user_id', $user->id)
         ->groupBy('complaint_snippet')
         ->havingRaw('complaint_count > 2')
-            ->filterByStaff()
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
         ->get();
     $user->common_complaints = $common_complaints;
 
     // Fetch satisfaction scores separately
     $satisfaction_scores = ReviewNew::where('review_news.business_id', $business->id)
         ->where('review_news.user_id', $user->id)
-            ->filterByStaff()
+            ->globalFilters()
+
         ->avg('review_news.rate');
     $user->avg_satisfaction = $satisfaction_scores;
 
@@ -381,7 +383,8 @@ class CustomerController extends Controller
         ->where('review_news.user_id', $user->id)
         ->groupBy('comment')
         ->orderByDesc('comment_count')
-            ->filterByStaff()
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
         ->limit(5)
         ->get();
     $user->customer_comments_trends = $customer_comments_trends;

@@ -211,9 +211,9 @@ class ReviewNewController extends Controller
         $reviews = ReviewNew::where([
             "business_id" => $businessId
         ])
-            ->filterByStaff()
+            ->globalFilters()
             ->whereBetween('created_at', [$start, $end])
-
+->orderBy('order_no', 'asc')
             ->get();
 
         $data["total"]   = $reviews->count();
@@ -349,9 +349,10 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
             "rate" => $rate
         ])
-            ->filterByStaff()
+            ->globalFilters()
             ->with("business", "value")
             ->whereBetween('created_at', [$start, $end])
+            ->orderBy('order_no', 'asc')
             ->get();
 
 
@@ -416,7 +417,8 @@ class ReviewNewController extends Controller
         $reviewValue = ReviewNew::with("value")->where([
             "business_id" => $businessId,
         ])
-            ->filterByStaff()
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
             ->get();
 
 
@@ -501,8 +503,9 @@ class ReviewNewController extends Controller
         $data["reviews"] = ReviewNew::where([
             "business_id" => $businessId,
         ])
-            ->filterByStaff()
+            ->globalFilters()
             ->whereBetween('created_at', [$start, $end])
+            ->orderBy('order_no', 'asc')
             ->get();
         $data["total"]   = $data["reviews"]->count();
         $data["one"]   = 0;
@@ -687,7 +690,8 @@ class ReviewNewController extends Controller
             $existing_review = ReviewNew::where('business_id', $businessId)
                 ->where('ip_address', $ip_address)
                 ->whereDate('created_at', now()->toDateString())
-                    ->filterByStaff()
+                    ->globalFilters()
+                    ->orderBy('order_no', 'asc')
                 ->first();
 
             if ($existing_review) {
@@ -717,8 +721,6 @@ class ReviewNewController extends Controller
         }
 
 
-
-
         $guest = GuestUser::create([
             'full_name' => request()->guest_full_name,
             'phone' => request()->guest_phone,
@@ -738,7 +740,7 @@ class ReviewNewController extends Controller
             'business_id' => $businessId,
             'rate' => request()->rate,
             'guest_id' => $guest->id,
-            'comment' => request()->comment,
+            'comment' => $raw_text,
             'raw_text' => $raw_text,
             'emotion' => $emotion,
             'key_phrases' => $key_phrases,
@@ -746,12 +748,104 @@ class ReviewNewController extends Controller
             "is_overall" => request()->is_overall ?? 0,
             "staff_id" => $request->staff_id ?? null,
         ]);
-
+                           
         $this->storeReviewValues($review, $request->values, $business);
-
 
         return response(["message" => "created successfully"], 201);
     }
+
+
+    /**
+ * @OA\Post(
+ *      path="/v1.0/reviews/overall/ordering",
+ *      operationId="orderOverallReviews",
+ *      tags={"review"},
+ *      security={
+ *          {"bearerAuth": {}}
+ *      },
+ *      summary="Order overall reviews by specific sequence",
+ *      description="Update the display order of overall reviews using order numbers",
+ *
+ *      @OA\RequestBody(
+ *          required=true,
+ *          @OA\JsonContent(
+ *              required={"reviews"},
+ *              @OA\Property(
+ *                  property="reviews",
+ *                  type="array",
+ *                  @OA\Items(
+ *                      type="object",
+ *                      required={"id", "order_no"},
+ *                      @OA\Property(property="id", type="integer", example=1),
+ *                      @OA\Property(property="order_no", type="integer", example=1)
+ *                  )
+ *              )
+ *          )
+ *      ),
+ *      @OA\Response(
+ *          response=200,
+ *          description="Order updated successfully",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="message", type="string", example="Order updated successfully"),
+ *              @OA\Property(property="ok", type="boolean", example=true)
+ *          )
+ *      ),
+ *      @OA\Response(
+ *          response=401,
+ *          description="Unauthenticated",
+ *          @OA\JsonContent()
+ *      ),
+ *      @OA\Response(
+ *          response=403,
+ *          description="Forbidden",
+ *          @OA\JsonContent()
+ *      ),
+ *      @OA\Response(
+ *          response=422,
+ *          description="Unprocessable Content",
+ *          @OA\JsonContent()
+ *      )
+ * )
+ */
+public function orderOverallReviews(Request $request)
+{
+    try {
+        return DB::transaction(function () use ($request) {
+            
+            if (!$request->user()->hasPermissionTo('review_update')) {
+                return response()->json([
+                    "message" => "You can not perform this action"
+                ], 403);
+            }
+
+            $request->validate([
+                'reviews' => 'required|array',
+                'reviews.*.id' => 'required|integer|exists:review_news,id',
+                'reviews.*.order_no' => 'required|integer|min:1'
+            ]);
+
+            foreach ($request->reviews as $review) {
+                ReviewNew::where('id', $review['id'])
+                    ->update([
+                        'order_no' => $review['order_no']
+                    ]);
+            }
+
+            return response()->json([
+                'message' => 'Order updated successfully',
+                'ok' => true
+            ], 200);
+        });
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'message' => 'Error updating order',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+
 
     // ##################################################
     // Helper to store review values (question/star)
@@ -776,7 +870,8 @@ class ReviewNewController extends Controller
 
         if ($business) {
             $average_rating = ReviewNew::where('business_id', $business->id)
-                ->filterByStaff()
+                ->globalFilters()
+                
             
             ->avg('rate');
 
@@ -940,6 +1035,8 @@ class ReviewNewController extends Controller
             'survey_name' => $request->survey_name,
             "is_overall" => $request->is_overall ?? 0,
         ];
+
+
         if ($request->user()->hasRole("superadmin")) {
             $question["is_default"] = true;
             $question["business_id"] = NULL;
@@ -954,9 +1051,6 @@ class ReviewNewController extends Controller
                 return response()->json(["message" => "question is enabled"], 400);
             }
         }
-
-
-
 
         $createdQuestion =    Question::create($question);
         $createdQuestion->info = "supported value is of type is 'star','emoji','numbers','heart'";
@@ -1108,7 +1202,10 @@ class ReviewNewController extends Controller
      *                  @OA\Property(property="is_overall", type="boolean", example=true),
      *                  @OA\Property(property="show_in_guest_user", type="boolean", example=true),
      *                  @OA\Property(property="show_in_user", type="boolean", example=true),
-     *                  @OA\Property(property="survey_name", type="string", nullable=true, example="Customer Satisfaction")
+     *                  @OA\Property(property="survey_name", type="string", nullable=true, example="Customer Satisfaction"),
+     * 
+     * 
+     * 
      *              )
      *          )
      *      )
@@ -1973,11 +2070,12 @@ class ReviewNewController extends Controller
         }
 
         $data2["total_comment"] = ReviewNew::with("user", "guest_user")
-        ->filterByStaff()
+        ->globalFilters()
         ->where([
             "business_id" => $business->id,
             "guest_id" => NULL,
         ])
+        ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($request->start_date) && !empty($request->end_date)) {
 
@@ -3655,7 +3753,8 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
-            ->filterByStaff()
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($request->start_date) && !empty($request->end_date)) {
 
@@ -3910,8 +4009,9 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "guest_id" => NULL,
         ])
-            ->filterByStaff()
+            ->globalFilters()
             ->whereNotNull("comment")
+            ->orderBy('order_no', 'asc')
             ->get();
 
         return response([
@@ -4184,8 +4284,9 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
-            ->filterByStaff()
+            ->globalFilters()
             ->whereNotNull("comment")
+            ->orderBy('order_no', 'asc')
             ->get();
 
 
@@ -4730,7 +4831,8 @@ class ReviewNewController extends Controller
                 "guest_id" => NULL,
                 "review_news.user_id" => $users->items()[$i]->id
             ])
-                ->filterByStaff()
+                ->globalFilters()
+                ->orderBy('order_no', 'asc')
                 ->whereNotNull("comment");
             if (!empty($request->start_date) && !empty($request->end_date)) {
 
@@ -5017,7 +5119,8 @@ class ReviewNewController extends Controller
                 "guest_id" => $users->items()[$i]->id,
                 "review_news.user_id" => NULL
             ])
-                ->filterByStaff()
+                ->globalFilters()
+                ->orderBy('order_no', 'asc')
                 ->whereNotNull("comment");
             if (!empty($request->start_date) && !empty($request->end_date)) {
 
