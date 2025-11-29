@@ -10,6 +10,7 @@ use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
 use App\Models\Star;
+use App\Models\Survey;
 use App\Models\Tag;
 use App\Models\User;
 use Carbon\Carbon;
@@ -2387,7 +2388,165 @@ class ReportController extends Controller
 
 
 
+ /**
+     * @OA\Get(
+     *      path="/reports/survey-analytics/{surveyId}",
+     *      operationId="surveyAnalytics",
+     *      tags={"Reports"},
+     *      summary="Get survey analytics and submissions",
+     *      description="Get performance overview and recent submissions for a survey",
+     *      @OA\Parameter(
+     *          name="surveyId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Time period for submissions over time: 7d, 30d, 90d, 1y",
+     *          example="30d"
+     *      ),
+     *      @OA\Response(response=200, description="Success"),
+     *      @OA\Response(response=404, description="Not Found")
+     * )
+     */
+    public function surveyAnalytics($surveyId, Request $request)
+    {
+        $survey = Survey::with('questions')->findOrFail($surveyId)
+        ;
+        $period = $request->get('period', '30d'); // 7d, 30d, 90d, 1y
 
+        // Get all reviews for this survey
+        $reviews = ReviewNew::where('survey_id', $surveyId)
+            ->with(['user', 'guest'])
+            ->get();
+
+        // Calculate performance overview
+        $performanceOverview = $this->calculatePerformanceOverview($reviews);
+        
+        // Get submissions over time
+        $submissionsOverTime = $this->getSubmissionsOverTime($reviews, $period);
+        
+        // Get recent submissions
+        $recentSubmissions = $this->getRecentSubmissions($reviews);
+
+        return response()->json([
+            'survey' => $survey,
+            'performance_overview' => $performanceOverview,
+            'submissions_over_time' => $submissionsOverTime,
+            'recent_submissions' => $recentSubmissions
+        ]);
+    }
+
+    private function calculatePerformanceOverview($reviews)
+    {
+        $totalSubmissions = $reviews->count();
+        $averageScore = $totalSubmissions > 0 ? round($reviews->avg('rate'), 1) : 0;
+
+        return [
+            'total_submissions' => $totalSubmissions,
+            'average_score' => $averageScore,
+            'score_out_of' => 5, // Assuming 5-star rating system
+            'submissions_today' => $reviews->where('created_at', '>=', Carbon::today())->count(),
+            'submissions_this_week' => $reviews->where('created_at', '>=', Carbon::now()->startOfWeek())->count(),
+            'submissions_this_month' => $reviews->where('created_at', '>=', Carbon::now()->startOfMonth())->count()
+        ];
+    }
+
+    private function getSubmissionsOverTime($reviews, $period)
+    {
+        $endDate = Carbon::now();
+        $startDate = match($period) {
+            '7d' => Carbon::now()->subDays(7),
+            '90d' => Carbon::now()->subDays(90),
+            '1y' => Carbon::now()->subYear(),
+            default => Carbon::now()->subDays(30) // 30d
+        };
+
+        $groupFormat = match($period) {
+            '7d' => 'Y-m-d', // Daily for 7 days
+            '90d', '1y' => 'Y-m', // Monthly for 90 days and 1 year
+            default => 'Y-m-d' // Daily for 30 days
+        };
+
+        $filteredReviews = $reviews->whereBetween('created_at', [$startDate, $endDate]);
+
+        $submissionsByPeriod = $filteredReviews->groupBy(function ($review) use ($groupFormat) {
+            return $review->created_at->format($groupFormat);
+        })->map(function ($periodReviews) {
+            return [
+                'submissions_count' => $periodReviews->count(),
+                'average_rating' => round($periodReviews->avg('rate'), 1)
+            ];
+        });
+
+        // Fill in missing periods with zero values
+        $filledData = $this->fillMissingPeriods($submissionsByPeriod, $startDate, $endDate, $groupFormat);
+
+        return [
+            'period' => $period,
+            'data' => $filledData,
+            'total_submissions' => $filteredReviews->count(),
+            'peak_submissions' => $submissionsByPeriod->max('submissions_count') ?? 0
+        ];
+    }
+
+    private function fillMissingPeriods($data, $startDate, $endDate, $format)
+    {
+        $filledData = [];
+        $current = $startDate->copy();
+
+        while ($current <= $endDate) {
+            $periodKey = $current->format($format);
+            $filledData[$periodKey] = $data[$periodKey] ?? [
+                'submissions_count' => 0,
+                'average_rating' => 0
+            ];
+            
+            if ($format === 'Y-m-d') {
+                $current->addDay();
+            } else {
+                $current->addMonth();
+            }
+        }
+
+        return $filledData;
+    }
+
+    private function getRecentSubmissions($reviews, $limit = 10)
+    {
+        return $reviews->sortByDesc('created_at')
+            ->take($limit)
+            ->map(function ($review) {
+                $userName = $this->getUserName($review);
+                
+                return [
+                    'review_id' => $review->id,
+                    'user_name' => $userName,
+                    'rating' => $review->rate,
+                    'comment' => $review->comment,
+                    'submission_date' => $review->created_at->diffForHumans(),
+                    'exact_date' => $review->created_at->toDateTimeString(),
+                    'is_guest' => !is_null($review->guest_id),
+                    'sentiment_score' => $review->sentiment_score
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    private function getUserName($review)
+    {
+        if ($review->user) {
+            return $review->user->name;
+        } elseif ($review->guest) {
+            return $review->guest->full_name;
+        } else {
+            return 'Anonymous User';
+        }
+    }
 
 
 
