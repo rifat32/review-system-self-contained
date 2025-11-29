@@ -1575,4 +1575,276 @@ class ReportController extends Controller
 
         return $data;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /**
+     * @OA\Get(
+     *      path="/reports/staff-comparison/{businessId}",
+     *      operationId="staffComparison",
+     *      tags={"Reports"},
+     *      summary="Compare two staff members performance",
+     *      description="Get detailed comparison between two staff members",
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      @OA\Parameter(
+     *          name="staff_a_id",
+     *          in="query",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      @OA\Parameter(
+     *          name="staff_b_id",
+     *          in="query",
+     *          required=true,
+     *          example="2"
+     *      ),
+     *      @OA\Response(response=200, description="Success"),
+     *      @OA\Response(response=404, description="Not Found")
+     * )
+     */
+    public function staffComparison($businessId, Request $request)
+    {
+        $request->validate([
+            'staff_a_id' => 'required|integer|exists:users,id',
+            'staff_b_id' => 'required|integer|exists:users,id'
+        ]);
+
+        $business = Business::findOrFail($businessId);
+        $staffAId = $request->staff_a_id;
+        $staffBId = $request->staff_b_id;
+
+        // Get staff user details
+        $staffA = User::findOrFail($staffAId);
+        $staffB = User::findOrFail($staffBId);
+
+        // Get reviews for both staff
+        $staffAReviews = ReviewNew::where('business_id', $businessId)
+            ->where('staff_id', $staffAId)
+            ->whereNotNull('sentiment_score')
+            ->get();
+
+        $staffBReviews = ReviewNew::where('business_id', $businessId)
+            ->where('staff_id', $staffBId)
+            ->whereNotNull('sentiment_score')
+            ->get();
+
+        // Calculate metrics for Staff A
+        $staffAMetrics = $this->calculateStaffMetrics($staffAReviews, $staffA);
+        
+        // Calculate metrics for Staff B
+        $staffBMetrics = $this->calculateStaffMetrics($staffBReviews, $staffB);
+
+        // Calculate gaps
+        $ratingGap = round($staffAMetrics['avg_rating'] - $staffBMetrics['avg_rating'], 1);
+        $sentimentGap = $staffAMetrics['sentiment_breakdown']['positive'] - $staffBMetrics['sentiment_breakdown']['positive'];
+
+        return response()->json([
+            'business_id' => (int)$businessId,
+            'business_name' => $business->name,
+            'comparison' => [
+                'rating_gap' => $ratingGap,
+                'rating_gap_message' => $this->getRatingGapMessage($ratingGap),
+                'sentiment_gap' => $sentimentGap,
+                'sentiment_gap_message' => $this->getSentimentGapMessage($sentimentGap),
+                'better_performer' => $ratingGap >= 0 ? $staffA->name : $staffB->name
+            ],
+            'staff_a' => $staffAMetrics,
+            'staff_b' => $staffBMetrics
+        ]);
+    }
+
+    private function calculateStaffMetrics($reviews, $staffUser)
+    {
+        $totalReviews = $reviews->count();
+        
+        if ($totalReviews === 0) {
+            return $this->emptyStaffMetrics($staffUser);
+        }
+
+        // Calculate average rating
+        $avgRating = round($reviews->avg('rate'), 1);
+        
+        // Calculate sentiment distribution
+        $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $neutralCount = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
+        $negativeCount = $reviews->where('sentiment_score', '<', 0.4)->count();
+
+        $positivePercentage = round(($positiveCount / $totalReviews) * 100);
+        $neutralPercentage = round(($neutralCount / $totalReviews) * 100);
+        $negativePercentage = round(($negativeCount / $totalReviews) * 100);
+
+        // Extract topics and categories
+        $topics = $this->extractTopicsFromReviews($reviews);
+        $performanceByCategory = $this->calculatePerformanceByCategory($reviews);
+        $notableReviews = $this->getNotableReviews($reviews);
+
+        return [
+            'id' => $staffUser->id,
+            'name' => $staffUser->name,
+            'position' => $staffUser->position ?? 'Staff',
+            'email' => $staffUser->email,
+            'total_reviews' => $totalReviews,
+            'avg_rating' => $avgRating,
+            'sentiment_breakdown' => [
+                'positive' => $positivePercentage,
+                'neutral' => $neutralPercentage,
+                'negative' => $negativePercentage
+            ],
+            'performance_by_category' => $performanceByCategory,
+            'top_topics' => array_slice($topics, 0, 5),
+            'notable_reviews' => $notableReviews
+        ];
+    }
+
+    private function emptyStaffMetrics($staffUser)
+    {
+        return [
+            'id' => $staffUser->id,
+            'name' => $staffUser->name,
+            'position' => $staffUser->position ?? 'Staff',
+            'email' => $staffUser->email,
+            'total_reviews' => 0,
+            'avg_rating' => 0,
+            'sentiment_breakdown' => [
+                'positive' => 0,
+                'neutral' => 0,
+                'negative' => 0
+            ],
+            'performance_by_category' => [],
+            'top_topics' => [],
+            'notable_reviews' => []
+        ];
+    }
+
+    private function extractTopicsFromReviews($reviews)
+    {
+        $allTopics = [];
+        
+        foreach ($reviews as $review) {
+            if ($review->topics && is_array($review->topics)) {
+                foreach ($review->topics as $topic) {
+                    $allTopics[$topic] = ($allTopics[$topic] ?? 0) + 1;
+                }
+            }
+        }
+        
+        arsort($allTopics);
+        return $allTopics;
+    }
+
+    private function calculatePerformanceByCategory($reviews)
+    {
+        $categories = [
+            'friendliness' => ['friendly', 'polite', 'rude', 'attitude', 'nice'],
+            'efficiency' => ['slow', 'fast', 'efficient', 'wait', 'time'],
+            'knowledge' => ['knowledge', 'explain', 'information', 'helpful', 'expert']
+        ];
+
+        $performance = [];
+
+        foreach ($categories as $category => $keywords) {
+            $categoryReviews = $reviews->filter(function ($review) use ($keywords) {
+                $text = strtolower($review->raw_text . ' ' . $review->comment);
+                foreach ($keywords as $keyword) {
+                    if (strpos($text, $keyword) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            if ($categoryReviews->count() > 0) {
+                $avgSentiment = $categoryReviews->avg('sentiment_score');
+                $performance[$category] = [
+                    'score' => round($avgSentiment * 100),
+                    'review_count' => $categoryReviews->count()
+                ];
+            } else {
+                $performance[$category] = [
+                    'score' => 0,
+                    'review_count' => 0
+                ];
+            }
+        }
+
+        return $performance;
+    }
+
+    private function getNotableReviews($reviews, $limit = 2)
+    {
+        return $reviews->whereNotNull('comment')
+            ->where('comment', '!=', '')
+            ->sortByDesc('created_at')
+            ->take($limit)
+            ->map(function ($review) {
+                return [
+                    'comment' => $review->comment,
+                    'sentiment_score' => $review->sentiment_score,
+                    'date' => $review->created_at->diffForHumans()
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    private function getRatingGapMessage($gap)
+    {
+        if ($gap > 0) {
+            return "Staff A is performing better";
+        } elseif ($gap < 0) {
+            return "Staff B is performing better";
+        } else {
+            return "Both staff are performing equally";
+        }
+    }
+
+    private function getSentimentGapMessage($gap)
+    {
+        if ($gap > 0) {
+            return "Staff A has more positive reviews";
+        } elseif ($gap < 0) {
+            return "Staff B has more positive reviews";
+        } else {
+            return "Both have similar positive sentiment";
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

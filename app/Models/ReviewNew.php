@@ -24,7 +24,12 @@ class ReviewNew extends Model
         "ip_address",
         "is_overall",
         'staff_id',
-        'order_no'
+        'order_no',
+          'sentiment_score',
+                'topics', 
+                'moderation_results',
+                'ai_suggestions',
+                'staff_suggestions'
 
     ];
       protected $casts = [
@@ -42,6 +47,10 @@ class ReviewNew extends Model
 
     public function business() {
         return $this->hasOne(Business::class,'id','business_id');
+    }
+
+    public function staff() {
+        return $this->hasOne(User::class,'id','staff_id');
     }
 
     public function user() {
