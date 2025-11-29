@@ -415,9 +415,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::middleware(['superadmin'])->group(function () {
 
-        Route::patch('/superadmin/auth/changepassword', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
-
-        Route::patch('/superadmin/auth/change-email', [ForgotPasswordController::class, "changeEmailBySuperAdmin"]);
+        Route::patch('/v1.0/auth/change-password-by-superadmin', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
 
 
         Route::get('/superadmin/dashboard-report/total-business', [SuperAdminReportController::class, "getTotalBusinessReport"]);
@@ -438,15 +436,24 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/superadmin/customer-list/{perPage}', [UserController::class, "getCustomerReportSuperadmin"]);
         Route::get('/superadmin/owner-list/{perPage}', [UserController::class, "getOwnerReport"]);
         Route::delete('/superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
-        Route::put('/v1.0/email-template-wrappers', [EmailTemplateWrapperController::class, "updateEmailTemplateWrapper"]);
-        Route::get('/v1.0/email-template-wrappers/single/{id}', [EmailTemplateWrapperController::class, "getEmailTemplateWrapperById"]);
-        Route::get('/v1.0/email-template-wrappers', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
-        Route::post('/v1.0/email-templates', [EmailTemplateController::class, "createEmailTemplate"]);
-        Route::put('/v1.0/email-templates', [EmailTemplateController::class, "updateEmailTemplate"]);
+
+        // EMAIL TEMPLATE WRAPPER MANAGEMENT
+        Route::prefix('v1.0/email-template-wrappers')->group(function () {
+            Route::put('/{id}', [EmailTemplateWrapperController::class, "updateEmailTemplateWrapper"]);
+            Route::get('/{id}', [EmailTemplateWrapperController::class, "getEmailTemplateWrapperById"]);
+            Route::get('/', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
+        });
+
+
+        // EMAIL TEMPLATE MANAGEMENT
+        Route::prefix('v1.0/email-templates')->group(function () {
+            Route::post('/', [EmailTemplateController::class, "createEmailTemplate"]);
+            Route::put('/{id}', [EmailTemplateController::class, "updateEmailTemplate"]);
+            Route::get('/', [EmailTemplateController::class, "getEmailTemplates"]);
+            Route::get('/{id}', [EmailTemplateController::class, "getEmailTemplateById"]);
+            Route::delete('/{ids}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
+        });
         Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
-        Route::delete('/v1.0/email-templates/{ids}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
-        Route::get('/v1.0/email-templates/single/{id}', [EmailTemplateController::class, "getEmailTemplateById"]);
-        Route::get('/v1.0/email-templates', [EmailTemplateController::class, "getEmailTemplates"]);
     });
 
     Route::get('/customer-report', [ReportController::class, "customerDashboardReport"]);

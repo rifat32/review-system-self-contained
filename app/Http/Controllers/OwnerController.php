@@ -843,132 +843,69 @@ class OwnerController extends Controller
         $data["user"] = $user;
         return response(["ok" => true, "message" => "You have successfully registered", "data" => $data, "token" => $token], 200);
     }
-    // ##################################################
-    // This method is to store stalf
-    // ##################################################
+
 
     /**
+     * This method is to store staff
      *
      * @OA\Post(
-     *      path="/owner/staffregister/{businessId}",
-     *      operationId="createStaffUser",
-     *      tags={"owner"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to store stalf",
-     *      description="This method is to store stalf",
+     *     path="/owner/{businessId}/staff",
+     *     operationId="createStaffUser",
+     *     tags={"owner"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="This method is to store staff",
+     *     description="This method is to store staff",
      *
-     *  @OA\Parameter(
-     * name="businessId",
-     * in="path",
-     * description="method",
-     * required=true,
-     * example="1"
-     * ),
-     *  @OA\RequestBody(
+     *     @OA\Parameter(
+     *         name="businessId",
+     *         in="path",
+     *         description="Business ID",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *            required={"email","first_Name"},
+     *             required={"email","first_Name"},
+     *             @OA\Property(property="email", type="string", example="test@g.c"),
+     *             @OA\Property(property="type", type="string", example="12345678"),
+     *             @OA\Property(property="first_Name", type="string", example="Rifat"),
+     *             @OA\Property(property="phone", type="string", example="01700000000"),
+     *             @OA\Property(property="password", type="string", example="Rifat123")
+     *         )
+     *     ),
      *
-     *             @OA\Property(property="email", type="string", format="string",example="test@g.c"),
-     *            @OA\Property(property="type", type="string", format="string",example="12345678"),
-     *            @OA\Property(property="first_Name", type="string", format="string",example="Rifat"),
-     *               @OA\Property(property="phone", type="string", format="string",example="Rifat"),
-     *                  @OA\Property(property="password", type="string", format="string",example="Rifat")
-     *
-     *
-     *         ),
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent()
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent()
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Unprocessable Content",
+     *         @OA\JsonContent()
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden",
+     *         @OA\JsonContent()
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Not found",
+     *         @OA\JsonContent()
      *     )
+     * )
      */
 
 
-
-
-/*************  ✨ Windsurf Command ⭐  *************/
-/**
- * This method is to store stalf
- * This method is to store stalf
- * @OA\Post(
- *      path="/owner/{businessId}/staff",
- *      operationId="createStaffUser",
- *      tags={"owner"},
- *      security={{"bearerAuth": {}}},
- *      summary="This method is to store stalf",
- *      description="This method is to store stalf",
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          description="method",
- *          required=true,
- *          example="1"
- *      ),
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\JsonContent(
- *              required={"email","first_Name"},
- *              @OA\Property(property="email", type="string", format="string",example="test@g.c"),
- *              @OA\Property(property="type", type="string", format="string",example="12345678"),
- *              @OA\Property(property="first_Name", type="string", format="string",example="Rifat"),
- *              @OA\Property(property="phone", type="string", format="string",example="Rifat"),
- *              @OA\Property(property="password", type="string", format="string",example="Rifat")
- *          ),
- *      ),
- *      @OA\Response(
- *          response=200,
- *          description="Successful operation",
- *          @OA\JsonContent(),
- *      ),
- *      @OA\Response(
- *          response=401,
- *          description="Unauthenticated",
- *          @OA\JsonContent(),
- *      ),
- *      @OA\Response(
- *          response=422,
- *          description="Unprocesseble Content",
- *          @OA\JsonContent(),
- *      ),
- *      @OA\Response(
- *          response=403,
- *          description="Forbidden",
- *          @OA\JsonContent(),
- *      ),
- *      @OA\Response(
- *          response=404,
- *          description="not found",
- *          @OA\JsonContent(),
- *      )
-/*******  1feb5080-907e-48b3-9dc6-9a9cfa79f333  *******/    public function createStaffUser($businessId, Request $request)
+    public function createStaffUser($businessId, Request $request)
     {
 
         $validator = Validator::make($request->all(), [
