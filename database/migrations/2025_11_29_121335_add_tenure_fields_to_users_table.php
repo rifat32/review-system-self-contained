@@ -9,7 +9,7 @@ return new class extends Migration
      public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->date('join_date')->nullable()->after('position');
+            $table->date('join_date')->nullable()->after('job_title');
             $table->json('skills')->nullable()->after('join_date');
         });
     }
@@ -20,5 +20,5 @@ return new class extends Migration
             $table->dropColumn(['join_date', 'skills']);
         });
     }
-    
+
 };

@@ -1704,7 +1704,7 @@ class ReportController extends Controller
         return [
             'id' => $staffUser->id,
             'name' => $staffUser->name,
-            'position' => $staffUser->position ?? 'Staff',
+            'job_title' => $staffUser->job_title ?? 'Staff',
             'email' => $staffUser->email,
             'total_reviews' => $totalReviews,
             'avg_rating' => $avgRating,
@@ -1724,7 +1724,7 @@ class ReportController extends Controller
         return [
             'id' => $staffUser->id,
             'name' => $staffUser->name,
-            'position' => $staffUser->position ?? 'Staff',
+            'job_title' => $staffUser->job_title ?? 'Staff',
             'email' => $staffUser->email,
             'total_reviews' => 0,
             'avg_rating' => 0,
@@ -1889,7 +1889,7 @@ class ReportController extends Controller
             'staff_profile' => [
                 'id' => $staff->id,
                 'name' => $staff->name,
-                'position' => $staff->position ?? 'Staff',
+                'job_title' => $staff->job_title ?? 'Staff',
                 'email' => $staff->email,
                 'tenure' => $tenure,
                 'join_date' => $staff->join_date
