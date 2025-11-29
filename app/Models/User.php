@@ -28,7 +28,9 @@ class User extends Authenticatable
         "business_id",
         "date_of_birth",
         "image",
-        "job_title"
+        "job_title",
+        "join_date",
+        "skills",
     ];
 
     /**
