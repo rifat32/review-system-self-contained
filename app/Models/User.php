@@ -110,4 +110,101 @@ class User extends Authenticatable
                 });
             });
     }
+
+    /**
+     * Scope a query to filter customers based on various criteria
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFilterCustomers($query)
+    {
+        return $query
+            // Filter by rating if provided
+            ->when(request()->filled('rating'), function ($q) {
+                $q->whereHas('feedbacks', function ($query) {
+                    $query->where('review_news.rate', request()->input('rating'));
+                });
+            })
+            // Filter by review date range
+            ->when(request()->filled('review_start_date') && request()->filled('review_end_date'), function ($q) {
+                $q->whereHas('feedbacks', function ($query) {
+                    $query->whereBetween('review_news.updated_at', [
+                        request()->input('review_start_date'),
+                        request()->input('review_end_date')
+                    ]);
+                });
+            })
+            // Filter by review keyword
+            ->when(request()->filled('review_keyword'), function ($q) {
+                $q->whereHas('feedbacks', function ($query) {
+                    $query->where('review_news.comment', 'like', '%' . request('review_keyword') . '%');
+                });
+            })
+            // Filter by frequency visit
+            ->when(request()->filled('frequency_visit'), function ($q) {
+                $frequency = request()->input('frequency_visit');
+                $query_param = '='; // Default value for the comparison operator.
+                $min_count = 1;     // Minimum booking count.
+                $max_count = 1;     // Maximum booking count (for regular customers).
+
+                if ($frequency == "New") {
+                    // For new customers, the count should be exactly 1.
+                    $query_param = '=';
+                    $min_count = 1;
+                    $max_count = 1;
+                } elseif ($frequency == "Regular") {
+                    // For regular customers, the count should be between 2 and 5.
+                    $query_param = 'BETWEEN';
+                    $min_count = 2;
+                    $max_count = 5;
+                } elseif ($frequency == "VIP") {
+                    // For VIP customers, the count should be 5 or more.
+                    $query_param = '>=';
+                    $min_count = 5;
+                    $max_count = null; // No upper limit for VIP.
+                } else {
+                    // Default case or other logic can be applied here.
+                    $query_param = '=';
+                    $min_count = 1;
+                    $max_count = 1;
+                }
+
+                // Apply the frequency filter logic here if needed
+                // Note: This might need adjustment based on your booking/review relationship
+            })
+            // Filter by name
+            ->when(request()->filled('name'), function ($query) {
+                $name = request()->input('name');
+                return $query->where(function ($subQuery) use ($name) {
+                    $subQuery->where("first_Name", "like", "%" . $name . "%")
+                        ->orWhere("last_Name", "like", "%" . $name . "%");
+                });
+            })
+            // Filter by email
+            ->when(request()->filled('email'), function ($query) {
+                return $query->where('users.email', 'like', '%' . request()->input('email') . '%');
+            })
+            // Filter by phone
+            ->when(request()->filled('phone'), function ($query) {
+                return $query->where('users.phone', 'like', '%' . request()->input('phone') . '%');
+            })
+            // Filter by search key (general search)
+            ->when(request()->filled('search_key'), function ($query) {
+                $term = request()->input('search_key');
+                return $query->where(function ($query) use ($term) {
+                    $query->where('first_Name', 'like', '%' . $term . '%')
+                        ->orWhere('last_Name', 'like', '%' . $term . '%')
+                        ->orWhere('email', 'like', '%' . $term . '%')
+                        ->orWhere('phone', 'like', '%' . $term . '%');
+                });
+            })
+            // Filter by creation date range
+            ->when(request()->filled('start_date'), function ($query) {
+                return $query->where('users.created_at', ">=", request()->input('start_date'));
+            })
+            ->when(request()->filled('end_date'), function ($query) {
+                return $query->where('users.created_at', "<=", (request()->input('end_date') . ' 23:59:59'));
+            });
+    }
 }
