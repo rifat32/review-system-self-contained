@@ -2525,7 +2525,9 @@ class ReportController extends Controller
     // Labels filter (using sentiment field)
     if (!empty($filters['labels'])) {
         $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
-        $query->whereIn('sentiment', $labels);
+        $query->whereHas('value', function ($q) use ($labels) { 
+            $q->whereIn('review_value_news.tag_id', $labels); 
+        });
     }
 
     // Review type filter (using review_type field)
