@@ -2157,7 +2157,231 @@ class ReportController extends Controller
 
 
 
+ /**
+     * @OA\Get(
+     *      path="/reports/staff-dashboard/{businessId}",
+     *      operationId="staffDashboard",
+     *      tags={"Reports"},
+     *      summary="Get staff performance dashboard",
+     *      description="Get overall staff performance metrics and rankings",
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period for comparison: last_week, last_month, last_quarter",
+     *          example="last_month"
+     *      ),
+     *      @OA\Response(response=200, description="Success"),
+     *      @OA\Response(response=404, description="Not Found")
+     * )
+     */
+    public function staffDashboard($businessId, Request $request)
+    {
+        $business = Business::findOrFail($businessId);
+        $period = $request->get('period', 'last_month');
 
+        // Get current period reviews
+        $currentReviews = ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->whereNotNull('sentiment_score')
+            ->get();
+
+        // Get previous period reviews for comparison
+        $previousReviews = $this->getPreviousPeriodReviews($businessId, $period);
+
+        // Calculate overall metrics
+        $overallMetrics = $this->calculateOverallMetrics($currentReviews, $previousReviews);
+        
+        // Calculate compliment vs complaint ratio
+        $complimentRatio = $this->calculateComplimentRatio($currentReviews);
+        
+        // Get top staff by rating
+        $topStaff = $this->getTopStaffByRating($currentReviews);
+        
+        // Get all staff with detailed metrics
+        $allStaff = $this->getAllStaffMetrics($currentReviews);
+
+        return response()->json([
+            'business_id' => (int)$businessId,
+            'business_name' => $business->name,
+            'period' => $period,
+            'overall_metrics' => $overallMetrics,
+            'compliment_ratio' => $complimentRatio,
+            'top_staff' => $topStaff,
+            'all_staff' => $allStaff
+        ]);
+    }
+
+    private function getPreviousPeriodReviews($businessId, $period)
+    {
+        $startDate = match($period) {
+            'last_week' => Carbon::now()->subWeek()->startOfWeek(),
+            'last_quarter' => Carbon::now()->subQuarter()->startOfQuarter(),
+            default => Carbon::now()->subMonth()->startOfMonth() // last_month
+        };
+
+        $endDate = match($period) {
+            'last_week' => Carbon::now()->subWeek()->endOfWeek(),
+            'last_quarter' => Carbon::now()->subQuarter()->endOfQuarter(),
+            default => Carbon::now()->subMonth()->endOfMonth()
+        };
+
+        return ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->whereNotNull('sentiment_score')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get();
+    }
+
+    private function calculateOverallMetrics($currentReviews, $previousReviews)
+    {
+        // Current period metrics
+        $currentAvgRating = round($currentReviews->avg('rate') ?? 0, 1);
+        $currentSentiment = $this->calculateAverageSentiment($currentReviews);
+        $currentTotalReviews = $currentReviews->count();
+
+        // Previous period metrics
+        $previousAvgRating = round($previousReviews->avg('rate') ?? 0, 1);
+        $previousSentiment = $this->calculateAverageSentiment($previousReviews);
+        $previousTotalReviews = $previousReviews->count();
+
+        // Calculate changes
+        $ratingChange = $previousAvgRating > 0 ? 
+            round((($currentAvgRating - $previousAvgRating) / $previousAvgRating) * 100, 1) : 0;
+        
+        $sentimentChange = $previousSentiment > 0 ? 
+            round($currentSentiment - $previousSentiment, 1) : 0;
+        
+        $reviewsChange = $previousTotalReviews > 0 ? 
+            $currentTotalReviews - $previousTotalReviews : $currentTotalReviews;
+
+        return [
+            'overall_rating' => [
+                'value' => $currentAvgRating,
+                'change' => $ratingChange,
+                'change_type' => $ratingChange >= 0 ? 'positive' : 'negative'
+            ],
+            'overall_sentiment' => [
+                'value' => $currentSentiment,
+                'change' => $sentimentChange,
+                'change_type' => $sentimentChange >= 0 ? 'positive' : 'negative'
+            ],
+            'total_reviews' => [
+                'value' => $currentTotalReviews,
+                'change' => $reviewsChange,
+                'change_type' => $reviewsChange >= 0 ? 'positive' : 'negative'
+            ]
+        ];
+    }
+
+    private function calculateAverageSentiment($reviews)
+    {
+        if ($reviews->isEmpty()) {
+            return 0;
+        }
+
+        $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        return round(($positiveReviews / $reviews->count()) * 100);
+    }
+
+    private function calculateComplimentRatio($reviews)
+    {
+        $totalReviews = $reviews->count();
+        
+        if ($totalReviews === 0) {
+            return [
+                'compliments_percentage' => 0,
+                'complaints_percentage' => 0,
+                'compliments_count' => 0,
+                'complaints_count' => 0
+            ];
+        }
+
+        $compliments = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $complaints = $reviews->where('sentiment_score', '<', 0.4)->count();
+        $neutral = $totalReviews - $compliments - $complaints;
+
+        return [
+            'compliments_percentage' => round(($compliments / $totalReviews) * 100),
+            'complaints_percentage' => round(($complaints / $totalReviews) * 100),
+            'neutral_percentage' => round(($neutral / $totalReviews) * 100),
+            'compliments_count' => $compliments,
+            'complaints_count' => $complaints,
+            'neutral_count' => $neutral
+        ];
+    }
+
+    private function getTopStaffByRating($reviews, $limit = 5)
+    {
+        $staffRatings = $reviews->groupBy('staff_id')
+            ->map(function ($staffReviews, $staffId) {
+                $staff = User::find($staffId);
+                return [
+                    'staff_id' => $staffId,
+                    'staff_name' => $staff ? $staff->name : 'Unknown Staff',
+                    'position' => $staff->job_title ?? 'Staff',
+                    'avg_rating' => round($staffReviews->avg('rate'), 1),
+                    'total_reviews' => $staffReviews->count(),
+                    'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score'))
+                ];
+            })
+            ->filter(function ($staff) {
+                return $staff['total_reviews'] >= 3; // Minimum reviews to be considered
+            })
+            ->sortByDesc('avg_rating')
+            ->take($limit)
+            ->values()
+            ->toArray();
+
+        return $staffRatings;
+    }
+
+    private function getAllStaffMetrics($reviews)
+    {
+        $staffMetrics = $reviews->groupBy('staff_id')
+            ->map(function ($staffReviews, $staffId) {
+                $staff = User::find($staffId);
+                if (!$staff) return null;
+
+                $compliments = $staffReviews->where('sentiment_score', '>=', 0.7)->count();
+                $complaints = $staffReviews->where('sentiment_score', '<', 0.4)->count();
+                $neutral = $staffReviews->count() - $compliments - $complaints;
+
+                return [
+                    'staff_id' => $staffId,
+                    'staff_name' => $staff->name,
+                    'position' => $staff->job_title ?? 'Staff',
+                    'avg_rating' => round($staffReviews->avg('rate'), 1),
+                    'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score')),
+                    'compliments_count' => $compliments,
+                    'complaints_count' => $complaints,
+                    'neutral_count' => $neutral,
+                    'total_reviews' => $staffReviews->count(),
+                    'sentiment_numeric' => round($staffReviews->avg('sentiment_score') * 100)
+                ];
+            })
+            ->filter()
+            ->sortByDesc('avg_rating')
+            ->values()
+            ->toArray();
+
+        return $staffMetrics;
+    }
+
+    private function getSentimentLabel($sentimentScore)
+    {
+        if (!$sentimentScore) return 'Neutral';
+        
+        if ($sentimentScore >= 0.7) return 'Positive';
+        if ($sentimentScore >= 0.4) return 'Neutral';
+        return 'Negative';
+    }
 
 
 
