@@ -2670,7 +2670,13 @@ class ReportController extends Controller
             'is_user_review' => $request->get('is_user_review'),
             'is_overall' => $request->get('is_overall'),
             'staff_id' => $request->get('staff_id'),
-            'period' => $request->get('period', '30d')
+            'period' => $request->get('period', '30d'),
+            'min_score' => $request->get('min_score'),
+            'max_score' => $request->get('max_score'),
+            'labels' => $request->get('labels'),
+            'review_type' => $request->get('review_type'),
+            'has_comment' => $request->get('has_comment'),
+            'has_reply' => $request->get('has_reply')
         ];
 
         // Build query with filters
@@ -2903,9 +2909,9 @@ class ReportController extends Controller
         };
 
         $groupFormat = match ($period) {
-            '7d' => 'Y-m-d', // Daily for 7 days
-            '90d', '1y' => 'Y-m', // Monthly for 90 days and 1 year
-            default => 'Y-m-d' // Daily for 30 days
+            '7d' => 'd-m-Y', // Daily for 7 days
+            '90d', '1y' => 'm-Y', // Monthly for 90 days and 1 year
+            default => 'd-m-Y' // Daily for 30 days
         };
 
         $filteredReviews = $reviews->whereBetween('created_at', [$startDate, $endDate]);
@@ -2929,8 +2935,8 @@ class ReportController extends Controller
             'total_submissions' => $filteredReviews->count(),
             'peak_submissions' => $submissionsByPeriod->max('submissions_count') ?? 0,
             'date_range' => [
-                'start' => $startDate->toDateString(),
-                'end' => $endDate->toDateString()
+                'start' => $startDate->format('d-m-Y'),
+                'end' => $endDate->format('d-m-Y')
             ]
         ];
     }
@@ -2948,7 +2954,7 @@ class ReportController extends Controller
                 'sentiment_score' => 0
             ];
 
-            if ($format === 'Y-m-d') {
+            if ($format === 'd-m-Y') {
                 $current->addDay();
             } else {
                 $current->addMonth();
@@ -2971,7 +2977,7 @@ class ReportController extends Controller
                     'rating' => $review->rate,
                     'comment' => $review->comment,
                     'submission_date' => $review->created_at->diffForHumans(),
-                    'exact_date' => $review->created_at->toDateTimeString(),
+                    'exact_date' => $review->created_at->format('d-m-Y H:i:s'),
                     'is_guest' => !is_null($review->guest_id),
                     'is_overall' => (bool)$review->is_overall,
                     'sentiment_score' => $review->sentiment_score,

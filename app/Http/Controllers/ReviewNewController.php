@@ -57,7 +57,7 @@ class ReviewNewController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/review-new/getvalues/{businessId}/{rate}",
+     *      path="v1.0/review-new/get-values/{businessId}/{rate}",
      *      operationId="getReviewValues",
      *      tags={"review"},
      *   *       security={
@@ -82,8 +82,12 @@ class ReviewNewController extends Controller
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Review values retrieved successfully"),
+     *              @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
@@ -91,13 +95,13 @@ class ReviewNewController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -119,11 +123,14 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
             "rate" => $rate,
 
-        ])
-            ->get();
+        ])->get();
 
 
-        return response($reviewValues, 200);
+        return response([
+            "success" => true,
+            "message" => "Review values retrieved successfully",
+            "data" => $reviewValues
+        ], 200);
     }
     // ##################################################
     // This method is to get ReviewValue by id
@@ -213,7 +220,7 @@ class ReviewNewController extends Controller
         ])
             ->globalFilters()
             ->whereBetween('created_at', [$start, $end])
-->orderBy('order_no', 'asc')
+            ->orderBy('order_no', 'asc')
             ->get();
 
         $data["total"]   = $reviews->count();
@@ -544,120 +551,120 @@ class ReviewNewController extends Controller
     // Authenticated user review
     // ##################################################
 
- /**
- * @OA\Post(
- *      path="/review-new/{businessId}",
- *      operationId="storeReview",
- *      tags={"review"},
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          required=true,
- *          example="1"
- *      ),
- *      security={{"bearerAuth": {}}},
- *      summary="Store review by authenticated user",
- *      description="Store review with optional audio transcription and AI analysis",
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\JsonContent(
- *              required={"description","rate","comment","values"},
- *              @OA\Property(property="description", type="string", example="Test"),
- *              @OA\Property(property="rate", type="string", example="2.5"),
- *              @OA\Property(property="comment", type="string", example="Not good"),
- *              @OA\Property(property="is_overall", type="string", example="is_overall"),
- *             @OA\Property(property="staff_id", type="integer", example="1"),
- * 
- *              @OA\Property(
- *                  property="values",
- *                  type="array",
- *                  @OA\Items(
- *                      @OA\Property(property="question_id", type="integer", example=1),
- *                      @OA\Property(property="tag_id", type="integer", example=2),
- *                      @OA\Property(property="star_id", type="integer", example=4)
- *                  )
- *              )
- *          )
- *      ),
- *      @OA\Response(response=201, description="Created successfully"),
- *      @OA\Response(response=400, description="Bad Request"),
- *      @OA\Response(response=401, description="Unauthenticated"),
- *      @OA\Response(response=422, description="Unprocessable Content")
- * )
- */
-public function storeReview($businessId, Request $request)
-{
-    $business = Business::findOrFail($businessId);
-    $raw_text = $request->input('comment', '');
+    /**
+     * @OA\Post(
+     *      path="/review-new/{businessId}",
+     *      operationId="storeReview",
+     *      tags={"review"},
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      security={{"bearerAuth": {}}},
+     *      summary="Store review by authenticated user",
+     *      description="Store review with optional audio transcription and AI analysis",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"description","rate","comment","values"},
+     *              @OA\Property(property="description", type="string", example="Test"),
+     *              @OA\Property(property="rate", type="string", example="2.5"),
+     *              @OA\Property(property="comment", type="string", example="Not good"),
+     *              @OA\Property(property="is_overall", type="string", example="is_overall"),
+     *             @OA\Property(property="staff_id", type="integer", example="1"),
+     * 
+     *              @OA\Property(
+     *                  property="values",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="question_id", type="integer", example=1),
+     *                      @OA\Property(property="tag_id", type="integer", example=2),
+     *                      @OA\Property(property="star_id", type="integer", example=4)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(response=201, description="Created successfully"),
+     *      @OA\Response(response=400, description="Bad Request"),
+     *      @OA\Response(response=401, description="Unauthenticated"),
+     *      @OA\Response(response=422, description="Unprocessable Content")
+     * )
+     */
+    public function storeReview($businessId, Request $request)
+    {
+        $business = Business::findOrFail($businessId);
+        $raw_text = $request->input('comment', '');
 
-    if ($request->hasFile('audio')) {
-        $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
-    }
+        if ($request->hasFile('audio')) {
+            $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
+        }
 
-    // Step 2: AI Moderation Pipeline
-    $moderationResults = $this->aiModeration($raw_text);
-    
-    // Check if content should be blocked
-    if ($moderationResults['should_block']) {
-        return response([
-            "message" => $moderationResults['action_message'],
-            "moderation_results" => $moderationResults
-        ], 400);
-    }
+        // Step 2: AI Moderation Pipeline
+        $moderationResults = $this->aiModeration($raw_text);
 
-    // Step 3: AI Sentiment Analysis
-    $sentimentScore = $this->analyzeSentiment($raw_text);
-    
-    // Step 4: AI Topic Extraction
-    $topics = $this->extractTopics($raw_text);
-    
-    // Step 5: AI Staff Performance Scoring
-    $staffSuggestions = [];
-    if ($request->staff_id) {
-        $staffSuggestions = $this->analyzeStaffPerformance($raw_text, $request->staff_id, $businessId);
-    }
+        // Check if content should be blocked
+        if ($moderationResults['should_block']) {
+            return response([
+                "message" => $moderationResults['action_message'],
+                "moderation_results" => $moderationResults
+            ], 400);
+        }
 
-    // Step 6: AI Recommendations Engine
-    $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
+        // Step 3: AI Sentiment Analysis
+        $sentimentScore = $this->analyzeSentiment($raw_text);
 
-    $review = ReviewNew::create([
-        'survey_id' => $request->survey_id, 
-        'description' => $request->description,
-        'business_id' => $businessId,
-        'rate' => $request->rate,
-        'user_id' => $request->user()->id,
-        'comment' => $raw_text,
-        'raw_text' => $raw_text,
-        'emotion' => $this->detectEmotion($raw_text), // Keep existing emotion detection
-        'key_phrases' => $this->extractKeyPhrases($raw_text),
-        'sentiment_score' => $sentimentScore,
-        'topics' => $topics,
-        'moderation_results' => $moderationResults,
-        'ai_suggestions' => $aiSuggestions,
-        'staff_suggestions' => $staffSuggestions,
-        "ip_address" => $request->ip(),
-        "is_overall" => $request->is_overall ?? 0,
-        "staff_id" => $request->staff_id ?? null,
-    ]);
+        // Step 4: AI Topic Extraction
+        $topics = $this->extractTopics($raw_text);
 
-    $this->storeReviewValues($review, $request->values, $business);
+        // Step 5: AI Staff Performance Scoring
+        $staffSuggestions = [];
+        if ($request->staff_id) {
+            $staffSuggestions = $this->analyzeStaffPerformance($raw_text, $request->staff_id, $businessId);
+        }
 
-    return response([
-        "message" => "created successfully",
-        "review_id" => $review->id,
-        "ai_analysis" => [
+        // Step 6: AI Recommendations Engine
+        $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
+
+        $review = ReviewNew::create([
+            'survey_id' => $request->survey_id,
+            'description' => $request->description,
+            'business_id' => $businessId,
+            'rate' => $request->rate,
+            'user_id' => $request->user()->id,
+            'comment' => $raw_text,
+            'raw_text' => $raw_text,
+            'emotion' => $this->detectEmotion($raw_text), // Keep existing emotion detection
+            'key_phrases' => $this->extractKeyPhrases($raw_text),
             'sentiment_score' => $sentimentScore,
             'topics' => $topics,
-            'moderation_action' => $moderationResults['action_taken']
-        ]
-    ], 201);
-}
+            'moderation_results' => $moderationResults,
+            'ai_suggestions' => $aiSuggestions,
+            'staff_suggestions' => $staffSuggestions,
+            "ip_address" => $request->ip(),
+            "is_overall" => $request->is_overall ?? 0,
+            "staff_id" => $request->staff_id ?? null,
+        ]);
+
+        $this->storeReviewValues($review, $request->values, $business);
+
+        return response([
+            "message" => "created successfully",
+            "review_id" => $review->id,
+            "ai_analysis" => [
+                'sentiment_score' => $sentimentScore,
+                'topics' => $topics,
+                'moderation_action' => $moderationResults['action_taken']
+            ]
+        ], 201);
+    }
 
     // ##################################################
     // Guest user review
     // ##################################################
 
-   
+
 
 
 
@@ -707,325 +714,333 @@ public function storeReview($businessId, Request $request)
      * )
      */
     // ##################################################
-// Guest user review - Updated with AI Pipeline
-// ##################################################
+    // Guest user review - Updated with AI Pipeline
+    // ##################################################
 
-public function storeReviewByGuest($businessId, Request $request)
-{
-    $business = Business::findOrFail($businessId);
-    $ip_address = $request->ip();
+    public function storeReviewByGuest($businessId, Request $request)
+    {
+        $business = Business::findOrFail($businessId);
+        $ip_address = $request->ip();
 
-    // ✅ Step 1: IP restriction check
-    if ($business->enable_ip_check) {
-        $existing_review = ReviewNew::where('business_id', $businessId)
-            ->where('ip_address', $ip_address)
-            ->whereDate('created_at', now()->toDateString())
-            ->globalFilters()
-            ->orderBy('order_no', 'asc')
-            ->first();
+        // ✅ Step 1: IP restriction check
+        if ($business->enable_ip_check) {
+            $existing_review = ReviewNew::where('business_id', $businessId)
+                ->where('ip_address', $ip_address)
+                ->whereDate('created_at', now()->toDateString())
+                ->globalFilters()
+                ->orderBy('order_no', 'asc')
+                ->first();
 
-        if ($existing_review) {
-            return response([
-                "message" => "You have already submitted a review today from this IP."
-            ], 400);
-        }
-    }
-
-    // ✅ Step 2: Location restriction check
-    if ($business->enable_location_check) {
-        $guest_lat = $request->input('latitude');
-        $guest_lon = $request->input('longitude');
-
-        if (!$guest_lat || !$guest_lon) {
-            return response(["message" => "Location data required for review."], 400);
-        }
-
-        if ($business->latitude && $business->longitude) {
-            $distance = $this->getDistanceMeters($guest_lat, $guest_lon, $business->latitude, $business->longitude);
-            if ($distance > $business->review_distance_limit) {
+            if ($existing_review) {
                 return response([
-                    "message" => "You are too far from the business location to review (limit {$business->review_distance_limit}m)."
+                    "message" => "You have already submitted a review today from this IP."
                 ], 400);
             }
         }
-    }
 
-    $guest = GuestUser::create([
-        'full_name' => request()->guest_full_name,
-        'phone' => request()->guest_phone,
-    ]);
+        // ✅ Step 2: Location restriction check
+        if ($business->enable_location_check) {
+            $guest_lat = $request->input('latitude');
+            $guest_lon = $request->input('longitude');
 
-    $raw_text = request()->input('comment', '');
+            if (!$guest_lat || !$guest_lon) {
+                return response(["message" => "Location data required for review."], 400);
+            }
 
-    if (request()->hasFile('audio')) {
-        $raw_text = $this->transcribeAudio(request()->file('audio')->getRealPath());
-    }
+            if ($business->latitude && $business->longitude) {
+                $distance = $this->getDistanceMeters($guest_lat, $guest_lon, $business->latitude, $business->longitude);
+                if ($distance > $business->review_distance_limit) {
+                    return response([
+                        "message" => "You are too far from the business location to review (limit {$business->review_distance_limit}m)."
+                    ], 400);
+                }
+            }
+        }
 
-    // AI Pipeline
-    $moderationResults = $this->aiModeration($raw_text);
-    
-    if ($moderationResults['should_block']) {
-        return response([
-            "message" => $moderationResults['action_message'],
-            "moderation_results" => $moderationResults
-        ], 400);
-    }
+        $guest = GuestUser::create([
+            'full_name' => request()->guest_full_name,
+            'phone' => request()->guest_phone,
+        ]);
 
-    $sentimentScore = $this->analyzeSentiment($raw_text);
-    $topics = $this->extractTopics($raw_text);
-    
-    $staffSuggestions = [];
-    if ($request->staff_id) {
-        $staffSuggestions = $this->analyzeStaffPerformance($raw_text, $request->staff_id, $businessId);
-    }
+        $raw_text = request()->input('comment', '');
 
-    $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
+        if (request()->hasFile('audio')) {
+            $raw_text = $this->transcribeAudio(request()->file('audio')->getRealPath());
+        }
 
-    $review = ReviewNew::create([
-        'survey_id' => $request->survey_id, 
-        'description' => request()->description,
-        'business_id' => $businessId,
-        'rate' => request()->rate,
-        'guest_id' => $guest->id,
-        'comment' => $raw_text,
-        'raw_text' => $raw_text,
-        'emotion' => $this->detectEmotion($raw_text),
-        'key_phrases' => $this->extractKeyPhrases($raw_text),
-        'sentiment_score' => $sentimentScore,
-        'topics' => $topics,
-        'moderation_results' => $moderationResults,
-        'ai_suggestions' => $aiSuggestions,
-        'staff_suggestions' => $staffSuggestions,
-        "ip_address" => request()->ip(),
-        "is_overall" => request()->is_overall ?? 0,
-        "staff_id" => $request->staff_id ?? null,
-    ]);
-                       
-    $this->storeReviewValues($review, $request->values, $business);
+        // AI Pipeline
+        $moderationResults = $this->aiModeration($raw_text);
 
-    return response([
-        "message" => "created successfully",
-        "review_id" => $review->id,
-        "ai_analysis" => [
+        if ($moderationResults['should_block']) {
+            return response([
+                "message" => $moderationResults['action_message'],
+                "moderation_results" => $moderationResults
+            ], 400);
+        }
+
+        $sentimentScore = $this->analyzeSentiment($raw_text);
+        $topics = $this->extractTopics($raw_text);
+
+        $staffSuggestions = [];
+        if ($request->staff_id) {
+            $staffSuggestions = $this->analyzeStaffPerformance($raw_text, $request->staff_id, $businessId);
+        }
+
+        $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
+
+        $review = ReviewNew::create([
+            'survey_id' => $request->survey_id,
+            'description' => request()->description,
+            'business_id' => $businessId,
+            'rate' => request()->rate,
+            'guest_id' => $guest->id,
+            'comment' => $raw_text,
+            'raw_text' => $raw_text,
+            'emotion' => $this->detectEmotion($raw_text),
+            'key_phrases' => $this->extractKeyPhrases($raw_text),
             'sentiment_score' => $sentimentScore,
             'topics' => $topics,
-            'moderation_action' => $moderationResults['action_taken']
-        ]
-    ], 201);
-}
+            'moderation_results' => $moderationResults,
+            'ai_suggestions' => $aiSuggestions,
+            'staff_suggestions' => $staffSuggestions,
+            "ip_address" => request()->ip(),
+            "is_overall" => request()->is_overall ?? 0,
+            "staff_id" => $request->staff_id ?? null,
+        ]);
+
+        $this->storeReviewValues($review, $request->values, $business);
+
+        return response([
+            "message" => "created successfully",
+            "review_id" => $review->id,
+            "ai_analysis" => [
+                'sentiment_score' => $sentimentScore,
+                'topics' => $topics,
+                'moderation_action' => $moderationResults['action_taken']
+            ]
+        ], 201);
+    }
 
 // ##################################################
 // New AI Pipeline Methods
 // ##################################################
 
-/**
- * Step 2: AI Moderation Pipeline
- */
-private function aiModeration($text)
-{
-    $abusivePatterns = ['idiot', 'stupid', 'hate', 'terrible', 'awful', 'shit', 'fuck', 'asshole'];
-    $hateSpeechIndicators = ['racist', 'sexist', 'discriminat', 'bigot'];
-    $spamPatterns = ['http://', 'https://', 'www.', 'buy now', 'click here', 'discount', 'offer'];
-    
-    $issues = [];
-    $severity = 0;
-    
-    // Check for abusive words
-    foreach ($abusivePatterns as $pattern) {
-        if (stripos($text, $pattern) !== false) {
-            $issues[] = 'abusive_language';
-            $severity += 1;
-        }
-    }
-    
-    // Check for hate speech
-    foreach ($hateSpeechIndicators as $indicator) {
-        if (stripos($text, $indicator) !== false) {
-            $issues[] = 'hate_speech';
-            $severity += 2;
-        }
-    }
-    
-    // Check for spam
-    foreach ($spamPatterns as $pattern) {
-        if (stripos($text, $pattern) !== false) {
-            $issues[] = 'spam_content';
-            $severity += 1;
-        }
-    }
-    
-    // Determine action based on severity
-    $action = 'allow';
-    $shouldBlock = false;
-    $actionMessage = 'Content approved';
-    
-    if ($severity >= 3) {
-        $action = 'block';
-        $shouldBlock = true;
-        $actionMessage = 'Content blocked due to inappropriate language';
-    } elseif ($severity >= 2) {
-        $action = 'flag_for_review';
-        $actionMessage = 'Content flagged for admin review';
-    } elseif ($severity >= 1) {
-        $action = 'warn';
-        $actionMessage = 'Content contains mild inappropriate language';
-    }
-    
-    return [
-        'issues_found' => $issues,
-        'severity_score' => $severity,
-        'action_taken' => $action,
-        'should_block' => $shouldBlock,
-        'action_message' => $actionMessage
-    ];
-}
+    /**
+     * Step 2: AI Moderation Pipeline
+     */
+    private function aiModeration($text)
+    {
+        $abusivePatterns = ['idiot', 'stupid', 'hate', 'terrible', 'awful', 'shit', 'fuck', 'asshole'];
+        $hateSpeechIndicators = ['racist', 'sexist', 'discriminat', 'bigot'];
+        $spamPatterns = ['http://', 'https://', 'www.', 'buy now', 'click here', 'discount', 'offer'];
 
-/**
- * Step 3: AI Sentiment Analysis
- */
-private function analyzeSentiment($text)
-{
-    $api_key = env('HF_API_KEY');
-    
-    // Using a simple sentiment analysis model
-    $ch = curl_init("https://router.huggingface.co/hf-inference/models/cardiffnlp/twitter-roberta-base-sentiment-latest");
-    curl_setopt_array($ch, [
-        CURLOPT_HTTPHEADER => [
-            "Authorization: Bearer $api_key",
-            "Content-Type: application/json"
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode(['inputs' => $text]),
-        CURLOPT_RETURNTRANSFER => true,
-    ]);
+        $issues = [];
+        $severity = 0;
 
-    $result = curl_exec($ch);
-    curl_close($ch);
-
-    $data = json_decode($result, true);
-    
-    // Convert to 0-1 scale
-    if (isset($data[0])) {
-        $scores = $data[0];
-        if (isset($scores['label'])) {
-            switch ($scores['label']) {
-                case 'positive':
-                    return min(1.0, 0.7 + ($scores['score'] ?? 0) * 0.3);
-                case 'negative':
-                    return max(0.0, 0.3 - ($scores['score'] ?? 0) * 0.3);
-                case 'neutral':
-                    return 0.5;
+        // Check for abusive words
+        foreach ($abusivePatterns as $pattern) {
+            if (stripos($text, $pattern) !== false) {
+                $issues[] = 'abusive_language';
+                $severity += 1;
             }
         }
-    }
-    
-    return 0.5; // Default neutral
-}
 
-/**
- * Step 4: AI Topic Extraction
- */
-private function extractTopics($text)
-{
-    $predefinedTopics = [
-        'wait time', 'cleanliness', 'staff politeness', 'product quality', 
-        'price issues', 'service speed', 'atmosphere', 'food quality',
-        'customer service', 'waiting area', 'billing process'
-    ];
-    
-    $detectedTopics = [];
-    $textLower = strtolower($text);
-    
-    foreach ($predefinedTopics as $topic) {
-        if (strpos($textLower, strtolower($topic)) !== false) {
-            $detectedTopics[] = $topic;
-        }
-    }
-    
-    return $detectedTopics;
-}
-
-/**
- * Step 5: AI Staff Performance Scoring
- */
-private function analyzeStaffPerformance($text, $staffId, $businessId)
-{
-    $performanceIssues = [
-        'communication' => ['understand', 'explain', 'listen', 'communication', 'rude', 'polite'],
-        'service_speed' => ['slow', 'fast', 'wait', 'quick', 'delay', 'time'],
-        'product_knowledge' => ['know', 'information', 'explain', 'helpful', 'knowledge'],
-        'attitude' => ['friendly', 'rude', 'polite', 'nice', 'unprofessional']
-    ];
-    
-    $textLower = strtolower($text);
-    $weaknesses = [];
-    
-    foreach ($performanceIssues as $skill => $indicators) {
-        $negativeCount = 0;
-        
-        foreach ($indicators as $indicator) {
-            if (strpos($textLower, $indicator) !== false) {
-                $negativeCount++;
+        // Check for hate speech
+        foreach ($hateSpeechIndicators as $indicator) {
+            if (stripos($text, $indicator) !== false) {
+                $issues[] = 'hate_speech';
+                $severity += 2;
             }
         }
-        
-        if ($negativeCount > 0) {
-            $weaknesses[] = $skill;
-        }
-    }
-    
-    return $this->generateStaffSuggestions($weaknesses);
-}
 
-private function generateStaffSuggestions($weaknesses)
-{
-    $suggestions = [];
-    
-    foreach ($weaknesses as $weakness) {
-        switch ($weakness) {
-            case 'communication':
-                $suggestions[] = 'Needs better communication skills training';
-                break;
-            case 'service_speed':
-                $suggestions[] = 'Requires efficiency and time management training';
-                break;
-            case 'product_knowledge':
-                $suggestions[] = 'Needs product knowledge workshop';
-                break;
-            case 'attitude':
-                $suggestions[] = 'Customer service excellence training recommended';
-                break;
+        // Check for spam
+        foreach ($spamPatterns as $pattern) {
+            if (stripos($text, $pattern) !== false) {
+                $issues[] = 'spam_content';
+                $severity += 1;
+            }
         }
-    }
-    
-    return $suggestions;
-}
 
-/**
- * Step 6: AI Recommendations Engine
- */
-private function generateRecommendations($text, $topics, $sentimentScore, $businessId)
-{
-    $recommendations = [];
-    
-    if (in_array('wait time', $topics) && $sentimentScore < 0.4) {
-        $recommendations[] = 'Consider adding additional staff during peak hours to reduce wait times';
+        // Determine action based on severity
+        $action = 'allow';
+        $shouldBlock = false;
+        $actionMessage = 'Content approved';
+
+        if ($severity >= 3) {
+            $action = 'block';
+            $shouldBlock = true;
+            $actionMessage = 'Content blocked due to inappropriate language';
+        } elseif ($severity >= 2) {
+            $action = 'flag_for_review';
+            $actionMessage = 'Content flagged for admin review';
+        } elseif ($severity >= 1) {
+            $action = 'warn';
+            $actionMessage = 'Content contains mild inappropriate language';
+        }
+
+        return [
+            'issues_found' => $issues,
+            'severity_score' => $severity,
+            'action_taken' => $action,
+            'should_block' => $shouldBlock,
+            'action_message' => $actionMessage
+        ];
     }
-    
-    if (in_array('cleanliness', $topics) && $sentimentScore < 0.4) {
-        $recommendations[] = 'Implement more frequent cleaning schedules and staff training';
+
+    /**
+     * Step 3: AI Sentiment Analysis
+     */
+    private function analyzeSentiment($text)
+    {
+        $api_key = env('HF_API_KEY');
+
+        // Using a simple sentiment analysis model
+        $ch = curl_init("https://router.huggingface.co/hf-inference/models/cardiffnlp/twitter-roberta-base-sentiment-latest");
+        curl_setopt_array($ch, [
+            CURLOPT_HTTPHEADER => [
+                "Authorization: Bearer $api_key",
+                "Content-Type: application/json"
+            ],
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode(['inputs' => $text]),
+            CURLOPT_RETURNTRANSFER => true,
+        ]);
+
+        $result = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($result, true);
+
+        // Convert to 0-1 scale
+        if (isset($data[0])) {
+            $scores = $data[0];
+            if (isset($scores['label'])) {
+                switch ($scores['label']) {
+                    case 'positive':
+                        return min(1.0, 0.7 + ($scores['score'] ?? 0) * 0.3);
+                    case 'negative':
+                        return max(0.0, 0.3 - ($scores['score'] ?? 0) * 0.3);
+                    case 'neutral':
+                        return 0.5;
+                }
+            }
+        }
+
+        return 0.5; // Default neutral
     }
-    
-    if (in_array('staff politeness', $topics) && $sentimentScore < 0.4) {
-        $recommendations[] = 'Provide additional customer service training to staff';
+
+    /**
+     * Step 4: AI Topic Extraction
+     */
+    private function extractTopics($text)
+    {
+        $predefinedTopics = [
+            'wait time',
+            'cleanliness',
+            'staff politeness',
+            'product quality',
+            'price issues',
+            'service speed',
+            'atmosphere',
+            'food quality',
+            'customer service',
+            'waiting area',
+            'billing process'
+        ];
+
+        $detectedTopics = [];
+        $textLower = strtolower($text);
+
+        foreach ($predefinedTopics as $topic) {
+            if (strpos($textLower, strtolower($topic)) !== false) {
+                $detectedTopics[] = $topic;
+            }
+        }
+
+        return $detectedTopics;
     }
-    
-    if (in_array('price issues', $topics)) {
-        $recommendations[] = 'Review pricing strategy and consider competitive analysis';
+
+    /**
+     * Step 5: AI Staff Performance Scoring
+     */
+    private function analyzeStaffPerformance($text, $staffId, $businessId)
+    {
+        $performanceIssues = [
+            'communication' => ['understand', 'explain', 'listen', 'communication', 'rude', 'polite'],
+            'service_speed' => ['slow', 'fast', 'wait', 'quick', 'delay', 'time'],
+            'product_knowledge' => ['know', 'information', 'explain', 'helpful', 'knowledge'],
+            'attitude' => ['friendly', 'rude', 'polite', 'nice', 'unprofessional']
+        ];
+
+        $textLower = strtolower($text);
+        $weaknesses = [];
+
+        foreach ($performanceIssues as $skill => $indicators) {
+            $negativeCount = 0;
+
+            foreach ($indicators as $indicator) {
+                if (strpos($textLower, $indicator) !== false) {
+                    $negativeCount++;
+                }
+            }
+
+            if ($negativeCount > 0) {
+                $weaknesses[] = $skill;
+            }
+        }
+
+        return $this->generateStaffSuggestions($weaknesses);
     }
-    
-    return $recommendations;
-}
+
+    private function generateStaffSuggestions($weaknesses)
+    {
+        $suggestions = [];
+
+        foreach ($weaknesses as $weakness) {
+            switch ($weakness) {
+                case 'communication':
+                    $suggestions[] = 'Needs better communication skills training';
+                    break;
+                case 'service_speed':
+                    $suggestions[] = 'Requires efficiency and time management training';
+                    break;
+                case 'product_knowledge':
+                    $suggestions[] = 'Needs product knowledge workshop';
+                    break;
+                case 'attitude':
+                    $suggestions[] = 'Customer service excellence training recommended';
+                    break;
+            }
+        }
+
+        return $suggestions;
+    }
+
+    /**
+     * Step 6: AI Recommendations Engine
+     */
+    private function generateRecommendations($text, $topics, $sentimentScore, $businessId)
+    {
+        $recommendations = [];
+
+        if (in_array('wait time', $topics) && $sentimentScore < 0.4) {
+            $recommendations[] = 'Consider adding additional staff during peak hours to reduce wait times';
+        }
+
+        if (in_array('cleanliness', $topics) && $sentimentScore < 0.4) {
+            $recommendations[] = 'Implement more frequent cleaning schedules and staff training';
+        }
+
+        if (in_array('staff politeness', $topics) && $sentimentScore < 0.4) {
+            $recommendations[] = 'Provide additional customer service training to staff';
+        }
+
+        if (in_array('price issues', $topics)) {
+            $recommendations[] = 'Review pricing strategy and consider competitive analysis';
+        }
+
+        return $recommendations;
+    }
 
     // ##################################################
     // Helper to store review values (question/star)
@@ -1051,9 +1066,9 @@ private function generateRecommendations($text, $topics, $sentimentScore, $busin
         if ($business) {
             $average_rating = ReviewNew::where('business_id', $business->id)
                 ->globalFilters()
-                
-            
-            ->avg('rate');
+
+
+                ->avg('rate');
 
             if ($average_rating >= $business->threshold_rating) {
                 $review->status = 'published';
@@ -1063,7 +1078,7 @@ private function generateRecommendations($text, $topics, $sentimentScore, $busin
             $review->save();
         }
     }
-     private function getDistanceMeters($lat1, $lon1, $lat2, $lon2)
+    private function getDistanceMeters($lat1, $lon1, $lat2, $lon2)
     {
         $earth_radius = 6371000; // meters
         $dLat = deg2rad($lat2 - $lat1);
@@ -1145,97 +1160,96 @@ private function generateRecommendations($text, $topics, $sentimentScore, $busin
         return $data['keyphrases'] ?? [];
     }
 
-  
+
 
     /**
- * @OA\Post(
- *      path="/v1.0/reviews/overall/ordering",
- *      operationId="orderOverallReviews",
- *      tags={"review"},
- *      security={
- *          {"bearerAuth": {}}
- *      },
- *      summary="Order overall reviews by specific sequence",
- *      description="Update the display order of overall reviews using order numbers",
- *
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\JsonContent(
- *              required={"reviews"},
- *              @OA\Property(
- *                  property="reviews",
- *                  type="array",
- *                  @OA\Items(
- *                      type="object",
- *                      required={"id", "order_no"},
- *                      @OA\Property(property="id", type="integer", example=1),
- *                      @OA\Property(property="order_no", type="integer", example=1)
- *                  )
- *              )
- *          )
- *      ),
- *      @OA\Response(
- *          response=200,
- *          description="Order updated successfully",
- *          @OA\JsonContent(
- *              @OA\Property(property="message", type="string", example="Order updated successfully"),
- *              @OA\Property(property="ok", type="boolean", example=true)
- *          )
- *      ),
- *      @OA\Response(
- *          response=401,
- *          description="Unauthenticated",
- *          @OA\JsonContent()
- *      ),
- *      @OA\Response(
- *          response=403,
- *          description="Forbidden",
- *          @OA\JsonContent()
- *      ),
- *      @OA\Response(
- *          response=422,
- *          description="Unprocessable Content",
- *          @OA\JsonContent()
- *      )
- * )
- */
-public function orderOverallReviews(Request $request)
-{
-    try {
-        return DB::transaction(function () use ($request) {
-            
-            if (!$request->user()->hasPermissionTo('review_update')) {
+     * @OA\Post(
+     *      path="/v1.0/reviews/overall/ordering",
+     *      operationId="orderOverallReviews",
+     *      tags={"review"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Order overall reviews by specific sequence",
+     *      description="Update the display order of overall reviews using order numbers",
+     *
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"reviews"},
+     *              @OA\Property(
+     *                  property="reviews",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      type="object",
+     *                      required={"id", "order_no"},
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="order_no", type="integer", example=1)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Order updated successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Order updated successfully"),
+     *              @OA\Property(property="ok", type="boolean", example=true)
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *          @OA\JsonContent()
+     *      )
+     * )
+     */
+    public function orderOverallReviews(Request $request)
+    {
+        try {
+            return DB::transaction(function () use ($request) {
+
+                if (!$request->user()->hasPermissionTo('review_update')) {
+                    return response()->json([
+                        "message" => "You can not perform this action"
+                    ], 403);
+                }
+
+                $request->validate([
+                    'reviews' => 'required|array',
+                    'reviews.*.id' => 'required|integer|exists:review_news,id',
+                    'reviews.*.order_no' => 'required|integer|min:1'
+                ]);
+
+                foreach ($request->reviews as $review) {
+                    ReviewNew::where('id', $review['id'])
+                        ->update([
+                            'order_no' => $review['order_no']
+                        ]);
+                }
+
                 return response()->json([
-                    "message" => "You can not perform this action"
-                ], 403);
-            }
-
-            $request->validate([
-                'reviews' => 'required|array',
-                'reviews.*.id' => 'required|integer|exists:review_news,id',
-                'reviews.*.order_no' => 'required|integer|min:1'
-            ]);
-
-            foreach ($request->reviews as $review) {
-                ReviewNew::where('id', $review['id'])
-                    ->update([
-                        'order_no' => $review['order_no']
-                    ]);
-            }
-
+                    'message' => 'Order updated successfully',
+                    'ok' => true
+                ], 200);
+            });
+        } catch (Exception $e) {
             return response()->json([
-                'message' => 'Order updated successfully',
-                'ok' => true
-            ], 200);
-        });
-        
-    } catch (Exception $e) {
-        return response()->json([
-            'message' => 'Error updating order',
-            'error' => $e->getMessage()
-        ], 500);
+                'message' => 'Error updating order',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
 
 
@@ -2353,12 +2367,12 @@ public function orderOverallReviews(Request $request)
         }
 
         $data2["total_comment"] = ReviewNew::with("user", "guest_user")
-        ->globalFilters()
-        ->where([
-            "business_id" => $business->id,
-            "guest_id" => NULL,
-        ])
-        ->orderBy('order_no', 'asc')
+            ->globalFilters()
+            ->where([
+                "business_id" => $business->id,
+                "guest_id" => NULL,
+            ])
+            ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($request->start_date) && !empty($request->end_date)) {
 

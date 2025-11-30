@@ -309,7 +309,7 @@ Route::middleware(['auth:api'])->group(function () {
     // #################
 
     Route::post('/review-new/reviewvalue/{businessId}/{rate}', [ReviewNewController::class, "store"]);
-    Route::get('/review-new/getvalues/{businessId}/{rate}', [ReviewNewController::class, "getReviewValues"]);
+    Route::get('/v1.0/review-new/get-values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValues"]);
     Route::get('/review-new/getvalues/{businessId}', [ReviewNewController::class, "getreviewvalueById"]);
     Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [ReviewNewController::class, "getAverage"]);
     Route::post('/review-new/addupdatetags/{businessId}', [ReviewNewController::class, "store2"]);

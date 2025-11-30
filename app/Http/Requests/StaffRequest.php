@@ -32,8 +32,8 @@ class StaffRequest extends FormRequest
             'job_title'     => 'nullable|string|max:255',
             'image'     => 'nullable|string|max:255',
             'role'     => 'required|string|in:staff',
-            'skills'     => 'required|string|max:255',
-            'join_date'     => 'required|string|max:255',
+            'skills'     => 'nullable|string|max:255',
+            'join_date'     => 'nullable|string|max:255',
         ];
 
         return $rules;
