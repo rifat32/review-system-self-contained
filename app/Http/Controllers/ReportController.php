@@ -237,7 +237,7 @@ class ReportController extends Controller
                 'created_at',
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
             )
-                ->globalFilters()
+            ->globalFilters()
             ->get()
             ->count();
 
@@ -245,7 +245,7 @@ class ReportController extends Controller
             "business_id" => $businessId
         ])
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
-                ->globalFilters()
+            ->globalFilters()
             ->get()
             ->count();
 
@@ -427,8 +427,8 @@ class ReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/dashboard-report3",
-     *      operationId="getDashboardReport3",
+     *      path="/v3.0/dashboard-report",
+     *      operationId="getDashboardReportV3",
      *      tags={"report"},
      *          @OA\Parameter(
      *         name="businessId",
@@ -447,8 +447,12 @@ class ReportController extends Controller
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Dashboard report retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
@@ -456,13 +460,13 @@ class ReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -475,7 +479,7 @@ class ReportController extends Controller
      *     )
      */
 
-    public function getDashboardReport3(Request $request)
+    public function getDashboardReportV3(Request $request)
     {
         $data = [];
 
@@ -483,7 +487,11 @@ class ReportController extends Controller
         $data['overall'] = $this->generateDashboardReport($request, 1);  // Overall report (is_overall = 1)
 
 
-        return response()->json($data, 200);
+        return response()->json([
+            'success' => true,
+            'message' => 'Dashboard report retrieved successfully',
+            'data' => $data
+        ], 200);
     }
 
 
@@ -528,7 +536,7 @@ class ReportController extends Controller
                 ->where("status", "published")
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->filterByOverall($is_overall)
-                    ->globalFilters()
+                ->globalFilters()
                 ->count();
         }
 
@@ -541,7 +549,7 @@ class ReportController extends Controller
             ->whereDate('created_at', Carbon::today())
             ->filterByOverall($is_overall)
             ->where("status", "published")
-                ->globalFilters()
+            ->globalFilters()
             ->count();
 
         // Count total reviews created within the last 30 days (approximate current month)
@@ -550,7 +558,7 @@ class ReportController extends Controller
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay()) // Filter reviews created in the last 30 days
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->count();
 
@@ -566,7 +574,7 @@ class ReportController extends Controller
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)] // Date range for the previous month
             )
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->count();
 
@@ -576,7 +584,7 @@ class ReportController extends Controller
         ] : []))
             ->filterByOverall($is_overall)
             ->where("status", "published")
-                ->globalFilters()
+            ->globalFilters()
             ->count();
 
         // Count total reviews from the previous week (last full week)
@@ -588,7 +596,7 @@ class ReportController extends Controller
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()] // Start and end of last week
             )
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->count();
 
@@ -599,7 +607,7 @@ class ReportController extends Controller
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]) // Filter by current week range
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->count();
 
@@ -805,7 +813,7 @@ class ReportController extends Controller
                 )
                 ->whereNotNull('user_id')
                 ->where("status", "published")
-                    ->globalFilters()
+                ->globalFilters()
                 ->distinct()
                 ->count();
         }
@@ -830,7 +838,7 @@ class ReportController extends Controller
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->filterByOverall($is_overall)
                 ->where("status", "published")
-                    ->globalFilters()
+                ->globalFilters()
                 ->get()
                 ->count();
         }
@@ -844,7 +852,7 @@ class ReportController extends Controller
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay())
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->count();
 
@@ -858,7 +866,7 @@ class ReportController extends Controller
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
             )
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->get()
             ->count();
@@ -870,7 +878,7 @@ class ReportController extends Controller
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->get()
             ->count();
@@ -886,7 +894,7 @@ class ReportController extends Controller
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
             )
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->get()
             ->count();
@@ -897,7 +905,7 @@ class ReportController extends Controller
             "user_id" => NULL
         ] : []))
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->get()
             ->count();
@@ -910,7 +918,7 @@ class ReportController extends Controller
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
-                    ->globalFilters()
+                ->globalFilters()
                 ->where("status", "published")
                 ->get()
                 ->count();
@@ -930,7 +938,7 @@ class ReportController extends Controller
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
-                    ->globalFilters()
+                ->globalFilters()
                 ->where("status", "published")
                 ->get()
                 ->count();
@@ -961,7 +969,7 @@ class ReportController extends Controller
             ] : []))
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->filterByOverall($is_overall)
-                    ->globalFilters()
+                ->globalFilters()
                 ->where("status", "published")
                 ->count();
         }
@@ -973,7 +981,7 @@ class ReportController extends Controller
         ] : []))
             ->where('created_at', '>', now()->subDays(30)->endOfDay())
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->get()
             ->count();
@@ -988,7 +996,7 @@ class ReportController extends Controller
                 [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()]
             )
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->get()
             ->count();
@@ -1000,7 +1008,7 @@ class ReportController extends Controller
         ] : []))
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->get()
             ->count();
@@ -1015,7 +1023,7 @@ class ReportController extends Controller
                 [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
             )
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->get()
             ->count();
@@ -1026,7 +1034,7 @@ class ReportController extends Controller
             "guest_id" => NULL
         ] : []))
             ->filterByOverall($is_overall)
-                ->globalFilters()
+            ->globalFilters()
             ->where("status", "published")
             ->get()
             ->count();
@@ -1042,7 +1050,7 @@ class ReportController extends Controller
             ] : []))
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
-                    ->globalFilters()
+                ->globalFilters()
                 ->where("status", "published")
                 ->get()
                 ->count();
@@ -1063,7 +1071,7 @@ class ReportController extends Controller
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
                 ->where("status", "published")
-                    ->globalFilters()
+                ->globalFilters()
                 ->get()
                 ->count();
 
@@ -1295,8 +1303,8 @@ class ReportController extends Controller
         // Clone base review query with business filter if not superadmin
         $review_query = ReviewNew::when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
             ->where("status", "published")
-                ->globalFilters()
-                ->orderBy('order_no', 'asc')
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
             ->filterByOverall($is_overall);
 
         // Count previous month reviews
@@ -1654,7 +1662,7 @@ class ReportController extends Controller
 
         // Calculate metrics for Staff A
         $staffAMetrics = $this->calculateStaffMetrics($staffAReviews, $staffA);
-        
+
         // Calculate metrics for Staff B
         $staffBMetrics = $this->calculateStaffMetrics($staffBReviews, $staffB);
 
@@ -1680,14 +1688,14 @@ class ReportController extends Controller
     private function calculateStaffMetrics($reviews, $staffUser)
     {
         $totalReviews = $reviews->count();
-        
+
         if ($totalReviews === 0) {
             return $this->emptyStaffMetrics($staffUser);
         }
 
         // Calculate average rating
         $avgRating = round($reviews->avg('rate'), 1);
-        
+
         // Calculate sentiment distribution
         $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
         $neutralCount = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
@@ -1743,7 +1751,7 @@ class ReportController extends Controller
     private function extractTopicsFromReviews($reviews)
     {
         $allTopics = [];
-        
+
         foreach ($reviews as $review) {
             if ($review->topics && is_array($review->topics)) {
                 foreach ($review->topics as $topic) {
@@ -1751,7 +1759,7 @@ class ReportController extends Controller
                 }
             }
         }
-        
+
         arsort($allTopics);
         return $allTopics;
     }
@@ -1834,7 +1842,7 @@ class ReportController extends Controller
     }
 
 
- /**
+    /**
      * @OA\Get(
      *      path="/reports/staff-performance/{businessId}/{staffId}",
      *      operationId="staffPerformance",
@@ -1870,19 +1878,19 @@ class ReportController extends Controller
 
         // Calculate tenure
         $tenure = $this->calculateTenure($staff->join_date);
-        
+
         // Get rating trend
         $ratingTrend = $this->getRatingTrend($reviews);
-        
+
         // Get review samples by sentiment
         $reviewSamples = $this->getReviewSamples($reviews);
-        
+
         // Get recommended training
         $recommendedTraining = $this->getRecommendedTraining($reviews, $staff);
-        
+
         // Get AI skill-gap detection
         $skillGapAnalysis = $this->analyzeSkillGaps($reviews);
-        
+
         // Get customer-perceived tone
         $customerTone = $this->calculateCustomerTone($reviews);
 
@@ -1916,10 +1924,10 @@ class ReportController extends Controller
 
         $join = Carbon::parse($joinDate);
         $now = Carbon::now();
-        
+
         $years = $now->diffInYears($join);
         $months = $now->diffInMonths($join) % 12;
-        
+
         return "{$years} years {$months} months";
     }
 
@@ -1927,7 +1935,7 @@ class ReportController extends Controller
     {
         // Get last 6 months of ratings
         $sixMonthsAgo = Carbon::now()->subMonths(6);
-        
+
         $monthlyRatings = $reviews->where('created_at', '>=', $sixMonthsAgo)
             ->groupBy(function ($review) {
                 return $review->created_at->format('Y-m');
@@ -2012,7 +2020,7 @@ class ReportController extends Controller
     private function getRecommendedTraining($reviews, $staff)
     {
         $trainingRecommendations = [];
-        
+
         // Analyze reviews for training needs
         $text = $reviews->pluck('comment')->implode(' ');
         $textLower = strtolower($text);
@@ -2140,7 +2148,7 @@ class ReportController extends Controller
     private function calculateSentimentDistribution($reviews)
     {
         $total = $reviews->count();
-        
+
         if ($total === 0) {
             return ['positive' => 0, 'neutral' => 0, 'negative' => 0];
         }
@@ -2158,7 +2166,7 @@ class ReportController extends Controller
 
 
 
- /**
+    /**
      * @OA\Get(
      *      path="/reports/staff-dashboard/{businessId}",
      *      operationId="staffDashboard",
@@ -2198,13 +2206,13 @@ class ReportController extends Controller
 
         // Calculate overall metrics
         $overallMetrics = $this->calculateOverallMetrics($currentReviews, $previousReviews);
-        
+
         // Calculate compliment vs complaint ratio
         $complimentRatio = $this->calculateComplimentRatio($currentReviews);
-        
+
         // Get top staff by rating
         $topStaff = $this->getTopStaffByRating($currentReviews);
-        
+
         // Get all staff with detailed metrics
         $allStaff = $this->getAllStaffMetrics($currentReviews);
 
@@ -2221,13 +2229,13 @@ class ReportController extends Controller
 
     private function getPreviousPeriodReviews($businessId, $period)
     {
-        $startDate = match($period) {
+        $startDate = match ($period) {
             'last_week' => Carbon::now()->subWeek()->startOfWeek(),
             'last_quarter' => Carbon::now()->subQuarter()->startOfQuarter(),
             default => Carbon::now()->subMonth()->startOfMonth() // last_month
         };
 
-        $endDate = match($period) {
+        $endDate = match ($period) {
             'last_week' => Carbon::now()->subWeek()->endOfWeek(),
             'last_quarter' => Carbon::now()->subQuarter()->endOfQuarter(),
             default => Carbon::now()->subMonth()->endOfMonth()
@@ -2253,13 +2261,13 @@ class ReportController extends Controller
         $previousTotalReviews = $previousReviews->count();
 
         // Calculate changes
-        $ratingChange = $previousAvgRating > 0 ? 
+        $ratingChange = $previousAvgRating > 0 ?
             round((($currentAvgRating - $previousAvgRating) / $previousAvgRating) * 100, 1) : 0;
-        
-        $sentimentChange = $previousSentiment > 0 ? 
+
+        $sentimentChange = $previousSentiment > 0 ?
             round($currentSentiment - $previousSentiment, 1) : 0;
-        
-        $reviewsChange = $previousTotalReviews > 0 ? 
+
+        $reviewsChange = $previousTotalReviews > 0 ?
             $currentTotalReviews - $previousTotalReviews : $currentTotalReviews;
 
         return [
@@ -2294,7 +2302,7 @@ class ReportController extends Controller
     private function calculateComplimentRatio($reviews)
     {
         $totalReviews = $reviews->count();
-        
+
         if ($totalReviews === 0) {
             return [
                 'compliments_percentage' => 0,
@@ -2378,7 +2386,7 @@ class ReportController extends Controller
     private function getSentimentLabel($sentimentScore)
     {
         if (!$sentimentScore) return 'Neutral';
-        
+
         if ($sentimentScore >= 0.7) return 'Positive';
         if ($sentimentScore >= 0.4) return 'Neutral';
         return 'Negative';
@@ -2388,7 +2396,7 @@ class ReportController extends Controller
 
 
 
- /**
+    /**
      * @OA\Get(
      *      path="/reports/review-analytics/{businessId}",
      *      operationId="reviewAnalytics",
@@ -2396,47 +2404,47 @@ class ReportController extends Controller
      *      summary="Get review analytics with flexible filtering",
      *      description="Get performance overview and recent submissions with optional filters for survey, guest reviews, user reviews, and overall reviews",
      * @OA\Parameter(
- *     name="min_score",
- *     in="query",
- *     required=false,
- *     description="Minimum rating score (1-5)",
- *     example="3"
- * ),
- * @OA\Parameter(
- *     name="max_score",
- *     in="query",
- *     required=false,
- *     description="Maximum rating score (1-5)",
- *     example="5"
- * ),
- * @OA\Parameter(
- *     name="labels",
- *     in="query",
- *     required=false,
- *     description="Filter by sentiment labels (comma separated)",
- *     example="positive,neutral"
- * ),
- * @OA\Parameter(
- *     name="review_type",
- *     in="query",
- *     required=false,
- *     description="Filter by review type",
- *     example="feedback"
- * ),
- * @OA\Parameter(
- *     name="has_comment",
- *     in="query",
- *     required=false,
- *     description="Filter by comments: true=with comments, false=without comments",
- *     example="true"
- * ),
- * @OA\Parameter(
- *     name="has_reply",
- *     in="query",
- *     required=false,
- *     description="Filter by replies: true=replied, false=not replied",
- *     example="false"
- * ),
+     *     name="min_score",
+     *     in="query",
+     *     required=false,
+     *     description="Minimum rating score (1-5)",
+     *     example="3"
+     * ),
+     * @OA\Parameter(
+     *     name="max_score",
+     *     in="query",
+     *     required=false,
+     *     description="Maximum rating score (1-5)",
+     *     example="5"
+     * ),
+     * @OA\Parameter(
+     *     name="labels",
+     *     in="query",
+     *     required=false,
+     *     description="Filter by sentiment labels (comma separated)",
+     *     example="positive,neutral"
+     * ),
+     * @OA\Parameter(
+     *     name="review_type",
+     *     in="query",
+     *     required=false,
+     *     description="Filter by review type",
+     *     example="feedback"
+     * ),
+     * @OA\Parameter(
+     *     name="has_comment",
+     *     in="query",
+     *     required=false,
+     *     description="Filter by comments: true=with comments, false=without comments",
+     *     example="true"
+     * ),
+     * @OA\Parameter(
+     *     name="has_reply",
+     *     in="query",
+     *     required=false,
+     *     description="Filter by replies: true=replied, false=not replied",
+     *     example="false"
+     * ),
      *      @OA\Response(response=200, description="Success"),
      *      @OA\Response(response=404, description="Not Found")
      * )
@@ -2444,7 +2452,7 @@ class ReportController extends Controller
     public function reviewAnalytics($businessId, Request $request)
     {
         $business = Business::findOrFail($businessId);
-        
+
         $filters = [
             'survey_id' => $request->get('survey_id'),
             'is_guest_review' => $request->get('is_guest_review'),
@@ -2460,15 +2468,15 @@ class ReportController extends Controller
 
         // Apply filters
         $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);
-        
+
         $reviews = $reviewsQuery->get();
 
         // Calculate performance overview
         $performanceOverview = $this->calculatePerformanceOverview($reviews);
-        
+
         // Get submissions over time
         $submissionsOverTime = $this->getSubmissionsOverTime($reviews, $filters['period']);
-        
+
         // Get recent submissions
         $recentSubmissions = $this->getRecentSubmissions($reviews);
 
@@ -2485,160 +2493,160 @@ class ReportController extends Controller
         ]);
     }
 
-  private function applyFilters($query, $filters)
-{
-    // Survey filter
-    if (!empty($filters['survey_id'])) {
-        $query->where('survey_id', $filters['survey_id']);
-    }
+    private function applyFilters($query, $filters)
+    {
+        // Survey filter
+        if (!empty($filters['survey_id'])) {
+            $query->where('survey_id', $filters['survey_id']);
+        }
 
-    // Guest reviews filter
-    if ($filters['is_guest_review'] === 'true') {
-        $query->whereNotNull('guest_id');
-    }
+        // Guest reviews filter
+        if ($filters['is_guest_review'] === 'true') {
+            $query->whereNotNull('guest_id');
+        }
 
-    // User reviews filter
-    if ($filters['is_user_review'] === 'true') {
-        $query->whereNotNull('user_id');
-    }
+        // User reviews filter
+        if ($filters['is_user_review'] === 'true') {
+            $query->whereNotNull('user_id');
+        }
 
-    // Overall reviews filter
-    if ($filters['is_overall'] === 'true') {
-        $query->where('is_overall', 1);
-    } elseif ($filters['is_overall'] === 'false') {
-        $query->where('is_overall', 0);
-    }
+        // Overall reviews filter
+        if ($filters['is_overall'] === 'true') {
+            $query->where('is_overall', 1);
+        } elseif ($filters['is_overall'] === 'false') {
+            $query->where('is_overall', 0);
+        }
 
-    // Staff filter
-    if (!empty($filters['staff_id'])) {
-        $query->where('staff_id', $filters['staff_id']);
-    }
+        // Staff filter
+        if (!empty($filters['staff_id'])) {
+            $query->where('staff_id', $filters['staff_id']);
+        }
 
-    // Score range filter
-    if (!empty($filters['min_score'])) {
-        $query->where('rate', '>=', $filters['min_score']);
-    }
-    if (!empty($filters['max_score'])) {
-        $query->where('rate', '<=', $filters['max_score']);
-    }
-
-    // Labels filter (using sentiment field)
-    if (!empty($filters['labels'])) {
-        $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
-        $query->whereHas('value', function ($q) use ($labels) { 
-            $q->whereIn('review_value_news.tag_id', $labels); 
-        });
-    }
-
-    // Review type filter (using review_type field)
-    if (!empty($filters['review_type'])) {
-        $query->where('review_type', $filters['review_type']);
-    }
-
-    // With comment or without comment
-    if ($filters['has_comment'] === 'true') {
-        $query->whereNotNull('comment')->where('comment', '!=', '');
-    } elseif ($filters['has_comment'] === 'false') {
-        $query->where(function($q) {
-            $q->whereNull('comment')->orWhere('comment', '');
-        });
-    }
-
-    // Replied - yes or no
-    if ($filters['has_reply'] === 'true') {
-        $query->whereNotNull('responded_at');
-    } elseif ($filters['has_reply'] === 'false') {
-        $query->whereNull('responded_at');
-    }
-
-    return $query;
-}
-
-   private function getFilterSummary($filters, $business)
-{
-    $summary = [
-        'business' => $business->name,
-        'total_filters' => 0
-    ];
-
-    if (!empty($filters['survey_id'])) {
-        $survey = Survey::find($filters['survey_id']);
-        $summary['survey'] = $survey ? $survey->name : 'Unknown Survey';
-        $summary['total_filters']++;
-    }
-
-    if ($filters['is_guest_review'] === 'true') {
-        $summary['review_type'] = 'Guest Reviews Only';
-        $summary['total_filters']++;
-    }
-
-    if ($filters['is_user_review'] === 'true') {
-        $summary['review_type'] = 'User Reviews Only';
-        $summary['total_filters']++;
-    }
-
-    if ($filters['is_overall'] === 'true') {
-        $summary['review_scope'] = 'Overall Reviews Only';
-        $summary['total_filters']++;
-    } elseif ($filters['is_overall'] === 'false') {
-        $summary['review_scope'] = 'Survey Reviews Only';
-        $summary['total_filters']++;
-    }
-
-    if (!empty($filters['staff_id'])) {
-        $staff = User::find($filters['staff_id']);
-        $summary['staff'] = $staff ? $staff->name : 'Unknown Staff';
-        $summary['total_filters']++;
-    }
-
-    // Score range filter summary
-    if (!empty($filters['min_score']) || !empty($filters['max_score'])) {
-        $scoreRange = [];
+        // Score range filter
         if (!empty($filters['min_score'])) {
-            $scoreRange[] = "Min: {$filters['min_score']}";
+            $query->where('rate', '>=', $filters['min_score']);
         }
         if (!empty($filters['max_score'])) {
-            $scoreRange[] = "Max: {$filters['max_score']}";
+            $query->where('rate', '<=', $filters['max_score']);
         }
-        $summary['score_range'] = implode(', ', $scoreRange);
-        $summary['total_filters']++;
+
+        // Labels filter (using sentiment field)
+        if (!empty($filters['labels'])) {
+            $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
+            $query->whereHas('value', function ($q) use ($labels) {
+                $q->whereIn('review_value_news.tag_id', $labels);
+            });
+        }
+
+        // Review type filter (using review_type field)
+        if (!empty($filters['review_type'])) {
+            $query->where('review_type', $filters['review_type']);
+        }
+
+        // With comment or without comment
+        if ($filters['has_comment'] === 'true') {
+            $query->whereNotNull('comment')->where('comment', '!=', '');
+        } elseif ($filters['has_comment'] === 'false') {
+            $query->where(function ($q) {
+                $q->whereNull('comment')->orWhere('comment', '');
+            });
+        }
+
+        // Replied - yes or no
+        if ($filters['has_reply'] === 'true') {
+            $query->whereNotNull('responded_at');
+        } elseif ($filters['has_reply'] === 'false') {
+            $query->whereNull('responded_at');
+        }
+
+        return $query;
     }
 
-    // Labels filter summary
-    if (!empty($filters['labels'])) {
-        $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
-        $summary['labels'] = implode(', ', $labels);
-        $summary['total_filters']++;
+    private function getFilterSummary($filters, $business)
+    {
+        $summary = [
+            'business' => $business->name,
+            'total_filters' => 0
+        ];
+
+        if (!empty($filters['survey_id'])) {
+            $survey = Survey::find($filters['survey_id']);
+            $summary['survey'] = $survey ? $survey->name : 'Unknown Survey';
+            $summary['total_filters']++;
+        }
+
+        if ($filters['is_guest_review'] === 'true') {
+            $summary['review_type'] = 'Guest Reviews Only';
+            $summary['total_filters']++;
+        }
+
+        if ($filters['is_user_review'] === 'true') {
+            $summary['review_type'] = 'User Reviews Only';
+            $summary['total_filters']++;
+        }
+
+        if ($filters['is_overall'] === 'true') {
+            $summary['review_scope'] = 'Overall Reviews Only';
+            $summary['total_filters']++;
+        } elseif ($filters['is_overall'] === 'false') {
+            $summary['review_scope'] = 'Survey Reviews Only';
+            $summary['total_filters']++;
+        }
+
+        if (!empty($filters['staff_id'])) {
+            $staff = User::find($filters['staff_id']);
+            $summary['staff'] = $staff ? $staff->name : 'Unknown Staff';
+            $summary['total_filters']++;
+        }
+
+        // Score range filter summary
+        if (!empty($filters['min_score']) || !empty($filters['max_score'])) {
+            $scoreRange = [];
+            if (!empty($filters['min_score'])) {
+                $scoreRange[] = "Min: {$filters['min_score']}";
+            }
+            if (!empty($filters['max_score'])) {
+                $scoreRange[] = "Max: {$filters['max_score']}";
+            }
+            $summary['score_range'] = implode(', ', $scoreRange);
+            $summary['total_filters']++;
+        }
+
+        // Labels filter summary
+        if (!empty($filters['labels'])) {
+            $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
+            $summary['labels'] = implode(', ', $labels);
+            $summary['total_filters']++;
+        }
+
+        // Review type filter summary
+        if (!empty($filters['review_type'])) {
+            $summary['review_type_category'] = $filters['review_type'];
+            $summary['total_filters']++;
+        }
+
+        // Comment filter summary
+        if ($filters['has_comment'] === 'true') {
+            $summary['comment_filter'] = 'With Comments Only';
+            $summary['total_filters']++;
+        } elseif ($filters['has_comment'] === 'false') {
+            $summary['comment_filter'] = 'Without Comments Only';
+            $summary['total_filters']++;
+        }
+
+        // Reply filter summary
+        if ($filters['has_reply'] === 'true') {
+            $summary['reply_filter'] = 'Replied Reviews Only';
+            $summary['total_filters']++;
+        } elseif ($filters['has_reply'] === 'false') {
+            $summary['reply_filter'] = 'Unreplied Reviews Only';
+            $summary['total_filters']++;
+        }
+
+        $summary['period'] = $filters['period'];
+
+        return $summary;
     }
-
-    // Review type filter summary
-    if (!empty($filters['review_type'])) {
-        $summary['review_type_category'] = $filters['review_type'];
-        $summary['total_filters']++;
-    }
-
-    // Comment filter summary
-    if ($filters['has_comment'] === 'true') {
-        $summary['comment_filter'] = 'With Comments Only';
-        $summary['total_filters']++;
-    } elseif ($filters['has_comment'] === 'false') {
-        $summary['comment_filter'] = 'Without Comments Only';
-        $summary['total_filters']++;
-    }
-
-    // Reply filter summary
-    if ($filters['has_reply'] === 'true') {
-        $summary['reply_filter'] = 'Replied Reviews Only';
-        $summary['total_filters']++;
-    } elseif ($filters['has_reply'] === 'false') {
-        $summary['reply_filter'] = 'Unreplied Reviews Only';
-        $summary['total_filters']++;
-    }
-
-    $summary['period'] = $filters['period'];
-
-    return $summary;
-}
 
     private function calculatePerformanceOverview($reviews)
     {
@@ -2672,14 +2680,14 @@ class ReportController extends Controller
     private function getSubmissionsOverTime($reviews, $period)
     {
         $endDate = Carbon::now();
-        $startDate = match($period) {
+        $startDate = match ($period) {
             '7d' => Carbon::now()->subDays(7),
             '90d' => Carbon::now()->subDays(90),
             '1y' => Carbon::now()->subYear(),
             default => Carbon::now()->subDays(30) // 30d
         };
 
-        $groupFormat = match($period) {
+        $groupFormat = match ($period) {
             '7d' => 'Y-m-d', // Daily for 7 days
             '90d', '1y' => 'Y-m', // Monthly for 90 days and 1 year
             default => 'Y-m-d' // Daily for 30 days
@@ -2724,7 +2732,7 @@ class ReportController extends Controller
                 'average_rating' => 0,
                 'sentiment_score' => 0
             ];
-            
+
             if ($format === 'Y-m-d') {
                 $current->addDay();
             } else {
@@ -2741,7 +2749,7 @@ class ReportController extends Controller
             ->take($limit)
             ->map(function ($review) {
                 $userName = $this->getUserName($review);
-                
+
                 return [
                     'review_id' => $review->id,
                     'user_name' => $userName,
@@ -2770,6 +2778,4 @@ class ReportController extends Controller
             return 'Anonymous User';
         }
     }
-
-
 }
