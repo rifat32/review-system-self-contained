@@ -25,7 +25,7 @@ class ReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/customer-report",
+     *      path="/v1.0/customer-report",
      *      operationId="customerDashboardReport",
      *      tags={"report"},
      *       security={
@@ -44,8 +44,12 @@ class ReportController extends Controller
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Customer report retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
@@ -53,13 +57,13 @@ class ReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -76,6 +80,7 @@ class ReportController extends Controller
     public function customerDashboardReport(Request $request)
     {
 
+        // 
         $data["last_five_reviews"] = ReviewNew::with("business", "value")->where([
             "user_id" => $request->customer_id
         ])
@@ -85,14 +90,19 @@ class ReportController extends Controller
             ->take(5)
             ->get();
 
-        return response()->json($data, 200);
+        // SEND RESPONSE
+        return response()->json([
+            'success' => true,
+            'message' => 'Customer report retrieved successfully',
+            'data' => $data
+        ], 200);
     }
 
 
     /**
      *
      * @OA\Get(
-     *      path="/business-report",
+     *      path="/v1.0/business-report",
      *      operationId="businessDashboardReport",
      *      tags={"report"},
      *       security={
@@ -111,8 +121,12 @@ class ReportController extends Controller
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Business report retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
@@ -120,13 +134,13 @@ class ReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -142,11 +156,29 @@ class ReportController extends Controller
 
     public function businessDashboardReport(Request $request)
     {
-        $data["business"] = Business::with("owner")->where([
+        // VALIDATE REQUEST
+        $request->validate([
+            'business_id' => 'required|integer|exists:businesses,id',
+        ]);
+
+        $data = Business::with("owner")->where([
             "id" => $request->business_id
         ])->first();
 
-        return response()->json($data, 200);
+        // CHECK IF BUSINESS EXISTS
+        if (!$data) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Business not found'
+            ], 404);
+        }
+
+        // SEND RESPONSE
+        return response()->json([
+            'success' => true,
+            'message' => 'Business report retrieved successfully',
+            'data' => $data
+        ], 200);
     }
 
 
@@ -154,7 +186,7 @@ class ReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/dashboard-report/{businessId}",
+     *      path="/v1.0/dashboard-report/{businessId}",
      *      operationId="getDashboardReport",
      *      tags={"report"},
      *       security={
@@ -173,7 +205,13 @@ class ReportController extends Controller
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Dashboard report retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
+     * ),
      *       ),
      *      @OA\Response(
      *          response=401,
@@ -182,13 +220,13 @@ class ReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *  @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -351,7 +389,11 @@ class ReportController extends Controller
                 ->count();
         }
 
-        return response()->json($data, 200);
+        return response()->json([
+            'success' => true,
+            'message' => 'Dashboard report retrieved successfully',
+            'data' => $data
+        ], 200);
     }
 
 
@@ -360,7 +402,7 @@ class ReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/dashboard-report/business/get",
+     *      path="/v1.0/dashboard-report/business/get",
      *      operationId="getBusinessReport",
      *      tags={"report"},
      *       security={
@@ -371,7 +413,11 @@ class ReportController extends Controller
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Dashboard report retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
      *       ),
      *      @OA\Response(
      *          response=401,
@@ -380,13 +426,13 @@ class ReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -415,7 +461,11 @@ class ReportController extends Controller
 
         $data["this_week_total_businesses"] = Business::whereBetween('businesses.created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->get()->count();
-        return response()->json($data, 200);
+        return response()->json([
+            'success' => true,
+            'message' => 'Dashboard report retrieved successfully',
+            'data' => $data
+        ], 200);
     }
 
 
@@ -1607,7 +1657,7 @@ class ReportController extends Controller
 
     /**
      * @OA\Get(
-     *      path="/reports/staff-comparison/{businessId}",
+     *      path="/v1.0/reports/staff-comparison/{businessId}",
      *      operationId="staffComparison",
      *      tags={"Reports"},
      *      summary="Compare two staff members performance",
@@ -1630,7 +1680,27 @@ class ReportController extends Controller
      *          required=true,
      *          example="2"
      *      ),
-     *      @OA\Response(response=200, description="Success"),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Staff comparison data retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="business_id", type="integer", example=1),
+     *                  @OA\Property(property="business_name", type="string", example="Business Name"),
+     *                  @OA\Property(property="comparison", type="object",
+     *                      @OA\Property(property="rating_gap", type="number", example=0.5),
+     *                      @OA\Property(property="rating_gap_message", type="string", example="Staff A is performing better"),
+     *                      @OA\Property(property="sentiment_gap", type="number", example=10),
+     *                      @OA\Property(property="sentiment_gap_message", type="string", example="Staff A has more positive reviews"),
+     *                      @OA\Property(property="better_performer", type="string", example="John Doe")
+     *                  ),
+     *                  @OA\Property(property="staff_a", type="object"),
+     *                  @OA\Property(property="staff_b", type="object")
+     *              )
+     *          )
+     *       ),
      *      @OA\Response(response=404, description="Not Found")
      * )
      */
@@ -1671,18 +1741,22 @@ class ReportController extends Controller
         $sentimentGap = $staffAMetrics['sentiment_breakdown']['positive'] - $staffBMetrics['sentiment_breakdown']['positive'];
 
         return response()->json([
-            'business_id' => (int)$businessId,
-            'business_name' => $business->name,
-            'comparison' => [
-                'rating_gap' => $ratingGap,
-                'rating_gap_message' => $this->getRatingGapMessage($ratingGap),
-                'sentiment_gap' => $sentimentGap,
-                'sentiment_gap_message' => $this->getSentimentGapMessage($sentimentGap),
-                'better_performer' => $ratingGap >= 0 ? $staffA->name : $staffB->name
-            ],
-            'staff_a' => $staffAMetrics,
-            'staff_b' => $staffBMetrics
-        ]);
+            "success" => true,
+            "message" => "Staff comparison data retrieved successfully",
+            "data" => [
+                'business_id' => (int)$businessId,
+                'business_name' => $business->name,
+                'comparison' => [
+                    'rating_gap' => $ratingGap,
+                    'rating_gap_message' => $this->getRatingGapMessage($ratingGap),
+                    'sentiment_gap' => $sentimentGap,
+                    'sentiment_gap_message' => $this->getSentimentGapMessage($sentimentGap),
+                    'better_performer' => $ratingGap >= 0 ? $staffA->name : $staffB->name
+                ],
+                'staff_a' => $staffAMetrics,
+                'staff_b' => $staffBMetrics
+            ]
+        ], 200);
     }
 
     private function calculateStaffMetrics($reviews, $staffUser)
@@ -1844,7 +1918,7 @@ class ReportController extends Controller
 
     /**
      * @OA\Get(
-     *      path="/reports/staff-performance/{businessId}/{staffId}",
+     *      path="/v1.0/reports/staff-performance/{businessId}/{staffId}",
      *      operationId="staffPerformance",
      *      tags={"Reports"},
      *      summary="Get detailed staff performance report",
@@ -1861,7 +1935,53 @@ class ReportController extends Controller
      *          required=true,
      *          example="1"
      *      ),
-     *      @OA\Response(response=200, description="Success"),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Staff performance report retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="staff_profile", type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="name", type="string", example="John Doe"),
+     *                      @OA\Property(property="job_title", type="string", example="Staff"),
+     *                      @OA\Property(property="email", type="string", example="john@example.com"),
+     *                      @OA\Property(property="tenure", type="string", example="2 years 3 months"),
+     *                      @OA\Property(property="join_date", type="string", format="date", example="2022-01-15")
+     *                  ),
+     *                  @OA\Property(property="performance_summary", type="object",
+     *                      @OA\Property(property="total_reviews", type="integer", example=25),
+     *                      @OA\Property(property="avg_rating", type="number", example=4.2),
+     *                      @OA\Property(property="sentiment_distribution", type="object",
+     *                          @OA\Property(property="positive", type="integer", example=60),
+     *                          @OA\Property(property="neutral", type="integer", example=25),
+     *                          @OA\Property(property="negative", type="integer", example=15)
+     *                      )
+     *                  ),
+     *                  @OA\Property(property="rating_trend", type="object",
+     *                      @OA\Property(property="period", type="string", example="last_6_months"),
+     *                      @OA\Property(property="data", type="object", example={"2023-01": 4.0, "2023-02": 4.2}),
+     *                      @OA\Property(property="trend_direction", type="string", example="improving")
+     *                  ),
+     *                  @OA\Property(property="review_samples", type="object",
+     *                      @OA\Property(property="positive", type="array", @OA\Items(type="object")),
+     *                      @OA\Property(property="constructive", type="array", @OA\Items(type="object")),
+     *                      @OA\Property(property="neutral", type="array", @OA\Items(type="object"))
+     *                  ),
+     *                  @OA\Property(property="recommended_training", type="array", @OA\Items(type="object")),
+     *                  @OA\Property(property="skill_gap_analysis", type="object",
+     *                      @OA\Property(property="strengths", type="array", @OA\Items(type="string")),
+     *                      @OA\Property(property="improvement_areas", type="array", @OA\Items(type="string"))
+     *                  ),
+     *                  @OA\Property(property="customer_perceived_tone", type="object",
+     *                      @OA\Property(property="friendliness", type="integer", example=75),
+     *                      @OA\Property(property="patience", type="integer", example=80),
+     *                      @OA\Property(property="professionalism", type="integer", example=85)
+     *                  )
+     *              )
+     *          )
+     *       ),
      *      @OA\Response(response=404, description="Not Found")
      * )
      */
@@ -1895,25 +2015,29 @@ class ReportController extends Controller
         $customerTone = $this->calculateCustomerTone($reviews);
 
         return response()->json([
-            'staff_profile' => [
-                'id' => $staff->id,
-                'name' => $staff->name,
-                'job_title' => $staff->job_title ?? 'Staff',
-                'email' => $staff->email,
-                'tenure' => $tenure,
-                'join_date' => $staff->join_date
-            ],
-            'performance_summary' => [
-                'total_reviews' => $reviews->count(),
-                'avg_rating' => round($reviews->avg('rate'), 1),
-                'sentiment_distribution' => $this->calculateSentimentDistribution($reviews)
-            ],
-            'rating_trend' => $ratingTrend,
-            'review_samples' => $reviewSamples,
-            'recommended_training' => $recommendedTraining,
-            'skill_gap_analysis' => $skillGapAnalysis,
-            'customer_perceived_tone' => $customerTone
-        ]);
+            "success" => true,
+            "message" => "Staff performance report retrieved successfully",
+            "data" => [
+                'staff_profile' => [
+                    'id' => $staff->id,
+                    'name' => $staff->name,
+                    'job_title' => $staff->job_title ?? 'Staff',
+                    'email' => $staff->email,
+                    'tenure' => $tenure,
+                    'join_date' => $staff->join_date
+                ],
+                'performance_summary' => [
+                    'total_reviews' => $reviews->count(),
+                    'avg_rating' => round($reviews->avg('rate'), 1),
+                    'sentiment_distribution' => $this->calculateSentimentDistribution($reviews)
+                ],
+                'rating_trend' => $ratingTrend,
+                'review_samples' => $reviewSamples,
+                'recommended_training' => $recommendedTraining,
+                'skill_gap_analysis' => $skillGapAnalysis,
+                'customer_perceived_tone' => $customerTone
+            ]
+        ], 200);
     }
 
     private function calculateTenure($joinDate)
@@ -2168,7 +2292,7 @@ class ReportController extends Controller
 
     /**
      * @OA\Get(
-     *      path="/reports/staff-dashboard/{businessId}",
+     *      path="/v1.0/reports/staff-dashboard/{businessId}",
      *      operationId="staffDashboard",
      *      tags={"Reports"},
      *      summary="Get staff performance dashboard",
@@ -2186,7 +2310,46 @@ class ReportController extends Controller
      *          description="Period for comparison: last_week, last_month, last_quarter",
      *          example="last_month"
      *      ),
-     *      @OA\Response(response=200, description="Success"),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Staff dashboard report retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="business_id", type="integer", example=1),
+     *                  @OA\Property(property="business_name", type="string", example="Business Name"),
+     *                  @OA\Property(property="period", type="string", example="last_month"),
+     *                  @OA\Property(property="overall_metrics", type="object",
+     *                      @OA\Property(property="overall_rating", type="object",
+     *                          @OA\Property(property="value", type="number", example=4.2),
+     *                          @OA\Property(property="change", type="number", example=5.5),
+     *                          @OA\Property(property="change_type", type="string", example="positive")
+     *                      ),
+     *                      @OA\Property(property="overall_sentiment", type="object",
+     *                          @OA\Property(property="value", type="integer", example=75),
+     *                          @OA\Property(property="change", type="number", example=2.1),
+     *                          @OA\Property(property="change_type", type="string", example="positive")
+     *                      ),
+     *                      @OA\Property(property="total_reviews", type="object",
+     *                          @OA\Property(property="value", type="integer", example=150),
+     *                          @OA\Property(property="change", type="integer", example=25),
+     *                          @OA\Property(property="change_type", type="string", example="positive")
+     *                      )
+     *                  ),
+     *                  @OA\Property(property="compliment_ratio", type="object",
+     *                      @OA\Property(property="compliments_percentage", type="integer", example=70),
+     *                      @OA\Property(property="complaints_percentage", type="integer", example=15),
+     *                      @OA\Property(property="neutral_percentage", type="integer", example=15),
+     *                      @OA\Property(property="compliments_count", type="integer", example=105),
+     *                      @OA\Property(property="complaints_count", type="integer", example=22),
+     *                      @OA\Property(property="neutral_count", type="integer", example=23)
+     *                  ),
+     *                  @OA\Property(property="top_staff", type="array", @OA\Items(type="object")),
+     *                  @OA\Property(property="all_staff", type="array", @OA\Items(type="object"))
+     *              )
+     *          )
+     *       ),
      *      @OA\Response(response=404, description="Not Found")
      * )
      */
@@ -2217,14 +2380,18 @@ class ReportController extends Controller
         $allStaff = $this->getAllStaffMetrics($currentReviews);
 
         return response()->json([
-            'business_id' => (int)$businessId,
-            'business_name' => $business->name,
-            'period' => $period,
-            'overall_metrics' => $overallMetrics,
-            'compliment_ratio' => $complimentRatio,
-            'top_staff' => $topStaff,
-            'all_staff' => $allStaff
-        ]);
+            'success' => true,
+            'message' => 'Staff dashboard report retrieved successfully',
+            'data' => [
+                'business_id' => (int)$businessId,
+                'business_name' => $business->name,
+                'period' => $period,
+                'overall_metrics' => $overallMetrics,
+                'compliment_ratio' => $complimentRatio,
+                'top_staff' => $topStaff,
+                'all_staff' => $allStaff
+            ]
+        ], 200);
     }
 
     private function getPreviousPeriodReviews($businessId, $period)
@@ -2398,7 +2565,7 @@ class ReportController extends Controller
 
     /**
      * @OA\Get(
-     *      path="/reports/review-analytics/{businessId}",
+     *      path="/v1.0/reports/review-analytics/{businessId}",
      *      operationId="reviewAnalytics",
      *      tags={"Reports"},
      *      summary="Get review analytics with flexible filtering",
@@ -2445,7 +2612,51 @@ class ReportController extends Controller
      *     description="Filter by replies: true=replied, false=not replied",
      *     example="false"
      * ),
-     *      @OA\Response(response=200, description="Success"),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Review analytics retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="business_id", type="integer", example=1),
+     *                  @OA\Property(property="business_name", type="string", example="Business Name"),
+     *                  @OA\Property(property="filters_applied", type="object",
+     *                      @OA\Property(property="business", type="string", example="Business Name"),
+     *                      @OA\Property(property="total_filters", type="integer", example=2),
+     *                      @OA\Property(property="period", type="string", example="30d")
+     *                  ),
+     *                  @OA\Property(property="performance_overview", type="object",
+     *                      @OA\Property(property="total_submissions", type="integer", example=150),
+     *                      @OA\Property(property="average_score", type="number", example=4.2),
+     *                      @OA\Property(property="score_out_of", type="integer", example=5),
+     *                      @OA\Property(property="sentiment_distribution", type="object",
+     *                          @OA\Property(property="positive", type="integer", example=70),
+     *                          @OA\Property(property="neutral", type="integer", example=20),
+     *                          @OA\Property(property="negative", type="integer", example=10)
+     *                      ),
+     *                      @OA\Property(property="submissions_today", type="integer", example=5),
+     *                      @OA\Property(property="submissions_this_week", type="integer", example=25),
+     *                      @OA\Property(property="submissions_this_month", type="integer", example=85),
+     *                      @OA\Property(property="guest_reviews_count", type="integer", example=45),
+     *                      @OA\Property(property="user_reviews_count", type="integer", example=105),
+     *                      @OA\Property(property="overall_reviews_count", type="integer", example=75),
+     *                      @OA\Property(property="survey_reviews_count", type="integer", example=75)
+     *                  ),
+     *                  @OA\Property(property="submissions_over_time", type="object",
+     *                      @OA\Property(property="period", type="string", example="30d"),
+     *                      @OA\Property(property="data", type="object", example={"2023-11-01": {"submissions_count": 5, "average_rating": 4.2, "sentiment_score": 75.5}}),
+     *                      @OA\Property(property="total_submissions", type="integer", example=150),
+     *                      @OA\Property(property="peak_submissions", type="integer", example=10),
+     *                      @OA\Property(property="date_range", type="object",
+     *                          @OA\Property(property="start", type="string", format="date", example="2023-10-31"),
+     *                          @OA\Property(property="end", type="string", format="date", example="2023-11-30")
+     *                      )
+     *                  ),
+     *                  @OA\Property(property="recent_submissions", type="array", @OA\Items(type="object"))
+     *              )
+     *          )
+     *       ),
      *      @OA\Response(response=404, description="Not Found")
      * )
      */
@@ -2484,13 +2695,17 @@ class ReportController extends Controller
         $filterSummary = $this->getFilterSummary($filters, $business);
 
         return response()->json([
-            'business_id' => (int)$businessId,
-            'business_name' => $business->name,
-            'filters_applied' => $filterSummary,
-            'performance_overview' => $performanceOverview,
-            'submissions_over_time' => $submissionsOverTime,
-            'recent_submissions' => $recentSubmissions
-        ]);
+            'success' => true,
+            'message' => 'Review analytics retrieved successfully',
+            'data' => [
+                'business_id' => (int)$businessId,
+                'business_name' => $business->name,
+                'filters_applied' => $filterSummary,
+                'performance_overview' => $performanceOverview,
+                'submissions_over_time' => $submissionsOverTime,
+                'recent_submissions' => $recentSubmissions
+            ]
+        ], 200);
     }
 
     private function applyFilters($query, $filters)

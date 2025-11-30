@@ -451,21 +451,21 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
     });
 
-    Route::get('/customer-report', [ReportController::class, "customerDashboardReport"]);
-    Route::get('/business-report', [ReportController::class, "businessDashboardReport"]);
+    Route::get('/v1.0/customer-report', [ReportController::class, "customerDashboardReport"]);
+    Route::get('/v1.0/business-report', [ReportController::class, "businessDashboardReport"]);
     Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
     Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
-    Route::get('/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
+    Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
     Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
-    Route::get('/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
+    Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
 
-    Route::get('/reports/staff-comparison/{businessId}', [ReportController::class, 'staffComparison']);
+    Route::get('/v1.0/reports/staff-comparison/{businessId}', [ReportController::class, 'staffComparison']);
 
-    Route::get('/reports/staff-performance/{businessId}/{staffId}', [ReportController::class, 'staffPerformance']);
+    Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [ReportController::class, 'staffPerformance']);
 
-    Route::get('/reports/staff-dashboard/{businessId}', [ReportController::class, 'staffDashboard']);
+    Route::get('/v1.0/reports/staff-dashboard/{businessId}', [ReportController::class, 'staffDashboard']);
 
-    Route::get('/reports/review-analytics/{businessId}', [ReportController::class, 'reviewAnalytics']);
+    Route::get('/v1.0/reports/review-analytics/{businessId}', [ReportController::class, 'reviewAnalytics']);
 
     // #################
     // Review Owner Routes
