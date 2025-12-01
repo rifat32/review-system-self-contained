@@ -2681,7 +2681,7 @@ class ReportController extends Controller
 
         // Build query with filters
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
-            ->with(['user', 'guest', 'survey']);
+            ->with(['user', 'guest_user', 'survey']);
 
         // Apply filters
         $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);
@@ -2714,161 +2714,160 @@ class ReportController extends Controller
         ], 200);
     }
 
-    private function applyFilters($query, $filters)
-    {
-        // Survey filter
-        if (!empty($filters['survey_id'])) {
-            $query->where('survey_id', $filters['survey_id']);
-        }
+  private function applyFilters($query, $filters)
+{
+    // Survey filter
+    if (!empty($filters['survey_id'])) {
+        $query->where('survey_id', $filters['survey_id']);
+    }
 
-        // Guest reviews filter
-        if ($filters['is_guest_review'] === 'true') {
-            $query->whereNotNull('guest_id');
-        }
+    // Guest reviews filter
+    if (isset($filters['is_guest_review']) && $filters['is_guest_review'] === 'true') {
+        $query->whereNotNull('guest_id');
+    }
 
-        // User reviews filter
-        if ($filters['is_user_review'] === 'true') {
-            $query->whereNotNull('user_id');
-        }
+    // User reviews filter
+    if (isset($filters['is_user_review']) && $filters['is_user_review'] === 'true') {
+        $query->whereNotNull('user_id');
+    }
 
-        // Overall reviews filter
-        if ($filters['is_overall'] === 'true') {
-            $query->where('is_overall', 1);
-        } elseif ($filters['is_overall'] === 'false') {
-            $query->where('is_overall', 0);
-        }
+    // Overall reviews filter
+    if (isset($filters['is_overall']) && $filters['is_overall'] === 'true') {
+        $query->where('is_overall', 1);
+    } elseif (isset($filters['is_overall']) && $filters['is_overall'] === 'false') {
+        $query->where('is_overall', 0);
+    }
 
-        // Staff filter
-        if (!empty($filters['staff_id'])) {
-            $query->where('staff_id', $filters['staff_id']);
-        }
+    // Staff filter
+    if (!empty($filters['staff_id'])) {
+        $query->where('staff_id', $filters['staff_id']);
+    }
 
-        // Score range filter
+    // Score range filter
+    if (!empty($filters['min_score'])) {
+        $query->where('rate', '>=', $filters['min_score']);
+    }
+    if (!empty($filters['max_score'])) {
+        $query->where('rate', '<=', $filters['max_score']);
+    }
+
+    // Labels filter (using sentiment field)
+    if (!empty($filters['labels'])) {
+        $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
+        $query->whereHas('value', function ($q) use ($labels) {
+            $q->whereIn('review_value_news.tag_id', $labels);
+        });
+    }
+
+    // Review type filter (using review_type field)
+    if (!empty($filters['review_type'])) {
+        $query->where('review_type', $filters['review_type']);
+    }
+
+    // With comment or without comment
+    if (isset($filters['has_comment']) && $filters['has_comment'] === 'true') {
+        $query->whereNotNull('comment')->where('comment', '!=', '');
+    } elseif (isset($filters['has_comment']) && $filters['has_comment'] === 'false') {
+        $query->where(function ($q) {
+            $q->whereNull('comment')->orWhere('comment', '');
+        });
+    }
+
+    // Replied - yes or no
+    if (isset($filters['has_reply']) && $filters['has_reply'] === 'true') {
+        $query->whereNotNull('responded_at');
+    } elseif (isset($filters['has_reply']) && $filters['has_reply'] === 'false') {
+        $query->whereNull('responded_at');
+    }
+
+    return $query;
+}
+
+private function getFilterSummary($filters, $business)
+{
+    $summary = [
+        'business' => $business->name,
+        'total_filters' => 0
+    ];
+
+    if (!empty($filters['survey_id'])) {
+        $survey = Survey::find($filters['survey_id']);
+        $summary['survey'] = $survey ? $survey->name : 'Unknown Survey';
+        $summary['total_filters']++;
+    }
+
+    if (isset($filters['is_guest_review']) && $filters['is_guest_review'] === 'true') {
+        $summary['review_type'] = 'Guest Reviews Only';
+        $summary['total_filters']++;
+    }
+
+    if (isset($filters['is_user_review']) && $filters['is_user_review'] === 'true') {
+        $summary['review_type'] = 'User Reviews Only';
+        $summary['total_filters']++;
+    }
+
+    if (isset($filters['is_overall']) && $filters['is_overall'] === 'true') {
+        $summary['review_scope'] = 'Overall Reviews Only';
+        $summary['total_filters']++;
+    } elseif (isset($filters['is_overall']) && $filters['is_overall'] === 'false') {
+        $summary['review_scope'] = 'Survey Reviews Only';
+        $summary['total_filters']++;
+    }
+
+    if (!empty($filters['staff_id'])) {
+        $staff = User::find($filters['staff_id']);
+        $summary['staff'] = $staff ? $staff->name : 'Unknown Staff';
+        $summary['total_filters']++;
+    }
+
+    // Score range filter summary
+    if (!empty($filters['min_score']) || !empty($filters['max_score'])) {
+        $scoreRange = [];
         if (!empty($filters['min_score'])) {
-            $query->where('rate', '>=', $filters['min_score']);
+            $scoreRange[] = "Min: {$filters['min_score']}";
         }
         if (!empty($filters['max_score'])) {
-            $query->where('rate', '<=', $filters['max_score']);
+            $scoreRange[] = "Max: {$filters['max_score']}";
         }
-
-        // Labels filter (using sentiment field)
-        if (!empty($filters['labels'])) {
-            $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
-            $query->whereHas('value', function ($q) use ($labels) {
-                $q->whereIn('review_value_news.tag_id', $labels);
-            });
-        }
-
-        // Review type filter (using review_type field)
-        if (!empty($filters['review_type'])) {
-            $query->where('review_type', $filters['review_type']);
-        }
-
-        // With comment or without comment
-        if ($filters['has_comment'] === 'true') {
-            $query->whereNotNull('comment')->where('comment', '!=', '');
-        } elseif ($filters['has_comment'] === 'false') {
-            $query->where(function ($q) {
-                $q->whereNull('comment')->orWhere('comment', '');
-            });
-        }
-
-        // Replied - yes or no
-        if ($filters['has_reply'] === 'true') {
-            $query->whereNotNull('responded_at');
-        } elseif ($filters['has_reply'] === 'false') {
-            $query->whereNull('responded_at');
-        }
-
-        return $query;
+        $summary['score_range'] = implode(', ', $scoreRange);
+        $summary['total_filters']++;
     }
 
-    private function getFilterSummary($filters, $business)
-    {
-        $summary = [
-            'business' => $business->name,
-            'total_filters' => 0
-        ];
-
-        if (!empty($filters['survey_id'])) {
-            $survey = Survey::find($filters['survey_id']);
-            $summary['survey'] = $survey ? $survey->name : 'Unknown Survey';
-            $summary['total_filters']++;
-        }
-
-        if ($filters['is_guest_review'] === 'true') {
-            $summary['review_type'] = 'Guest Reviews Only';
-            $summary['total_filters']++;
-        }
-
-        if ($filters['is_user_review'] === 'true') {
-            $summary['review_type'] = 'User Reviews Only';
-            $summary['total_filters']++;
-        }
-
-        if ($filters['is_overall'] === 'true') {
-            $summary['review_scope'] = 'Overall Reviews Only';
-            $summary['total_filters']++;
-        } elseif ($filters['is_overall'] === 'false') {
-            $summary['review_scope'] = 'Survey Reviews Only';
-            $summary['total_filters']++;
-        }
-
-        if (!empty($filters['staff_id'])) {
-            $staff = User::find($filters['staff_id']);
-            $summary['staff'] = $staff ? $staff->name : 'Unknown Staff';
-            $summary['total_filters']++;
-        }
-
-        // Score range filter summary
-        if (!empty($filters['min_score']) || !empty($filters['max_score'])) {
-            $scoreRange = [];
-            if (!empty($filters['min_score'])) {
-                $scoreRange[] = "Min: {$filters['min_score']}";
-            }
-            if (!empty($filters['max_score'])) {
-                $scoreRange[] = "Max: {$filters['max_score']}";
-            }
-            $summary['score_range'] = implode(', ', $scoreRange);
-            $summary['total_filters']++;
-        }
-
-        // Labels filter summary
-        if (!empty($filters['labels'])) {
-            $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
-            $summary['labels'] = implode(', ', $labels);
-            $summary['total_filters']++;
-        }
-
-        // Review type filter summary
-        if (!empty($filters['review_type'])) {
-            $summary['review_type_category'] = $filters['review_type'];
-            $summary['total_filters']++;
-        }
-
-        // Comment filter summary
-        if ($filters['has_comment'] === 'true') {
-            $summary['comment_filter'] = 'With Comments Only';
-            $summary['total_filters']++;
-        } elseif ($filters['has_comment'] === 'false') {
-            $summary['comment_filter'] = 'Without Comments Only';
-            $summary['total_filters']++;
-        }
-
-        // Reply filter summary
-        if ($filters['has_reply'] === 'true') {
-            $summary['reply_filter'] = 'Replied Reviews Only';
-            $summary['total_filters']++;
-        } elseif ($filters['has_reply'] === 'false') {
-            $summary['reply_filter'] = 'Unreplied Reviews Only';
-            $summary['total_filters']++;
-        }
-
-        $summary['period'] = $filters['period'];
-
-        return $summary;
+    // Labels filter summary
+    if (!empty($filters['labels'])) {
+        $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
+        $summary['labels'] = implode(', ', $labels);
+        $summary['total_filters']++;
     }
 
+    // Review type filter summary
+    if (!empty($filters['review_type'])) {
+        $summary['review_type_category'] = $filters['review_type'];
+        $summary['total_filters']++;
+    }
+
+    // Comment filter summary
+    if (isset($filters['has_comment']) && $filters['has_comment'] === 'true') {
+        $summary['comment_filter'] = 'With Comments Only';
+        $summary['total_filters']++;
+    } elseif (isset($filters['has_comment']) && $filters['has_comment'] === 'false') {
+        $summary['comment_filter'] = 'Without Comments Only';
+        $summary['total_filters']++;
+    }
+
+    // Reply filter summary
+    if (isset($filters['has_reply']) && $filters['has_reply'] === 'true') {
+        $summary['reply_filter'] = 'Replied Reviews Only';
+        $summary['total_filters']++;
+    } elseif (isset($filters['has_reply']) && $filters['has_reply'] === 'false') {
+        $summary['reply_filter'] = 'Unreplied Reviews Only';
+        $summary['total_filters']++;
+    }
+
+    $summary['period'] = $filters['period'] ?? 'All time';
+
+    return $summary;
+}
     private function calculatePerformanceOverview($reviews)
     {
         $totalSubmissions = $reviews->count();
@@ -2993,8 +2992,8 @@ class ReportController extends Controller
     {
         if ($review->user) {
             return $review->user->name;
-        } elseif ($review->guest) {
-            return $review->guest->full_name;
+        } elseif ($review->guest_user) {
+            return $review->guest_user->full_name;
         } else {
             return 'Anonymous User';
         }
