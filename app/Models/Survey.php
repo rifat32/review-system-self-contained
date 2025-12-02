@@ -9,6 +9,8 @@ class Survey extends Model
 {
     use HasFactory;
 
+    protected $hidden = ['pivot'];
+
     protected $fillable = [
         "name",
         "business_id",
@@ -17,6 +19,16 @@ class Survey extends Model
         'order_no'
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($survey) {
+            if (!$survey->order_no) {
+                $survey->order_no = static::max('order_no') + 1;
+            }
+        });
+    }
 
     // Survey
     public function questions()

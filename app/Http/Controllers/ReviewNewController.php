@@ -18,6 +18,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Http\Requests\SetOverallQuestionRequest;
 use App\Http\Requests\StoreTagMultipleRequest;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
@@ -739,7 +740,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      *      path="/review-new/getavg/review/{businessId}/{start}/{end}",
      *      operationId="getAverage",
      *      tags={"z.unused"},
-     *   *       security={
+     *         security={
      *           {"bearerAuth": {}}
      *       },
      *  @OA\Parameter(
@@ -777,7 +778,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -815,7 +816,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
         foreach ($reviews as $review) {
             switch ($review->rate) {
                 case 1:
-                    $data[$review->question->name]["one"] += 1;
+                    $data["one"] += 1;
                     break;
                 case 2:
                     $data["two"] += 1;
@@ -827,7 +828,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
                     $data["four"] += 1;
                     break;
                 case 5:
-                    $data[$review->question->question]["five"] += 1;
+                    $data["five"] += 1;
                     break;
             }
         }
@@ -835,6 +836,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
 
         return response($data, 200);
     }
+
     // ##################################################
     // This method is to store   ReviewValue2
     // ##################################################
@@ -951,6 +953,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
     // ##################################################
     // This method is to get review by business id
     // ##################################################
+
     /**
      *
      * @OA\Get(
@@ -1802,23 +1805,23 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
         try {
             return DB::transaction(function () use ($request) {
 
-                if (!$request->user()->hasPermissionTo('review_update')) {
-                    return response()->json([
-                        "message" => "You can not perform this action"
-                    ], 403);
-                }
+                // if (!$request->user()->hasPermissionTo('review_update')) {
+                //     return response()->json([
+                //         "message" => "You can not perform this action"
+                //     ], 403);
+                // }
 
-                $request->validate([
+                $payload_request = $request->validate([
                     'reviews' => 'required|array',
                     'reviews.*.id' => 'required|integer|exists:review_news,id',
-                    'reviews.*.order_no' => 'required|integer|min:1'
+                    'reviews.*.order_no' => 'required|integer|min:0'
                 ]);
 
-                foreach ($request->reviews as $review) {
-                    ReviewNew::where('id', $review['id'])
-                        ->update([
-                            'order_no' => $review['order_no']
-                        ]);
+                foreach ($payload_request['reviews'] as $review) {
+                    $item = ReviewNew::find($review['id']);
+                    $item->update([
+                        'order_no' => $review['order_no']
+                    ]);
                 }
 
                 return response()->json([
@@ -2236,7 +2239,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
     /**
      *
      * @OA\Get(
-     *      path="/review-new/get/questions",
+     *      path="/v1.0/review-new/get/questions",
      *      operationId="getQuestion",
      *      tags={"review.setting.question"},
      *       security={
@@ -2268,7 +2271,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -2306,36 +2309,48 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
         }
 
 
-        $query =  Question::where(["business_id" => $businessId, "is_default" => $is_default])
+        $query = Question::with(['surveys' => function ($q) {
+            $q->select(
+                "surveys.id",
+                "name",
+                "order_no"
+            );
+        }])->where(["business_id" => $businessId, "is_default" => $is_default])
             ->when($request->boolean("is_user"), function ($q) use ($request) {
-                return $q->where("show_in_user", $request->is_user);
+                return $q->where("show_in_user", $request->boolean("is_user"));
             })
             ->when($request->boolean("exclude_user"), function ($q) use ($request) {
                 return $q->where("show_in_user", false);
             })
             ->when($request->boolean("is_guest_user"), function ($q) use ($request) {
-                return $q->where("show_in_guest_user", $request->is_guest_user);
+                return $q->where("show_in_guest_user", $request->boolean("is_guest_user"));
             })
             ->when($request->boolean("exclude_guest_user"), function ($q) use ($request) {
                 return $q->where("show_in_guest_user", false);
             })
-            ->when(request()->filled("survey_name"), function ($query) {
-                $query->where("questions.survey_name", request()->input("survey_name"));
+            ->when($request->filled("survey_name"), function ($query) use ($request) {
+                $query->whereHas("surveys", function ($q) use ($request) {
+                    $q->where("survey_name", $request->input("survey_name"));
+                });
             })
             ->when($request->filled("ids"), function ($q) use ($request) {
-                return $q->whereIn("id", explode(",", $request->query("ids")));
+                $ids = array_filter(array_map('intval', explode(",", $request->query("ids"))));
+                return $q->whereIn("id", $ids);
             })
             ->when($request->filled("survey_id"), function ($q) use ($request) {
                 return $q->whereHas("surveys", function ($q2) use ($request) {
-                    $q2->whereRaw('`surveys`.`id` = ?', [$request->survey_id]);
+                    $q2->where("id", $request->input("survey_id"));
                 });
             });
-
 
         $questions =  $query->get();
 
 
-        return response($questions, 200);
+        return response([
+            "status" => true,
+            "message" => "Questions fetched successfully",
+            "data" => $questions
+        ], 200);
     }
 
 
@@ -6018,5 +6033,251 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
         }
 
         return response()->json($users, 200);
+    }
+
+
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/client/review-new/rating-analysis/{businessId}",
+     *      operationId="getAverageRatingClient",
+     *   tags={"review_management.client"},
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
+     *  @OA\Parameter(
+     * name="start_date",
+     * in="query",
+     * description="from date",
+     * required=false,
+     * example="2019-06-29"
+     * ),
+     *  @OA\Parameter(
+     * name="end_date",
+     * in="query",
+     * description="to date",
+     * required=false,
+     * example="2026-06-29"
+     * ),
+     *      summary="This method is to get average",
+     *      description="This method is to get average",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+
+    public function  getAverageRatingClient($businessId, Request $request)
+    {
+        // with
+        $reviews = ReviewNew::where([
+            "business_id" => $businessId
+        ])
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
+            ->get();
+
+        $data["total_reviews"]   = $reviews->count();
+        $data['rating']["one"]   = 0;
+        $data['rating']["two"]   = 0;
+        $data['rating']["three"] = 0;
+        $data['rating']["four"]  = 0;
+        $data['rating']["five"]  = 0;
+        foreach ($reviews as $review) {
+            switch ($review->rate) {
+                case 1:
+                    $data['rating']["one"] += 1;
+                    break;
+                case 2:
+                    $data['rating']["two"] += 1;
+                    break;
+                case 3:
+                    $data['rating']["three"] += 1;
+                    break;
+                case 4:
+                    $data['rating']["four"] += 1;
+                    break;
+                case 5:
+                    $data['rating']["five"] += 1;
+                    break;
+            }
+        }
+
+
+        return response([
+            "success" => true,
+            "message" => "Average rating retrieved successfully",
+            "data" => $data
+        ], 200);
+    }
+
+
+
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/client/review-new/{businessId}",
+     *      operationId="getReviewByBusinessIdClient",
+     *      tags={"review_management.client"},
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
+
+     *      summary="This method is to get review by business id",
+     *      description="This method is to get review by business id",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *   @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+    public function  getReviewByBusinessIdClient($businessId, Request $request)
+    {
+        // with
+        $reviewValue = ReviewNew::with([
+            "value",
+            "user",
+            "guest_user",
+            "survey"
+        ])->where([
+            "business_id" => $businessId,
+        ])
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
+            ->get();
+
+
+        return response([
+            "success" => true,
+            "message" => "Reviews retrieved successfully",
+            "data" => $reviewValue
+        ], 200);
+    }
+
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/review-new/{reviewId}",
+     *      operationId="getReviewById",
+     *      tags={"review_management"},
+     *      security={
+     *           {"bearerAuth": {}}
+     *       },
+     *  @OA\Parameter(
+     * name="reviewId",
+     * in="path",
+     * description="reviewId",
+     * required=true,
+     * example="1"
+     * ),
+
+     *      summary="This method is to get review by review id",
+     *      description="This method is to get review by review id",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *   @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+    public function  getReviewById($reviewId, Request $request)
+    {
+        // with
+        $reviewValue = ReviewNew::with([
+            "value",
+            "user",
+            "guest_user",
+            "survey"
+        ])->find($reviewId);
+
+
+        return response([
+            "success" => true,
+            "message" => "Reviews retrieved successfully",
+            "data" => $reviewValue
+        ], 200);
     }
 }

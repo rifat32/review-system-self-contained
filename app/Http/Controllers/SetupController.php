@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Utils\ErrorUtil;
 use App\Models\User;
 use App\Models\ActivityLog;
+use App\Models\Question;
+use App\Models\Survey;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -14,9 +16,27 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 
+use function PHPSTORM_META\map;
+
 class SetupController extends Controller
 {
     use ErrorUtil;
+
+    // public function oneTimeDBOperation()
+    // {
+    //     $survey = Survey::orderBy('id')->get();
+
+    //     $survey->map(function ($item, $key) {
+    //         $item->order_no = $key + 1;
+    //         $item->save();
+    //     });
+    //     $question = Question::orderBy('id')->get();
+
+    //     $question->map(function ($item, $key) {
+    //         $item->order_no = $key + 1;
+    //         $item->save();
+    //     });
+    // }
 
     public function setupPassport()
     {

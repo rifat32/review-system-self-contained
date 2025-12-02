@@ -333,7 +333,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::put('/review-new/update/active_state/questions', [ReviewNewController::class, "updateQuestionActiveState"]);
 
-    Route::get('/review-new/get/questions', [ReviewNewController::class, "getQuestion"]);
+    Route::get('/v1.0/review-new/get/questions', [ReviewNewController::class, "getQuestion"]);
 
 
     Route::get('/review-new/get/questions-all', [ReviewNewController::class, "getQuestionAll"]);
@@ -417,22 +417,20 @@ Route::put('/businesses/{businessId}/review-settings', [ReviewNewController::cla
     Route::middleware(['superadmin'])->group(function () {
 
         Route::patch('/v1.0/auth/change-password-by-superadmin', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
-        Route::get('/superadmin/dashboard-report/total-business', [SuperAdminReportController::class, "getTotalBusinessReport"]);
-        Route::get('/superadmin/dashboard-report/total-business-enabled', [SuperAdminReportController::class, "getTotalEnabledBusinessReport"]);
-        Route::get('/superadmin/dashboard-report/total-business-disabled', [SuperAdminReportController::class, "getTotalDisabledBusinessReport"]);
+        Route::get('/v1.0/superadmin/dashboard-report/total-business', [SuperAdminReportController::class, "getTotalBusinessReport"]);
+        Route::get('/v1.0/superadmin/dashboard-report/total-business-enabled', [SuperAdminReportController::class, "getTotalEnabledBusinessReport"]);
+        Route::get('/v1.0/superadmin/dashboard-report/total-business-disabled', [SuperAdminReportController::class, "getTotalDisabledBusinessReport"]);
 
 
 
 
+        Route::get('/v1.0/superadmin/dashboard-report/total-reviews', [SuperAdminReportController::class, "getTotalReviews"]);
+        Route::get('/v1.0/superadmin/dashboard-report/today-reviews', [SuperAdminReportController::class, "getTodayReviews"]);
+        Route::get('/v1.0/superadmin/dashboard-report/review-report', [SuperAdminReportController::class, "getReviewReport"]);
+        Route::get('/v1.0/superadmin/customer-list/{perPage}', [UserController::class, "getCustomerReportSuperadmin"]);
 
-
-        Route::get('/superadmin/dashboard-report/total-reviews', [SuperAdminReportController::class, "getTotalReviews"]);
-        Route::get('/superadmin/dashboard-report/today-reviews', [SuperAdminReportController::class, "getTodayReviews"]);
-        Route::get('/superadmin/dashboard-report/review-report', [SuperAdminReportController::class, "getReviewReport"]);
-        Route::get('/superadmin/customer-list/{perPage}', [UserController::class, "getCustomerReportSuperadmin"]);
         Route::get('/superadmin/owner-list/{perPage}', [UserController::class, "getOwnerReport"]);
-        Route::delete('/superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
-
+        Route::delete('superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
         // EMAIL TEMPLATE WRAPPER MANAGEMENT
         Route::prefix('v1.0/email-template-wrappers')->group(function () {
             Route::put('/{id}', [EmailTemplateWrapperController::class, "updateEmailTemplateWrapper"]);
@@ -479,7 +477,8 @@ Route::put('/businesses/{businessId}/review-settings', [ReviewNewController::cla
     // #################
 
 
-
+    // REVIEW CONTROLLER
+    Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
 });
 
 // #################
@@ -502,3 +501,8 @@ Route::get('/v1.0/client/staffs', [StaffController::class, 'getClientAllStaffs']
 
 
 Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetailsClient"]);
+
+
+// REVIEW NEW CONTROLLER
+Route::get('/v1.0/client/review-new/rating-analysis/{businessId}', [ReviewNewController::class, "getAverageRatingClient"]);
+Route::get('/v1.0/client/review-new/{businessId}', [ReviewNewController::class, "getReviewByBusinessIdClient"]);
