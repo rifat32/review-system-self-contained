@@ -8,6 +8,18 @@ use Illuminate\Database\Eloquent\Model;
 class Question extends Model
 {
     use HasFactory;
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($question) {
+            if (!$question->order_no) {
+                $question->order_no = static::max('order_no') + 1;
+            }
+        });
+    }
+
     protected $fillable = [
         "question",
         "business_id",
@@ -16,7 +28,8 @@ class Question extends Model
         "show_in_guest_user",
         "show_in_user",
         'survey_name',
-        "type"
+        "type",
+        "order_no"
     ];
     protected $hidden = [
         'created_at',

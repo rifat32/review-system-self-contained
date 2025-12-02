@@ -55,6 +55,7 @@ Route::get('/rollback-migrate', [SetupController::class, 'rollbackMigration'])->
 
 
 Route::get('/clear-cache', [SetupController::class, "clearCache"]);
+Route::get('/one-time-db-operation', [SetupController::class, "oneTimeDBOperation"]);
 
 Route::get('/change-password', function () {
     $user = User::where('email', 'test.tags@yopmail.com')->firstOrFail();

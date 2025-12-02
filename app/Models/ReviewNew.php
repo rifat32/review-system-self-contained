@@ -26,51 +26,68 @@ class ReviewNew extends Model
         "is_overall",
         'staff_id',
         'order_no',
-          'sentiment_score',
-                'topics', 
-                'moderation_results',
-                'ai_suggestions',
-                'staff_suggestions',
-                "status",
-                  'source',
-                'language',
-                'responded_at',
-                'review_type',
-                'sentiment',
-                'topic_id',
-                'reply_content',
+        'sentiment_score',
+        'topics',
+        'moderation_results',
+        'ai_suggestions',
+        'staff_suggestions',
+        "status",
+        'source',
+        'language',
+        'responded_at',
+        'review_type',
+        'sentiment',
+        'topic_id',
+        'reply_content',
 
     ];
-      protected $casts = [
+    protected $casts = [
         'key_phrases' => 'array',
         'topics' => 'array',
         'moderation_results' => 'array',
         'ai_suggestions' => 'array',
         'staff_suggestions' => 'array',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($reviewNew) {
+            if (!$reviewNew->order_no) {
+                $reviewNew->order_no = static::max('order_no') + 1;
+            }
+        });
+    }
+
     // public function question() {
     //     return $this->hasOne(Question::class,'id','question_id');
     // }
     // public function tag() {
     //     return $this->hasOne(Question::class,'id','tag_id');
     // }
-    public function value() {
-        return $this->hasMany(ReviewValueNew::class,'review_id','id');
+    public function value()
+    {
+        return $this->hasMany(ReviewValueNew::class, 'review_id', 'id');
     }
 
-    public function business() {
-        return $this->hasOne(Business::class,'id','business_id');
+    public function business()
+    {
+        return $this->hasOne(Business::class, 'id', 'business_id');
     }
 
-    public function staff() {
-        return $this->hasOne(User::class,'id','staff_id');
+    public function staff()
+    {
+        return $this->hasOne(User::class, 'id', 'staff_id');
     }
 
-    public function user() {
-        return $this->hasOne(User::class,'id','user_id');
+    public function user()
+    {
+        return $this->hasOne(User::class, 'id', 'user_id');
     }
-    public function guest_user() {
-        return $this->hasOne(GuestUser::class,'id','guest_id');
+    public function guest_user()
+    {
+        return $this->hasOne(GuestUser::class, 'id', 'guest_id');
     }
     protected $hidden = [
         'created_at',
@@ -78,25 +95,21 @@ class ReviewNew extends Model
     ];
 
     public function survey()
-{
-    return $this->belongsTo(Survey::class);
-}
+    {
+        return $this->belongsTo(Survey::class);
+    }
 
     // In your QuestionValue model (or the model that has 'value' relation)
-public function scopeFilterByOverall($query, $is_overall)
-{
-    return $query->where('is_overall', $is_overall ? 1 : 0);
-}
+    public function scopeFilterByOverall($query, $is_overall)
+    {
+        return $query->where('is_overall', $is_overall ? 1 : 0);
+    }
 
 
-public function scopeGlobalFilters($query)
-{
-    return $query->when(request()->has('staff_id'), function ($q) {
-        $q->where('staff_id', request()->input('staff_id'));
-    });
-}
-
-
-
-
+    public function scopeGlobalFilters($query)
+    {
+        return $query->when(request()->has('staff_id'), function ($q) {
+            $q->where('staff_id', request()->input('staff_id'));
+        });
+    }
 }
