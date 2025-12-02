@@ -417,8 +417,13 @@ Route::put('/businesses/{businessId}/review-settings', [ReviewNewController::cla
     Route::middleware(['superadmin'])->group(function () {
 
         Route::patch('/v1.0/auth/change-password-by-superadmin', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
+
+
         Route::get('/v1.0/superadmin/dashboard-report/total-business', [SuperAdminReportController::class, "getTotalBusinessReport"]);
+
+
         Route::get('/v1.0/superadmin/dashboard-report/total-business-enabled', [SuperAdminReportController::class, "getTotalEnabledBusinessReport"]);
+
         Route::get('/v1.0/superadmin/dashboard-report/total-business-disabled', [SuperAdminReportController::class, "getTotalDisabledBusinessReport"]);
 
 
