@@ -476,7 +476,8 @@ Route::middleware(['auth:api'])->group(function () {
     // #################
 
 
-
+    // REVIEW CONTROLLER
+    Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
 });
 
 // #################
