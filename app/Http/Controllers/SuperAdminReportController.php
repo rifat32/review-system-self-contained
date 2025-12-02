@@ -11,10 +11,10 @@ use Illuminate\Support\Carbon;
 
 class SuperAdminReportController extends Controller
 {
-/**
+    /**
      *
      * @OA\Get(
-     *      path="/superadmin/dashboard-report/total-business",
+     *      path="/v1.0/superadmin/dashboard-report/total-business",
      *      operationId="getTotalBusinessReport",
      *      tags={"super_admin_report"},
      *       security={
@@ -36,13 +36,13 @@ class SuperAdminReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -56,16 +56,21 @@ class SuperAdminReportController extends Controller
      */
 
 
-    public function getTotalBusinessReport (Request $request) {
-        $data["data"] = Business::get()->count();
-        return response()->json($data,200);
+    public function getTotalBusinessReport(Request $request)
+    {
+        $data = Business::get()->count();
+        return response()->json([
+            "success" => true,
+            "message" => "Total business retrieved successfully",
+            "data" => $data
+        ], 200);
     }
 
 
     /**
      *
      * @OA\Get(
-     *      path="/superadmin/dashboard-report/total-business-enabled",
+     *      path="/v1.0/superadmin/dashboard-report/total-business-enabled",
      *      operationId="getTotalEnabledBusinessReport",
      *      tags={"super_admin_report"},
      *       security={
@@ -87,13 +92,13 @@ class SuperAdminReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *    @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -106,22 +111,27 @@ class SuperAdminReportController extends Controller
      *     )
      */
 
-    public function getTotalEnabledBusinessReport (Request $request) {
-        $data["data"] = Business::where("expiry_date",">", now())->get()->count();
-        return response()->json($data,200);
+    public function getTotalEnabledBusinessReport(Request $request)
+    {
+        $data = Business::where("expiry_date", ">", now())->get()->count();
+        return response()->json([
+            "success" => true,
+            "message" => "Total enabled business retrieved successfully",
+            "data" => $data
+        ], 200);
     }
 
 
     /**
      *
      * @OA\Get(
-     *      path="/superadmin/dashboard-report/total-business-disabled",
+     *      path="/v1.o/superadmin/dashboard-report/total-business-disabled",
      *      operationId="getTotalDisabledBusinessReport",
      *      tags={"super_admin_report"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
-     *      summary="This method is to get Total Disabledbusiness report",
+     *      summary="This method is to get Total Disabled business report",
      *      description="This method is to get Total Disabled business report",
 
 
@@ -137,13 +147,13 @@ class SuperAdminReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *    @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -157,9 +167,14 @@ class SuperAdminReportController extends Controller
      */
 
 
-    public function getTotalDisabledBusinessReport (Request $request) {
-        $data["data"] = Business::where("expiry_date",">", now())->get()->count();
-        return response()->json($data,200);
+    public function getTotalDisabledBusinessReport(Request $request)
+    {
+        $data = Business::where("expiry_date", ">", now())->get()->count();
+        return response()->json([
+            "success" => true,
+            "message" => "Total disabled business retrieved successfully",
+            "data" => $data
+        ], 200);
     }
 
 
@@ -171,7 +186,7 @@ class SuperAdminReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/superadmin/dashboard-report/total-reviews",
+     *      path="/v1.0/superadmin/dashboard-report/total-reviews",
      *      operationId="getTotalReviews",
      *      tags={"super_admin_report"},
      *       security={
@@ -193,13 +208,13 @@ class SuperAdminReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -213,15 +228,20 @@ class SuperAdminReportController extends Controller
      */
 
 
-    public function getTotalReviews (Request $request) {
-        $data["data"] = ReviewValueNew::get()->count();
-        return response()->json($data,200);
+    public function getTotalReviews(Request $request)
+    {
+        $data = ReviewValueNew::get()->count();
+        return response()->json([
+            "success" => true,
+            "message" => "Total reviews retrieved successfully",
+            "data" => $data
+        ], 200);
     }
 
     /**
      *
      * @OA\Get(
-     *      path="/superadmin/dashboard-report/today-reviews",
+     *      path="/v1.0/superadmin/dashboard-report/today-reviews",
      *      operationId="getTodayReviews",
      *      tags={"super_admin_report"},
      *       security={
@@ -242,13 +262,13 @@ class SuperAdminReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *    @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -264,15 +284,20 @@ class SuperAdminReportController extends Controller
 
 
 
-    public function getTodayReviews (Request $request) {
-        $data["data"] = ReviewValueNew::whereDate('created_at', Carbon::today())->get()->count();
-        return response()->json($data,200);
+    public function getTodayReviews(Request $request)
+    {
+        $data = ReviewValueNew::whereDate('created_at', Carbon::today())->get()->count();
+        return response()->json([
+            "success" => true,
+            "message" => "Today reviews retrieved successfully",
+            "data" => $data
+        ], 200);
     }
 
     /**
      *
      * @OA\Get(
-     *      path="/superadmin/dashboard-report/review-report",
+     *      path="/v1.0/superadmin/dashboard-report/review-report",
      *      operationId="getReviewReport",
      *      tags={"super_admin_report"},
      *       security={
@@ -292,13 +317,13 @@ class SuperAdminReportController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *    @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -313,24 +338,26 @@ class SuperAdminReportController extends Controller
 
 
 
-    public function getReviewReport (Request $request) {
+    public function getReviewReport(Request $request)
+    {
         $data["total_reviews"] = ReviewValueNew::get()->count();
 
 
-    $data["previous_week_total_reviews"] = ReviewValueNew::
-        whereBetween(
+        $data["previous_week_total_reviews"] = ReviewValueNew::whereBetween(
             'review_value_news.created_at',
             [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]
         )
-        ->get()->count();
+            ->get()->count();
 
 
-    $data["this_week_total_reviews"] = ReviewValueNew::whereBetween('review_value_news.created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
-        ->get()->count();
-        return response()->json($data,200);
+        $data["this_week_total_reviews"] = ReviewValueNew::whereBetween('review_value_news.created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->get()->count();
+
+        // 
+        return response()->json([
+            "success" => true,
+            "message" => "Review report retrieved successfully",
+            "data" => $data
+        ], 200);
     }
-
-
-
-
 }
