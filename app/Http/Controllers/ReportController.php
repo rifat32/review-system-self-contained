@@ -487,11 +487,25 @@ class ReportController extends Controller
      *         required=false,
      *         example="1"
      *      ),
+     *          @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date in d-m-Y format",
+     *         required=false,
+     *         example="01-12-2025"
+     *      ),
+     *          @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date in d-m-Y format",
+     *         required=false,
+     *         example="31-12-2025"
+     *      ),
      *       security={
      *           {"bearerAuth": {}}
      *       },
      *      summary="This method is to get dashboard report",
-     *      description="This method is to get dashboard report",
+     *      description="This method is to get dashboard report with dynamic date range (default: current month)",
 
 
      *      @OA\Response(
@@ -531,10 +545,19 @@ class ReportController extends Controller
 
     public function getDashboardReportV3(Request $request)
     {
+        // Parse and validate date inputs
+        $startDate = $request->start_date
+            ? Carbon::createFromFormat('d-m-Y', $request->start_date)->startOfDay()
+            : Carbon::now()->startOfMonth();
+
+        $endDate = $request->end_date
+            ? Carbon::createFromFormat('d-m-Y', $request->end_date)->endOfDay()
+            : Carbon::now()->endOfMonth();
+
         $data = [];
 
-        $data['survey'] = $this->generateDashboardReport($request, 0);   // Normal survey (is_overall = 0)
-        $data['overall'] = $this->generateDashboardReport($request, 1);  // Overall report (is_overall = 1)
+        $data['survey'] = $this->generateDashboardReport(0, $startDate, $endDate);   // Normal survey (is_overall = 0)
+        $data['overall'] = $this->generateDashboardReport(1, $startDate, $endDate);  // Overall report (is_overall = 1)
 
 
         return response()->json([
@@ -545,7 +568,7 @@ class ReportController extends Controller
     }
 
 
-    private function generateDashboardReport($is_overall)
+    private function generateDashboardReport($is_overall, $startDate, $endDate)
     {
 
         // Get the business ID from the request
@@ -554,12 +577,6 @@ class ReportController extends Controller
 
         // Get the current date and time
         $now = Carbon::now();
-
-        // Define the start date (beginning of the current year)
-        $startDate = $now->copy()->startOfYear();
-
-        // Define the end date (end of the current month)
-        $endDate = $now->copy()->endOfMonth();
 
         // Calculate the total number of months between start and end dates
         $numberOfMonths = $startDate->diffInMonths($endDate);

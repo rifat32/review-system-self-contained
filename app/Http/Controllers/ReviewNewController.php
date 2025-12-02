@@ -18,6 +18,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Http\Requests\SetOverallQuestionRequest;
 use App\Http\Requests\StoreTagMultipleRequest;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
@@ -1219,23 +1220,23 @@ class ReviewNewController extends Controller
         try {
             return DB::transaction(function () use ($request) {
 
-                if (!$request->user()->hasPermissionTo('review_update')) {
-                    return response()->json([
-                        "message" => "You can not perform this action"
-                    ], 403);
-                }
+                // if (!$request->user()->hasPermissionTo('review_update')) {
+                //     return response()->json([
+                //         "message" => "You can not perform this action"
+                //     ], 403);
+                // }
 
-                $request->validate([
+                $payload_request = $request->validate([
                     'reviews' => 'required|array',
                     'reviews.*.id' => 'required|integer|exists:review_news,id',
-                    'reviews.*.order_no' => 'required|integer|min:1'
+                    'reviews.*.order_no' => 'required|integer|min:0'
                 ]);
 
-                foreach ($request->reviews as $review) {
-                    ReviewNew::where('id', $review['id'])
-                        ->update([
-                            'order_no' => $review['order_no']
-                        ]);
+                foreach ($payload_request['reviews'] as $review) {
+                    $item = ReviewNew::find($review['id']);
+                    $item->update([
+                        'order_no' => $review['order_no']
+                    ]);
                 }
 
                 return response()->json([
