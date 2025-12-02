@@ -30,7 +30,7 @@ class RolesController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *            required={"name","permissions"},
-     *             @OA\Property(property="name", type="string", format="string",example="Rifat"),
+     *             @OA\Property(property="name", type="string", format="string",example=""),
      *            @OA\Property(property="permissions", type="string", format="array",example={"user_create","user_update"}),
      * *            @OA\Property(property="is_default_for_business", type="boolean", format="boolean",example="1"),
 
@@ -49,7 +49,7 @@ class RolesController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -85,24 +85,24 @@ class RolesController extends Controller
 
             $request_data = $request->validated();
 
-            $insertableRole = [
+            $payload_data = [
                 "name" => $request_data["name"],
                 "guard_name" => "api",
             ];
 
             if (empty(auth()->user()->business_id)) {
-                $insertableRole["business_id"] = NULL;
-                $insertableRole["is_default"] = 1;
+                $payload_data["business_id"] = NULL;
+                $payload_data["is_default"] = 1;
             } else {
-                $insertableRole["business_id"] = auth()->user()->business_id;
-                $insertableRole["is_default"] = 0;
-                $insertableRole["is_default_for_business"] = 0;
+                $payload_data["business_id"] = auth()->user()->business_id;
+                $payload_data["is_default"] = 0;
+                $payload_data["is_default_for_business"] = 0;
             }
 
-            if (!empty($insertableRole["business_id"])) {
+            if (!empty($payload_data["business_id"])) {
 
                 $custom_roles_count =   Role::where([
-                    "business_id" => $insertableRole["business_id"],
+                    "business_id" => $payload_data["business_id"],
                     "is_default_for_business" => 0
                 ])
                     ->count();
@@ -117,12 +117,14 @@ class RolesController extends Controller
             }
 
 
-            $role = Role::create($insertableRole);
+            $role = Role::create($payload_data);
             $role->syncPermissions($request_data["permissions"]);
 
 
             return response()->json([
-                "role" =>  $role,
+                "status" => true,
+                "message" => "Role created successfully",
+                "data" =>  $role,
             ], 201);
         } catch (Exception $e) {
 
@@ -163,7 +165,7 @@ class RolesController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -234,7 +236,9 @@ class RolesController extends Controller
             $role->load(["permissions"]);
 
             return response()->json([
-                "role" =>  $role,
+                "status" => true,
+                "message" => "Role updated successfully",
+                "data" =>  $role,
             ], 201);
         } catch (Exception $e) {
 
@@ -303,7 +307,7 @@ class RolesController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -374,7 +378,15 @@ class RolesController extends Controller
                 }, function ($query) {
                     return $query->get();
                 });
-            return response()->json($roles, 200);
+
+            $result = retrieve_data($roles);
+
+            return response()->json([
+                "success" => true,
+                "message" => "Roles retrieved successfully",
+                "meta" => $result['meta'],
+                "data" => $result['data'],
+            ], 200);
         } catch (Exception $e) {
 
             return $this->sendError($e, 500, $request);
@@ -413,7 +425,7 @@ class RolesController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -442,7 +454,11 @@ class RolesController extends Controller
             $role = Role::with('permissions:name,id')
                 ->where(["id" => $id])
                 ->select("name", "id")->get();
-            return response()->json($role, 200);
+            return response()->json([
+                "success" => true,
+                "message" => "Role retrieved successfully",
+                "data" => $role,
+            ], 200);
         } catch (Exception $e) {
 
             return $this->sendError($e, 500, $request);
@@ -480,7 +496,7 @@ class RolesController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -573,7 +589,11 @@ class RolesController extends Controller
 
 
 
-            return response()->json(["ok" => true], 200);
+            return response()->json([
+                "success" => true,
+                "message" => "Roles deleted successfully",
+                "deleted_ids" => $existingIds
+            ], 200);
         } catch (Exception $e) {
 
             return $this->sendError($e, 500, $request);
@@ -590,8 +610,8 @@ class RolesController extends Controller
      *       security={
      *           {"bearerAuth": {}}
      *       },
-     *      summary="This method is to get initioal role permissions",
-     *      description="This method is to get initioal role permissions",
+     *      summary="This method is to get initial role permissions",
+     *      description="This method is to get initial role permissions",
      *
 
      *      @OA\Response(
@@ -606,7 +626,7 @@ class RolesController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -684,7 +704,11 @@ class RolesController extends Controller
                 array_push($new_role_permissions, $data);
             }
 
-            return response()->json($new_role_permissions, 200);
+            return response()->json([
+                "success" => true,
+                "message" => "Initial role permissions retrieved successfully",
+                "data" => $new_role_permissions,
+            ], 200);
         } catch (Exception $e) {
 
             return $this->sendError($e, 500, $request);
@@ -699,8 +723,8 @@ class RolesController extends Controller
      *       security={
      *           {"bearerAuth": {}}
      *       },
-     *      summary="This method is to get initioal permissions",
-     *      description="This method is to get initioal permissions",
+     *      summary="This method is to get initial permissions",
+     *      description="This method is to get initial permissions",
      *
 
      *      @OA\Response(
@@ -715,7 +739,7 @@ class RolesController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -796,7 +820,11 @@ class RolesController extends Controller
                 }
             }
 
-            return response()->json($new_permissions, 200);
+            return response()->json([
+                "success" => true,
+                "message" => "Initial permissions retrieved successfully",
+                "data" => $new_permissions,
+            ], 200);
         } catch (Exception $e) {
 
             return $this->sendError($e, 500, $request);
