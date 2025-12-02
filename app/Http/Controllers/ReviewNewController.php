@@ -1653,7 +1653,7 @@ class ReviewNewController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/review-new/get/questions",
+     *      path="/v1.0/review-new/get/questions",
      *      operationId="getQuestion",
      *      tags={"review.setting.question"},
      *       security={
@@ -1685,7 +1685,7 @@ class ReviewNewController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -1723,36 +1723,48 @@ class ReviewNewController extends Controller
         }
 
 
-        $query =  Question::where(["business_id" => $businessId, "is_default" => $is_default])
+        $query = Question::with(['surveys' => function ($q) {
+            $q->select(
+                "surveys.id",
+                "name",
+                "order_no"
+            );
+        }])->where(["business_id" => $businessId, "is_default" => $is_default])
             ->when($request->boolean("is_user"), function ($q) use ($request) {
-                return $q->where("show_in_user", $request->is_user);
+                return $q->where("show_in_user", $request->boolean("is_user"));
             })
             ->when($request->boolean("exclude_user"), function ($q) use ($request) {
                 return $q->where("show_in_user", false);
             })
             ->when($request->boolean("is_guest_user"), function ($q) use ($request) {
-                return $q->where("show_in_guest_user", $request->is_guest_user);
+                return $q->where("show_in_guest_user", $request->boolean("is_guest_user"));
             })
             ->when($request->boolean("exclude_guest_user"), function ($q) use ($request) {
                 return $q->where("show_in_guest_user", false);
             })
-            ->when(request()->filled("survey_name"), function ($query) {
-                $query->where("questions.survey_name", request()->input("survey_name"));
+            ->when($request->filled("survey_name"), function ($query) use ($request) {
+                $query->whereHas("surveys", function ($q) use ($request) {
+                    $q->where("survey_name", $request->input("survey_name"));
+                });
             })
             ->when($request->filled("ids"), function ($q) use ($request) {
-                return $q->whereIn("id", explode(",", $request->query("ids")));
+                $ids = array_filter(array_map('intval', explode(",", $request->query("ids"))));
+                return $q->whereIn("id", $ids);
             })
             ->when($request->filled("survey_id"), function ($q) use ($request) {
                 return $q->whereHas("surveys", function ($q2) use ($request) {
-                    $q2->whereRaw('`surveys`.`id` = ?', [$request->survey_id]);
+                    $q2->where("id", $request->input("survey_id"));
                 });
             });
-
 
         $questions =  $query->get();
 
 
-        return response($questions, 200);
+        return response([
+            "status" => true,
+            "message" => "Questions fetched successfully",
+            "data" => $questions
+        ], 200);
     }
 
 

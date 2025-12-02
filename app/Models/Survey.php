@@ -9,6 +9,8 @@ class Survey extends Model
 {
     use HasFactory;
 
+    protected $hidden = ['pivot'];
+
     protected $fillable = [
         "name",
         "business_id",

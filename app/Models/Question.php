@@ -18,7 +18,11 @@ class Question extends Model
         'survey_name',
         "type"
     ];
-
+    protected $hidden = [
+        'created_at',
+        'updated_at',
+        'pivot',
+    ];
     // public function tags() {
     //     return $this->hasMany(StarTagQuestion::class,'question_id','id');
     // }
@@ -26,10 +30,7 @@ class Question extends Model
     {
         return $this->hasMany(QusetionStar::class, 'question_id', 'id');
     }
-    protected $hidden = [
-        'created_at',
-        'updated_at',
-    ];
+
 
 
     public function review_values()
