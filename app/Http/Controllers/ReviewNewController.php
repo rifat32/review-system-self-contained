@@ -157,7 +157,7 @@ class ReviewNewController extends Controller
      *      path="/review-new/getavg/review/{businessId}/{start}/{end}",
      *      operationId="getAverage",
      *      tags={"z.unused"},
-     *   *       security={
+     *         security={
      *           {"bearerAuth": {}}
      *       },
      *  @OA\Parameter(
@@ -195,7 +195,7 @@ class ReviewNewController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -233,7 +233,7 @@ class ReviewNewController extends Controller
         foreach ($reviews as $review) {
             switch ($review->rate) {
                 case 1:
-                    $data[$review->question->name]["one"] += 1;
+                    $data["one"] += 1;
                     break;
                 case 2:
                     $data["two"] += 1;
@@ -245,13 +245,115 @@ class ReviewNewController extends Controller
                     $data["four"] += 1;
                     break;
                 case 5:
-                    $data[$review->question->question]["five"] += 1;
+                    $data["five"] += 1;
                     break;
             }
         }
 
 
         return response($data, 200);
+    }
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/review-new/rating-analysis/{businessId}",
+     *      operationId="getAverageRatingClient",
+     *   tags={"review_management.client"},
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
+     *  @OA\Parameter(
+     * name="start_date",
+     * in="query",
+     * description="from date",
+     * required=false,
+     * example="2019-06-29"
+     * ),
+     *  @OA\Parameter(
+     * name="end_date",
+     * in="query",
+     * description="to date",
+     * required=false,
+     * example="2026-06-29"
+     * ),
+     *      summary="This method is to get average",
+     *      description="This method is to get average",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+    public function  getAverageRatingClient($businessId, Request $request)
+    {
+        // with
+        $reviews = ReviewNew::where([
+            "business_id" => $businessId
+        ])
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
+            ->get();
+
+        $data["total_reviews"]   = $reviews->count();
+        $data['rating']["one"]   = 0;
+        $data['rating']["two"]   = 0;
+        $data['rating']["three"] = 0;
+        $data['rating']["four"]  = 0;
+        $data['rating']["five"]  = 0;
+        foreach ($reviews as $review) {
+            switch ($review->rate) {
+                case 1:
+                    $data['rating']["one"] += 1;
+                    break;
+                case 2:
+                    $data['rating']["two"] += 1;
+                    break;
+                case 3:
+                    $data['rating']["three"] += 1;
+                    break;
+                case 4:
+                    $data['rating']["four"] += 1;
+                    break;
+                case 5:
+                    $data['rating']["five"] += 1;
+                    break;
+            }
+        }
+
+
+        return response([
+            "success" => true,
+            "message" => "Average rating retrieved successfully",
+            "data" => $data
+        ], 200);
     }
     // ##################################################
     // This method is to store   ReviewValue2
