@@ -405,19 +405,20 @@ Route::middleware(['auth:api'])->group(function () {
 
 
 
+    // Overall Business Dashboard
+Route::get('/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
+// Voice Review Submission
+Route::post('/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
+// Update Business Review Settings
+Route::put('/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updateReviewSettings']);
 
 
 
     Route::middleware(['superadmin'])->group(function () {
 
         Route::patch('/v1.0/auth/change-password-by-superadmin', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
-
-
         Route::get('/superadmin/dashboard-report/total-business', [SuperAdminReportController::class, "getTotalBusinessReport"]);
-
-
         Route::get('/superadmin/dashboard-report/total-business-enabled', [SuperAdminReportController::class, "getTotalEnabledBusinessReport"]);
-
         Route::get('/superadmin/dashboard-report/total-business-disabled', [SuperAdminReportController::class, "getTotalDisabledBusinessReport"]);
 
 
