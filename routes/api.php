@@ -502,4 +502,5 @@ Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController:
 
 
 // REVIEW NEW CONTROLLER
-Route::get('/v1.0/review-new/rating-analysis/{businessId}', [ReviewNewController::class, "getAverageRatingClient"]);
+Route::get('/v1.0/client/review-new/rating-analysis/{businessId}', [ReviewNewController::class, "getAverageRatingClient"]);
+Route::get('/v1.0/client/review-new/{businessId}', [ReviewNewController::class, "getReviewByBusinessIdClient"]);

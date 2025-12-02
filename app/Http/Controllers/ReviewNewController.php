@@ -256,7 +256,7 @@ class ReviewNewController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/v1.0/review-new/rating-analysis/{businessId}",
+     *      path="/v1.0/client/review-new/rating-analysis/{businessId}",
      *      operationId="getAverageRatingClient",
      *   tags={"review_management.client"},
      *  @OA\Parameter(
@@ -471,6 +471,75 @@ class ReviewNewController extends Controller
     // ##################################################
     // This method is to get review by business id
     // ##################################################
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/client/review-new/{businessId}",
+     *      operationId="getReviewByBusinessIdClient",
+     *      tags={"review_management.client"},
+     *  @OA\Parameter(
+     * name="businessId",
+     * in="path",
+     * description="businessId",
+     * required=true,
+     * example="1"
+     * ),
+
+     *      summary="This method is to get review by business id",
+     *      description="This method is to get review by business id",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *   @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+    public function  getReviewByBusinessIdClient($businessId, Request $request)
+    {
+        // with
+        $reviewValue = ReviewNew::with([
+            "value",
+            "user",
+            "guest_user",
+            "survey"
+        ])->where([
+            "business_id" => $businessId,
+        ])
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
+            ->get();
+
+
+        return response([
+            "success" => true,
+            "message" => "Reviews retrieved successfully",
+            "data" => $reviewValue
+        ], 200);
+    }
     /**
      *
      * @OA\Get(
