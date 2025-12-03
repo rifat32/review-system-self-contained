@@ -6172,72 +6172,102 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
 
 
     /**
-     *
      * @OA\Get(
      *      path="/v1.0/client/review-new/{businessId}",
      *      operationId="getReviewByBusinessIdClient",
      *      tags={"review_management.client"},
-     *  @OA\Parameter(
-     * name="businessId",
-     * in="path",
-     * description="businessId",
-     * required=true,
-     * example="1"
-     * ),
-
-     *      summary="This method is to get review by business id",
-     *      description="This method is to get review by business id",
+     *      summary="Get reviews by business id for client",
+     *      description="Get reviews by business id with filtering and sorting",
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          description="Business ID",
+     *          example="1"
+     *      ),
+     *      @OA\Parameter(
+     *          name="page",
+     *          in="query",
+     *          required=false,
+     *          description="Page number",
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="per_page",
+     *          in="query",
+     *          required=false,
+     *          description="Items per page",
+     *          example=10
+     *      ),
+     *      @OA\Parameter(
+     *          name="sort_by",
+     *          in="query",
+     *          required=false,
+     *          description="Sort option",
+     *          @OA\Schema(
+     *              type="string",
+     *              enum={"newest", "oldest", "highest_rating", "lowest_rating"}
+     *          ),
+     *          example="newest"
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocessable Content",
-     *    @OA\JsonContent(),
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Reviews retrieved successfully"),
+     *              @OA\Property(property="meta", type="object"),
+     *              @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *          )
      *      ),
      *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *   @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
+     *          response=404,
+     *          description="Not found",
+     *          @OA\JsonContent()
      *      )
-     *     )
+     * )
      */
-
-    public function  getReviewByBusinessIdClient($businessId, Request $request)
+    public function getReviewByBusinessIdClient($businessId, Request $request)
     {
-        // with
-        $reviewValue = ReviewNew::with([
+        $query = ReviewNew::with([
             "value",
             "user",
             "guest_user",
             "survey"
         ])->where([
             "business_id" => $businessId,
-        ])
-            ->globalFilters()
-            ->orderBy('order_no', 'asc')
-            ->get();
+        ])->globalFilters();
 
+        // Sorting logic
+        $sortBy = $request->get('sort_by');
+        
+        switch ($sortBy) {
+            case 'newest':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'highest_rating':
+                $query->orderBy('rate', 'desc');
+                break;
+            case 'lowest_rating':
+                $query->orderBy('rate', 'asc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
+
+        // $reviewValue = $query->get();
+
+        $result = retrieve_data($query);
 
         return response([
             "success" => true,
             "message" => "Reviews retrieved successfully",
-            "data" => $reviewValue
+            "meta" => $result['meta'],
+            "data" => $result['data']
         ], 200);
     }
 
