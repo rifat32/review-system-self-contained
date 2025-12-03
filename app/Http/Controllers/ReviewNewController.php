@@ -67,7 +67,22 @@ class ReviewNewController extends Controller
  */
 public function getOverallDashboard($businessId, Request $request)
 {
+    $filterable_fields = [
+        "last_30_days",
+        "last_7_days",
+        "this_month",
+        "last_month"    
+    ];
+    
     $business = Business::findOrFail($businessId);
+    
+    if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid period. Only allowed' . implode(', ', $filterable_fields),
+            'data' => null
+        ], 400);
+    }    
     $period = $request->get('period', 'last_30_days');
     
     // Get period dates
@@ -137,7 +152,9 @@ public function getOverallDashboard($businessId, Request $request)
  *                      @OA\Property(property="staff_id", type="integer", example=1),
  *                      @OA\Property(property="description", type="string", example="Voice feedback"),
  *                      @OA\Property(property="values", type="string", example="[{'question_id':1,'tag_id':2,'star_id':4}]"),
- *                      @OA\Property(property="is_overall", type="boolean", example=true)
+ *                      @OA\Property(property="is_overall", type="boolean", example=true),
+ *                      @OA\Property(property="guest_full_name", type="string", example="John Doe"),
+ *                      @OA\Property(property="guest_phone", type="string", example="1234567890")
  *                  )
  *              )
  *          }
@@ -158,6 +175,12 @@ public function storeVoiceReview($businessId, Request $request)
     $request->validate([
         'audio' => 'required|file|mimes:mp3,wav,m4a,ogg|max:10240', // 10MB max
         'rate' => 'required|numeric|min:1|max:5',
+        'staff_id' => 'required|numeric|exists:users,id',
+        'description' => 'required|string',
+        'values' => 'required|string',
+        'is_overall' => 'required|boolean',
+        'guest_full_name' => 'nullable|string',
+        'guest_phone' => 'nullable|string',
     ]);
     
     $business = Business::findOrFail($businessId);
@@ -1193,6 +1216,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
         // Check if content should be blocked
         if ($moderationResults['should_block']) {
             return response([
+                "success" => false,
                 "message" => $moderationResults['action_message'],
                 "moderation_results" => $moderationResults
             ], 400);
