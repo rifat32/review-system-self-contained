@@ -12,5 +12,6 @@ class GuestUser extends Model
     protected $fillable = [
         'full_name',
         'phone',
+        'email',
     ];
 }

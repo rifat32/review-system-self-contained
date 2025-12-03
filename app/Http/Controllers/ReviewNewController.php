@@ -71,7 +71,7 @@ public function getOverallDashboard($businessId, Request $request)
         "last_30_days",
         "last_7_days",
         "this_month",
-        "last_month"    
+        "last_month"  
     ];
     
     $business = Business::findOrFail($businessId);
@@ -624,6 +624,8 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
             ];
         });
 }
+
+
 
 
 
@@ -6302,6 +6304,275 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
             "success" => true,
             "message" => "Reviews retrieved successfully",
             "data" => $reviewValue
+        ], 200);
+    }
+
+        // ##################################################
+    // Make Reviews Private by IDs
+    // ##################################################
+
+    /**
+     * @OA\Put(
+     *      path="/v1.0/client/reviews/make-private/{ids}",
+     *      operationId="makeReviewsPrivate",
+     *      tags={"review_management.client"},
+     *      summary="Make reviews private by comma-separated IDs",
+     *      description="Mark multiple reviews as private by providing comma-separated review IDs",
+     *      @OA\Parameter(
+     *          name="ids",
+     *          in="path",
+     *          required=true,
+     *          description="Comma-separated review IDs (e.g., 1,2,3)",
+     *          example="1,2,3"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Reviews updated successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Reviews marked as private successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="updated_count", type="integer", example=2),
+     *                  @OA\Property(property="updated_ids", type="array", @OA\Items(type="integer")),
+     *                  @OA\Property(property="invalid_ids", type="array", @OA\Items(type="integer"))
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad Request - Invalid IDs format",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Invalid IDs format")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="No valid reviews found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="No valid reviews found")
+     *          )
+     *      )
+     * )
+     */
+    public function makeReviewsPrivate($ids)
+    {
+        // Validate and parse comma-separated IDs
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No IDs provided'
+            ], 400);
+        }
+
+        // Split the comma-separated string into an array
+        $idArray = array_map('trim', explode(',', $ids));
+        
+        // Filter out non-numeric values
+        $numericIds = array_filter($idArray, function($id) {
+            return is_numeric($id) && $id > 0;
+        });
+
+        if (empty($numericIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid IDs format. Please provide comma-separated numeric IDs.'
+            ], 400);
+        }
+
+        // Convert to integers
+        $numericIds = array_map('intval', $numericIds);
+
+        // Find existing reviews with the provided IDs
+        $existingReviews = ReviewNew::whereIn('id', $numericIds)->get();
+        
+        if ($existingReviews->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid reviews found with the provided IDs',
+                'data' => [
+                    'requested_ids' => $numericIds,
+                    'updated_count' => 0,
+                    'updated_ids' => [],
+                    'invalid_ids' => $numericIds
+                ]
+            ], 404);
+        }
+
+        // Get the IDs that were found
+        $foundIds = $existingReviews->pluck('id')->toArray();
+        
+        // Get the IDs that were not found
+        $invalidIds = array_diff($numericIds, $foundIds);
+
+        // Return error response if no valid reviews found
+        if (!empty($invalidIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid reviews found with the provided IDs',
+                'data' => [
+                    'requested_ids' => $numericIds,
+                    'valid_ids' => $foundIds,
+                    'invalid_ids' => $invalidIds
+                ]
+            ], 404);
+        }
+
+        // Update the reviews to mark them as private
+        $updatedCount = ReviewNew::whereIn('id', $foundIds)
+            ->update(['is_private' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Reviews marked as private successfully',
+            'data' => [
+                'updated_count' => $updatedCount,
+                'updated_ids' => $foundIds,
+            ]
+        ], 200);
+    }
+
+    // ##################################################
+    // Update Guest User Email by Review IDs
+    // ##################################################
+
+    /**
+     * @OA\Put(
+     *      path="/v1.0/client/reviews/update-guest-email/{ids}",
+     *      operationId="updateGuestEmailsByReviews",
+     *      tags={"review_management.client"},
+     *      summary="Update guest user email by comma-separated review IDs",
+     *      description="Update email for guest users associated with the provided review IDs",
+     *      @OA\Parameter(
+     *          name="ids",
+     *          in="path",
+     *          required=true,
+     *          description="Comma-separated review IDs (e.g., 1,2,3)",
+     *          example="1,2,3"
+     *      ),
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"email"},
+     *              @OA\Property(property="email", type="string", format="email", example="guest@example.com")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Guest emails updated successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Guest user emails updated successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="updated_count", type="integer", example=2),
+     *                  @OA\Property(property="updated_guest_ids", type="array", @OA\Items(type="integer")),
+     *                  @OA\Property(property="review_ids", type="array", @OA\Items(type="integer"))
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad Request - Invalid input",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Invalid IDs format or email required")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="No valid reviews with guest users found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="No valid reviews with guest users found")
+     *          )
+     *      )
+     * )
+     */
+    public function updateGuestEmailsByReviews($ids, Request $request)
+    {
+        // Validate email in request
+        $validated = $request->validate([
+            'email' => 'required|email|max:255'
+        ]);
+
+        // Validate and parse comma-separated IDs
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No review IDs provided'
+            ], 400);
+        }
+
+        // Split the comma-separated string into an array
+        $idArray = array_map('trim', explode(',', $ids));
+        
+        // Filter out non-numeric values
+        $numericIds = array_filter($idArray, function($id) {
+            return is_numeric($id) && $id > 0;
+        });
+
+        if (empty($numericIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid IDs format. Please provide comma-separated numeric IDs.'
+            ], 400);
+        }
+
+        // Convert to integers
+        $numericIds = array_map('intval', $numericIds);
+
+        // Find reviews with guest users
+        $reviews = ReviewNew::whereIn('id', $numericIds)
+            ->whereNotNull('guest_id')
+            ->with('guest_user')
+            ->get();
+        
+        if ($reviews->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid reviews with guest users found for the provided IDs',
+                'data' => [
+                    'requested_ids' => $numericIds,
+                    'updated_count' => 0,
+                    'updated_guest_ids' => [],
+                    'review_ids' => []
+                ]
+            ], 404);
+        }
+
+        // Get unique guest IDs from the reviews
+        $guestIds = $reviews->pluck('guest_id')->unique()->toArray();
+        
+               // Get the IDs that were not found
+        $invalidIds = array_diff($numericIds, $guestIds);
+
+        // Return error response if no valid reviews found
+        if (!empty($invalidIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid reviews found with the provided IDs',
+                'data' => [
+                    'requested_ids' => $numericIds,
+                    'valid_ids' => $guestIds,
+                    'invalid_ids' => $invalidIds
+                ]
+            ], 404);
+        }
+
+        // Update email for all guest users
+        $updatedCount = GuestUser::whereIn('id', $guestIds)
+            ->update(['email' => $validated['email']]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Guest user emails updated successfully',
+            'data' => [
+                'updated_count' => $updatedCount,
+                'updated_guest_ids' => $guestIds,
+                'review_ids' => $reviews->pluck('id')->toArray(),
+                'email' => $validated['email']
+            ]
         ], 200);
     }
 }

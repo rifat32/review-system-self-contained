@@ -45,6 +45,7 @@ class ReviewNew extends Model
         'voice_url',
         'voice_duration',
         'transcription_metadata',
+        'is_private',
 
     ];
     protected $casts = [
