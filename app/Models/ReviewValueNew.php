@@ -32,6 +32,10 @@ class ReviewValueNew extends Model
         return $this->hasOne(Question::class,'id','question_id');
     }
 
+    public function tag() {
+        return $this->belongsTo(Tag::class, 'tag_id', 'id');
+    }
+
 
 public function scopeFilterByOverall($query, $is_overall)
 {

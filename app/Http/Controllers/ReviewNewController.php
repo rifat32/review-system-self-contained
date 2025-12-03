@@ -23,6 +23,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ReviewNewController extends Controller
 {
@@ -448,7 +449,8 @@ private function getAvailableFilters($businessId)
         'staff' => array_merge(
             ['All Staff'],
             User::whereHas('staffReviews', fn($q) => $q->where('business_id', $businessId))
-                ->pluck('name')
+                ->get()
+                ->map(fn($user) => $user->name)
                 ->toArray()
         ),
         'branches' => ['All Branches', 'Downtown', 'Uptown', 'Westside'],

@@ -601,11 +601,11 @@ Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNew
 
 
     // Overall Business Dashboard
-Route::get('/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
+Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
 // Voice Review Submission
-Route::post('/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
+Route::post('/v1.0/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
 // Update Business Review Settings
-Route::put('/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updateReviewSettings']);
+Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updateReviewSettings']);
 
 
 

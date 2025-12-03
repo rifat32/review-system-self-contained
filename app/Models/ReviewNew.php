@@ -111,10 +111,6 @@ class ReviewNew extends Model
     {
         return $this->hasOne(GuestUser::class, 'id', 'guest_id');
     }
-    protected $hidden = [
-        'created_at',
-        'updated_at',
-    ];
 
     public function survey()
     {

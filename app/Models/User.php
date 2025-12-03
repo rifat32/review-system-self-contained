@@ -63,9 +63,19 @@ class User extends Authenticatable
         return $this->hasMany(Business::class, "OwnerID", "id");
     }
 
+    public function getNameAttribute()
+    {
+        return "{$this->first_Name} {$this->last_Name}";
+    }
+
     public function feedbacks()
     {
         return $this->hasMany(ReviewNew::class, 'user_id', 'id');
+    }
+
+    public function staffReviews()
+    {
+        return $this->hasMany(ReviewNew::class, 'staff_id', 'id');
     }
 
     /**
