@@ -6,7 +6,7 @@ use App\Http\Utils\ErrorUtil;
 use App\Models\User;
 use App\Models\ActivityLog;
 use App\Models\Question;
-use App\Models\Survey;
+use App\Models\ReviewNew;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -24,18 +24,16 @@ class SetupController extends Controller
 
     // public function oneTimeDBOperation()
     // {
-    //     $survey = Survey::orderBy('id')->get();
+    //    DB::statement("
+    //     UPDATE review_news 
+    //     SET rate = FLOOR(1 + RAND() * 5)
+    //     WHERE rate > 5
+    // ");
 
-    //     $survey->map(function ($item, $key) {
-    //         $item->order_no = $key + 1;
-    //         $item->save();
-    //     });
-    //     $question = Question::orderBy('id')->get();
-
-    //     $question->map(function ($item, $key) {
-    //         $item->order_no = $key + 1;
-    //         $item->save();
-    //     });
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'DB Operation Complete'
+    //     ]);
     // }
 
     public function setupPassport()

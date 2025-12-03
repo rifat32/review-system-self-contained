@@ -6136,6 +6136,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
             ->get();
 
         $data["total_reviews"]   = $reviews->count();
+        $data["avg_rating"]   = $reviews->avg("rate");
         $data['rating']["one"]   = 0;
         $data['rating']["two"]   = 0;
         $data['rating']["three"] = 0;
