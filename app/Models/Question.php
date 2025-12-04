@@ -5,9 +5,80 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @OA\Schema(
+ *     schema="Question",
+ *     type="object",
+ *     title="Question",
+ *     description="Review question model",
+ *     required={"question", "is_active"}
+ * )
+ */
+
 class Question extends Model
 {
+
+    /**
+     * @OA\Property(property="id", type="integer", example=5)
+     * @OA\Property(property="question", type="string", example="How was your experience?")
+     * @OA\Property(property="business_id", type="integer", nullable=true, example=3)
+     * @OA\Property(property="is_active", type="boolean", example=true)
+     * @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star")
+     * @OA\Property(property="is_default", type="boolean", example=false)
+     * @OA\Property(property="is_overall", type="boolean", example=false)
+     * @OA\Property(property="show_in_user", type="boolean", example=true)
+     * @OA\Property(property="show_in_guest_user", type="boolean", example=true)
+     * @OA\Property(property="survey_name", type="string", nullable=true, example="Post-Service Survey")
+     * @OA\Property(property="created_at", type="string", format="date-time", example="2025-04-05T10:00:00Z")
+     * @OA\Property(property="updated_at", type="string", format="date-time", example="2025-04-05T12:30:00Z")
+     *
+     * @OA\Property(
+     *     property="surveys",
+     *     type="array",
+     *     @OA\Items(
+     *         type="object",
+     *         @OA\Property(property="id", type="integer", example=2),
+     *         @OA\Property(property="name", type="string", example="Checkout Survey"),
+     *         @OA\Property(property="order_no", type="integer", example=1)
+     *     )
+     * )
+     */
     use HasFactory;
+    protected $casts = [
+        'is_active' => 'boolean',
+        'show_in_guest_user' => 'boolean',
+        'show_in_user' => 'boolean',
+        'is_overall' => 'boolean',
+        'is_staff' => 'boolean',
+    ];
+
+
+    protected $fillable = [
+        "question",
+        "business_id",
+        "is_default",
+        "is_active",
+        "show_in_guest_user",
+        "show_in_user",
+        'survey_name',
+        "type",
+        "order_no",
+        "is_overall",
+        "is_staff"
+    ];
+
+    // 
+    const QUESTION_TYPES = [
+        'STAR'   => 'star',
+        'EMOJI'  => 'emoji',
+        'NUMBERS' => 'numbers',
+        'HEART'  => 'heart',
+    ];
+
+
+    // public function tags() {
+    //     return $this->hasMany(StarTagQuestion::class,'question_id','id');
+    // }
 
     protected static function boot()
     {
@@ -19,26 +90,6 @@ class Question extends Model
             }
         });
     }
-
-    protected $fillable = [
-        "question",
-        "business_id",
-        "is_default",
-        "is_active",
-        "show_in_guest_user",
-        "show_in_user",
-        'survey_name',
-        "type",
-        "order_no"
-    ];
-    protected $hidden = [
-        'created_at',
-        'updated_at',
-        'pivot',
-    ];
-    // public function tags() {
-    //     return $this->hasMany(StarTagQuestion::class,'question_id','id');
-    // }
     public function question_stars()
     {
         return $this->hasMany(QusetionStar::class, 'question_id', 'id');
@@ -66,5 +117,40 @@ class Question extends Model
                 $q2->filterByOverall($is_overall);
             });
         });
+    }
+
+    /**
+     * Filter questions based on user role and request parameters
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \App\Models\User $user
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFilterForUser($query, $user, $request)
+    {
+        // Apply status filters
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        if ($request->has('is_staff')) {
+            $query->where('is_staff', $request->boolean('is_staff'));
+        }
+
+        if ($user->hasRole('superadmin')) {
+            // Superadmin can see all questions
+            if ($request->has('business_id')) {
+                $query->where('business_id', $request->integer('business_id'));
+            }
+        } else {
+            // Business owner: get default questions + their business questions
+            $query->where(function ($q) use ($user) {
+                $q->whereNull('business_id') // default questions
+                    ->orWhereIn('business_id', $user->businesses()->pluck('id')); // their businesses
+            });
+        }
+
+        return $query;
     }
 }

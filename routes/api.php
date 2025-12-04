@@ -17,6 +17,7 @@ use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\LeafletController;
+use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReviewNewController;
 use App\Http\Controllers\RolesController;
@@ -133,6 +134,19 @@ Route::post('/v1.0/reviews/overall/ordering', [ReviewNewController::class, "orde
 // @@@@@@@@@@@@@@@@@@@@  Protected Routes      @@@@@@@@@@@@@@@@@
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 Route::middleware(['auth:api'])->group(function () {
+
+
+    // #################
+    // Question Management Routes
+    // #################
+    Route::get('/v1.0/questions', [QuestionController::class, 'getAllQuestions']);
+    Route::get('/v1.0/questions/{id}', [QuestionController::class, 'questionById']);
+    Route::post('/v1.0/questions', [QuestionController::class, 'createQuestion']);
+    Route::patch('/v1.0/questions/{id}', [QuestionController::class, 'updatedQuestion']);
+    Route::delete('/v1.0/questions/{ids}', [QuestionController::class, 'deleteQuestion']);
+    Route::patch('/v1.0/questions/set-overall', [QuestionController::class, 'setOverallQuestions']);
+    Route::patch('/v1.0/questions/toggle', [QuestionController::class, 'toggleQuestionActivation']);
+    Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
 
     // Leaflet CRUD
     Route::post('/v1.0/leaflet/create',        [LeafletController::class, 'insertLeaflet']);
@@ -406,11 +420,11 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     // Overall Business Dashboard
-Route::get('/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
-// Voice Review Submission
-Route::post('/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
-// Update Business Review Settings
-Route::put('/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updateReviewSettings']);
+    Route::get('/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
+    // Voice Review Submission
+    Route::post('/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
+    // Update Business Review Settings
+    Route::put('/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updateReviewSettings']);
 
 
 
@@ -510,97 +524,97 @@ Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController:
 
 
 Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReview"]);
-    Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "getReviewByBusinessId"]);
-    Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);
-    Route::post('/review-new/{businessId}', [ReviewNewController::class, "storeReview"]);
+Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "getReviewByBusinessId"]);
+Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);
+Route::post('/review-new/{businessId}', [ReviewNewController::class, "storeReview"]);
 
-    // #################
-    // question  Routes
-    // #################
-    Route::post('/review-new/create/questions', [ReviewNewController::class, "storeQuestion"]);
-    Route::put('/review-new/update/questions', [ReviewNewController::class, "updateQuestion"]);
-
-
-    Route::put('/v1.0/review-new/set-overall-question', [ReviewNewController::class, "setOverallQuestion"]);
+// #################
+// question  Routes
+// #################
+Route::post('/review-new/create/questions', [ReviewNewController::class, "storeQuestion"]);
+Route::put('/review-new/update/questions', [ReviewNewController::class, "updateQuestion"]);
 
 
-
-
-    Route::put('/review-new/update/active_state/questions', [ReviewNewController::class, "updateQuestionActiveState"]);
-
-    Route::get('/v1.0/review-new/get/questions', [ReviewNewController::class, "getQuestion"]);
-
-
-    Route::get('/review-new/get/questions-all', [ReviewNewController::class, "getQuestionAll"]);
-
-
-    Route::get('/review-new/get/questions-all-report', [ReviewNewController::class, "getQuestionAllReport"]);
-    Route::get('/review-new/get/questions-all-report/guest', [ReviewNewController::class, "getQuestionAllReportGuest"]);
-
-
-    Route::get('/review-new/get/questions-all-report-by-user/{perPage}', [ReviewNewController::class, "getQuestionAllReportByUser"]);
-    Route::get('/review-new/get/questions-all-report-by-user-guest/{perPage}', [ReviewNewController::class, "getQuestionAllReportByUserGuest"]);
+Route::put('/v1.0/review-new/set-overall-question', [ReviewNewController::class, "setOverallQuestion"]);
 
 
 
 
-    Route::get('/review-new/get/questions/{id}', [ReviewNewController::class, "getQuestionById"]);
-    Route::get('/review-new/get/questions/{id}/{businessId}', [ReviewNewController::class, "getQuestionById2"]);
-    Route::delete('/review-new/delete/questions/{id}', [ReviewNewController::class, "deleteQuestionById"]);
+Route::put('/review-new/update/active_state/questions', [ReviewNewController::class, "updateQuestionActiveState"]);
 
-    // #################
-    // tag  Routes
-    // #################
+Route::get('/v1.0/review-new/get/questions', [ReviewNewController::class, "getQuestion"]);
 
-    Route::post('/review-new/create/tags', [ReviewNewController::class, "storeTag"]);
 
-    Route::post('/v1.0/review-new/create/tags/multiple/{businessId}', [ReviewNewController::class, "storeTagMultiple"]);
+Route::get('/review-new/get/questions-all', [ReviewNewController::class, "getQuestionAll"]);
 
-    Route::put('/review-new/update/tags', [ReviewNewController::class, "updateTag"]);
-    Route::get('/review-new/get/tags', [ReviewNewController::class, "getTag"]);
-    Route::get('/review-new/get/tags/{id}', [ReviewNewController::class, "getTagById"]);
-    Route::get('/review-new/get/tags/{id}/{reataurantId}', [ReviewNewController::class, "getTagById2"]);
-    Route::delete('/review-new/delete/tags/{id}', [ReviewNewController::class, "deleteTagById"]);
-    // #################
-    // Star Routes
-    // #################
-    Route::post('/review-new/create/stars', [ReviewNewController::class, "storeStar"]);
-    Route::put('/review-new/update/stars', [ReviewNewController::class, "updateStar"]);
-    Route::get('/review-new/get/stars', [ReviewNewController::class, "getStar"]);
-    Route::get('/review-new/get/stars/{id}', [ReviewNewController::class, "getStarById"]);
-    Route::get('/review-new/get/stars/{id}/{businessId}', [ReviewNewController::class, "getStarById2"]);
-    Route::delete('/review-new/delete/stars/{id}', [ReviewNewController::class, "deleteStarById"]);
+
+Route::get('/review-new/get/questions-all-report', [ReviewNewController::class, "getQuestionAllReport"]);
+Route::get('/review-new/get/questions-all-report/guest', [ReviewNewController::class, "getQuestionAllReportGuest"]);
+
+
+Route::get('/review-new/get/questions-all-report-by-user/{perPage}', [ReviewNewController::class, "getQuestionAllReportByUser"]);
+Route::get('/review-new/get/questions-all-report-by-user-guest/{perPage}', [ReviewNewController::class, "getQuestionAllReportByUserGuest"]);
 
 
 
 
+Route::get('/review-new/get/questions/{id}', [ReviewNewController::class, "getQuestionById"]);
+Route::get('/review-new/get/questions/{id}/{businessId}', [ReviewNewController::class, "getQuestionById2"]);
+Route::delete('/review-new/delete/questions/{id}', [ReviewNewController::class, "deleteQuestionById"]);
 
-    Route::get('/review-new/get/questions-all-report/quantum', [ReviewNewController::class, "getQuestionAllReportQuantum"]);
+// #################
+// tag  Routes
+// #################
 
-    Route::get('/review-new/get/questions-all-report/guest/quantum', [ReviewNewController::class, "getQuestionAllReportGuestQuantum"]);
+Route::post('/review-new/create/tags', [ReviewNewController::class, "storeTag"]);
+
+Route::post('/v1.0/review-new/create/tags/multiple/{businessId}', [ReviewNewController::class, "storeTagMultiple"]);
+
+Route::put('/review-new/update/tags', [ReviewNewController::class, "updateTag"]);
+Route::get('/review-new/get/tags', [ReviewNewController::class, "getTag"]);
+Route::get('/review-new/get/tags/{id}', [ReviewNewController::class, "getTagById"]);
+Route::get('/review-new/get/tags/{id}/{reataurantId}', [ReviewNewController::class, "getTagById2"]);
+Route::delete('/review-new/delete/tags/{id}', [ReviewNewController::class, "deleteTagById"]);
+// #################
+// Star Routes
+// #################
+Route::post('/review-new/create/stars', [ReviewNewController::class, "storeStar"]);
+Route::put('/review-new/update/stars', [ReviewNewController::class, "updateStar"]);
+Route::get('/review-new/get/stars', [ReviewNewController::class, "getStar"]);
+Route::get('/review-new/get/stars/{id}', [ReviewNewController::class, "getStarById"]);
+Route::get('/review-new/get/stars/{id}/{businessId}', [ReviewNewController::class, "getStarById2"]);
+Route::delete('/review-new/delete/stars/{id}', [ReviewNewController::class, "deleteStarById"]);
 
 
 
 
-    // #################
-    // Star tag question Routes
-    // #################
 
-    Route::post('/star-tag-question', [ReviewNewController::class, "storeStarTag"]);
-    Route::put('/star-tag-question', [ReviewNewController::class, "updateStarTag"]);
-    Route::get('/star-tag-question', [ReviewNewController::class, "getStarTag"]);
-    Route::get('/star-tag-question/{id}', [ReviewNewController::class, "getStarTagById"]);
-    Route::delete('/star-tag-question/{id}', [ReviewNewController::class, "deleteStarTagById"]);
-    Route::get('/tag-count/star-tag-question/{businessId}', [ReviewNewController::class, "getSelectedTagCount"]);
-    Route::get('/tag-count/star-tag-question/by-question/{questionId}', [ReviewNewController::class, "getSelectedTagCountByQuestion"]);
+Route::get('/review-new/get/questions-all-report/quantum', [ReviewNewController::class, "getQuestionAllReportQuantum"]);
+
+Route::get('/review-new/get/questions-all-report/guest/quantum', [ReviewNewController::class, "getQuestionAllReportGuestQuantum"]);
 
 
 
-    Route::get('/v1.0/customers', [CustomerController::class, "getCustomers"]);
+
+// #################
+// Star tag question Routes
+// #################
+
+Route::post('/star-tag-question', [ReviewNewController::class, "storeStarTag"]);
+Route::put('/star-tag-question', [ReviewNewController::class, "updateStarTag"]);
+Route::get('/star-tag-question', [ReviewNewController::class, "getStarTag"]);
+Route::get('/star-tag-question/{id}', [ReviewNewController::class, "getStarTagById"]);
+Route::delete('/star-tag-question/{id}', [ReviewNewController::class, "deleteStarTagById"]);
+Route::get('/tag-count/star-tag-question/{businessId}', [ReviewNewController::class, "getSelectedTagCount"]);
+Route::get('/tag-count/star-tag-question/by-question/{questionId}', [ReviewNewController::class, "getSelectedTagCountByQuestion"]);
 
 
 
-    // Overall Business Dashboard
+Route::get('/v1.0/customers', [CustomerController::class, "getCustomers"]);
+
+
+
+// Overall Business Dashboard
 Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
 // Voice Review Submission
 Route::post('/v1.0/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
@@ -610,76 +624,76 @@ Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController
 
 
 
-    Route::middleware(['superadmin'])->group(function () {
+Route::middleware(['superadmin'])->group(function () {
 
-        Route::patch('/v1.0/auth/change-password-by-superadmin', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
-
-
-        Route::get('/v1.0/superadmin/dashboard-report/total-business', [SuperAdminReportController::class, "getTotalBusinessReport"]);
+    Route::patch('/v1.0/auth/change-password-by-superadmin', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
 
 
-        Route::get('/v1.0/superadmin/dashboard-report/total-business-enabled', [SuperAdminReportController::class, "getTotalEnabledBusinessReport"]);
-
-        Route::get('/v1.0/superadmin/dashboard-report/total-business-disabled', [SuperAdminReportController::class, "getTotalDisabledBusinessReport"]);
+    Route::get('/v1.0/superadmin/dashboard-report/total-business', [SuperAdminReportController::class, "getTotalBusinessReport"]);
 
 
+    Route::get('/v1.0/superadmin/dashboard-report/total-business-enabled', [SuperAdminReportController::class, "getTotalEnabledBusinessReport"]);
+
+    Route::get('/v1.0/superadmin/dashboard-report/total-business-disabled', [SuperAdminReportController::class, "getTotalDisabledBusinessReport"]);
 
 
-        Route::get('/v1.0/superadmin/dashboard-report/total-reviews', [SuperAdminReportController::class, "getTotalReviews"]);
-        Route::get('/v1.0/superadmin/dashboard-report/today-reviews', [SuperAdminReportController::class, "getTodayReviews"]);
-        Route::get('/v1.0/superadmin/dashboard-report/review-report', [SuperAdminReportController::class, "getReviewReport"]);
-        Route::get('/v1.0/superadmin/customer-list/{perPage}', [UserController::class, "getCustomerReportSuperadmin"]);
-
-        Route::get('/superadmin/owner-list/{perPage}', [UserController::class, "getOwnerReport"]);
-        Route::delete('superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
-        // EMAIL TEMPLATE WRAPPER MANAGEMENT
-        Route::prefix('v1.0/email-template-wrappers')->group(function () {
-            Route::put('/{id}', [EmailTemplateWrapperController::class, "updateEmailTemplateWrapper"]);
-            Route::get('/{id}', [EmailTemplateWrapperController::class, "getEmailTemplateWrapperById"]);
-            Route::get('/', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
-        });
 
 
-        // EMAIL TEMPLATE MANAGEMENT
-        Route::prefix('v1.0/email-templates')->group(function () {
-            Route::post('/', [EmailTemplateController::class, "createEmailTemplate"]);
-            Route::put('/{id}', [EmailTemplateController::class, "updateEmailTemplate"]);
-            Route::get('/', [EmailTemplateController::class, "getEmailTemplates"]);
-            Route::get('/{id}', [EmailTemplateController::class, "getEmailTemplateById"]);
-            Route::delete('/{ids}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
-        });
-        Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
+    Route::get('/v1.0/superadmin/dashboard-report/total-reviews', [SuperAdminReportController::class, "getTotalReviews"]);
+    Route::get('/v1.0/superadmin/dashboard-report/today-reviews', [SuperAdminReportController::class, "getTodayReviews"]);
+    Route::get('/v1.0/superadmin/dashboard-report/review-report', [SuperAdminReportController::class, "getReviewReport"]);
+    Route::get('/v1.0/superadmin/customer-list/{perPage}', [UserController::class, "getCustomerReportSuperadmin"]);
+
+    Route::get('/superadmin/owner-list/{perPage}', [UserController::class, "getOwnerReport"]);
+    Route::delete('superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
+    // EMAIL TEMPLATE WRAPPER MANAGEMENT
+    Route::prefix('v1.0/email-template-wrappers')->group(function () {
+        Route::put('/{id}', [EmailTemplateWrapperController::class, "updateEmailTemplateWrapper"]);
+        Route::get('/{id}', [EmailTemplateWrapperController::class, "getEmailTemplateWrapperById"]);
+        Route::get('/', [EmailTemplateWrapperController::class, "getEmailTemplateWrappers"]);
     });
 
-    Route::get('/v1.0/customer-report', [ReportController::class, "customerDashboardReport"]);
-    Route::get('/v1.0/business-report', [ReportController::class, "businessDashboardReport"]);
-    Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
-    Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
-    Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
-    Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
-    Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
 
-    Route::get('/v1.0/reports/staff-comparison/{businessId}', [ReportController::class, 'staffComparison']);
+    // EMAIL TEMPLATE MANAGEMENT
+    Route::prefix('v1.0/email-templates')->group(function () {
+        Route::post('/', [EmailTemplateController::class, "createEmailTemplate"]);
+        Route::put('/{id}', [EmailTemplateController::class, "updateEmailTemplate"]);
+        Route::get('/', [EmailTemplateController::class, "getEmailTemplates"]);
+        Route::get('/{id}', [EmailTemplateController::class, "getEmailTemplateById"]);
+        Route::delete('/{ids}', [EmailTemplateController::class, "deleteEmailTemplateById"]);
+    });
+    Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
+});
 
-    Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [ReportController::class, 'staffPerformance']);
+Route::get('/v1.0/customer-report', [ReportController::class, "customerDashboardReport"]);
+Route::get('/v1.0/business-report', [ReportController::class, "businessDashboardReport"]);
+Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
+Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
+Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
+Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
+Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
 
-    Route::get('/v1.0/reports/staff-dashboard/{businessId}', [ReportController::class, 'staffDashboard']);
+Route::get('/v1.0/reports/staff-comparison/{businessId}', [ReportController::class, 'staffComparison']);
 
-    Route::get('/v1.0/reports/review-analytics/{businessId}', [ReportController::class, 'reviewAnalytics']);
+Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [ReportController::class, 'staffPerformance']);
 
-    // #################
-    // Review Owner Routes
-    // #################
+Route::get('/v1.0/reports/staff-dashboard/{businessId}', [ReportController::class, 'staffDashboard']);
 
-    Route::post('/review-new/owner/create/questions', [ReviewNewController::class, "storeOwnerQuestion"]);
-    Route::patch('/review-new/owner/update/questions', [ReviewNewController::class, "updateOwnerQuestion"]);
-    // #################
-    // order Routes
-    // #################
+Route::get('/v1.0/reports/review-analytics/{businessId}', [ReportController::class, 'reviewAnalytics']);
+
+// #################
+// Review Owner Routes
+// #################
+
+Route::post('/review-new/owner/create/questions', [ReviewNewController::class, "storeOwnerQuestion"]);
+Route::patch('/review-new/owner/update/questions', [ReviewNewController::class, "updateOwnerQuestion"]);
+// #################
+// order Routes
+// #################
 
 
-    // REVIEW CONTROLLER
-    Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
+// REVIEW CONTROLLER
+Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
 
 // #################
 // forget password Routes

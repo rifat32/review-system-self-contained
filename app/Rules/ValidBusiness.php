@@ -8,14 +8,6 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 class ValidBusiness implements ValidationRule
 {
-    protected $userId;
-    protected $checkOwnership;
-
-    public function __construct(?int $userId = null, ?bool $checkOwnership = true)
-    {
-        $this->userId = $userId;
-        $this->checkOwnership = $checkOwnership;
-    }
 
     /**
      * Run the validation rule.
@@ -30,15 +22,10 @@ class ValidBusiness implements ValidationRule
 
         $query = Business::where('id', $value);
 
-        if ($this->checkOwnership && $this->userId) {
-            $query->where('OwnerID', $this->userId);
-        }
 
         if (!$query->exists()) {
-            $message = $this->checkOwnership && $this->userId
-                ? 'The selected business is invalid or you do not own it.'
-                : 'The selected business is invalid.';
-            $fail($message);
+            $message = 'The selected business is invalid.';
+            $fail($message, null, ['id' => $value]);
         }
     }
 }

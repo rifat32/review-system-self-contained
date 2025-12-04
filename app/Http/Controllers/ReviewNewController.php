@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class ReviewNewController extends Controller
 {
@@ -34,92 +35,92 @@ class ReviewNewController extends Controller
 // Get Overall Business Dashboard Data
 // ##################################################
 
-/**
- * @OA\Get(
- *      path="/v1.0/reviews/overall-dashboard/{businessId}",
- *      operationId="getOverallDashboard",
- *      tags={"review.dashboard"},
- *      security={{"bearerAuth": {}}},
- *      summary="Get overall business dashboard data",
- *      description="Get comprehensive dashboard data with AI insights and analytics",
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          required=true,
- *          example="1"
- *      ),
- *      @OA\Parameter(
- *          name="period",
- *          in="query",
- *          required=false,
- *          description="Period: last_30_days, last_7_days, this_month, last_month",
- *          example="last_30_days"
- *      ),
- *      @OA\Response(
- *          response=200,
- *          description="Successful operation",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=true),
- *              @OA\Property(property="message", type="string", example="Dashboard data retrieved successfully"),
- *              @OA\Property(property="data", type="object")
- *          )
- *      )
- * )
- */
-public function getOverallDashboard($businessId, Request $request)
-{
-    $filterable_fields = [
-        "last_30_days",
-        "last_7_days",
-        "this_month",
-        "last_month"  
-    ];
-    
-    $business = Business::findOrFail($businessId);
-    
-    if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
+    /**
+     * @OA\Get(
+     *      path="/v1.0/reviews/overall-dashboard/{businessId}",
+     *      operationId="getOverallDashboard",
+     *      tags={"review.dashboard"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get overall business dashboard data",
+     *      description="Get comprehensive dashboard data with AI insights and analytics",
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month",
+     *          example="last_30_days"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Dashboard data retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      )
+     * )
+     */
+    public function getOverallDashboard($businessId, Request $request)
+    {
+        $filterable_fields = [
+            "last_30_days",
+            "last_7_days",
+            "this_month",
+            "last_month"
+        ];
+
+        $business = Business::findOrFail($businessId);
+
+        if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid period. Only allowed' . implode(', ', $filterable_fields),
+                'data' => null
+            ], 400);
+        }
+        $period = $request->get('period', 'last_30_days');
+
+        // Get period dates
+        $dateRange = $this->getDateRange($period);
+
+        // Calculate metrics using existing methods
+        $metrics = $this->calculateDashboardMetrics($businessId, $dateRange);
+
+        // Get rating breakdown using existing getAverage method logic
+        $ratingBreakdown = $this->calculateRatingBreakdown($businessId, $dateRange);
+
+        // Get AI insights using existing AI pipeline
+        $aiInsights = $this->getAiInsightsPanel($businessId, $dateRange);
+
+        // Get staff performance using existing staff suggestions
+        $staffPerformance = $this->getStaffPerformanceSnapshot($businessId, $dateRange);
+
+        // Get recent reviews feed
+        $reviewFeed = $this->getReviewFeed($businessId, $dateRange);
+
+        // Get available filters
+        $filters = $this->getAvailableFilters($businessId);
+
         return response()->json([
-            'success' => false,
-            'message' => 'Invalid period. Only allowed' . implode(', ', $filterable_fields),
-            'data' => null
-        ], 400);
-    }    
-    $period = $request->get('period', 'last_30_days');
-    
-    // Get period dates
-    $dateRange = $this->getDateRange($period);
-    
-    // Calculate metrics using existing methods
-    $metrics = $this->calculateDashboardMetrics($businessId, $dateRange);
-    
-    // Get rating breakdown using existing getAverage method logic
-    $ratingBreakdown = $this->calculateRatingBreakdown($businessId, $dateRange);
-    
-    // Get AI insights using existing AI pipeline
-    $aiInsights = $this->getAiInsightsPanel($businessId, $dateRange);
-    
-    // Get staff performance using existing staff suggestions
-    $staffPerformance = $this->getStaffPerformanceSnapshot($businessId, $dateRange);
-    
-    // Get recent reviews feed
-    $reviewFeed = $this->getReviewFeed($businessId, $dateRange);
-    
-    // Get available filters
-    $filters = $this->getAvailableFilters($businessId);
-    
-    return response()->json([
-        'success' => true,
-        'message' => 'Dashboard data retrieved successfully',
-        'data' => [
-            'metrics' => $metrics,
-            'rating_breakdown' => $ratingBreakdown,
-            'ai_insights_panel' => $aiInsights,
-            'staff_performance_snapshot' => $staffPerformance,
-            'review_feed' => $reviewFeed,
-            'filters' => $filters
-        ]
-    ], 200);
-}
+            'success' => true,
+            'message' => 'Dashboard data retrieved successfully',
+            'data' => [
+                'metrics' => $metrics,
+                'rating_breakdown' => $ratingBreakdown,
+                'ai_insights_panel' => $aiInsights,
+                'staff_performance_snapshot' => $staffPerformance,
+                'review_feed' => $reviewFeed,
+                'filters' => $filters
+            ]
+        ], 200);
+    }
 
 
 
@@ -127,505 +128,505 @@ public function getOverallDashboard($businessId, Request $request)
 // Voice Review Submission
 // ##################################################
 
-/**
- * @OA\Post(
- *      path="/v1.0/reviews/voice/{businessId}",
- *      operationId="storeVoiceReview",
- *      tags={"review"},
- *      security={{"bearerAuth": {}}},
- *      summary="Submit a voice review",
- *      description="Submit voice recording with transcription and AI analysis",
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          required=true,
- *          example="1"
- *      ),
- *      @OA\RequestBody(
- *          required=true,
- *          content={
- *              @OA\MediaType(
- *                  mediaType="multipart/form-data",
- *                  @OA\Schema(
- *                      required={"audio"},
- *                      @OA\Property(property="audio", type="string", format="binary"),
- *                      @OA\Property(property="rate", type="number", example=4),
- *                      @OA\Property(property="staff_id", type="integer", example=1),
- *                      @OA\Property(property="description", type="string", example="Voice feedback"),
- *                      @OA\Property(property="values", type="string", example="[{'question_id':1,'tag_id':2,'star_id':4}]"),
- *                      @OA\Property(property="is_overall", type="boolean", example=true),
- *                      @OA\Property(property="guest_full_name", type="string", example="John Doe"),
- *                      @OA\Property(property="guest_phone", type="string", example="1234567890")
- *                  )
- *              )
- *          }
- *      ),
- *      @OA\Response(
- *          response=201,
- *          description="Voice review submitted successfully",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=true),
- *              @OA\Property(property="message", type="string", example="Voice review submitted successfully"),
- *              @OA\Property(property="data", type="object")
- *          )
- *      )
- * )
- */
-public function storeVoiceReview($businessId, Request $request)
-{
-    $request->validate([
-        'audio' => 'required|file|mimes:mp3,wav,m4a,ogg|max:10240', // 10MB max
-        'rate' => 'required|numeric|min:1|max:5',
-        'staff_id' => 'required|numeric|exists:users,id',
-        'description' => 'required|string',
-        'values' => 'required|string',
-        'is_overall' => 'required|boolean',
-        'guest_full_name' => 'nullable|string',
-        'guest_phone' => 'nullable|string',
-    ]);
-    
-    $business = Business::findOrFail($businessId);
-    
-    // Store audio file
-    $audioPath = $request->file('audio')->store('voice-reviews', 'public');
-    $audioUrl = Storage::url($audioPath);
-    
-    // Transcribe using existing transcribeAudio method
-    $transcription = $this->transcribeAudio($request->file('audio')->getRealPath());
-    
-    // Create review with voice metadata
-    $reviewData = [
-        'description' => $request->description ?? 'Voice Review',
-        'rate' => $request->rate,
-        'comment' => $transcription,
-        'raw_text' => $transcription,
-        'business_id' => $businessId,
-        'staff_id' => $request->staff_id,
-        'is_overall' => $request->is_overall ?? false,
-        'is_voice_review' => true,
-        'voice_url' => $audioUrl,
-        'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
-        'transcription_metadata' => [
-            'audio_path' => $audioPath,
-            'file_size' => $request->file('audio')->getSize(),
-            'mime_type' => $request->file('audio')->getMimeType(),
-        ]
-    ];
-    
-    // Add user/guest info
-    if ($request->user()) {
-        $reviewData['user_id'] = $request->user()->id;
-    } else {
-        $guest = GuestUser::create([
-            'full_name' => $request->guest_full_name ?? 'Voice User',
-            'phone' => $request->guest_phone ?? '0000000000',
+    /**
+     * @OA\Post(
+     *      path="/v1.0/reviews/voice/{businessId}",
+     *      operationId="storeVoiceReview",
+     *      tags={"review"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Submit a voice review",
+     *      description="Submit voice recording with transcription and AI analysis",
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      @OA\RequestBody(
+     *          required=true,
+     *          content={
+     *              @OA\MediaType(
+     *                  mediaType="multipart/form-data",
+     *                  @OA\Schema(
+     *                      required={"audio"},
+     *                      @OA\Property(property="audio", type="string", format="binary"),
+     *                      @OA\Property(property="rate", type="number", example=4),
+     *                      @OA\Property(property="staff_id", type="integer", example=1),
+     *                      @OA\Property(property="description", type="string", example="Voice feedback"),
+     *                      @OA\Property(property="values", type="string", example="[{'question_id':1,'tag_id':2,'star_id':4}]"),
+     *                      @OA\Property(property="is_overall", type="boolean", example=true),
+     *                      @OA\Property(property="guest_full_name", type="string", example="John Doe"),
+     *                      @OA\Property(property="guest_phone", type="string", example="1234567890")
+     *                  )
+     *              )
+     *          }
+     *      ),
+     *      @OA\Response(
+     *          response=201,
+     *          description="Voice review submitted successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Voice review submitted successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      )
+     * )
+     */
+    public function storeVoiceReview($businessId, Request $request)
+    {
+        $request->validate([
+            'audio' => 'required|file|mimes:mp3,wav,m4a,ogg|max:10240', // 10MB max
+            'rate' => 'required|numeric|min:1|max:5',
+            'staff_id' => 'required|numeric|exists:users,id',
+            'description' => 'required|string',
+            'values' => 'required|string',
+            'is_overall' => 'required|boolean',
+            'guest_full_name' => 'nullable|string',
+            'guest_phone' => 'nullable|string',
         ]);
-        $reviewData['guest_id'] = $guest->id;
-    }
-    
-    // Run AI analysis using existing pipeline
-    $reviewData['sentiment_score'] = $this->analyzeSentiment($transcription);
-    $reviewData['topics'] = $this->extractTopics($transcription);
-    $reviewData['moderation_results'] = $this->aiModeration($transcription);
-    $reviewData['ai_suggestions'] = $this->generateRecommendations($transcription, $reviewData['topics'], $reviewData['sentiment_score'], $businessId);
-    
-    if ($request->staff_id) {
-        $reviewData['staff_suggestions'] = $this->analyzeStaffPerformance($transcription, $request->staff_id, $businessId);
-    }
-    
-    // Create review
-    $review = ReviewNew::create($reviewData);
-    
-    // Store review values if provided
-    if ($request->has('values')) {
-        $values = json_decode($request->values, true);
-        $this->storeReviewValues($review, $values, $business);
-    }
-    
-    return response()->json([
-        'success' => true,
-        'message' => 'Voice review submitted successfully',
-        'data' => [
-            'review_id' => $review->id,
-            'transcription' => $transcription,
+
+        $business = Business::findOrFail($businessId);
+
+        // Store audio file
+        $audioPath = $request->file('audio')->store('voice-reviews', 'public');
+        $audioUrl = Storage::url($audioPath);
+
+        // Transcribe using existing transcribeAudio method
+        $transcription = $this->transcribeAudio($request->file('audio')->getRealPath());
+
+        // Create review with voice metadata
+        $reviewData = [
+            'description' => $request->description ?? 'Voice Review',
+            'rate' => $request->rate,
+            'comment' => $transcription,
+            'raw_text' => $transcription,
+            'business_id' => $businessId,
+            'staff_id' => $request->staff_id,
+            'is_overall' => $request->is_overall ?? false,
+            'is_voice_review' => true,
             'voice_url' => $audioUrl,
-            'duration' => $reviewData['voice_duration'],
-            'ai_analysis' => [
-                'sentiment_score' => $reviewData['sentiment_score'],
-                'topics' => $reviewData['topics'],
-                'ai_suggestions' => $reviewData['ai_suggestions']
+            'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
+            'transcription_metadata' => [
+                'audio_path' => $audioPath,
+                'file_size' => $request->file('audio')->getSize(),
+                'mime_type' => $request->file('audio')->getMimeType(),
             ]
-        ]
-    ], 201);
-}
+        ];
+
+        // Add user/guest info
+        if ($request->user()) {
+            $reviewData['user_id'] = $request->user()->id;
+        } else {
+            $guest = GuestUser::create([
+                'full_name' => $request->guest_full_name ?? 'Voice User',
+                'phone' => $request->guest_phone ?? '0000000000',
+            ]);
+            $reviewData['guest_id'] = $guest->id;
+        }
+
+        // Run AI analysis using existing pipeline
+        $reviewData['sentiment_score'] = $this->analyzeSentiment($transcription);
+        $reviewData['topics'] = $this->extractTopics($transcription);
+        $reviewData['moderation_results'] = $this->aiModeration($transcription);
+        $reviewData['ai_suggestions'] = $this->generateRecommendations($transcription, $reviewData['topics'], $reviewData['sentiment_score'], $businessId);
+
+        if ($request->staff_id) {
+            $reviewData['staff_suggestions'] = $this->analyzeStaffPerformance($transcription, $request->staff_id, $businessId);
+        }
+
+        // Create review
+        $review = ReviewNew::create($reviewData);
+
+        // Store review values if provided
+        if ($request->has('values')) {
+            $values = json_decode($request->values, true);
+            $this->storeReviewValues($review, $values, $business);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Voice review submitted successfully',
+            'data' => [
+                'review_id' => $review->id,
+                'transcription' => $transcription,
+                'voice_url' => $audioUrl,
+                'duration' => $reviewData['voice_duration'],
+                'ai_analysis' => [
+                    'sentiment_score' => $reviewData['sentiment_score'],
+                    'topics' => $reviewData['topics'],
+                    'ai_suggestions' => $reviewData['ai_suggestions']
+                ]
+            ]
+        ], 201);
+    }
 
 // ##################################################
 // Update Business Settings
 // ##################################################
 
-/**
- * @OA\Put(
- *      path="/v1.0/businesses/{businessId}/review-settings",
- *      operationId="updateReviewSettings",
- *      tags={"business.settings"},
- *      security={{"bearerAuth": {}}},
- *      summary="Update business review settings",
- *      description="Update customer flow and review settings",
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          required=true,
- *          example="1"
- *      ),
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\JsonContent(
- *              required={"enable_detailed_survey"},
- *              @OA\Property(property="enable_detailed_survey", type="boolean", example=true),
- *              @OA\Property(property="detailed_survey_threshold", type="integer", example=4),
- *              @OA\Property(property="export_settings", type="object", example={"format": "csv", "include_comments": true})
- *          )
- *      ),
- *      @OA\Response(
- *          response=200,
- *          description="Settings updated successfully",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=true),
- *              @OA\Property(property="message", type="string", example="Review settings updated successfully"),
- *              @OA\Property(property="data", type="object")
- *          )
- *      )
- * )
- */
-public function updateReviewSettings($businessId, Request $request)
-{
-    $business = Business::findOrFail($businessId);
-    
-    // Verify ownership
-    if (!$request->user()->hasRole('superadmin') && $business->OwnerID != $request->user()->id) {
+    /**
+     * @OA\Put(
+     *      path="/v1.0/businesses/{businessId}/review-settings",
+     *      operationId="updateReviewSettings",
+     *      tags={"business.settings"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Update business review settings",
+     *      description="Update customer flow and review settings",
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"enable_detailed_survey"},
+     *              @OA\Property(property="enable_detailed_survey", type="boolean", example=true),
+     *              @OA\Property(property="detailed_survey_threshold", type="integer", example=4),
+     *              @OA\Property(property="export_settings", type="object", example={"format": "csv", "include_comments": true})
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Settings updated successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Review settings updated successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      )
+     * )
+     */
+    public function updateReviewSettings($businessId, Request $request)
+    {
+        $business = Business::findOrFail($businessId);
+
+        // Verify ownership
+        if (!$request->user()->hasRole('superadmin') && $business->OwnerID != $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized to update settings'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'enable_detailed_survey' => 'boolean',
+            'detailed_survey_threshold' => 'integer|min:1|max:5',
+            'export_settings' => 'json'
+        ]);
+
+        $business->update($validated);
+
         return response()->json([
-            'success' => false,
-            'message' => 'Unauthorized to update settings'
-        ], 403);
+            'success' => true,
+            'message' => 'Review settings updated successfully',
+            'data' => $business->only([
+                'id',
+                'enable_detailed_survey',
+                'detailed_survey_threshold',
+                'export_settings'
+            ])
+        ], 200);
     }
-    
-    $validated = $request->validate([
-        'enable_detailed_survey' => 'boolean',
-        'detailed_survey_threshold' => 'integer|min:1|max:5',
-        'export_settings' => 'json'
-    ]);
-    
-    $business->update($validated);
-    
-    return response()->json([
-        'success' => true,
-        'message' => 'Review settings updated successfully',
-        'data' => $business->only([
-            'id', 
-            'enable_detailed_survey', 
-            'detailed_survey_threshold', 
-            'export_settings'
-        ])
-    ], 200);
-}
 
-// ##################################################
-// Helper Methods
-// ##################################################
+    // ##################################################
+    // Helper Methods
+    // ##################################################
 
-private function getDateRange($period)
-{
-    $now = Carbon::now();
-    
-    return match ($period) {
-        'last_7_days' => [
-            'start' => $now->copy()->subDays(7)->startOfDay(),
-            'end' => $now->copy()->endOfDay()
-        ],
-        'this_month' => [
-            'start' => $now->copy()->startOfMonth(),
-            'end' => $now->copy()->endOfDay()
-        ],
-        'last_month' => [
-            'start' => $now->copy()->subMonth()->startOfMonth(),
-            'end' => $now->copy()->subMonth()->endOfMonth()
-        ],
-        default => [ // last_30_days
-            'start' => $now->copy()->subDays(30)->startOfDay(),
-            'end' => $now->copy()->endOfDay()
-        ]
-    };
-}
+    private function getDateRange($period)
+    {
+        $now = Carbon::now();
 
-private function calculatePercentageChange($current, $previous)
-{
-    if ($previous == 0) return 0;
-    return round((($current - $previous) / $previous) * 100, 1);
-}
-
-private function getSentimentLabel($score)
-{
-    if ($score === null) return 'neutral';
-    return $score >= 0.7 ? 'positive' : ($score >= 0.4 ? 'neutral' : 'negative');
-}
-
-private function getAudioDuration($filePath)
-{
-    try {
-        $getID3 = new \getID3();
-        $fileInfo = $getID3->analyze($filePath);
-        return $fileInfo['playtime_seconds'] ?? null;
-    } catch (\Exception $e) {
-        return null;
+        return match ($period) {
+            'last_7_days' => [
+                'start' => $now->copy()->subDays(7)->startOfDay(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'this_month' => [
+                'start' => $now->copy()->startOfMonth(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'last_month' => [
+                'start' => $now->copy()->subMonth()->startOfMonth(),
+                'end' => $now->copy()->subMonth()->endOfMonth()
+            ],
+            default => [ // last_30_days
+                'start' => $now->copy()->subDays(30)->startOfDay(),
+                'end' => $now->copy()->endOfDay()
+            ]
+        };
     }
-}
 
-private function generateAiSummary($reviews)
-{
-    $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
-    $negativeCount = $reviews->where('sentiment_score', '<', 0.4)->count();
-    $total = $reviews->count();
-    
-    if ($total == 0) return 'No reviews to analyze.';
-    
-    $positivePercent = round(($positiveCount / $total) * 100);
-    $negativePercent = round(($negativeCount / $total) * 100);
-    
-    return "Customers are {$positivePercent}% positive and {$negativePercent}% negative. " . 
-           "Common themes include staff friendliness, service speed, and occasional cleanliness concerns.";
-}
+    private function calculatePercentageChange($current, $previous)
+    {
+        if ($previous == 0) return 0;
+        return round((($current - $previous) / $previous) * 100, 1);
+    }
 
-private function extractIssuesFromSuggestions($suggestions)
-{
-    $issues = collect($suggestions)
-        ->filter(fn($s) => stripos($s, 'consider') !== false || stripos($s, 'implement') !== false)
-        ->map(fn($s) => [
-            'issue' => $s,
-            'mention_count' => 1
-        ])
-        ->take(3)
-        ->values();
-    
-    return $issues->isEmpty() ? [[
-        'issue' => 'No major issues detected.',
-        'mention_count' => 0
-    ]] : $issues->toArray();
-}
+    private function getSentimentLabel($score)
+    {
+        if ($score === null) return 'neutral';
+        return $score >= 0.7 ? 'positive' : ($score >= 0.4 ? 'neutral' : 'negative');
+    }
 
-private function extractOpportunitiesFromSuggestions($suggestions)
-{
-    return collect($suggestions)
-        ->filter(fn($s) => stripos($s, 'add') !== false || stripos($s, 'highlight') !== false)
-        ->take(2)
-        ->values()
-        ->toArray();
-}
+    private function getAudioDuration($filePath)
+    {
+        try {
+            $getID3 = new \getID3();
+            $fileInfo = $getID3->analyze($filePath);
+            return $fileInfo['playtime_seconds'] ?? null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 
-private function generatePredictions($reviews)
-{
-    $avgRating = $reviews->avg('rate') ?? 0;
-    $predictedIncrease = max(0, 5 - $avgRating) * 0.05;
-    
-    return [[
-        'prediction' => 'Improving identified issues could boost overall rating.',
-        'estimated_impact' => '+' . round($predictedIncrease, 2) . ' points'
-    ]];
-}
+    private function generateAiSummary($reviews)
+    {
+        $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $negativeCount = $reviews->where('sentiment_score', '<', 0.4)->count();
+        $total = $reviews->count();
 
-private function extractSkillGapsFromSuggestions($suggestions)
-{
-    return $suggestions
-        ->filter(fn($s) => stripos($s, 'needs') !== false || stripos($s, 'requires') !== false)
-        ->map(fn($s) => preg_replace('/.*needs\s+(.*?) training.*/i', '$1', $s))
-        ->filter(fn($s) => strlen($s) > 3)
-        ->values()
-        ->toArray();
-}
+        if ($total == 0) return 'No reviews to analyze.';
 
-private function getAvailableFilters($businessId)
-{
-    return [
-        'periods' => ['Last 30 Days', 'Last 7 Days', 'This Month', 'Last Month', 'Custom Range'],
-        'staff' => array_merge(
-            ['All Staff'],
-            User::whereHas('staffReviews', fn($q) => $q->where('business_id', $businessId))
-                ->get()
-                ->map(fn($user) => $user->name)
-                ->toArray()
-        ),
-        'branches' => ['All Branches', 'Downtown', 'Uptown', 'Westside'],
-        'review_types' => ['All Review Types', 'Text Only', 'Voice Only', 'Survey', 'Overall'],
-        'ai_sentiment' => ['All Sentiments', 'Positive', 'Neutral', 'Negative', 'AI Flagged']
-    ];
-}
+        $positivePercent = round(($positiveCount / $total) * 100);
+        $negativePercent = round(($negativeCount / $total) * 100);
 
-private function calculateDashboardMetrics($businessId, $dateRange)
-{
-    // Use existing methods to calculate
-    $reviews = ReviewNew::where('business_id', $businessId)
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->get();
-    
-    $previousReviews = ReviewNew::where('business_id', $businessId)
-        ->whereBetween('created_at', [
-            $dateRange['start']->copy()->subDays(30),
-            $dateRange['end']->copy()->subDays(30)
-        ])
-        ->get();
-    
-    $total = $reviews->count();
-    $previousTotal = $previousReviews->count();
-    
-    return [
-        'avg_overall_rating' => [
-            'value' => round($reviews->avg('rate') ?? 0, 1),
-            'change' => $this->calculatePercentageChange(
-                $reviews->avg('rate') ?? 0,
-                $previousReviews->avg('rate') ?? 0
-            )
-        ],
-        'ai_sentiment_score' => [
-            'value' => round(($reviews->avg('sentiment_score') ?? 0) * 10, 1),
-            'max' => 10,
-            'change' => $this->calculatePercentageChange(
-                $reviews->avg('sentiment_score') ?? 0,
-                $previousReviews->avg('sentiment_score') ?? 0
-            )
-        ],
-        'total_reviews' => [
-            'value' => $total,
-            'change' => $this->calculatePercentageChange($total, $previousTotal)
-        ],
-        'positive_negative_ratio' => [
-            'positive' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / max($total, 1)) * 100),
-            'negative' => round(($reviews->where('sentiment_score', '<', 0.4)->count() / max($total, 1)) * 100)
-        ],
-        'staff_linked_reviews' => [
-            'percentage' => round(($reviews->whereNotNull('staff_id')->count() / max($total, 1)) * 100),
-            'count' => $reviews->whereNotNull('staff_id')->count(),
-            'total' => $total
-        ],
-        'voice_reviews' => [
-            'percentage' => round(($reviews->where('is_voice_review', true)->count() / max($total, 1)) * 100),
-            'count' => $reviews->where('is_voice_review', true)->count(),
-            'total' => $total
-        ]
-    ];
-}
+        return "Customers are {$positivePercent}% positive and {$negativePercent}% negative. " .
+            "Common themes include staff friendliness, service speed, and occasional cleanliness concerns.";
+    }
 
-private function calculateRatingBreakdown($businessId, $dateRange)
-{
-    $reviews = ReviewNew::where('business_id', $businessId)
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->get();
-    
-    $total = $reviews->count();
-    
-    return [
-        'excellent' => [
-            'percentage' => round(($reviews->where('rate', 5)->count() / max($total, 1)) * 100),
-            'count' => $reviews->where('rate', 5)->count()
-        ],
-        'good' => [
-            'percentage' => round(($reviews->where('rate', 4)->count() / max($total, 1)) * 100),
-            'count' => $reviews->where('rate', 4)->count()
-        ],
-        'average' => [
-            'percentage' => round(($reviews->where('rate', 3)->count() / max($total, 1)) * 100),
-            'count' => $reviews->where('rate', 3)->count()
-        ],
-        'poor' => [
-            'percentage' => round(($reviews->whereIn('rate', [1, 2])->count() / max($total, 1)) * 100),
-            'count' => $reviews->whereIn('rate', [1, 2])->count()
-        ],
-        'avg_rating' => round($reviews->avg('rate') ?? 0, 1)
-    ];
-}
+    private function extractIssuesFromSuggestions($suggestions)
+    {
+        $issues = collect($suggestions)
+            ->filter(fn($s) => stripos($s, 'consider') !== false || stripos($s, 'implement') !== false)
+            ->map(fn($s) => [
+                'issue' => $s,
+                'mention_count' => 1
+            ])
+            ->take(3)
+            ->values();
 
-private function getAiInsightsPanel($businessId, $dateRange)
-{
-    // Use existing AI suggestions and topics
-    $reviews = ReviewNew::where('business_id', $businessId)
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->whereNotNull('ai_suggestions')
-        ->get();
-    
-    // Extract common themes from existing AI suggestions
-    $allSuggestions = $reviews->pluck('ai_suggestions')->flatten();
-    $allTopics = $reviews->pluck('topics')->flatten();
-    
-    return [
-        'summary' => $this->generateAiSummary($reviews),
-        'detected_issues' => $this->extractIssuesFromSuggestions($allSuggestions),
-        'opportunities' => $this->extractOpportunitiesFromSuggestions($allSuggestions),
-        'predictions' => $this->generatePredictions($reviews)
-    ];
-}
+        return $issues->isEmpty() ? [[
+            'issue' => 'No major issues detected.',
+            'mention_count' => 0
+        ]] : $issues->toArray();
+    }
 
-private function getStaffPerformanceSnapshot($businessId, $dateRange)
-{
-    // Use existing staff suggestions and reviews
-    $staffReviews = ReviewNew::with('staff')
-        ->where('business_id', $businessId)
-        ->whereNotNull('staff_id')
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->get()
-        ->groupBy('staff_id');
-    
-    $staffData = [];
-    
-    foreach ($staffReviews as $staffId => $reviews) {
-        if ($reviews->count() < 3) continue; // Minimum reviews
-        
-        $staff = $reviews->first()->staff;
-        $avgRating = $reviews->avg('rate');
-        $staffSuggestions = $reviews->pluck('staff_suggestions')->flatten()->unique();
-        
-        $staffData[] = [
-            'id' => $staffId,
-            'name' => $staff->name,
-            'rating' => round($avgRating, 1),
-            'review_count' => $reviews->count(),
-            'skill_gaps' => $this->extractSkillGapsFromSuggestions($staffSuggestions),
-            'recommended_training' => $staffSuggestions->first() ?? 'General Training'
+    private function extractOpportunitiesFromSuggestions($suggestions)
+    {
+        return collect($suggestions)
+            ->filter(fn($s) => stripos($s, 'add') !== false || stripos($s, 'highlight') !== false)
+            ->take(2)
+            ->values()
+            ->toArray();
+    }
+
+    private function generatePredictions($reviews)
+    {
+        $avgRating = $reviews->avg('rate') ?? 0;
+        $predictedIncrease = max(0, 5 - $avgRating) * 0.05;
+
+        return [[
+            'prediction' => 'Improving identified issues could boost overall rating.',
+            'estimated_impact' => '+' . round($predictedIncrease, 2) . ' points'
+        ]];
+    }
+
+    private function extractSkillGapsFromSuggestions($suggestions)
+    {
+        return $suggestions
+            ->filter(fn($s) => stripos($s, 'needs') !== false || stripos($s, 'requires') !== false)
+            ->map(fn($s) => preg_replace('/.*needs\s+(.*?) training.*/i', '$1', $s))
+            ->filter(fn($s) => strlen($s) > 3)
+            ->values()
+            ->toArray();
+    }
+
+    private function getAvailableFilters($businessId)
+    {
+        return [
+            'periods' => ['Last 30 Days', 'Last 7 Days', 'This Month', 'Last Month', 'Custom Range'],
+            'staff' => array_merge(
+                ['All Staff'],
+                User::whereHas('staffReviews', fn($q) => $q->where('business_id', $businessId))
+                    ->get()
+                    ->map(fn($user) => $user->name)
+                    ->toArray()
+            ),
+            'branches' => ['All Branches', 'Downtown', 'Uptown', 'Westside'],
+            'review_types' => ['All Review Types', 'Text Only', 'Voice Only', 'Survey', 'Overall'],
+            'ai_sentiment' => ['All Sentiments', 'Positive', 'Neutral', 'Negative', 'AI Flagged']
         ];
     }
-    
-    // Sort by rating
-    usort($staffData, fn($a, $b) => $b['rating'] <=> $a['rating']);
-    
-    $top = array_slice($staffData, 0, 3);
-    $needsImprovement = array_slice(array_reverse($staffData), 0, 3);
-    
-    return [
-        'top_performing' => $top,
-        'needs_improvement' => $needsImprovement
-    ];
-}
 
-private function getReviewFeed($businessId, $dateRange, $limit = 10)
-{
-    return ReviewNew::with(['user', 'guest_user', 'staff', 'value.tag'])
-        ->where('business_id', $businessId)
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->orderBy('created_at', 'desc')
-        ->limit($limit)
-        ->get()
-        ->map(function ($review) {
-            return [
-                'id' => $review->id,
-                'rating' => $review->rate . '/5',
-                'author' => $review->user?->name ?? $review->guest_user?->full_name ?? 'Anonymous',
-                'time_ago' => $review->created_at->diffForHumans(),
-                'comment' => $review->comment,
-                'staff_name' => $review->staff?->name,
-                'tags' => $review->value->map(fn($v) => $v->tag->tag ?? null)->filter()->unique()->values()->toArray(),
-                'is_voice' => $review->is_voice_review,
-                'sentiment' => $this->getSentimentLabel($review->sentiment_score),
-                'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])
+    private function calculateDashboardMetrics($businessId, $dateRange)
+    {
+        // Use existing methods to calculate
+        $reviews = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->get();
+
+        $previousReviews = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [
+                $dateRange['start']->copy()->subDays(30),
+                $dateRange['end']->copy()->subDays(30)
+            ])
+            ->get();
+
+        $total = $reviews->count();
+        $previousTotal = $previousReviews->count();
+
+        return [
+            'avg_overall_rating' => [
+                'value' => round($reviews->avg('rate') ?? 0, 1),
+                'change' => $this->calculatePercentageChange(
+                    $reviews->avg('rate') ?? 0,
+                    $previousReviews->avg('rate') ?? 0
+                )
+            ],
+            'ai_sentiment_score' => [
+                'value' => round(($reviews->avg('sentiment_score') ?? 0) * 10, 1),
+                'max' => 10,
+                'change' => $this->calculatePercentageChange(
+                    $reviews->avg('sentiment_score') ?? 0,
+                    $previousReviews->avg('sentiment_score') ?? 0
+                )
+            ],
+            'total_reviews' => [
+                'value' => $total,
+                'change' => $this->calculatePercentageChange($total, $previousTotal)
+            ],
+            'positive_negative_ratio' => [
+                'positive' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / max($total, 1)) * 100),
+                'negative' => round(($reviews->where('sentiment_score', '<', 0.4)->count() / max($total, 1)) * 100)
+            ],
+            'staff_linked_reviews' => [
+                'percentage' => round(($reviews->whereNotNull('staff_id')->count() / max($total, 1)) * 100),
+                'count' => $reviews->whereNotNull('staff_id')->count(),
+                'total' => $total
+            ],
+            'voice_reviews' => [
+                'percentage' => round(($reviews->where('is_voice_review', true)->count() / max($total, 1)) * 100),
+                'count' => $reviews->where('is_voice_review', true)->count(),
+                'total' => $total
+            ]
+        ];
+    }
+
+    private function calculateRatingBreakdown($businessId, $dateRange)
+    {
+        $reviews = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->get();
+
+        $total = $reviews->count();
+
+        return [
+            'excellent' => [
+                'percentage' => round(($reviews->where('rate', 5)->count() / max($total, 1)) * 100),
+                'count' => $reviews->where('rate', 5)->count()
+            ],
+            'good' => [
+                'percentage' => round(($reviews->where('rate', 4)->count() / max($total, 1)) * 100),
+                'count' => $reviews->where('rate', 4)->count()
+            ],
+            'average' => [
+                'percentage' => round(($reviews->where('rate', 3)->count() / max($total, 1)) * 100),
+                'count' => $reviews->where('rate', 3)->count()
+            ],
+            'poor' => [
+                'percentage' => round(($reviews->whereIn('rate', [1, 2])->count() / max($total, 1)) * 100),
+                'count' => $reviews->whereIn('rate', [1, 2])->count()
+            ],
+            'avg_rating' => round($reviews->avg('rate') ?? 0, 1)
+        ];
+    }
+
+    private function getAiInsightsPanel($businessId, $dateRange)
+    {
+        // Use existing AI suggestions and topics
+        $reviews = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->whereNotNull('ai_suggestions')
+            ->get();
+
+        // Extract common themes from existing AI suggestions
+        $allSuggestions = $reviews->pluck('ai_suggestions')->flatten();
+        $allTopics = $reviews->pluck('topics')->flatten();
+
+        return [
+            'summary' => $this->generateAiSummary($reviews),
+            'detected_issues' => $this->extractIssuesFromSuggestions($allSuggestions),
+            'opportunities' => $this->extractOpportunitiesFromSuggestions($allSuggestions),
+            'predictions' => $this->generatePredictions($reviews)
+        ];
+    }
+
+    private function getStaffPerformanceSnapshot($businessId, $dateRange)
+    {
+        // Use existing staff suggestions and reviews
+        $staffReviews = ReviewNew::with('staff')
+            ->where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->get()
+            ->groupBy('staff_id');
+
+        $staffData = [];
+
+        foreach ($staffReviews as $staffId => $reviews) {
+            if ($reviews->count() < 3) continue; // Minimum reviews
+
+            $staff = $reviews->first()->staff;
+            $avgRating = $reviews->avg('rate');
+            $staffSuggestions = $reviews->pluck('staff_suggestions')->flatten()->unique();
+
+            $staffData[] = [
+                'id' => $staffId,
+                'name' => $staff->name,
+                'rating' => round($avgRating, 1),
+                'review_count' => $reviews->count(),
+                'skill_gaps' => $this->extractSkillGapsFromSuggestions($staffSuggestions),
+                'recommended_training' => $staffSuggestions->first() ?? 'General Training'
             ];
-        });
-}
+        }
+
+        // Sort by rating
+        usort($staffData, fn($a, $b) => $b['rating'] <=> $a['rating']);
+
+        $top = array_slice($staffData, 0, 3);
+        $needsImprovement = array_slice(array_reverse($staffData), 0, 3);
+
+        return [
+            'top_performing' => $top,
+            'needs_improvement' => $needsImprovement
+        ];
+    }
+
+    private function getReviewFeed($businessId, $dateRange, $limit = 10)
+    {
+        return ReviewNew::with(['user', 'guest_user', 'staff', 'value.tag'])
+            ->where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'rating' => $review->rate . '/5',
+                    'author' => $review->user?->name ?? $review->guest_user?->full_name ?? 'Anonymous',
+                    'time_ago' => $review->created_at->diffForHumans(),
+                    'comment' => $review->comment,
+                    'staff_name' => $review->staff?->name,
+                    'tags' => $review->value->map(fn($v) => $v->tag->tag ?? null)->filter()->unique()->values()->toArray(),
+                    'is_voice' => $review->is_voice_review,
+                    'sentiment' => $this->getSentimentLabel($review->sentiment_score),
+                    'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])
+                ];
+            });
+    }
 
 
 
@@ -1876,7 +1877,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      * @OA\Post(
      *      path="/review-new/create/questions",
      *      operationId="storeQuestion",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -1983,7 +1984,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      * @OA\Put(
      *      path="/review-new/update/questions",
      *      operationId="updateQuestion",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -2074,7 +2075,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      * @OA\Put(
      *      path="/v1.0/review-new/set-overall-question",
      *      operationId="setOverallQuestion",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unsed"},
      *      security={{"bearerAuth": {}}},
      *      summary="Set questions as overall and make all others non-overall",
      *      description="This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
@@ -2387,7 +2388,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      * @OA\Get(
      *      path="/review-new/get/questions-all-overall/customer",
      *      operationId="getQuestionAllUnauthorizedOverall",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *
      * 
      *      summary="This method is to get all question without pagination",
@@ -2663,7 +2664,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      * @OA\Get(
      *      path="/review-new/get/questions-all",
      *      operationId="getQuestionAll",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
 
      *      summary="This method is to get all question without pagination",
      *      description="This method is to get all question without pagination",
@@ -3022,7 +3023,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      * @OA\Get(
      *      path="/review-new/get/questions/{id}",
      *      operationId="getQuestionById",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -3104,7 +3105,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
      * @OA\Get(
      *      path="/review-new/get/questions/{id}/{businessId}",
      *      operationId="getQuestionById2",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -6241,7 +6242,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
 
         // Sorting logic
         $sortBy = $request->get('sort_by');
-        
+
         switch ($sortBy) {
             case 'newest':
                 $query->orderBy('created_at', 'desc');
@@ -6401,9 +6402,9 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
 
         // Split the comma-separated string into an array
         $idArray = array_map('trim', explode(',', $ids));
-        
+
         // Filter out non-numeric values
-        $numericIds = array_filter($idArray, function($id) {
+        $numericIds = array_filter($idArray, function ($id) {
             return is_numeric($id) && $id > 0;
         });
 
@@ -6419,7 +6420,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
 
         // Find existing reviews with the provided IDs
         $existingReviews = ReviewNew::whereIn('id', $numericIds)->get();
-        
+
         if ($existingReviews->isEmpty()) {
             return response()->json([
                 'success' => false,
@@ -6435,7 +6436,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
 
         // Get the IDs that were found
         $foundIds = $existingReviews->pluck('id')->toArray();
-        
+
         // Get the IDs that were not found
         $invalidIds = array_diff($numericIds, $foundIds);
 
@@ -6539,9 +6540,9 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
 
         // Split the comma-separated string into an array
         $idArray = array_map('trim', explode(',', $ids));
-        
+
         // Filter out non-numeric values
-        $numericIds = array_filter($idArray, function($id) {
+        $numericIds = array_filter($idArray, function ($id) {
             return is_numeric($id) && $id > 0;
         });
 
@@ -6560,7 +6561,7 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
             ->whereNotNull('guest_id')
             ->with('guest_user')
             ->get();
-        
+
         if ($reviews->isEmpty()) {
             return response()->json([
                 'success' => false,
@@ -6576,8 +6577,8 @@ private function getReviewFeed($businessId, $dateRange, $limit = 10)
 
         // Get unique guest IDs from the reviews
         $guestIds = $reviews->pluck('guest_id')->unique()->toArray();
-        
-               // Get the IDs that were not found
+
+        // Get the IDs that were not found
         $invalidIds = array_diff($numericIds, $guestIds);
 
         // Return error response if no valid reviews found

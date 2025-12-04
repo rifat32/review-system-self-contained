@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Rules\ValidBusiness;
+use App\Rules\ValidBusinessOwner;
 use App\Rules\ValidQuestion;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -26,7 +27,7 @@ class SetOverallQuestionRequest extends FormRequest
         return [
             'question_ids' => 'required|array|min:1',
             'question_ids.*' => new ValidQuestion($this->input('business_id')),
-            'business_id' => new ValidBusiness($this->user() ? $this->user()->id : null, true),
+            'business_id' => new ValidBusinessOwner($this->user() ? $this->user()->id : null, true),
         ];
     }
 

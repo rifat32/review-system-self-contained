@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Rules\ValidBusiness;
+use App\Rules\ValidBusinessOwner;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTagMultipleRequest extends FormRequest
@@ -38,7 +39,7 @@ class StoreTagMultipleRequest extends FormRequest
             'businessId' => [
                 'required',
                 'integer',
-                new ValidBusiness($businessId, true) // Check ownership
+                new ValidBusinessOwner($businessId, true) // Check ownership
             ]
         ];
     }
