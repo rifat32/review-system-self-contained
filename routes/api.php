@@ -135,6 +135,8 @@ Route::post('/v1.0/reviews/overall/ordering', [ReviewNewController::class, "orde
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 Route::middleware(['auth:api'])->group(function () {
 
+    Route::get('/v1.0/review-new/{businessId}', [ReviewNewController::class, "createReview"]);
+    Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
 
     // #################
     // Question Management Routes
@@ -304,21 +306,6 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     // #################
-    // review  Routes
-    // #################
-
-    Route::post('/review/reviewvalue/{businessId}/{rate}', [ReviewController::class, "store"]);
-    Route::get('/review/getvalues/{businessId}/{rate}', [ReviewController::class, "getReviewValues"]);
-    Route::get('/review/getvalues/{businessId}', [ReviewController::class, "getreviewvalueById"]);
-    Route::get('/review/getavg/review/{businessId}/{start}/{end}', [ReviewController::class, "getAverage"]);
-    Route::post('/review/addupdatetags/{businessId}', [ReviewController::class, "store2"]);
-
-    Route::get('/review/getreview/{businessId}/{rate}/{start}/{end}', [ReviewController::class, "filterReview"]);
-    Route::get('/review/getreviewAll/{businessId}', [ReviewController::class, "getReviewByBusinessId"]);
-    Route::get('/review/getcustomerreview/{businessId}/{start}/{end}', [ReviewController::class, "getCustommerReview"]);
-    Route::post('/review/{businessId}', [ReviewController::class, "storeReview"]);
-
-    // #################
     // review new  Routes
     // #################
 
@@ -420,7 +407,7 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     // Overall Business Dashboard
-    Route::get('/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
+    // Route::get('/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
     // Voice Review Submission
     Route::post('/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
     // Update Business Review Settings
@@ -475,7 +462,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
     Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
     Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
-    Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
     Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
 
     Route::get('/v1.0/reports/staff-comparison/{businessId}', [ReportController::class, 'staffComparison']);
@@ -526,7 +512,6 @@ Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController:
 Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReview"]);
 Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "getReviewByBusinessId"]);
 Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);
-Route::post('/review-new/{businessId}', [ReviewNewController::class, "storeReview"]);
 
 // #################
 // question  Routes
@@ -615,7 +600,7 @@ Route::get('/v1.0/customers', [CustomerController::class, "getCustomers"]);
 
 
 // Overall Business Dashboard
-Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
+Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboardData']);
 // Voice Review Submission
 Route::post('/v1.0/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
 // Update Business Review Settings
@@ -670,7 +655,6 @@ Route::get('/v1.0/business-report', [ReportController::class, "businessDashboard
 Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
 Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
 Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
-Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
 Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
 
 Route::get('/v1.0/reports/staff-comparison/{businessId}', [ReportController::class, 'staffComparison']);

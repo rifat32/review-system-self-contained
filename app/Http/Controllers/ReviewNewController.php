@@ -1242,11 +1242,18 @@ class ReviewNewController extends Controller
         // Step 6: AI Recommendations Engine
         $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
 
+        $averageRating = collect($request->values)
+            ->pluck('star_id')
+            ->filter()           // removes null/empty just in case
+            ->avg();             // returns float or null if empty
+
+        // Round it nicely (optional)
+        $averageRating = $averageRating ? round($averageRating, 1) : null;
         $review = ReviewNew::create([
             'survey_id' => $request->survey_id,
             'description' => $request->description,
             'business_id' => $businessId,
-            'rate' => $request->rate,
+            'rate' => $averageRating,
             'user_id' => $request->user()->id,
             'comment' => $raw_text,
             'raw_text' => $raw_text,
@@ -1266,6 +1273,7 @@ class ReviewNewController extends Controller
 
         return response([
             "message" => "created successfully",
+            "averageRating" => $averageRating,
             "review_id" => $review->id,
             "ai_analysis" => [
                 'sentiment_score' => $sentimentScore,

@@ -35,6 +35,12 @@ Route::get('/', function () {
 
 
 Route::get('/swagger-refresh', function () {
+    // Clear caches
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('route:clear');
+    Artisan::call('view:clear');
+    // Force regenerate (clears old cache)
     Artisan::call('l5-swagger:generate');
     return "swagger generated";
 });
