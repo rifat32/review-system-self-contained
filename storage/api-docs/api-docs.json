@@ -4485,7 +4485,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.20000000000000017763568394002504646778106689453125
+                                                        "example": 4.2
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -8505,7 +8505,964 @@
                 ]
             }
         },
-        "/customer-report": {
+        "/v1.0/questions": {
+            "get": {
+                "tags": [
+                    "review.question_management"
+                ],
+                "summary": "Retrieve review questions",
+                "description": "Fetches review questions based on user role and filters.\\n\\n• Superadmin: Gets all questions (default + all businesses)\\n• Business Owner: Gets default questions + their own business questions\\n• Use query parameters to filter results (all optional)",
+                "operationId": "getAllQuestions",
+                "parameters": [
+                    {
+                        "name": "business_id",
+                        "in": "query",
+                        "description": "Filter questions by business ID. Ignored for superadmin.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 3
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "is_user",
+                        "in": "query",
+                        "description": "Show only questions visible to registered users (show_in_user = true)",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "exclude_user",
+                        "in": "query",
+                        "description": "Exclude questions visible to registered users (show_in_user = false)",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "is_guest_user",
+                        "in": "query",
+                        "description": "Show only questions visible to guest users",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "exclude_guest_user",
+                        "in": "query",
+                        "description": "Exclude questions visible to guest users",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "survey_id",
+                        "in": "query",
+                        "description": "Filter questions attached to a specific survey",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 7
+                    },
+                    {
+                        "name": "survey_name",
+                        "in": "query",
+                        "description": "Filter questions by survey name (partial match)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "Post-Service Feedback"
+                    },
+                    {
+                        "name": "ids",
+                        "in": "query",
+                        "description": "Comma-separated list of question IDs",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1,5,8"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Questions retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Questions retrieved successfully."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    },
+                                                    "question": {
+                                                        "type": "string",
+                                                        "example": "How likely are you to recommend us?"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "star",
+                                                            "emoji",
+                                                            "numbers",
+                                                            "heart"
+                                                        ],
+                                                        "example": "star"
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "is_default": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "show_in_user": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "show_in_guest_user": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 3,
+                                                        "nullable": true
+                                                    },
+                                                    "surveys": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "integer",
+                                                                    "example": 2
+                                                                },
+                                                                "name": {
+                                                                    "type": "string",
+                                                                    "example": "Checkout Survey"
+                                                                },
+                                                                "order_no": {
+                                                                    "type": "integer",
+                                                                    "example": 1
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Business not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "review.question_management"
+                ],
+                "summary": "Store a new review question",
+                "description": "Creates a new review question. Superadmin creates default questions (business_id = null). Regular users can only create for their own business.",
+                "operationId": "createQuestion",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question",
+                                    "is_active"
+                                ],
+                                "properties": {
+                                    "question": {
+                                        "type": "string",
+                                        "example": "How was your experience?"
+                                    },
+                                    "business_id": {
+                                        "description": "Required for non-superadmin",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "show_in_guest_user": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "show_in_user": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "survey_name": {
+                                        "type": "string",
+                                        "example": "Post-Service Survey",
+                                        "nullable": true
+                                    },
+                                    "survey_id": {
+                                        "type": "integer",
+                                        "example": 5,
+                                        "nullable": true
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "star",
+                                            "emoji",
+                                            "numbers",
+                                            "heart"
+                                        ],
+                                        "example": "star"
+                                    },
+                                    "is_overall": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Question created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Question"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request / Business not owned / Questions disabled"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/questions/{id}": {
+            "get": {
+                "tags": [
+                    "review.question_management"
+                ],
+                "summary": "Get a specific review question",
+                "description": "Retrieves a single review question by ID. Access depends on user role.",
+                "operationId": "questionById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Question ID",
+                        "required": true,
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Question retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Question retrieved successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Question"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Question not found"
+                    },
+                    "403": {
+                        "description": "Forbidden - No access to this question"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "review.question_management"
+                ],
+                "summary": "Update an existing review question",
+                "description": "Updates a review question. Superadmin can update default questions. Regular users can only update questions for their own business.",
+                "operationId": "updatedQuestion",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Question ID",
+                        "required": true,
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "question": {
+                                        "type": "string",
+                                        "example": "How was your experience?"
+                                    },
+                                    "business_id": {
+                                        "description": "Required for non-superadmin",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "show_in_guest_user": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "show_in_user": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "survey_name": {
+                                        "type": "string",
+                                        "example": "Post-Service Survey",
+                                        "nullable": true
+                                    },
+                                    "survey_id": {
+                                        "type": "integer",
+                                        "example": 5,
+                                        "nullable": true
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "star",
+                                            "emoji",
+                                            "numbers",
+                                            "heart"
+                                        ],
+                                        "example": "star"
+                                    },
+                                    "is_overall": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_staff": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Question updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Question"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request / Business not owned / Questions disabled"
+                    },
+                    "404": {
+                        "description": "Question not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/questions/{ids}": {
+            "delete": {
+                "tags": [
+                    "review.question_management"
+                ],
+                "summary": "Delete review questions",
+                "description": "Deletes one or more review questions. IDs can be comma-separated. Superadmin can delete default questions. Business owners can only delete their own business questions.",
+                "operationId": "deleteQuestion",
+                "parameters": [
+                    {
+                        "name": "ids",
+                        "in": "path",
+                        "description": "Question IDs to delete (comma-separated for multiple)",
+                        "required": true,
+                        "example": "1,2,3"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Questions deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Questions deleted successfully."
+                                        },
+                                        "deleted_count": {
+                                            "type": "integer",
+                                            "example": 2
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid IDs or no access to questions"
+                    },
+                    "404": {
+                        "description": "One or more questions not found"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/client/questions/{business_id}": {
+            "get": {
+                "tags": [
+                    "review.question_management.client"
+                ],
+                "summary": "Get all questions for a business (client-facing)",
+                "description": "Retrieves all active questions for a specific business. Supports filtering by survey and overall flag. Includes star ratings and associated tags.",
+                "operationId": "getAllQuestionClient",
+                "parameters": [
+                    {
+                        "name": "business_id",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "Filter by overall questions only",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "survey_id",
+                        "in": "query",
+                        "description": "Filter questions by specific survey",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 5
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Questions retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Questions retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "question": {
+                                                        "type": "string",
+                                                        "example": "How was your experience today?"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "star",
+                                                            "emoji",
+                                                            "numbers",
+                                                            "heart"
+                                                        ],
+                                                        "example": "star"
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "is_overall": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "stars": {
+                                                        "description": "Rating options with tags (e.g. for star type questions)",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "integer",
+                                                                    "example": 1
+                                                                },
+                                                                "name": {
+                                                                    "type": "string",
+                                                                    "example": "Excellent"
+                                                                },
+                                                                "value": {
+                                                                    "type": "integer",
+                                                                    "example": 5
+                                                                },
+                                                                "tags": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "type": "integer",
+                                                                                "example": 1
+                                                                            },
+                                                                            "name": {
+                                                                                "type": "string",
+                                                                                "example": "Cleanliness"
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found or invalid survey_id"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (invalid parameters)"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                }
+            }
+        },
+        "/v1.0/questions/set-overall": {
+            "patch": {
+                "tags": [
+                    "review.question_management"
+                ],
+                "summary": "Set questions as overall and make all others non-overall",
+                "description": "This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
+                "operationId": "setOverallQuestions",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question_ids",
+                                    "business_id"
+                                ],
+                                "properties": {
+                                    "question_ids": {
+                                        "description": "Array of question IDs to set as overall",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    },
+                                    "business_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Overall questions updated successfully"
+                                        },
+                                        "overall_questions": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "question": {
+                                                        "type": "string",
+                                                        "example": "What was your overall experience?"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "star",
+                                                            "emoji",
+                                                            "numbers",
+                                                            "heart"
+                                                        ],
+                                                        "example": "star"
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 1,
+                                                        "nullable": true
+                                                    },
+                                                    "is_default": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "sentiment": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "positive",
+                                                            "neutral",
+                                                            "negative"
+                                                        ],
+                                                        "example": "positive",
+                                                        "nullable": true
+                                                    },
+                                                    "is_overall": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "show_in_guest_user": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "show_in_user": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "survey_name": {
+                                                        "type": "string",
+                                                        "example": "Customer Satisfaction",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/questions/toggle": {
+            "patch": {
+                "tags": [
+                    "review.question_management"
+                ],
+                "summary": "Toggle question active status",
+                "description": "Updates the `is_active` status of a question. Only super admins can modify default questions.",
+                "operationId": "toggleQuestionActivation",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id",
+                                    "is_active"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "description": "Question ID",
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "is_active": {
+                                        "description": "New active state",
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Question status updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Question"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "403": {
+                        "description": "Forbidden - Cannot modify default question"
+                    },
+                    "404": {
+                        "description": "Question not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/customer-report": {
             "get": {
                 "tags": [
                     "report"
@@ -8527,7 +9484,22 @@
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -8540,7 +9512,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -8563,7 +9535,7 @@
                 ]
             }
         },
-        "/business-report": {
+        "/v1.0/business-report": {
             "get": {
                 "tags": [
                     "report"
@@ -8585,7 +9557,22 @@
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -8598,7 +9585,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -8621,7 +9608,7 @@
                 ]
             }
         },
-        "/dashboard-report/{businessId}": {
+        "/v1.0/dashboard-report/{businessId}": {
             "get": {
                 "tags": [
                     "report"
@@ -8643,31 +9630,22 @@
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dashboard report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -8679,7 +9657,7 @@
                 ]
             }
         },
-        "/dashboard-report/business/get": {
+        "/v1.0/dashboard-report/business/get": {
             "get": {
                 "tags": [
                     "report"
@@ -8692,7 +9670,22 @@
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dashboard report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -8705,7 +9698,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -8728,14 +9721,14 @@
                 ]
             }
         },
-        "/dashboard-report3": {
+        "/v3.0/dashboard-report": {
             "get": {
                 "tags": [
                     "report"
                 ],
                 "summary": "This method is to get dashboard report",
-                "description": "This method is to get dashboard report",
-                "operationId": "getDashboardReport3",
+                "description": "This method is to get dashboard report with dynamic date range (default: current month)",
+                "operationId": "getDashboardReportV3",
                 "parameters": [
                     {
                         "name": "businessId",
@@ -8743,6 +9736,20 @@
                         "description": "businessId",
                         "required": false,
                         "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format",
+                        "required": false,
+                        "example": "01-12-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format",
+                        "required": false,
+                        "example": "31-12-2025"
                     }
                 ],
                 "responses": {
@@ -8750,7 +9757,22 @@
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dashboard report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -8763,7 +9785,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -8786,7 +9808,7 @@
                 ]
             }
         },
-        "/reports/staff-comparison/{businessId}": {
+        "/v1.0/reports/staff-comparison/{businessId}": {
             "get": {
                 "tags": [
                     "Reports"
@@ -8816,7 +9838,68 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff comparison data retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_name": {
+                                                    "type": "string",
+                                                    "example": "Business Name"
+                                                },
+                                                "comparison": {
+                                                    "properties": {
+                                                        "rating_gap": {
+                                                            "type": "number",
+                                                            "example": 0.5
+                                                        },
+                                                        "rating_gap_message": {
+                                                            "type": "string",
+                                                            "example": "Staff A is performing better"
+                                                        },
+                                                        "sentiment_gap": {
+                                                            "type": "number",
+                                                            "example": 10
+                                                        },
+                                                        "sentiment_gap_message": {
+                                                            "type": "string",
+                                                            "example": "Staff A has more positive reviews"
+                                                        },
+                                                        "better_performer": {
+                                                            "type": "string",
+                                                            "example": "John Doe"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "staff_a": {
+                                                    "type": "object"
+                                                },
+                                                "staff_b": {
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "description": "Not Found"
@@ -8824,7 +9907,7 @@
                 }
             }
         },
-        "/reports/staff-performance/{businessId}/{staffId}": {
+        "/v1.0/reports/staff-performance/{businessId}/{staffId}": {
             "get": {
                 "tags": [
                     "Reports"
@@ -8848,7 +9931,172 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff performance report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "staff_profile": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "John Doe"
+                                                        },
+                                                        "job_title": {
+                                                            "type": "string",
+                                                            "example": "Staff"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "example": "john@example.com"
+                                                        },
+                                                        "tenure": {
+                                                            "type": "string",
+                                                            "example": "2 years 3 months"
+                                                        },
+                                                        "join_date": {
+                                                            "type": "string",
+                                                            "format": "date",
+                                                            "example": "2022-01-15"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "performance_summary": {
+                                                    "properties": {
+                                                        "total_reviews": {
+                                                            "type": "integer",
+                                                            "example": 25
+                                                        },
+                                                        "avg_rating": {
+                                                            "type": "number",
+                                                            "example": 4.2
+                                                        },
+                                                        "sentiment_distribution": {
+                                                            "properties": {
+                                                                "positive": {
+                                                                    "type": "integer",
+                                                                    "example": 60
+                                                                },
+                                                                "neutral": {
+                                                                    "type": "integer",
+                                                                    "example": 25
+                                                                },
+                                                                "negative": {
+                                                                    "type": "integer",
+                                                                    "example": 15
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "rating_trend": {
+                                                    "properties": {
+                                                        "period": {
+                                                            "type": "string",
+                                                            "example": "last_6_months"
+                                                        },
+                                                        "data": {
+                                                            "type": "object",
+                                                            "example": {
+                                                                "2023-01": 4,
+                                                                "2023-02": 4.2
+                                                            }
+                                                        },
+                                                        "trend_direction": {
+                                                            "type": "string",
+                                                            "example": "improving"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "review_samples": {
+                                                    "properties": {
+                                                        "positive": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "constructive": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "neutral": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "recommended_training": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "skill_gap_analysis": {
+                                                    "properties": {
+                                                        "strengths": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "improvement_areas": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "customer_perceived_tone": {
+                                                    "properties": {
+                                                        "friendliness": {
+                                                            "type": "integer",
+                                                            "example": 75
+                                                        },
+                                                        "patience": {
+                                                            "type": "integer",
+                                                            "example": 80
+                                                        },
+                                                        "professionalism": {
+                                                            "type": "integer",
+                                                            "example": 85
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "description": "Not Found"
@@ -8856,7 +10104,7 @@
                 }
             }
         },
-        "/reports/staff-dashboard/{businessId}": {
+        "/v1.0/reports/staff-dashboard/{businessId}": {
             "get": {
                 "tags": [
                     "Reports"
@@ -8881,7 +10129,138 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff dashboard report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_name": {
+                                                    "type": "string",
+                                                    "example": "Business Name"
+                                                },
+                                                "period": {
+                                                    "type": "string",
+                                                    "example": "last_month"
+                                                },
+                                                "overall_metrics": {
+                                                    "properties": {
+                                                        "overall_rating": {
+                                                            "properties": {
+                                                                "value": {
+                                                                    "type": "number",
+                                                                    "example": 4.2
+                                                                },
+                                                                "change": {
+                                                                    "type": "number",
+                                                                    "example": 5.5
+                                                                },
+                                                                "change_type": {
+                                                                    "type": "string",
+                                                                    "example": "positive"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        "overall_sentiment": {
+                                                            "properties": {
+                                                                "value": {
+                                                                    "type": "integer",
+                                                                    "example": 75
+                                                                },
+                                                                "change": {
+                                                                    "type": "number",
+                                                                    "example": 2.1
+                                                                },
+                                                                "change_type": {
+                                                                    "type": "string",
+                                                                    "example": "positive"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        "total_reviews": {
+                                                            "properties": {
+                                                                "value": {
+                                                                    "type": "integer",
+                                                                    "example": 150
+                                                                },
+                                                                "change": {
+                                                                    "type": "integer",
+                                                                    "example": 25
+                                                                },
+                                                                "change_type": {
+                                                                    "type": "string",
+                                                                    "example": "positive"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "compliment_ratio": {
+                                                    "properties": {
+                                                        "compliments_percentage": {
+                                                            "type": "integer",
+                                                            "example": 70
+                                                        },
+                                                        "complaints_percentage": {
+                                                            "type": "integer",
+                                                            "example": 15
+                                                        },
+                                                        "neutral_percentage": {
+                                                            "type": "integer",
+                                                            "example": 15
+                                                        },
+                                                        "compliments_count": {
+                                                            "type": "integer",
+                                                            "example": 105
+                                                        },
+                                                        "complaints_count": {
+                                                            "type": "integer",
+                                                            "example": 22
+                                                        },
+                                                        "neutral_count": {
+                                                            "type": "integer",
+                                                            "example": 23
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "top_staff": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "all_staff": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "description": "Not Found"
@@ -8889,7 +10268,7 @@
                 }
             }
         },
-        "/reports/review-analytics/{businessId}": {
+        "/v1.0/reports/review-analytics/{businessId}": {
             "get": {
                 "tags": [
                     "Reports"
@@ -8943,7 +10322,164 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review analytics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_name": {
+                                                    "type": "string",
+                                                    "example": "Business Name"
+                                                },
+                                                "filters_applied": {
+                                                    "properties": {
+                                                        "business": {
+                                                            "type": "string",
+                                                            "example": "Business Name"
+                                                        },
+                                                        "total_filters": {
+                                                            "type": "integer",
+                                                            "example": 2
+                                                        },
+                                                        "period": {
+                                                            "type": "string",
+                                                            "example": "30d"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "performance_overview": {
+                                                    "properties": {
+                                                        "total_submissions": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        },
+                                                        "average_score": {
+                                                            "type": "number",
+                                                            "example": 4.2
+                                                        },
+                                                        "score_out_of": {
+                                                            "type": "integer",
+                                                            "example": 5
+                                                        },
+                                                        "sentiment_distribution": {
+                                                            "properties": {
+                                                                "positive": {
+                                                                    "type": "integer",
+                                                                    "example": 70
+                                                                },
+                                                                "neutral": {
+                                                                    "type": "integer",
+                                                                    "example": 20
+                                                                },
+                                                                "negative": {
+                                                                    "type": "integer",
+                                                                    "example": 10
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        "submissions_today": {
+                                                            "type": "integer",
+                                                            "example": 5
+                                                        },
+                                                        "submissions_this_week": {
+                                                            "type": "integer",
+                                                            "example": 25
+                                                        },
+                                                        "submissions_this_month": {
+                                                            "type": "integer",
+                                                            "example": 85
+                                                        },
+                                                        "guest_reviews_count": {
+                                                            "type": "integer",
+                                                            "example": 45
+                                                        },
+                                                        "user_reviews_count": {
+                                                            "type": "integer",
+                                                            "example": 105
+                                                        },
+                                                        "overall_reviews_count": {
+                                                            "type": "integer",
+                                                            "example": 75
+                                                        },
+                                                        "survey_reviews_count": {
+                                                            "type": "integer",
+                                                            "example": 75
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "submissions_over_time": {
+                                                    "properties": {
+                                                        "period": {
+                                                            "type": "string",
+                                                            "example": "30d"
+                                                        },
+                                                        "data": {
+                                                            "type": "object",
+                                                            "example": {
+                                                                "2023-11-01": {
+                                                                    "submissions_count": 5,
+                                                                    "average_rating": 4.2,
+                                                                    "sentiment_score": 75.5
+                                                                }
+                                                            }
+                                                        },
+                                                        "total_submissions": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        },
+                                                        "peak_submissions": {
+                                                            "type": "integer",
+                                                            "example": 10
+                                                        },
+                                                        "date_range": {
+                                                            "properties": {
+                                                                "start": {
+                                                                    "type": "string",
+                                                                    "format": "date",
+                                                                    "example": "2023-10-31"
+                                                                },
+                                                                "end": {
+                                                                    "type": "string",
+                                                                    "format": "date",
+                                                                    "example": "2023-11-30"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "recent_submissions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "description": "Not Found"
@@ -8951,7 +10487,270 @@
                 }
             }
         },
-        "/review-new/getvalues/{businessId}/{rate}": {
+        "/v1.0/reviews/overall-dashboard/{businessId}": {
+            "get": {
+                "tags": [
+                    "review.dashboard"
+                ],
+                "summary": "Get overall business dashboard data",
+                "description": "Get comprehensive dashboard data with AI insights and analytics",
+                "operationId": "getOverallDashboardData",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month",
+                        "required": false,
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dashboard data retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reviews/voice/{businessId}": {
+            "post": {
+                "tags": [
+                    "review.voice"
+                ],
+                "summary": "Submit voice review",
+                "description": "Upload audio file → auto-transcribed → AI analyzed → stored as review",
+                "operationId": "createVoiceReview",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "audio"
+                                ],
+                                "properties": {
+                                    "audio": {
+                                        "description": "Voice recording",
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "rate": {
+                                        "type": "number",
+                                        "example": 4.5,
+                                        "nullable": true
+                                    },
+                                    "staff_id": {
+                                        "type": "integer",
+                                        "example": 5,
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Great service!",
+                                        "nullable": true
+                                    },
+                                    "values": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "question_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "star_id": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "tag_id": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "nullable": true
+                                    },
+                                    "is_overall": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "guest_full_name": {
+                                        "type": "string",
+                                        "example": "John Doe",
+                                        "nullable": true
+                                    },
+                                    "guest_phone": {
+                                        "type": "string",
+                                        "example": "1234567890",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Voice review created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Voice review submitted successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid audio or blocked content"
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/businesses/{businessId}/review-settings": {
+            "put": {
+                "tags": [
+                    "business.settings"
+                ],
+                "summary": "Update business review settings",
+                "description": "Update customer flow and review settings",
+                "operationId": "updatedReviewSettings",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "enable_detailed_survey"
+                                ],
+                                "properties": {
+                                    "enable_detailed_survey": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "detailed_survey_threshold": {
+                                        "type": "integer",
+                                        "example": 4
+                                    },
+                                    "export_settings": {
+                                        "type": "object",
+                                        "example": {
+                                            "format": "csv",
+                                            "include_comments": true
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Settings updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review settings updated successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/review-new/values/{businessId}/{rate}": {
             "get": {
                 "tags": [
                     "review"
@@ -8980,7 +10779,25 @@
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review values retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -8993,7 +10810,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -9065,7 +10882,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -9392,6 +11209,101 @@
                 ]
             }
         },
+        "/v1.0/review-new/{businessId}": {
+            "post": {
+                "tags": [
+                    "review"
+                ],
+                "summary": "Store review by authenticated user",
+                "description": "Store review with optional audio transcription and AI analysis",
+                "operationId": "createReview",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "description",
+                                    "rate",
+                                    "comment",
+                                    "values"
+                                ],
+                                "properties": {
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Test"
+                                    },
+                                    "rate": {
+                                        "type": "string",
+                                        "example": "2.5"
+                                    },
+                                    "comment": {
+                                        "type": "string",
+                                        "example": "Not good"
+                                    },
+                                    "is_overall": {
+                                        "type": "string",
+                                        "example": "is_overall"
+                                    },
+                                    "staff_id": {
+                                        "type": "integer",
+                                        "example": "1"
+                                    },
+                                    "values": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "question_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "tag_id": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "star_id": {
+                                                    "type": "integer",
+                                                    "example": 4
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Unprocessable Content"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/review-new-guest/{businessId}": {
             "post": {
                 "tags": [
@@ -9604,7 +11516,7 @@
         "/review-new/create/questions": {
             "post": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to store question",
                 "description": "This method is to store question",
@@ -9711,7 +11623,7 @@
         "/review-new/update/questions": {
             "put": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to update question",
                 "description": "This method is to update question",
@@ -9821,7 +11733,7 @@
         "/v1.0/review-new/set-overall-question": {
             "put": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "Set questions as overall and make all others non-overall",
                 "description": "This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
@@ -10080,7 +11992,7 @@
                 ]
             }
         },
-        "/review-new/get/questions": {
+        "/v1.0/review-new/get/questions": {
             "get": {
                 "tags": [
                     "review.setting.question"
@@ -10122,7 +12034,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -10148,7 +12060,7 @@
         "/review-new/get/questions-all-overall/customer": {
             "get": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to get all question without pagination",
                 "description": "This method is to get all question without pagination",
@@ -10280,7 +12192,7 @@
         "/review-new/get/questions-all": {
             "get": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to get all question without pagination",
                 "description": "This method is to get all question without pagination",
@@ -10424,7 +12336,7 @@
         "/review-new/get/questions/{id}": {
             "get": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to get question by id",
                 "description": "This method is to get question by id",
@@ -10489,7 +12401,7 @@
         "/review-new/get/questions/{id}/{businessId}": {
             "get": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to get question by id",
                 "description": "This method is to get question by id",
@@ -11920,6 +13832,443 @@
                 ]
             }
         },
+        "/v1.0/client/review-new/rating-analysis/{businessId}": {
+            "get": {
+                "tags": [
+                    "review_management.client"
+                ],
+                "summary": "This method is to get average",
+                "description": "This method is to get average",
+                "operationId": "getAverageRatingClient",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "businessId",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "from date",
+                        "required": false,
+                        "example": "2019-06-29"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "to date",
+                        "required": false,
+                        "example": "2026-06-29"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1.0/client/review-new/{businessId}": {
+            "get": {
+                "tags": [
+                    "review_management.client"
+                ],
+                "summary": "Get reviews by business id for client",
+                "description": "Get reviews by business id with filtering and sorting",
+                "operationId": "getReviewByBusinessIdClient",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "example": 1
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "example": 10
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Sort option",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "newest",
+                                "oldest",
+                                "highest_rating",
+                                "lowest_rating"
+                            ]
+                        },
+                        "example": "newest"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Reviews retrieved successfully"
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1.0/review-new/{reviewId}": {
+            "get": {
+                "tags": [
+                    "review_management"
+                ],
+                "summary": "This method is to get review by review id",
+                "description": "This method is to get review by review id",
+                "operationId": "getReviewById",
+                "parameters": [
+                    {
+                        "name": "reviewId",
+                        "in": "path",
+                        "description": "reviewId",
+                        "required": true,
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/client/reviews/make-private/{ids}": {
+            "put": {
+                "tags": [
+                    "review_management.client"
+                ],
+                "summary": "Make reviews private by comma-separated IDs",
+                "description": "Mark multiple reviews as private by providing comma-separated review IDs",
+                "operationId": "makeReviewsPrivate",
+                "parameters": [
+                    {
+                        "name": "ids",
+                        "in": "path",
+                        "description": "Comma-separated review IDs (e.g., 1,2,3)",
+                        "required": true,
+                        "example": "1,2,3"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reviews updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Reviews marked as private successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "updated_count": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "updated_ids": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "invalid_ids": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid IDs format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid IDs format"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No valid reviews found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No valid reviews found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1.0/client/reviews/update-guest-email/{ids}": {
+            "put": {
+                "tags": [
+                    "review_management.client"
+                ],
+                "summary": "Update guest user email by comma-separated review IDs",
+                "description": "Update email for guest users associated with the provided review IDs",
+                "operationId": "updateGuestEmailsByReviews",
+                "parameters": [
+                    {
+                        "name": "ids",
+                        "in": "path",
+                        "description": "Comma-separated review IDs (e.g., 1,2,3)",
+                        "required": true,
+                        "example": "1,2,3"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "guest@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Guest emails updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Guest user emails updated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "updated_count": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "updated_guest_ids": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "review_ids": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid input",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid IDs format or email required"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No valid reviews with guest users found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No valid reviews with guest users found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1.0/roles": {
             "get": {
                 "tags": [
@@ -11983,7 +14332,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -12080,7 +14429,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -12138,7 +14487,7 @@
                                     "name": {
                                         "type": "string",
                                         "format": "string",
-                                        "example": "Rifat"
+                                        "example": ""
                                     },
                                     "permissions": {
                                         "type": "string",
@@ -12177,7 +14526,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -12251,7 +14600,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -12325,7 +14674,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -12369,8 +14718,8 @@
                 "tags": [
                     "user_management.role"
                 ],
-                "summary": "This method is to get initioal role permissions",
-                "description": "This method is to get initioal role permissions",
+                "summary": "This method is to get initial role permissions",
+                "description": "This method is to get initial role permissions",
                 "operationId": "getInitialRolePermissions",
                 "responses": {
                     "200": {
@@ -12390,7 +14739,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -12434,8 +14783,8 @@
                 "tags": [
                     "user_management.role"
                 ],
-                "summary": "This method is to get initioal permissions",
-                "description": "This method is to get initioal permissions",
+                "summary": "This method is to get initial permissions",
+                "description": "This method is to get initial permissions",
                 "operationId": "getInitialPermissions",
                 "responses": {
                     "200": {
@@ -12455,7 +14804,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -13919,7 +16268,7 @@
                 ]
             }
         },
-        "/superadmin/dashboard-report/total-business": {
+        "/v1.0/superadmin/dashboard-report/total-business": {
             "get": {
                 "tags": [
                     "super_admin_report"
@@ -13945,7 +16294,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -13968,7 +16317,7 @@
                 ]
             }
         },
-        "/superadmin/dashboard-report/total-business-enabled": {
+        "/v1.0/superadmin/dashboard-report/total-business-enabled": {
             "get": {
                 "tags": [
                     "super_admin_report"
@@ -13994,7 +16343,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -14017,12 +16366,12 @@
                 ]
             }
         },
-        "/superadmin/dashboard-report/total-business-disabled": {
+        "/v1.o/superadmin/dashboard-report/total-business-disabled": {
             "get": {
                 "tags": [
                     "super_admin_report"
                 ],
-                "summary": "This method is to get Total Disabledbusiness report",
+                "summary": "This method is to get Total Disabled business report",
                 "description": "This method is to get Total Disabled business report",
                 "operationId": "getTotalDisabledBusinessReport",
                 "responses": {
@@ -14043,7 +16392,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -14066,7 +16415,7 @@
                 ]
             }
         },
-        "/superadmin/dashboard-report/total-reviews": {
+        "/v1.0/superadmin/dashboard-report/total-reviews": {
             "get": {
                 "tags": [
                     "super_admin_report"
@@ -14092,7 +16441,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -14115,7 +16464,7 @@
                 ]
             }
         },
-        "/superadmin/dashboard-report/today-reviews": {
+        "/v1.0/superadmin/dashboard-report/today-reviews": {
             "get": {
                 "tags": [
                     "super_admin_report"
@@ -14141,7 +16490,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -14164,7 +16513,7 @@
                 ]
             }
         },
-        "/superadmin/dashboard-report/review-report": {
+        "/v1.0/superadmin/dashboard-report/review-report": {
             "get": {
                 "tags": [
                     "super_admin_report"
@@ -14190,7 +16539,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -14980,6 +17329,123 @@
         }
     },
     "components": {
+        "schemas": {
+            "Question": {
+                "title": "Question",
+                "description": "Review question model",
+                "required": [
+                    "question",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "question": {
+                        "type": "string",
+                        "example": "How was your experience?"
+                    },
+                    "business_id": {
+                        "type": "integer",
+                        "example": 3,
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "star",
+                            "emoji",
+                            "numbers",
+                            "heart"
+                        ],
+                        "example": "star"
+                    },
+                    "is_default": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "is_overall": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "show_in_user": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "show_in_guest_user": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "survey_name": {
+                        "type": "string",
+                        "example": "Post-Service Survey",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-05T10:00:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-05T12:30:00Z"
+                    },
+                    "surveys": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 2
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "example": "Checkout Survey"
+                                },
+                                "order_no": {
+                                    "type": "integer",
+                                    "example": 1
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "responses": {
+            "401": {
+                "description": "Unauthenticated",
+                "content": {
+                    "application/json": {
+                        "schema": {}
+                    }
+                }
+            },
+            "422": {
+                "description": "Unprocessable Content",
+                "content": {
+                    "application/json": {
+                        "schema": {}
+                    }
+                }
+            },
+            "403": {
+                "description": "Forbidden",
+                "content": {
+                    "application/json": {
+                        "schema": {}
+                    }
+                }
+            }
+        },
         "securitySchemes": {
             "bearerAuth": {
                 "type": "http",
@@ -15048,12 +17514,32 @@
             "description": "owner"
         },
         {
+            "name": "review.question_management",
+            "description": "review.question_management"
+        },
+        {
+            "name": "review.question_management.client",
+            "description": "review.question_management.client"
+        },
+        {
             "name": "report",
             "description": "report"
         },
         {
             "name": "Reports",
             "description": "Reports"
+        },
+        {
+            "name": "review.dashboard",
+            "description": "review.dashboard"
+        },
+        {
+            "name": "review.voice",
+            "description": "review.voice"
+        },
+        {
+            "name": "business.settings",
+            "description": "business.settings"
         },
         {
             "name": "review",
@@ -15070,6 +17556,14 @@
         {
             "name": "review.setting.link",
             "description": "review.setting.link"
+        },
+        {
+            "name": "review_management.client",
+            "description": "review_management.client"
+        },
+        {
+            "name": "review_management",
+            "description": "review_management"
         },
         {
             "name": "user_management.role",

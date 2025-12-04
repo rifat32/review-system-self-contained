@@ -148,7 +148,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/v1.0/questions/{ids}', [QuestionController::class, 'deleteQuestion']);
     Route::patch('/v1.0/questions/set-overall', [QuestionController::class, 'setOverallQuestions']);
     Route::patch('/v1.0/questions/toggle', [QuestionController::class, 'toggleQuestionActivation']);
-    Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
 
     // Leaflet CRUD
     Route::post('/v1.0/leaflet/create',        [LeafletController::class, 'insertLeaflet']);
@@ -309,8 +308,9 @@ Route::middleware(['auth:api'])->group(function () {
     // review new  Routes
     // #################
 
+    Route::get('/v1.0/review-new/values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValues"]);
+
     Route::post('/review-new/reviewvalue/{businessId}/{rate}', [ReviewNewController::class, "store"]);
-    Route::get('/v1.0/review-new/get-values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValues"]);
     Route::get('/review-new/getvalues/{businessId}', [ReviewNewController::class, "getreviewvalueById"]);
     Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [ReviewNewController::class, "getAverage"]);
     Route::post('/review-new/addupdatetags/{businessId}', [ReviewNewController::class, "store2"]);
@@ -403,16 +403,6 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     Route::get('/v1.0/customers', [CustomerController::class, "getCustomers"]);
-
-
-
-    // Overall Business Dashboard
-    // Route::get('/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboard']);
-    // Voice Review Submission
-    Route::post('/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
-    // Update Business Review Settings
-    Route::put('/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updateReviewSettings']);
-
 
 
 
@@ -602,9 +592,9 @@ Route::get('/v1.0/customers', [CustomerController::class, "getCustomers"]);
 // Overall Business Dashboard
 Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboardData']);
 // Voice Review Submission
-Route::post('/v1.0/reviews/voice/{businessId}', [ReviewNewController::class, 'storeVoiceReview']);
+Route::post('/v1.0/reviews/voice/{businessId}', [ReviewNewController::class, 'createVoiceReview']);
 // Update Business Review Settings
-Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updateReviewSettings']);
+Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updatedReviewSettings']);
 
 
 
@@ -711,3 +701,7 @@ Route::put('/v1.0/client/reviews/make-private/{ids}', [ReviewNewController::clas
 
 // Update Guest User Email by Review IDs
 Route::put('/v1.0/client/reviews/update-guest-email/{ids}', [ReviewNewController::class, 'updateGuestEmailsByReviews']);
+
+
+// Get Questions for Client Business
+Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
