@@ -2075,7 +2075,7 @@ class ReviewNewController extends Controller
      * @OA\Put(
      *      path="/v1.0/review-new/set-overall-question",
      *      operationId="setOverallQuestion",
-     *      tags={"z.unsed"},
+     *      tags={"z.unused"},
      *      security={{"bearerAuth": {}}},
      *      summary="Set questions as overall and make all others non-overall",
      *      description="This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
