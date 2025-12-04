@@ -1544,11 +1544,15 @@ class ReviewNewController extends Controller
 
         $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
 
+        $averageRating = collect($request->values)
+            ->pluck('star_id')
+            ->filter()           // removes null/empty just in case
+            ->avg();
         $review = ReviewNew::create([
             'survey_id' => $request->survey_id,
             'description' => request()->description,
             'business_id' => $businessId,
-            'rate' => request()->rate,
+            'rate' => $averageRating,
             'guest_id' => $guest->id,
             'comment' => $raw_text,
             'raw_text' => $raw_text,
@@ -1568,6 +1572,7 @@ class ReviewNewController extends Controller
 
         return response([
             "message" => "created successfully",
+            "averageRating" => $averageRating,
             "review_id" => $review->id,
             "ai_analysis" => [
                 'sentiment_score' => $sentimentScore,
