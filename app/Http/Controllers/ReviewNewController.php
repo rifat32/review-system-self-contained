@@ -1820,9 +1820,6 @@ class ReviewNewController extends Controller
             ReviewValueNew::create($value);
         }
 
-        $review->rate = $rate;
-        $review->save();
-
 
         if ($business) {
             $average_rating = ReviewNew::where('business_id', $business->id)
