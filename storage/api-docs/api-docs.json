@@ -10487,6 +10487,162 @@
                 }
             }
         },
+        "/v1.0/voice/transcribe": {
+            "post": {
+                "tags": [
+                    "voice"
+                ],
+                "summary": "Transcribe voice file to text",
+                "description": "Upload a voice file and get transcribed text using AI speech recognition",
+                "operationId": "transcribeVoice",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "audio"
+                                ],
+                                "properties": {
+                                    "audio": {
+                                        "description": "Audio file to transcribe (mp3, wav, m4a, ogg)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "language": {
+                                        "description": "Language code for transcription (optional, defaults to auto-detect)",
+                                        "type": "string",
+                                        "example": "en"
+                                    },
+                                    "task": {
+                                        "description": "Task type: transcribe or translate",
+                                        "type": "string",
+                                        "enum": [
+                                            "transcribe",
+                                            "translate"
+                                        ],
+                                        "example": "transcribe"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful transcription",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Transcription completed successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "text": {
+                                                    "type": "string",
+                                                    "example": "This is the transcribed text from the audio file."
+                                                },
+                                                "language": {
+                                                    "type": "string",
+                                                    "example": "en"
+                                                },
+                                                "duration": {
+                                                    "type": "number",
+                                                    "example": 12.5
+                                                },
+                                                "file_size": {
+                                                    "type": "integer",
+                                                    "example": 102400
+                                                },
+                                                "mime_type": {
+                                                    "type": "string",
+                                                    "example": "audio/mpeg"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid audio file or file too large"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to process audio file"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Transcription service unavailable"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/reviews/overall-dashboard/{businessId}": {
             "get": {
                 "tags": [
@@ -10533,136 +10689,6 @@
                                 }
                             }
                         }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/reviews/voice/{businessId}": {
-            "post": {
-                "tags": [
-                    "review.voice"
-                ],
-                "summary": "Submit voice review",
-                "description": "Upload audio file → auto-transcribed → AI analyzed → stored as review",
-                "operationId": "createVoiceReview",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        },
-                        "example": 1
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "multipart/form-data": {
-                            "schema": {
-                                "required": [
-                                    "audio"
-                                ],
-                                "properties": {
-                                    "audio": {
-                                        "description": "Voice recording",
-                                        "type": "string",
-                                        "format": "binary"
-                                    },
-                                    "rate": {
-                                        "type": "number",
-                                        "example": 4.5,
-                                        "nullable": true
-                                    },
-                                    "staff_id": {
-                                        "type": "integer",
-                                        "example": 5,
-                                        "nullable": true
-                                    },
-                                    "description": {
-                                        "type": "string",
-                                        "example": "Great service!",
-                                        "nullable": true
-                                    },
-                                    "values": {
-                                        "type": "array",
-                                        "items": {
-                                            "properties": {
-                                                "question_id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "star_id": {
-                                                    "type": "integer",
-                                                    "example": 5
-                                                },
-                                                "tag_id": {
-                                                    "type": "integer",
-                                                    "example": 3
-                                                }
-                                            },
-                                            "type": "object"
-                                        },
-                                        "nullable": true
-                                    },
-                                    "is_overall": {
-                                        "type": "boolean",
-                                        "example": true
-                                    },
-                                    "guest_full_name": {
-                                        "type": "string",
-                                        "example": "John Doe",
-                                        "nullable": true
-                                    },
-                                    "guest_phone": {
-                                        "type": "string",
-                                        "example": "1234567890",
-                                        "nullable": true
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Voice review created successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Voice review submitted successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid audio or blocked content"
-                    },
-                    "422": {
-                        "description": "Validation failed"
-                    },
-                    "401": {
-                        "description": "Unauthenticated"
                     }
                 },
                 "security": [
@@ -10755,8 +10781,8 @@
                 "tags": [
                     "review"
                 ],
-                "summary": "This method is to get   Review Value",
-                "description": "This method is to get   Review Value",
+                "summary": "This method is to get Review Value",
+                "description": "This method is to get Review Value",
                 "operationId": "getReviewValue",
                 "parameters": [
                     {
@@ -10764,14 +10790,20 @@
                         "in": "path",
                         "description": "businessId",
                         "required": true,
-                        "example": "1"
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
                     },
                     {
                         "name": "rate",
                         "in": "path",
                         "description": "rate",
                         "required": true,
-                        "example": "1"
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
                     }
                 ],
                 "responses": {
@@ -10801,29 +10833,20 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                    "400": {
+                        "description": "Bad Request"
                     },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                    "401": {
+                        "description": "Unauthenticated"
                     },
                     "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "422": {
+                        "description": "Unprocessable Content"
                     }
                 },
                 "security": [
@@ -10840,7 +10863,7 @@
                 ],
                 "summary": "This method is to get average",
                 "description": "This method is to get average",
-                "operationId": "getAverage",
+                "operationId": "getAverages",
                 "parameters": [
                     {
                         "name": "businessId",
@@ -10912,7 +10935,7 @@
                 ],
                 "summary": "This method is to filter   Review",
                 "description": "This method is to filter   Review",
-                "operationId": "filterReview",
+                "operationId": "filterReviews",
                 "parameters": [
                     {
                         "name": "businessId",
@@ -10991,7 +11014,7 @@
                 ],
                 "summary": "This method is to get review by business id",
                 "description": "This method is to get review by business id",
-                "operationId": "getReviewByBusinessId",
+                "operationId": "reviewByBusinessId",
                 "parameters": [
                     {
                         "name": "businessId",
@@ -11114,107 +11137,12 @@
                 ]
             }
         },
-        "/review-new/{businessId}": {
-            "post": {
-                "tags": [
-                    "review"
-                ],
-                "summary": "Store review by authenticated user",
-                "description": "Store review with optional audio transcription and AI analysis",
-                "operationId": "storeReview",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "required": true,
-                        "example": "1"
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "description",
-                                    "rate",
-                                    "comment",
-                                    "values"
-                                ],
-                                "properties": {
-                                    "description": {
-                                        "type": "string",
-                                        "example": "Test"
-                                    },
-                                    "rate": {
-                                        "type": "string",
-                                        "example": "2.5"
-                                    },
-                                    "comment": {
-                                        "type": "string",
-                                        "example": "Not good"
-                                    },
-                                    "is_overall": {
-                                        "type": "string",
-                                        "example": "is_overall"
-                                    },
-                                    "staff_id": {
-                                        "type": "integer",
-                                        "example": "1"
-                                    },
-                                    "values": {
-                                        "type": "array",
-                                        "items": {
-                                            "properties": {
-                                                "question_id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "tag_id": {
-                                                    "type": "integer",
-                                                    "example": 2
-                                                },
-                                                "star_id": {
-                                                    "type": "integer",
-                                                    "example": 4
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Created successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "description": "Unauthenticated"
-                    },
-                    "422": {
-                        "description": "Unprocessable Content"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
         "/v1.0/review-new/{businessId}": {
             "post": {
                 "tags": [
                     "review"
                 ],
-                "summary": "Store review by authenticated user",
+                "summary": "Store review by authenticated user with optional audio",
                 "description": "Store review with optional audio transcription and AI analysis",
                 "operationId": "createReview",
                 "parameters": [
@@ -11228,7 +11156,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "required": [
                                     "description",
@@ -11250,12 +11178,17 @@
                                         "example": "Not good"
                                     },
                                     "is_overall": {
-                                        "type": "string",
-                                        "example": "is_overall"
+                                        "type": "boolean",
+                                        "example": true
                                     },
                                     "staff_id": {
                                         "type": "integer",
                                         "example": "1"
+                                    },
+                                    "audio": {
+                                        "description": "Optional audio file",
+                                        "type": "string",
+                                        "format": "binary"
                                     },
                                     "values": {
                                         "type": "array",
@@ -11309,7 +11242,7 @@
                 "tags": [
                     "review"
                 ],
-                "summary": "Store review by guest user",
+                "summary": "Store review by guest user with optional audio",
                 "description": "Store guest review with optional audio transcription and AI analysis",
                 "operationId": "storeReviewByGuest",
                 "parameters": [
@@ -11323,7 +11256,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "required": [
                                     "guest_full_name",
@@ -11355,8 +11288,8 @@
                                         "example": "Not good"
                                     },
                                     "is_overall": {
-                                        "type": "string",
-                                        "example": "is_overall"
+                                        "type": "boolean",
+                                        "example": true
                                     },
                                     "latitude": {
                                         "type": "number",
@@ -11369,6 +11302,11 @@
                                     "staff_id": {
                                         "type": "number",
                                         "example": "1"
+                                    },
+                                    "audio": {
+                                        "description": "Optional audio file",
+                                        "type": "string",
+                                        "format": "binary"
                                     },
                                     "values": {
                                         "type": "array",
@@ -17530,12 +17468,12 @@
             "description": "Reports"
         },
         {
-            "name": "review.dashboard",
-            "description": "review.dashboard"
+            "name": "voice",
+            "description": "voice"
         },
         {
-            "name": "review.voice",
-            "description": "review.voice"
+            "name": "review.dashboard",
+            "description": "review.dashboard"
         },
         {
             "name": "business.settings",

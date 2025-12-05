@@ -32,7 +32,7 @@ class UpdateBusinessRequest extends FormRequest
     {
         return [
             'Name' => 'required|string|max:255',
-            'Layout' => 'required|string',
+            'Layout' => 'nullable|string',
             'Address' => 'required|string',
             'PostCode' => 'required|string',
             'show_image' => 'nullable|boolean',
@@ -92,10 +92,9 @@ class UpdateBusinessRequest extends FormRequest
     {
         return [
             'Name.required' => 'Business name is required.',
-            'Layout.required' => 'Layout is required.',
             'Address.required' => 'Address is required.',
             'PostCode.required' => 'Post code is required.',
-            
+
             'EmailAddress.email' => 'Please provide a valid email address.',
             'latitude.numeric' => 'Latitude must be a number.',
             'longitude.numeric' => 'Longitude must be a number.',
