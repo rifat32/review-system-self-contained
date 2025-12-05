@@ -318,7 +318,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReview"]);
     Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "getReviewByBusinessId"]);
     Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);
-    Route::post('/review-new/{businessId}', [ReviewNewController::class, "storeReview"]);
+
 
     // #################
     // question  Routes
@@ -592,7 +592,8 @@ Route::get('/v1.0/customers', [CustomerController::class, "getCustomers"]);
 // Overall Business Dashboard
 Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboardData']);
 // Voice Review Submission
-Route::post('/v1.0/reviews/voice/{businessId}', [ReviewNewController::class, 'createVoiceReview']);
+
+
 // Update Business Review Settings
 Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updatedReviewSettings']);
 
