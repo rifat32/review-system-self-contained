@@ -1643,14 +1643,13 @@ public function storeReviewByGuest($businessId, Request $request)
         ReviewValueNew::create($value);
     }
 
-    $review->rate = $rate;
-    $review->save();
 
-    // Use business threshold_rating for review status
-    if ($business) {
-        $average_rating = ReviewNew::where('business_id', $business->id)
-            ->globalFilters()
-            ->avg('rate');
+        if ($business) {
+            $average_rating = ReviewNew::where('business_id', $business->id)
+                ->globalFilters()
+
+
+                ->avg('rate');
 
         if ($average_rating >= $business->threshold_rating) {
             $review->status = 'published';
