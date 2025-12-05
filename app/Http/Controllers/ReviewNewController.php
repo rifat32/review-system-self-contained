@@ -2268,9 +2268,7 @@ private function storeReviewValues($review, $values, $business)
             if (!$business) {
                 return response()->json(["message" => "No Business Found"], 400);
             }
-            if ($business->enable_question == true) {
-                return response()->json(["message" => "question is enabled"], 400);
-            }
+
         }
 
         $createdQuestion =    Question::create($question);
@@ -2640,10 +2638,7 @@ private function storeReviewValues($review, $values, $business)
             if (!$business && !$request->user()->hasRole("superadmin")) {
                 return response("No Business Found", 404);
             }
-            // if ($business->enable_question == true) {
-            //     $is_default = true;
 
-            // }
         }
 
 
@@ -2770,9 +2765,7 @@ private function storeReviewValues($review, $values, $business)
             }
         }
 
-        // if ($business->enable_question == true) {
-        //     $query =  Question::where(["is_default" => 1]);
-        // }
+
         // else {
         $query =  Question::where(["business_id" => $request->business_id, "is_default" => 0])
 
@@ -3631,9 +3624,7 @@ private function storeReviewValues($review, $values, $business)
             if (!$business) {
                 return response()->json(["message" => "No Business Found"]);
             }
-            if ($business->enable_question == true) {
-                return response()->json(["message" => "question is enabled"]);
-            }
+
         }
 
 
@@ -3987,9 +3978,7 @@ private function storeReviewValues($review, $values, $business)
             if (!$business && !$request->user()->hasRole("superadmin")) {
                 return response("No Business Found", 404);
             }
-            // if ($business->enable_question == true) {
-            //     $is_dafault = true;
-            // }
+
             $query =  Tag::where(["business_id" => $businessId, "is_default" => 0])
                 ->orWhere(["business_id" => NULL, "is_default" => 1])
                 ->when(request()->filled("is_active"), function ($query) {
@@ -4228,9 +4217,7 @@ private function storeReviewValues($review, $values, $business)
             // if(!$business){
             //     return response()->json(["message" => "No Business Found"]);
             // }
-            // if ($business->enable_question == true) {
-            //     return response()->json(["message" => "question is enabled"]);
-            // }
+
         }
 
 
@@ -4279,11 +4266,7 @@ private function storeReviewValues($review, $values, $business)
         if (!$business) {
             return response("No Business Found", 404);
         }
-        // if ($business->enable_question == true) {
-        //     $questions =  Star::where(["is_default" => true])->paginate(10);
 
-        // return response($questions, 200);
-        // }
 
         $query =  Star::where(["is_default" => false]);
 
@@ -4362,9 +4345,7 @@ private function storeReviewValues($review, $values, $business)
         }
         $business =    Business::where(["id" => $request->business_id])->first();
         $query->where(["is_default" => false]);
-        // if ($business->enable_question == true) {
-        //     $query->where(["is_default" => true]);
-        // }
+
         $questions =  $query->get();
 
 
@@ -4493,9 +4474,7 @@ private function storeReviewValues($review, $values, $business)
     //         $question["is_default"] = true;
     //     }else {
     //         $business =    Business::where(["id" => $request->business_id])->first();
-    //         if ($business->enable_question == true) {
-    //             return response()->json(["message" => "question is enabled"]);
-    //         }
+
     //     }
 
     //     $createdQuestion =    Question::create($question);

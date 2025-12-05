@@ -193,7 +193,7 @@ class OwnerController extends Controller
      *      @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *            required={"email","password","first_Name","last_Name","business_name","business_address","business_postcode","business_enable_question","times"},
+     *            required={"email","password","first_Name","last_Name","business_name","business_address","business_postcode","times"},
      *            @OA\Property(property="email", type="string", format="email", example="rifat@gmail.com"),
      *            @OA\Property(property="password", type="string", format="password", example="12345678"),
      *            @OA\Property(property="first_Name", type="string", example="Rifat"),
@@ -202,7 +202,7 @@ class OwnerController extends Controller
      *            @OA\Property(property="business_name", type="string", example="Tech Solutions Ltd"),
      *            @OA\Property(property="business_address", type="string", example="123 Business St"),
      *            @OA\Property(property="business_postcode", type="string", example="12345"),
-     *            @OA\Property(property="business_enable_question", type="boolean", example=false),
+
      *            @OA\Property(property="business_EmailAddress", type="string", format="email", example="contact@business.com"),
      *            @OA\Property(property="business_GoogleMapApi", type="string", example="AIzaSyXXXXXXXXX"),
      *            @OA\Property(property="business_homeText", type="string", example="Welcome to our business"),
@@ -273,7 +273,7 @@ class OwnerController extends Controller
 
 
 
-   
+
 
     // ##################################################
     // This method is to store guest user

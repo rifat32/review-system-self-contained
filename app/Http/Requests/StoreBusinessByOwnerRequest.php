@@ -25,8 +25,7 @@ class StoreBusinessByOwnerRequest extends FormRequest
             'Name' => 'required|string|max:255|unique:businesses,Name',
             'Address' => 'required|string|max:500',
             'PostCode' => 'required|string|max:20',
-            'OwnerID' => 'required|integer|exists:users,id',
-            'enable_question' => 'required|boolean',
+            'OwnerID' => 'required|integer|exists:users,id'
         ];
     }
 
@@ -41,8 +40,8 @@ class StoreBusinessByOwnerRequest extends FormRequest
             'Address.required' => 'Business address is required.',
             'PostCode.required' => 'Post code is required.',
             'OwnerID.required' => 'Owner ID is required.',
-            'OwnerID.exists' => 'The specified owner does not exist.',
-            'enable_question.required' => 'Enable question field is required.',
+            'OwnerID.exists' => 'The specified owner does not exist.'
+
         ];
     }
 }

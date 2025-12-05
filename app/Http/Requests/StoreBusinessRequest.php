@@ -24,8 +24,7 @@ class StoreBusinessRequest extends FormRequest
         return [
             'Name' => 'required|string|max:255|unique:businesses,Name',
             'Address' => 'required|string|max:500',
-            'PostCode' => 'required|string|max:20',
-            'enable_question' => 'required|boolean',
+            'PostCode' => 'required|string|max:20'
         ];
     }
 
@@ -38,8 +37,8 @@ class StoreBusinessRequest extends FormRequest
             'Name.required' => 'Business name is required.',
             'Name.unique' => 'This business name is already taken.',
             'Address.required' => 'Business address is required.',
-            'PostCode.required' => 'Post code is required.',
-            'enable_question.required' => 'Enable question field is required.',
+            'PostCode.required' => 'Post code is required.'
+
         ];
     }
 }

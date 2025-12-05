@@ -35,7 +35,6 @@ class UpdateBusinessRequest extends FormRequest
             'Layout' => 'required|string',
             'Address' => 'required|string',
             'PostCode' => 'required|string',
-            'enable_question' => 'required|boolean',
             'show_image' => 'nullable|boolean',
             'review_type' => 'nullable|string',
             'google_map_iframe' => 'nullable|string',
@@ -96,8 +95,7 @@ class UpdateBusinessRequest extends FormRequest
             'Layout.required' => 'Layout is required.',
             'Address.required' => 'Address is required.',
             'PostCode.required' => 'Post code is required.',
-            'enable_question.required' => 'Enable question flag is required.',
-            'enable_question.boolean' => 'Enable question must be true or false.',
+            
             'EmailAddress.email' => 'Please provide a valid email address.',
             'latitude.numeric' => 'Latitude must be a number.',
             'longitude.numeric' => 'Longitude must be a number.',

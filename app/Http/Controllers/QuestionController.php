@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class QuestionController extends Controller
 {
-   
+
     // ##################################################
     // This method is to get all questions
     // ##################################################
@@ -570,12 +570,7 @@ class QuestionController extends Controller
                 ], 400);
             }
 
-            if ($business->enable_question) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Custom questions are disabled for this business.'
-                ], 400);
-            }
+
 
             // Ensure business_id is set for non-superadmin
             $data['business_id'] = $business->id;
@@ -689,12 +684,7 @@ class QuestionController extends Controller
                 ], 400);
             }
 
-            if ($business->enable_question) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Custom questions are disabled for this business.'
-                ], 400);
-            }
+            
 
             // Ensure business_id is set for non-superadmin
             $data['business_id'] = $business->id;

@@ -61,11 +61,11 @@ class BusinessController extends Controller
      *  @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *            required={"Name","Address","PostCode","enable_question"},
+     *            required={"Name","Address","PostCode"},
      *            @OA\Property(property="Name", type="string", example="My Restaurant"),
      *            @OA\Property(property="Address", type="string", example="123 Main Street, City"),
-     *            @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
-     *            @OA\Property(property="enable_question", type="boolean", example=true)
+     *            @OA\Property(property="PostCode", type="string", example="SW1A 1AA")
+
      *         )
      *      ),
      *      @OA\Response(
@@ -79,7 +79,6 @@ class BusinessController extends Controller
      *                      @OA\Property(property="Name", type="string", example="My Restaurant"),
      *                      @OA\Property(property="Address", type="string", example="123 Main Street, City"),
      *                      @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
-     *                      @OA\Property(property="enable_question", type="boolean", example=true),
      *                      @OA\Property(property="OwnerID", type="integer", example=1),
      *                      @OA\Property(property="Status", type="string", example="Inactive"),
      *                      @OA\Property(property="Key_ID", type="string", example="abc123"),
@@ -110,7 +109,7 @@ class BusinessController extends Controller
         // VALIDATE REQUEST
         $payload_data = $request->validated();
 
-        // ADD OWNER ID 
+        // ADD OWNER ID
         $payload_data["OwnerID"] = $request->user()->id;
         // ADD STATUS
         $payload_data["Status"] = "Inactive";
@@ -148,12 +147,11 @@ class BusinessController extends Controller
      *  @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *            required={"Name","Address","PostCode","OwnerID","enable_question"},
+     *            required={"Name","Address","PostCode","OwnerID"},
      *            @OA\Property(property="Name", type="string", example="My Restaurant"),
      *            @OA\Property(property="Address", type="string", example="123 Main Street, City"),
      *            @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
-     *            @OA\Property(property="OwnerID", type="integer", example=1),
-     *            @OA\Property(property="enable_question", type="boolean", example=true)
+     *            @OA\Property(property="OwnerID", type="integer", example=1)
      *         )
      *      ),
      *      @OA\Response(
@@ -168,7 +166,6 @@ class BusinessController extends Controller
      *                  @OA\Property(property="Address", type="string", example="123 Main Street, City"),
      *                  @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
      *                  @OA\Property(property="OwnerID", type="integer", example=1),
-     *                  @OA\Property(property="enable_question", type="boolean", example=true),
      *                  @OA\Property(property="Status", type="string", example="Inactive"),
      *                  @OA\Property(property="Key_ID", type="string", example="abc123d"),
      *                  @OA\Property(property="expiry_date", type="string", format="date", example="15-12-2025")
@@ -617,7 +614,7 @@ class BusinessController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"Name","Layout","Address","PostCode","enable_question"},
+     *             required={"Name","Layout","Address","PostCode"},
      *
      *             @OA\Property(property="GoogleMapApi", type="string", format="string", example="business name"),
      *             @OA\Property(property="Name", type="string", format="string", example="business name"),
@@ -634,7 +631,7 @@ class BusinessController extends Controller
      *             @OA\Property(property="Layout", type="string", format="string", example="How was this?"),
      *             @OA\Property(property="Address", type="string", format="string", example="Street 1, City"),
      *
-     *             @OA\Property(property="enable_question", type="boolean", format="boolean", example="1"),
+
      *             @OA\Property(property="show_image", type="string", format="string", example="0"),
      *
      *             @OA\Property(property="Key_ID", type="string", format="string", example="0"),
@@ -807,7 +804,7 @@ class BusinessController extends Controller
      *                  @OA\Property(property="Status", type="string", example="Active"),
      *                  @OA\Property(property="Key_ID", type="string", example="abc123"),
      *                  @OA\Property(property="OwnerID", type="integer", example=1),
-     *                  @OA\Property(property="enable_question", type="boolean", example=true),
+
      *                  @OA\Property(property="expiry_date", type="string", format="date", example="15-12-2025"),
      *                  @OA\Property(property="created_at", type="string", format="datetime", example="2025-01-01T12:00:00.000000Z"),
      *                  @OA\Property(property="updated_at", type="string", format="datetime", example="2025-01-15T12:00:00.000000Z"),
@@ -962,7 +959,7 @@ class BusinessController extends Controller
      *                      @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
      *                      @OA\Property(property="Status", type="string", example="Active"),
      *                      @OA\Property(property="OwnerID", type="integer", example=1),
-     *                      @OA\Property(property="enable_question", type="boolean", example=true),
+
      *                      @OA\Property(
      *                          property="owner",
      *                          type="object",

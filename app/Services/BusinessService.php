@@ -69,10 +69,7 @@ class BusinessService
 
         $this->createBusinessSchedule($business, $payloadData['times']);
 
-        // CREATE DEFAULT QUESTIONS IF ENABLE QUESTION IS FALSE
-        if (!$payloadData['business_enable_question']) {
-            $this->createDefaultQuestions($business);
-        }
+
 
         return $business->fresh();
     }
@@ -90,7 +87,7 @@ class BusinessService
             'Name' => $payloadData['business_name'],
             'Address' => $payloadData['business_address'],
             'PostCode' => $payloadData['business_postcode'],
-            'enable_question' => $payloadData['business_enable_question'],
+          
             'EmailAddress' => $payloadData['business_EmailAddress'] ?? '',
             'GoogleMapApi' => $payloadData['business_GoogleMapApi'] ?? '',
             'homeText' => $payloadData['business_homeText'] ?? '',

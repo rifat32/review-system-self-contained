@@ -166,7 +166,7 @@ class StripeController extends Controller
      *  @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *            required={ "Name","Layout","Address","PostCode", "enable_question" },
+     *            required={ "Name","Layout","Address","PostCode" },
      *
      *      *  *       @OA\Property(property="STRIPE_KEY", type="string", format="string",example="string"),
      *      *  *       @OA\Property(property="STRIPE_SECRET", type="string", format="string",example="string"),
@@ -329,7 +329,7 @@ class StripeController extends Controller
         $data["enable_customer_order_payment"] = $business->enable_customer_order_payment;
         $data["STRIPE_KEY"] = $business->STRIPE_KEY;
         $data["STRIPE_SECRET"] = $business->STRIPE_SECRET;
-     
+
 
 
         return response($data, 200);
@@ -404,7 +404,7 @@ class StripeController extends Controller
         $data["enable_customer_order_payment"] = $business->enable_customer_order_payment;
         $data["STRIPE_KEY"] = $business->STRIPE_KEY;
         // $data["STRIPE_SECRET"] = $business->STRIPE_SECRET;
-       
+
 
 
         return response($data, 200);

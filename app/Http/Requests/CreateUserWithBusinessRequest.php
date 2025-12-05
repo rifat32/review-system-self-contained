@@ -31,7 +31,6 @@ class CreateUserWithBusinessRequest extends FormRequest
             'business_name' => ['required', 'string', 'max:255'],
             'business_address' => ['required', 'string'],
             'business_postcode' => ['required', 'string', 'max:20'],
-            'business_enable_question' => ['required', 'boolean'],
             'business_EmailAddress' => ['nullable', 'email'],
             'business_GoogleMapApi' => ['nullable', 'string'],
             'business_homeText' => ['nullable', 'string'],

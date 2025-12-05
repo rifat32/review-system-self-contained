@@ -18,7 +18,7 @@ class CreateBusinessesTable extends Migration
 
 
             $table->boolean("show_image")->nullable()->default(1);
-     
+
 
 
             $table->string("Name");
@@ -40,11 +40,11 @@ class CreateBusinessesTable extends Migration
             $table->string("Status")->nullable();
             $table->string("Layout")->nullable();
 
-            $table->boolean("enable_question");
-
-
-
     
+
+
+
+
 
 
             $table->boolean("Is_guest_user")->default(false);
@@ -58,10 +58,10 @@ class CreateBusinessesTable extends Migration
 
 
 
-      
 
 
-        
+
+
 
             $table->string("header_image")->default("/header_image/default.webp");
             $table->string("rating_page_image")->default("/rating_page_image/default.webp");
@@ -73,7 +73,7 @@ class CreateBusinessesTable extends Migration
 
 
 
-       
+
 
 
 
@@ -95,7 +95,7 @@ class CreateBusinessesTable extends Migration
 
 
 
-    
+
 
 
 
@@ -108,7 +108,7 @@ class CreateBusinessesTable extends Migration
 
 
 
-          
+
 
 
            $table->boolean("is_report_email_enabled")->nullable(true)->default(0);

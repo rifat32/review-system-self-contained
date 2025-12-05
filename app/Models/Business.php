@@ -21,7 +21,6 @@ class Business extends Model
         "Logo",
         "Key_ID",
         "expiry_date",
-        "enable_question",
         "About",
         "Webpage",
         "PhoneNumber",
@@ -72,7 +71,7 @@ class Business extends Model
         'threshold_rating',
         'review_labels',
 
-        // 
+        //
         'guest_survey_id',
         'registered_user_survey_id'
 
