@@ -1473,9 +1473,9 @@ class ReviewNewController extends Controller
     public function storeReviewByGuest($businessId, Request $request)
     {
         $request->validate([
-            'guest_full_name' => 'required|string',
-            'guest_phone' => 'required|string',
-            'description' => 'required|string',
+            'guest_full_name' => 'nullable|string',
+            'guest_phone' => 'nullable|string',
+            'description' => 'nullable|string',
             'rate' => 'required|numeric|min:1|max:5',
             'staff_id' => 'nullable|exists:users,id',
             'comment' => 'nullable|string',
@@ -1528,7 +1528,7 @@ class ReviewNewController extends Controller
         }
 
         $guest = GuestUser::create([
-            'full_name' => $request->guest_full_name,
+            'full_name' => $request->guest_full_name ?? 'anonymous',
             'phone' => $request->guest_phone,
         ]);
 
@@ -1611,6 +1611,7 @@ class ReviewNewController extends Controller
         $responseData = [
             "message" => "created successfully",
             "averageRating" => $averageRating,
+            "review" => $review,
             "review_id" => $review->id,
             "ai_analysis" => [
                 'sentiment_score' => $sentimentScore,
@@ -1996,9 +1997,27 @@ class ReviewNewController extends Controller
     // Helper to store review values (question/star)
     private function storeReviewValues($review, $values, $business)
     {
+
+        $averageRating = collect($values)
+            ->pluck('star_id')
+            ->filter()
+            ->avg();
+
+        $averageRating = $averageRating ? round($averageRating, 1) : null;
+
         foreach ($values as $value) {
             $value['review_id'] = $review->id;
             ReviewValueNew::create($value);
+        }
+
+        if ($business && $review->guest_id) {
+            if ($averageRating >= $business->threshold_rating) {
+                $review->is_private = 0;
+                $review->save();
+            } else {
+                $review->is_private = 1;
+                $review->save();
+            }
         }
 
         // NO LONGER CALCULATE AND STORE THE AVERAGE HERE
@@ -6415,11 +6434,16 @@ class ReviewNewController extends Controller
 
     public function getAverageRatingClient($businessId, Request $request)
     {
-        $reviews = ReviewNew::with(['value'])
-            ->where("business_id", $businessId)
+        $reviews = ReviewNew::with('value')
+            ->where('business_id', $businessId)
+            ->where(function ($q) {
+                $q->where('is_private', 0)
+                    ->orWhereNull('is_private');
+            })
             ->globalFilters()
             ->orderBy('order_no', 'asc')
             ->get();
+
 
         $data["total_reviews"] = $reviews->count();
 
@@ -6509,6 +6533,13 @@ class ReviewNewController extends Controller
      *          example=10
      *      ),
      *      @OA\Parameter(
+     *          name="is_private",
+     *          in="query",
+     *          required=false,
+     *          description="Filter by privacy status (0 for public, 1 for private)",
+     *          example=""
+     *      ),
+     *      @OA\Parameter(
      *          name="sort_by",
      *          in="query",
      *          required=false,
@@ -6545,7 +6576,21 @@ class ReviewNewController extends Controller
             "survey"
         ])->where([
             "business_id" => $businessId,
-        ])->globalFilters();
+        ])
+            ->when($request->has('is_private'), function ($q) use ($request) {
+                $isPrivate = $request->get('is_private', 0);
+                if ($isPrivate == 0) {
+                    // For public reviews, include both is_private = 0 and is_private = null
+                    $q->where(function ($subQ) {
+                        $subQ->where('is_private', 0)
+                            ->orWhereNull('is_private');
+                    });
+                } else {
+                    // For private reviews, only is_private = 1
+                    $q->where('is_private', $isPrivate);
+                }
+            })
+            ->globalFilters();
 
         // Sorting logic
         $sortBy = $request->get('sort_by');
@@ -6832,12 +6877,12 @@ class ReviewNewController extends Controller
      */
     public function updateGuestEmailsByReviews($ids, Request $request)
     {
-        // Validate email in request
         $validated = $request->validate([
-            'email' => 'required|email|max:255'
+            'email' => 'required|email|max:255',
+            // add unique if needed:
+            // 'email' => 'required|email|max:255|unique:guest_users,email',
         ]);
 
-        // Validate and parse comma-separated IDs
         if (empty($ids)) {
             return response()->json([
                 'success' => false,
@@ -6845,13 +6890,8 @@ class ReviewNewController extends Controller
             ], 400);
         }
 
-        // Split the comma-separated string into an array
         $idArray = array_map('trim', explode(',', $ids));
-
-        // Filter out non-numeric values
-        $numericIds = array_filter($idArray, function ($id) {
-            return is_numeric($id) && $id > 0;
-        });
+        $numericIds = array_values(array_unique(array_map('intval', array_filter($idArray, fn($id) => ctype_digit((string)$id) && (int)$id > 0))));
 
         if (empty($numericIds)) {
             return response()->json([
@@ -6860,48 +6900,28 @@ class ReviewNewController extends Controller
             ], 400);
         }
 
-        // Convert to integers
-        $numericIds = array_map('intval', $numericIds);
-
-        // Find reviews with guest users
         $reviews = ReviewNew::whereIn('id', $numericIds)
             ->whereNotNull('guest_id')
-            ->with('guest_user')
-            ->get();
+            ->get(['id', 'guest_id']);
 
         if ($reviews->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'No valid reviews with guest users found for the provided IDs',
                 'data' => [
-                    'requested_ids' => $numericIds,
+                    'requested_review_ids' => $numericIds,
                     'updated_count' => 0,
                     'updated_guest_ids' => [],
-                    'review_ids' => []
+                    'found_review_ids' => []
                 ]
             ], 404);
         }
 
-        // Get unique guest IDs from the reviews
-        $guestIds = $reviews->pluck('guest_id')->unique()->toArray();
+        $foundReviewIds = $reviews->pluck('id')->unique()->values()->all();
+        $missingReviewIds = array_values(array_diff($numericIds, $foundReviewIds));
 
-        // Get the IDs that were not found
-        $invalidIds = array_diff($numericIds, $guestIds);
+        $guestIds = $reviews->pluck('guest_id')->unique()->values()->all();
 
-        // Return error response if no valid reviews found
-        if (!empty($invalidIds)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No valid reviews found with the provided IDs',
-                'data' => [
-                    'requested_ids' => $numericIds,
-                    'valid_ids' => $guestIds,
-                    'invalid_ids' => $invalidIds
-                ]
-            ], 404);
-        }
-
-        // Update email for all guest users
         $updatedCount = GuestUser::whereIn('id', $guestIds)
             ->update(['email' => $validated['email']]);
 
@@ -6911,7 +6931,8 @@ class ReviewNewController extends Controller
             'data' => [
                 'updated_count' => $updatedCount,
                 'updated_guest_ids' => $guestIds,
-                'review_ids' => $reviews->pluck('id')->toArray(),
+                'found_review_ids' => $foundReviewIds,
+                'missing_review_ids' => $missingReviewIds,
                 'email' => $validated['email']
             ]
         ], 200);
