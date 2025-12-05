@@ -39,9 +39,7 @@ class ReviewNew extends Model
         'sentiment',
         'topic_id',
         'reply_content',
-
-
-                'is_voice_review',
+        'is_voice_review',
         'voice_url',
         'voice_duration',
         'transcription_metadata',
@@ -80,14 +78,14 @@ class ReviewNew extends Model
     {
         return $this->is_voice_review;
     }
-    
+
     public function getVoiceUrlAttribute($value)
     {
         if (!$value) return null;
         return str_starts_with($value, 'http') ? $value : asset('storage/' . $value);
     }
 
-    
+
     public function value()
     {
         return $this->hasMany(ReviewValueNew::class, 'review_id', 'id');

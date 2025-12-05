@@ -488,12 +488,12 @@ class ReviewNewController extends Controller
   private function calculateDashboardMetrics($businessId, $dateRange)
 {
     // Get reviews with their values
-    $reviews = ReviewNew::with(['valueNew'])
+    $reviews = ReviewNew::with(['value'])
         ->where('business_id', $businessId)
         ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
         ->get();
 
-    $previousReviews = ReviewNew::with(['valueNew'])
+    $previousReviews = ReviewNew::with(['value'])
         ->where('business_id', $businessId)
         ->whereBetween('created_at', [
             $dateRange['start']->copy()->subDays(30),
@@ -644,7 +644,7 @@ class ReviewNewController extends Controller
   private function getStaffPerformanceSnapshot($businessId, $dateRange)
 {
     // Use existing staff suggestions and reviews
-    $staffReviews = ReviewNew::with('staff', 'valueNew')
+    $staffReviews = ReviewNew::with('staff', 'value')
         ->where('business_id', $businessId)
         ->whereNotNull('staff_id')
         ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
@@ -687,7 +687,7 @@ class ReviewNewController extends Controller
 
   private function getReviewFeed($businessId, $dateRange, $limit = 10)
 {
-    $reviews = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tag', 'valueNew'])
+    $reviews = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tag', 'value'])
         ->where('business_id', $businessId)
         ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
         ->orderBy('created_at', 'desc')
@@ -700,6 +700,7 @@ class ReviewNewController extends Controller
 
         return [
             'id' => $review->id,
+    'responded_at' => $review->responded_at,
             'rating' => ($calculatedRating ?? 0) . '/5',
             'calculated_rating' => $calculatedRating,
             'author' => $review->user?->name ?? $review->guest_user?->full_name ?? 'Anonymous',
@@ -897,7 +898,7 @@ class ReviewNewController extends Controller
  public function getAverages($businessId, $start, $end, Request $request)
 {
     // Get reviews with their values
-    $reviews = ReviewNew::with(['valueNew'])
+    $reviews = ReviewNew::with(['value'])
         ->where("business_id", $businessId)
         ->globalFilters()
         ->whereBetween('created_at', [$start, $end])
@@ -1202,7 +1203,7 @@ class ReviewNewController extends Controller
    public function getCustommerReview($businessId, $start, $end, Request $request)
 {
     // Get reviews with their values
-    $reviews = ReviewNew::with(['valueNew'])
+    $reviews = ReviewNew::with(['value'])
         ->where("business_id", $businessId)
         ->globalFilters()
         ->whereBetween('created_at', [$start, $end])
@@ -1876,10 +1877,12 @@ private function calculateRatingFromReviewValues($reviewId)
 
         // Get the star rating for this question
         $starValue = Star::where('id', $questionValues->first()->star_id)->value('value') ?? 0;
-        $totalRating += $starValue;
+        // Cast to float to ensure numeric value
+        $totalRating += (float) $starValue;
         $questionCount++;
     }
 
+    // Round to 1 decimal place
     return $questionCount > 0 ? round($totalRating / $questionCount, 1) : null;
 }
 
@@ -1905,7 +1908,6 @@ private function calculateAverageRatingForReviews($reviews)
 
     return $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
 }
-
 /**
  * Calculate rating distribution from ReviewValue data
  */
@@ -6416,7 +6418,7 @@ private function storeReviewValues($review, $values, $business)
 
 public function getAverageRatingClient($businessId, Request $request)
 {
-    $reviews = ReviewNew::with(['valueNew'])
+    $reviews = ReviewNew::with(['value'])
         ->where("business_id", $businessId)
         ->globalFilters()
         ->orderBy('order_no', 'asc')

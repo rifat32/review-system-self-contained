@@ -18,6 +18,9 @@ class QuestionController extends Controller
     // ##################################################
     // This method is to get all questions
     // ##################################################
+
+
+    
     /**
      * Get all review questions
      *
@@ -684,7 +687,7 @@ class QuestionController extends Controller
                 ], 400);
             }
 
-            
+
 
             // Ensure business_id is set for non-superadmin
             $data['business_id'] = $business->id;
