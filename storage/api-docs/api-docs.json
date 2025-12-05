@@ -10757,7 +10757,7 @@
                 ],
                 "summary": "This method is to get   Review Value",
                 "description": "This method is to get   Review Value",
-                "operationId": "getReviewValues",
+                "operationId": "getReviewValue",
                 "parameters": [
                     {
                         "name": "businessId",

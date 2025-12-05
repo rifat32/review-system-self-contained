@@ -34,160 +34,159 @@ class ReviewNewController extends Controller
 // Transcribe Voice File to Text
 // ##################################################
 
-/**
- * @OA\Post(
- *      path="/v1.0/voice/transcribe",
- *      operationId="transcribeVoice",
- *      tags={"voice"},
- *      security={{"bearerAuth": {}}},
- *      summary="Transcribe voice file to text",
- *      description="Upload a voice file and get transcribed text using AI speech recognition",
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\MediaType(
- *              mediaType="multipart/form-data",
- *              @OA\Schema(
- *                  required={"audio"},
- *                  @OA\Property(
- *                      property="audio",
- *                      type="string",
- *                      format="binary",
- *                      description="Audio file to transcribe (mp3, wav, m4a, ogg)"
- *                  ),
- *                  @OA\Property(
- *                      property="language",
- *                      type="string",
- *                      description="Language code for transcription (optional, defaults to auto-detect)",
- *                      example="en"
- *                  ),
- *                  @OA\Property(
- *                      property="task",
- *                      type="string",
- *                      description="Task type: transcribe or translate",
- *                      enum={"transcribe", "translate"},
- *                      example="transcribe"
- *                  )
- *              )
- *          )
- *      ),
- *      @OA\Response(
- *          response=200,
- *          description="Successful transcription",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=true),
- *              @OA\Property(property="message", type="string", example="Transcription completed successfully"),
- *              @OA\Property(
- *                  property="data",
- *                  type="object",
- *                  @OA\Property(property="text", type="string", example="This is the transcribed text from the audio file."),
- *                  @OA\Property(property="language", type="string", example="en"),
- *                  @OA\Property(property="duration", type="number", example=12.5),
- *                  @OA\Property(property="file_size", type="integer", example=102400),
- *                  @OA\Property(property="mime_type", type="string", example="audio/mpeg")
- *              )
- *          )
- *      ),
- *      @OA\Response(
- *          response=400,
- *          description="Bad Request",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=false),
- *              @OA\Property(property="message", type="string", example="Invalid audio file or file too large")
- *          )
- *      ),
- *      @OA\Response(
- *          response=422,
- *          description="Unprocessable Entity",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=false),
- *              @OA\Property(property="message", type="string", example="Failed to process audio file")
- *          )
- *      ),
- *      @OA\Response(
- *          response=500,
- *          description="Internal Server Error",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=false),
- *              @OA\Property(property="message", type="string", example="Transcription service unavailable")
- *          )
- *      )
- * )
- */
-public function transcribeVoice(Request $request)
-{
-    try {
-        // Validate the request
-        $request->validate([
-            'audio' => 'required|file|mimes:mp3,wav,m4a,ogg,mp4,flac,aac|max:51200', // 50MB max
-            'language' => 'nullable|string|max:10',
-            'task' => 'nullable|in:transcribe,translate'
-        ]);
+    /**
+     * @OA\Post(
+     *      path="/v1.0/voice/transcribe",
+     *      operationId="transcribeVoice",
+     *      tags={"voice"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Transcribe voice file to text",
+     *      description="Upload a voice file and get transcribed text using AI speech recognition",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\MediaType(
+     *              mediaType="multipart/form-data",
+     *              @OA\Schema(
+     *                  required={"audio"},
+     *                  @OA\Property(
+     *                      property="audio",
+     *                      type="string",
+     *                      format="binary",
+     *                      description="Audio file to transcribe (mp3, wav, m4a, ogg)"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="language",
+     *                      type="string",
+     *                      description="Language code for transcription (optional, defaults to auto-detect)",
+     *                      example="en"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="task",
+     *                      type="string",
+     *                      description="Task type: transcribe or translate",
+     *                      enum={"transcribe", "translate"},
+     *                      example="transcribe"
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful transcription",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Transcription completed successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="text", type="string", example="This is the transcribed text from the audio file."),
+     *                  @OA\Property(property="language", type="string", example="en"),
+     *                  @OA\Property(property="duration", type="number", example=12.5),
+     *                  @OA\Property(property="file_size", type="integer", example=102400),
+     *                  @OA\Property(property="mime_type", type="string", example="audio/mpeg")
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Invalid audio file or file too large")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Entity",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Failed to process audio file")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=500,
+     *          description="Internal Server Error",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Transcription service unavailable")
+     *          )
+     *      )
+     * )
+     */
+    public function transcribeVoice(Request $request)
+    {
+        try {
+            // Validate the request
+            $request->validate([
+                'audio' => 'required|file|mimes:mp3,wav,m4a,ogg,mp4,flac,aac|max:51200', // 50MB max
+                'language' => 'nullable|string|max:10',
+                'task' => 'nullable|in:transcribe,translate'
+            ]);
 
-        $audioFile = $request->file('audio');
-        $language = $request->input('language', 'en');
-        $task = $request->input('task', 'transcribe');
+            $audioFile = $request->file('audio');
+            $language = $request->input('language', 'en');
+            $task = $request->input('task', 'transcribe');
 
-        // Get audio file info
-        $fileSize = $audioFile->getSize();
-        $mimeType = $audioFile->getMimeType();
+            // Get audio file info
+            $fileSize = $audioFile->getSize();
+            $mimeType = $audioFile->getMimeType();
 
-        // Get audio duration
-        $duration = $this->getAudioDuration($audioFile->getRealPath());
+            // Get audio duration
+            $duration = $this->getAudioDuration($audioFile->getRealPath());
 
-        // Transcribe the audio using existing method
-        $transcribedText = $this->transcribeAudio($audioFile->getRealPath());
+            // Transcribe the audio using existing method
+            $transcribedText = $this->transcribeAudio($audioFile->getRealPath());
 
-        // If transcription is empty, try alternative method
-        if (empty($transcribedText)) {
-            $transcribedText = $this->fallbackTranscribeAudio($audioFile);
-        }
+            // If transcription is empty, try alternative method
+            if (empty($transcribedText)) {
+                $transcribedText = $this->fallbackTranscribeAudio($audioFile);
+            }
 
-        // If still empty, return error
-        if (empty($transcribedText)) {
+            // If still empty, return error
+            if (empty($transcribedText)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Could not transcribe audio. Please try again with a clearer audio file.',
+                    'data' => [
+                        'detected' => false,
+                        'duration' => $duration,
+                        'file_info' => [
+                            'size' => $fileSize,
+                            'type' => $mimeType
+                        ]
+                    ]
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transcription completed successfully',
+                'data' => [
+                    'text' => $transcribedText,
+                    'language' => $language,
+                    'duration' => $duration,
+                    'file_size' => $fileSize,
+                    'mime_type' => $mimeType,
+                    'task' => $task,
+                    'word_count' => str_word_count($transcribedText)
+                ]
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Could not transcribe audio. Please try again with a clearer audio file.',
-                'data' => [
-                    'detected' => false,
-                    'duration' => $duration,
-                    'file_info' => [
-                        'size' => $fileSize,
-                        'type' => $mimeType
-                    ]
-                ]
+                'message' => 'Validation error',
+                'errors' => $e->errors()
             ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Transcription failed: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to transcribe audio file. Please try again.',
+                'error' => env('APP_DEBUG') ? $e->getMessage() : null
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Transcription completed successfully',
-            'data' => [
-                'text' => $transcribedText,
-                'language' => $language,
-                'duration' => $duration,
-                'file_size' => $fileSize,
-                'mime_type' => $mimeType,
-                'task' => $task,
-                'word_count' => str_word_count($transcribedText)
-            ]
-        ], 200);
-
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Validation error',
-            'errors' => $e->errors()
-        ], 422);
-    } catch (\Exception $e) {
-        \Log::error('Transcription failed: ' . $e->getMessage());
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to transcribe audio file. Please try again.',
-            'error' => env('APP_DEBUG') ? $e->getMessage() : null
-        ], 500);
     }
-}
 
 
 // ##################################################
@@ -754,68 +753,52 @@ public function transcribeVoice(Request $request)
     // ##################################################
 
     /**
-     *
      * @OA\Get(
-     *      path="/v1.0/review-new/values/{businessId}/{rate}",
-     *      operationId="getReviewValues",
-     *      tags={"review"},
-     *          security={
-     *           {"bearerAuth": {}}
-     *       },
-     *  @OA\Parameter(
-     * name="businessId",
-     * in="path",
-     * description="businessId",
-     * required=true,
-     * example="1"
-     * ),
-     *  @OA\Parameter(
-     * name="rate",
-     * in="path",
-     * description="rate",
-     * required=true,
-     * example="1"
-     * ),
-     *      summary="This method is to get   Review Value",
-     *      description="This method is to get   Review Value",
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="Review values retrieved successfully"),
-     *              @OA\Property(property="data", type="array", @OA\Items(type="object"))
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocessable Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
+     *   path="/v1.0/review-new/values/{businessId}/{rate}",
+     *   operationId="getReviewValue",
+     *   tags={"review"},
+     *   security={{"bearerAuth":{}}},
+     *   summary="This method is to get Review Value",
+     *   description="This method is to get Review Value",
+     *
+     *   @OA\Parameter(
+     *     name="businessId",
+     *     in="path",
+     *     required=true,
+     *     description="businessId",
+     *     @OA\Schema(type="integer", example=1)
+     *   ),
+     *   @OA\Parameter(
+     *     name="rate",
+     *     in="path",
+     *     required=true,
+     *     description="rate",
+     *     @OA\Schema(type="integer", example=1)
+     *   ),
+     *
      *   @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
+     *     response=200,
+     *     description="Successful operation",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="Review values retrieved successfully"),
+     *       @OA\Property(
+     *         property="data",
+     *         type="array",
+     *         @OA\Items(type="object")
+     *       )
      *     )
+     *   ),
+     *   @OA\Response(response=400, description="Bad Request"),
+     *   @OA\Response(response=401, description="Unauthenticated"),
+     *   @OA\Response(response=403, description="Forbidden"),
+     *   @OA\Response(response=404, description="Not Found"),
+     *   @OA\Response(response=422, description="Unprocessable Content")
+     * )
      */
 
 
-
-    public function getReviewValues($businessId, $rate, Request $request)
+    public function getReviewValue($businessId, $rate, Request $request)
     {
         // with
         $reviewValues = ReviewValue::where([
@@ -853,7 +836,7 @@ public function transcribeVoice(Request $request)
      *
      * @OA\Get(
      *      path="/review-new/getavg/review/{businessId}/{start}/{end}",
-     *      operationId="getAverage",
+     *      operationId="getAverages",
      *      tags={"z.unused"},
      *         security={
      *           {"bearerAuth": {}}
@@ -911,7 +894,7 @@ public function transcribeVoice(Request $request)
      *      )
      *     )
      */
- public function getAverage($businessId, $start, $end, Request $request)
+ public function getAverages($businessId, $start, $end, Request $request)
 {
     // Get reviews with their values
     $reviews = ReviewNew::with(['valueNew'])
@@ -993,7 +976,7 @@ public function transcribeVoice(Request $request)
      *
      * @OA\Get(
      *      path="/review-new/getreview/{businessId}/{rate}/{start}/{end}",
-     *      operationId="filterReview",
+     *      operationId="filterReviews",
      *      tags={"review"},
      *        security={
      *           {"bearerAuth": {}}
@@ -1060,7 +1043,7 @@ public function transcribeVoice(Request $request)
      */
 
 
-    public function  filterReview($businessId, $rate, $start, $end, Request $request)
+    public function  filterReviews($businessId, $rate, $start, $end, Request $request)
     {
         // with
         $reviewValues = ReviewNew::where([
@@ -1084,7 +1067,7 @@ public function transcribeVoice(Request $request)
      *
      * @OA\Get(
      *      path="/review-new/getreviewAll/{businessId}",
-     *      operationId="getReviewByBusinessId",
+     *      operationId="reviewByBusinessId",
      *      tags={"review"},
      *        security={
      *           {"bearerAuth": {}}
@@ -1130,7 +1113,7 @@ public function transcribeVoice(Request $request)
      *     )
      */
 
-    public function  getReviewByBusinessId($businessId, Request $request)
+    public function  reviewByBusinessId($businessId, Request $request)
     {
         // with
         $reviewValue = ReviewNew::with("value")->where([
@@ -1268,384 +1251,384 @@ public function transcribeVoice(Request $request)
 // Updated createReview method with audio support
 // ##################################################
 
-/**
- * @OA\Post(
- *      path="/v1.0/review-new/{businessId}",
- *      operationId="createReview",
- *      tags={"review"},
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          required=true,
- *          example="1"
- *      ),
- *      security={{"bearerAuth": {}}},
- *      summary="Store review by authenticated user with optional audio",
- *      description="Store review with optional audio transcription and AI analysis",
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\MediaType(
- *              mediaType="multipart/form-data",
- *              @OA\Schema(
- *                  required={"description","rate","comment","values"},
- *                  @OA\Property(property="description", type="string", example="Test"),
- *                  @OA\Property(property="rate", type="string", example="2.5"),
- *                  @OA\Property(property="comment", type="string", example="Not good"),
- *                  @OA\Property(property="is_overall", type="boolean", example=true),
- *                  @OA\Property(property="staff_id", type="integer", example="1"),
- *                  @OA\Property(property="audio", type="string", format="binary", description="Optional audio file"),
- *                  @OA\Property(
- *                      property="values",
- *                      type="array",
- *                      @OA\Items(
- *                          @OA\Property(property="question_id", type="integer", example=1),
- *                          @OA\Property(property="tag_id", type="integer", example=2),
- *                          @OA\Property(property="star_id", type="integer", example=4)
- *                      )
- *                  )
- *              )
- *          )
- *      ),
- *      @OA\Response(response=201, description="Created successfully"),
- *      @OA\Response(response=400, description="Bad Request"),
- *      @OA\Response(response=401, description="Unauthenticated"),
- *      @OA\Response(response=422, description="Unprocessable Content")
- * )
- */
-public function createReview($businessId, Request $request)
-{
-    $request->validate([
-        'description' => 'required|string',
-        'rate' => 'required|numeric|min:1|max:5',
-        'staff_id' => 'nullable|exists:users,id',
-        'comment' => 'nullable|string',
-        'is_overall' => 'required|boolean',
-        'values' => 'required|array',
-        'values.*.question_id' => 'required|integer',
-        'values.*.tag_id' => 'nullable|integer',
-        'values.*.star_id' => 'nullable|integer',
-        'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
-    ]);
+    /**
+     * @OA\Post(
+     *      path="/v1.0/review-new/{businessId}",
+     *      operationId="createReview",
+     *      tags={"review"},
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      security={{"bearerAuth": {}}},
+     *      summary="Store review by authenticated user with optional audio",
+     *      description="Store review with optional audio transcription and AI analysis",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\MediaType(
+     *              mediaType="multipart/form-data",
+     *              @OA\Schema(
+     *                  required={"description","rate","comment","values"},
+     *                  @OA\Property(property="description", type="string", example="Test"),
+     *                  @OA\Property(property="rate", type="string", example="2.5"),
+     *                  @OA\Property(property="comment", type="string", example="Not good"),
+     *                  @OA\Property(property="is_overall", type="boolean", example=true),
+     *                  @OA\Property(property="staff_id", type="integer", example="1"),
+     *                  @OA\Property(property="audio", type="string", format="binary", description="Optional audio file"),
+     *                  @OA\Property(
+     *                      property="values",
+     *                      type="array",
+     *                      @OA\Items(
+     *                          @OA\Property(property="question_id", type="integer", example=1),
+     *                          @OA\Property(property="tag_id", type="integer", example=2),
+     *                          @OA\Property(property="star_id", type="integer", example=4)
+     *                      )
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(response=201, description="Created successfully"),
+     *      @OA\Response(response=400, description="Bad Request"),
+     *      @OA\Response(response=401, description="Unauthenticated"),
+     *      @OA\Response(response=422, description="Unprocessable Content")
+     * )
+     */
+    public function createReview($businessId, Request $request)
+    {
+        $request->validate([
+            'description' => 'required|string',
+            'rate' => 'required|numeric|min:1|max:5',
+            'staff_id' => 'nullable|exists:users,id',
+            'comment' => 'nullable|string',
+            'is_overall' => 'required|boolean',
+            'values' => 'required|array',
+            'values.*.question_id' => 'required|integer',
+            'values.*.tag_id' => 'nullable|integer',
+            'values.*.star_id' => 'nullable|integer',
+            'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
+        ]);
 
-    $business = Business::findOrFail($businessId);
-    $raw_text = $request->input('comment', '');
+        $business = Business::findOrFail($businessId);
+        $raw_text = $request->input('comment', '');
 
-    // Voice review handling
-    $voiceData = null;
-    if ($request->hasFile('audio')) {
-        $audioPath = $request->file('audio')->store('voice-reviews', 'public');
-        $audioUrl = Storage::url($audioPath);
-        $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
+        // Voice review handling
+        $voiceData = null;
+        if ($request->hasFile('audio')) {
+            $audioPath = $request->file('audio')->store('voice-reviews', 'public');
+            $audioUrl = Storage::url($audioPath);
+            $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
 
-        $voiceData = [
-            'is_voice_review' => true,
-            'voice_url' => $audioUrl,
-            'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
-            'transcription_metadata' => [
-                'audio_path' => $audioPath,
-                'file_size' => $request->file('audio')->getSize(),
-                'mime_type' => $request->file('audio')->getMimeType(),
-            ]
-        ];
-    }
+            $voiceData = [
+                'is_voice_review' => true,
+                'voice_url' => $audioUrl,
+                'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
+                'transcription_metadata' => [
+                    'audio_path' => $audioPath,
+                    'file_size' => $request->file('audio')->getSize(),
+                    'mime_type' => $request->file('audio')->getMimeType(),
+                ]
+            ];
+        }
 
-    // Step 2: AI Moderation Pipeline
-    $moderationResults = $this->aiModeration($raw_text);
+        // Step 2: AI Moderation Pipeline
+        $moderationResults = $this->aiModeration($raw_text);
 
-    // Check if content should be blocked
-    if ($moderationResults['should_block']) {
-        return response([
-            "success" => false,
-            "message" => $moderationResults['action_message'],
-            "moderation_results" => $moderationResults
-        ], 400);
-    }
+        // Check if content should be blocked
+        if ($moderationResults['should_block']) {
+            return response([
+                "success" => false,
+                "message" => $moderationResults['action_message'],
+                "moderation_results" => $moderationResults
+            ], 400);
+        }
 
-    // Step 3: AI Sentiment Analysis
-    $sentimentScore = $this->analyzeSentiment($raw_text);
+        // Step 3: AI Sentiment Analysis
+        $sentimentScore = $this->analyzeSentiment($raw_text);
 
-    // Step 4: AI Topic Extraction
-    $topics = $this->extractTopics($raw_text);
+        // Step 4: AI Topic Extraction
+        $topics = $this->extractTopics($raw_text);
 
-    // Step 5: AI Staff Performance Scoring
-    $staffSuggestions = [];
-    if ($request->staff_id) {
-        $staffSuggestions = $this->analyzeStaffPerformance($raw_text, $request->staff_id, $businessId);
-    }
+        // Step 5: AI Staff Performance Scoring
+        $staffSuggestions = [];
+        if ($request->staff_id) {
+            $staffSuggestions = $this->analyzeStaffPerformance($raw_text, $request->staff_id, $businessId);
+        }
 
-    // Step 6: AI Recommendations Engine
-    $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
+        // Step 6: AI Recommendations Engine
+        $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
 
-    $averageRating = collect($request->values)
-        ->pluck('star_id')
-        ->filter()
-        ->avg();
+        $averageRating = collect($request->values)
+            ->pluck('star_id')
+            ->filter()
+            ->avg();
 
-    $averageRating = $averageRating ? round($averageRating, 1) : null;
+        $averageRating = $averageRating ? round($averageRating, 1) : null;
 
-    $reviewData = [
-        'survey_id' => $request->survey_id,
-        'description' => $request->description,
-        'business_id' => $businessId,
-        'rate' => $averageRating,
-        'user_id' => $request->user()->id,
-        'comment' => $raw_text,
-        'raw_text' => $raw_text,
-        'emotion' => $this->detectEmotion($raw_text),
-        'key_phrases' => $this->extractKeyPhrases($raw_text),
-        'sentiment_score' => $sentimentScore,
-        'topics' => $topics,
-        'moderation_results' => $moderationResults,
-        'ai_suggestions' => $aiSuggestions,
-        'staff_suggestions' => $staffSuggestions,
-        "ip_address" => $request->ip(),
-        "is_overall" => $request->is_overall ?? 0,
-        "staff_id" => $request->staff_id ?? null,
-    ];
-
-    // Add voice data if present
-    if ($voiceData) {
-        $reviewData = array_merge($reviewData, $voiceData);
-    }
-
-    $review = ReviewNew::create($reviewData);
-    $this->storeReviewValues($review, $request->values, $business);
-
-    $responseData = [
-        "message" => "created successfully",
-        "averageRating" => $averageRating,
-        "review_id" => $review->id,
-        "ai_analysis" => [
+        $reviewData = [
+            'survey_id' => $request->survey_id,
+            'description' => $request->description,
+            'business_id' => $businessId,
+            'rate' => $averageRating,
+            'user_id' => $request->user()->id,
+            'comment' => $raw_text,
+            'raw_text' => $raw_text,
+            'emotion' => $this->detectEmotion($raw_text),
+            'key_phrases' => $this->extractKeyPhrases($raw_text),
             'sentiment_score' => $sentimentScore,
             'topics' => $topics,
-            'moderation_action' => $moderationResults['action_taken']
-        ]
-    ];
-
-    // Add voice info if present
-    if ($voiceData) {
-        $responseData['voice_info'] = [
-            'voice_url' => $voiceData['voice_url'],
-            'duration' => $voiceData['voice_duration'],
-            'transcription' => $raw_text
+            'moderation_results' => $moderationResults,
+            'ai_suggestions' => $aiSuggestions,
+            'staff_suggestions' => $staffSuggestions,
+            "ip_address" => $request->ip(),
+            "is_overall" => $request->is_overall ?? 0,
+            "staff_id" => $request->staff_id ?? null,
         ];
-    }
 
-    return response($responseData, 201);
-}
+        // Add voice data if present
+        if ($voiceData) {
+            $reviewData = array_merge($reviewData, $voiceData);
+        }
+
+        $review = ReviewNew::create($reviewData);
+        $this->storeReviewValues($review, $request->values, $business);
+
+        $responseData = [
+            "message" => "created successfully",
+            "averageRating" => $averageRating,
+            "review_id" => $review->id,
+            "ai_analysis" => [
+                'sentiment_score' => $sentimentScore,
+                'topics' => $topics,
+                'moderation_action' => $moderationResults['action_taken']
+            ]
+        ];
+
+        // Add voice info if present
+        if ($voiceData) {
+            $responseData['voice_info'] = [
+                'voice_url' => $voiceData['voice_url'],
+                'duration' => $voiceData['voice_duration'],
+                'transcription' => $raw_text
+            ];
+        }
+
+        return response($responseData, 201);
+    }
 
 // ##################################################
 // Updated storeReviewByGuest method with audio support
 // ##################################################
 
-/**
- * @OA\Post(
- *      path="/review-new-guest/{businessId}",
- *      operationId="storeReviewByGuest",
- *      tags={"review"},
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          required=true,
- *          example="1"
- *      ),
- *      security={{"bearerAuth": {}}},
- *      summary="Store review by guest user with optional audio",
- *      description="Store guest review with optional audio transcription and AI analysis",
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\MediaType(
- *              mediaType="multipart/form-data",
- *              @OA\Schema(
- *                  required={"guest_full_name","guest_phone","description","rate","comment","values"},
- *                  @OA\Property(property="guest_full_name", type="string", example="Rifat"),
- *                  @OA\Property(property="guest_phone", type="string", example="0177"),
- *                  @OA\Property(property="description", type="string", example="Test"),
- *                  @OA\Property(property="rate", type="string", example="2.5"),
- *                  @OA\Property(property="comment", type="string", example="Not good"),
- *                  @OA\Property(property="is_overall", type="boolean", example=true),
- *                  @OA\Property(property="latitude", type="number", example="23.8103"),
- *                  @OA\Property(property="longitude", type="number", example="90.4125"),
- *                  @OA\Property(property="staff_id", type="number", example="1"),
- *                  @OA\Property(property="audio", type="string", format="binary", description="Optional audio file"),
- *                  @OA\Property(
- *                      property="values",
- *                      type="array",
- *                      @OA\Items(
- *                          @OA\Property(property="question_id", type="integer", example=1),
- *                          @OA\Property(property="tag_id", type="integer", example=2),
- *                          @OA\Property(property="star_id", type="integer", example=4)
- *                      )
- *                  )
- *              )
- *          )
- *      ),
- *      @OA\Response(response=201, description="Created successfully"),
- *      @OA\Response(response=400, description="Bad Request"),
- *      @OA\Response(response=401, description="Unauthenticated"),
- *      @OA\Response(response=422, description="Unprocessable Content")
- * )
- */
-public function storeReviewByGuest($businessId, Request $request)
-{
-    $request->validate([
-        'guest_full_name' => 'required|string',
-        'guest_phone' => 'required|string',
-        'description' => 'required|string',
-        'rate' => 'required|numeric|min:1|max:5',
-        'staff_id' => 'nullable|exists:users,id',
-        'comment' => 'nullable|string',
-        'is_overall' => 'required|boolean',
-        'latitude' => 'nullable|numeric',
-        'longitude' => 'nullable|numeric',
-        'values' => 'required|array',
-        'values.*.question_id' => 'required|integer',
-        'values.*.tag_id' => 'nullable|integer',
-        'values.*.star_id' => 'nullable|integer',
-        'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
-    ]);
+    /**
+     * @OA\Post(
+     *      path="/review-new-guest/{businessId}",
+     *      operationId="storeReviewByGuest",
+     *      tags={"review"},
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      security={{"bearerAuth": {}}},
+     *      summary="Store review by guest user with optional audio",
+     *      description="Store guest review with optional audio transcription and AI analysis",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\MediaType(
+     *              mediaType="multipart/form-data",
+     *              @OA\Schema(
+     *                  required={"guest_full_name","guest_phone","description","rate","comment","values"},
+     *                  @OA\Property(property="guest_full_name", type="string", example="Rifat"),
+     *                  @OA\Property(property="guest_phone", type="string", example="0177"),
+     *                  @OA\Property(property="description", type="string", example="Test"),
+     *                  @OA\Property(property="rate", type="string", example="2.5"),
+     *                  @OA\Property(property="comment", type="string", example="Not good"),
+     *                  @OA\Property(property="is_overall", type="boolean", example=true),
+     *                  @OA\Property(property="latitude", type="number", example="23.8103"),
+     *                  @OA\Property(property="longitude", type="number", example="90.4125"),
+     *                  @OA\Property(property="staff_id", type="number", example="1"),
+     *                  @OA\Property(property="audio", type="string", format="binary", description="Optional audio file"),
+     *                  @OA\Property(
+     *                      property="values",
+     *                      type="array",
+     *                      @OA\Items(
+     *                          @OA\Property(property="question_id", type="integer", example=1),
+     *                          @OA\Property(property="tag_id", type="integer", example=2),
+     *                          @OA\Property(property="star_id", type="integer", example=4)
+     *                      )
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(response=201, description="Created successfully"),
+     *      @OA\Response(response=400, description="Bad Request"),
+     *      @OA\Response(response=401, description="Unauthenticated"),
+     *      @OA\Response(response=422, description="Unprocessable Content")
+     * )
+     */
+    public function storeReviewByGuest($businessId, Request $request)
+    {
+        $request->validate([
+            'guest_full_name' => 'required|string',
+            'guest_phone' => 'required|string',
+            'description' => 'required|string',
+            'rate' => 'required|numeric|min:1|max:5',
+            'staff_id' => 'nullable|exists:users,id',
+            'comment' => 'nullable|string',
+            'is_overall' => 'required|boolean',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'values' => 'required|array',
+            'values.*.question_id' => 'required|integer',
+            'values.*.tag_id' => 'nullable|integer',
+            'values.*.star_id' => 'nullable|integer',
+            'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
+        ]);
 
-    $business = Business::findOrFail($businessId);
-    $ip_address = $request->ip();
+        $business = Business::findOrFail($businessId);
+        $ip_address = $request->ip();
 
-    // ✅ Step 1: IP restriction check
-    if ($business->enable_ip_check) {
-        $existing_review = ReviewNew::where('business_id', $businessId)
-            ->where('ip_address', $ip_address)
-            ->whereDate('created_at', now()->toDateString())
-            ->globalFilters()
-            ->orderBy('order_no', 'asc')
-            ->first();
+        // ✅ Step 1: IP restriction check
+        if ($business->enable_ip_check) {
+            $existing_review = ReviewNew::where('business_id', $businessId)
+                ->where('ip_address', $ip_address)
+                ->whereDate('created_at', now()->toDateString())
+                ->globalFilters()
+                ->orderBy('order_no', 'asc')
+                ->first();
 
-        if ($existing_review) {
-            return response([
-                "message" => "You have already submitted a review today from this IP."
-            ], 400);
-        }
-    }
-
-    // ✅ Step 2: Location restriction check
-    if ($business->enable_location_check) {
-        $guest_lat = $request->input('latitude');
-        $guest_lon = $request->input('longitude');
-
-        if (!$guest_lat || !$guest_lon) {
-            return response(["message" => "Location data required for review."], 400);
-        }
-
-        if ($business->latitude && $business->longitude) {
-            $distance = $this->getDistanceMeters($guest_lat, $guest_lon, $business->latitude, $business->longitude);
-            if ($distance > $business->review_distance_limit) {
+            if ($existing_review) {
                 return response([
-                    "message" => "You are too far from the business location to review (limit {$business->review_distance_limit}m)."
+                    "message" => "You have already submitted a review today from this IP."
                 ], 400);
             }
         }
-    }
 
-    $guest = GuestUser::create([
-        'full_name' => $request->guest_full_name,
-        'phone' => $request->guest_phone,
-    ]);
+        // ✅ Step 2: Location restriction check
+        if ($business->enable_location_check) {
+            $guest_lat = $request->input('latitude');
+            $guest_lon = $request->input('longitude');
 
-    $raw_text = $request->input('comment', '');
+            if (!$guest_lat || !$guest_lon) {
+                return response(["message" => "Location data required for review."], 400);
+            }
 
-    // Voice review handling
-    $voiceData = null;
-    if ($request->hasFile('audio')) {
-        $audioPath = $request->file('audio')->store('voice-reviews', 'public');
-        $audioUrl = Storage::url($audioPath);
-        $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
+            if ($business->latitude && $business->longitude) {
+                $distance = $this->getDistanceMeters($guest_lat, $guest_lon, $business->latitude, $business->longitude);
+                if ($distance > $business->review_distance_limit) {
+                    return response([
+                        "message" => "You are too far from the business location to review (limit {$business->review_distance_limit}m)."
+                    ], 400);
+                }
+            }
+        }
 
-        $voiceData = [
-            'is_voice_review' => true,
-            'voice_url' => $audioUrl,
-            'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
-            'transcription_metadata' => [
-                'audio_path' => $audioPath,
-                'file_size' => $request->file('audio')->getSize(),
-                'mime_type' => $request->file('audio')->getMimeType(),
-            ]
-        ];
-    }
+        $guest = GuestUser::create([
+            'full_name' => $request->guest_full_name,
+            'phone' => $request->guest_phone,
+        ]);
 
-    // AI Pipeline
-    $moderationResults = $this->aiModeration($raw_text);
+        $raw_text = $request->input('comment', '');
 
-    if ($moderationResults['should_block']) {
-        return response([
-            "message" => $moderationResults['action_message'],
-            "moderation_results" => $moderationResults
-        ], 400);
-    }
+        // Voice review handling
+        $voiceData = null;
+        if ($request->hasFile('audio')) {
+            $audioPath = $request->file('audio')->store('voice-reviews', 'public');
+            $audioUrl = Storage::url($audioPath);
+            $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
 
-    $sentimentScore = $this->analyzeSentiment($raw_text);
-    $topics = $this->extractTopics($raw_text);
+            $voiceData = [
+                'is_voice_review' => true,
+                'voice_url' => $audioUrl,
+                'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
+                'transcription_metadata' => [
+                    'audio_path' => $audioPath,
+                    'file_size' => $request->file('audio')->getSize(),
+                    'mime_type' => $request->file('audio')->getMimeType(),
+                ]
+            ];
+        }
 
-    $staffSuggestions = [];
-    if ($request->staff_id) {
-        $staffSuggestions = $this->analyzeStaffPerformance($raw_text, $request->staff_id, $businessId);
-    }
+        // AI Pipeline
+        $moderationResults = $this->aiModeration($raw_text);
 
-    $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
+        if ($moderationResults['should_block']) {
+            return response([
+                "message" => $moderationResults['action_message'],
+                "moderation_results" => $moderationResults
+            ], 400);
+        }
 
-    $averageRating = collect($request->values)
-        ->pluck('star_id')
-        ->filter()
-        ->avg();
+        $sentimentScore = $this->analyzeSentiment($raw_text);
+        $topics = $this->extractTopics($raw_text);
 
-    $averageRating = $averageRating ? round($averageRating, 1) : null;
+        $staffSuggestions = [];
+        if ($request->staff_id) {
+            $staffSuggestions = $this->analyzeStaffPerformance($raw_text, $request->staff_id, $businessId);
+        }
 
-    $reviewData = [
-        'survey_id' => $request->survey_id,
-        'description' => $request->description,
-        'business_id' => $businessId,
-        'rate' => $averageRating,
-        'guest_id' => $guest->id,
-        'comment' => $raw_text,
-        'raw_text' => $raw_text,
-        'emotion' => $this->detectEmotion($raw_text),
-        'key_phrases' => $this->extractKeyPhrases($raw_text),
-        'sentiment_score' => $sentimentScore,
-        'topics' => $topics,
-        'moderation_results' => $moderationResults,
-        'ai_suggestions' => $aiSuggestions,
-        'staff_suggestions' => $staffSuggestions,
-        "ip_address" => $request->ip(),
-        "is_overall" => $request->is_overall ?? 0,
-        "staff_id" => $request->staff_id ?? null,
-    ];
+        $aiSuggestions = $this->generateRecommendations($raw_text, $topics, $sentimentScore, $businessId);
 
-    // Add voice data if present
-    if ($voiceData) {
-        $reviewData = array_merge($reviewData, $voiceData);
-    }
+        $averageRating = collect($request->values)
+            ->pluck('star_id')
+            ->filter()
+            ->avg();
 
-    $review = ReviewNew::create($reviewData);
-    $this->storeReviewValues($review, $request->values, $business);
+        $averageRating = $averageRating ? round($averageRating, 1) : null;
 
-    $responseData = [
-        "message" => "created successfully",
-        "averageRating" => $averageRating,
-        "review_id" => $review->id,
-        "ai_analysis" => [
+        $reviewData = [
+            'survey_id' => $request->survey_id,
+            'description' => $request->description,
+            'business_id' => $businessId,
+            'rate' => $averageRating,
+            'guest_id' => $guest->id,
+            'comment' => $raw_text,
+            'raw_text' => $raw_text,
+            'emotion' => $this->detectEmotion($raw_text),
+            'key_phrases' => $this->extractKeyPhrases($raw_text),
             'sentiment_score' => $sentimentScore,
             'topics' => $topics,
-            'moderation_action' => $moderationResults['action_taken']
-        ]
-    ];
-
-    // Add voice info if present
-    if ($voiceData) {
-        $responseData['voice_info'] = [
-            'voice_url' => $voiceData['voice_url'],
-            'duration' => $voiceData['voice_duration'],
-            'transcription' => $raw_text
+            'moderation_results' => $moderationResults,
+            'ai_suggestions' => $aiSuggestions,
+            'staff_suggestions' => $staffSuggestions,
+            "ip_address" => $request->ip(),
+            "is_overall" => $request->is_overall ?? 0,
+            "staff_id" => $request->staff_id ?? null,
         ];
-    }
 
-    return response($responseData, 201);
-}
+        // Add voice data if present
+        if ($voiceData) {
+            $reviewData = array_merge($reviewData, $voiceData);
+        }
+
+        $review = ReviewNew::create($reviewData);
+        $this->storeReviewValues($review, $request->values, $business);
+
+        $responseData = [
+            "message" => "created successfully",
+            "averageRating" => $averageRating,
+            "review_id" => $review->id,
+            "ai_analysis" => [
+                'sentiment_score' => $sentimentScore,
+                'topics' => $topics,
+                'moderation_action' => $moderationResults['action_taken']
+            ]
+        ];
+
+        // Add voice info if present
+        if ($voiceData) {
+            $responseData['voice_info'] = [
+                'voice_url' => $voiceData['voice_url'],
+                'duration' => $voiceData['voice_duration'],
+                'transcription' => $raw_text
+            ];
+        }
+
+        return response($responseData, 201);
+    }
 // ##################################################
 // New AI Pipeline Methods
 // ##################################################
