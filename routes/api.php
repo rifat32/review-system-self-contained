@@ -139,7 +139,7 @@ Route::post('/v1.0/voice/transcribe', [ReviewNewController::class, "transcribeVo
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 Route::middleware(['auth:api'])->group(function () {
 
-    Route::get('/v1.0/review-new/{businessId}', [ReviewNewController::class, "createReview"]);
+    Route::post('/v1.0/review-new/{businessId}', [ReviewNewController::class, "createReview"]);
     Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
 
     // #################
