@@ -87,7 +87,7 @@ class BusinessService
             'Name' => $payloadData['business_name'],
             'Address' => $payloadData['business_address'],
             'PostCode' => $payloadData['business_postcode'],
-          
+
             'EmailAddress' => $payloadData['business_EmailAddress'] ?? '',
             'GoogleMapApi' => $payloadData['business_GoogleMapApi'] ?? '',
             'homeText' => $payloadData['business_homeText'] ?? '',
@@ -112,6 +112,18 @@ class BusinessService
             'Is_guest_user' => $payloadData['Is_guest_user'] ?? false,
             'is_review_silder' => $payloadData['is_review_silder'] ?? false,
             'review_only' => $payloadData['review_only'] ?? true,
+            'Is_guest_user' => true,
+            'guest_user_review_report' => true,
+            'is_guest_user_overall_review' => true,
+            'is_guest_user_survey' => true,
+            'is_registered_user_overall_review' => true,
+            'is_registered_user_survey' => true,
+            'is_guest_user_show_stuffs' => true,
+            'is_guest_user_show_stuff_image' => true,
+            'is_guest_user_show_stuff_name' => true,
+            'is_registered_user_show_stuffs' => true,
+            'is_registered_user_show_stuff_image' => true,
+            'is_registered_user_show_stuff_name' => true,
         ]);
     }
 
