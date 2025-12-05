@@ -30,6 +30,165 @@ class ReviewNewController extends Controller
 {
 
 
+    // ##################################################
+// Transcribe Voice File to Text
+// ##################################################
+
+/**
+ * @OA\Post(
+ *      path="/v1.0/voice/transcribe",
+ *      operationId="transcribeVoice",
+ *      tags={"voice"},
+ *      security={{"bearerAuth": {}}},
+ *      summary="Transcribe voice file to text",
+ *      description="Upload a voice file and get transcribed text using AI speech recognition",
+ *      @OA\RequestBody(
+ *          required=true,
+ *          @OA\MediaType(
+ *              mediaType="multipart/form-data",
+ *              @OA\Schema(
+ *                  required={"audio"},
+ *                  @OA\Property(
+ *                      property="audio",
+ *                      type="string",
+ *                      format="binary",
+ *                      description="Audio file to transcribe (mp3, wav, m4a, ogg)"
+ *                  ),
+ *                  @OA\Property(
+ *                      property="language",
+ *                      type="string",
+ *                      description="Language code for transcription (optional, defaults to auto-detect)",
+ *                      example="en"
+ *                  ),
+ *                  @OA\Property(
+ *                      property="task",
+ *                      type="string",
+ *                      description="Task type: transcribe or translate",
+ *                      enum={"transcribe", "translate"},
+ *                      example="transcribe"
+ *                  )
+ *              )
+ *          )
+ *      ),
+ *      @OA\Response(
+ *          response=200,
+ *          description="Successful transcription",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="success", type="boolean", example=true),
+ *              @OA\Property(property="message", type="string", example="Transcription completed successfully"),
+ *              @OA\Property(
+ *                  property="data",
+ *                  type="object",
+ *                  @OA\Property(property="text", type="string", example="This is the transcribed text from the audio file."),
+ *                  @OA\Property(property="language", type="string", example="en"),
+ *                  @OA\Property(property="duration", type="number", example=12.5),
+ *                  @OA\Property(property="file_size", type="integer", example=102400),
+ *                  @OA\Property(property="mime_type", type="string", example="audio/mpeg")
+ *              )
+ *          )
+ *      ),
+ *      @OA\Response(
+ *          response=400,
+ *          description="Bad Request",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="success", type="boolean", example=false),
+ *              @OA\Property(property="message", type="string", example="Invalid audio file or file too large")
+ *          )
+ *      ),
+ *      @OA\Response(
+ *          response=422,
+ *          description="Unprocessable Entity",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="success", type="boolean", example=false),
+ *              @OA\Property(property="message", type="string", example="Failed to process audio file")
+ *          )
+ *      ),
+ *      @OA\Response(
+ *          response=500,
+ *          description="Internal Server Error",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="success", type="boolean", example=false),
+ *              @OA\Property(property="message", type="string", example="Transcription service unavailable")
+ *          )
+ *      )
+ * )
+ */
+public function transcribeVoice(Request $request)
+{
+    try {
+        // Validate the request
+        $request->validate([
+            'audio' => 'required|file|mimes:mp3,wav,m4a,ogg,mp4,flac,aac|max:51200', // 50MB max
+            'language' => 'nullable|string|max:10',
+            'task' => 'nullable|in:transcribe,translate'
+        ]);
+
+        $audioFile = $request->file('audio');
+        $language = $request->input('language', 'en');
+        $task = $request->input('task', 'transcribe');
+
+        // Get audio file info
+        $fileSize = $audioFile->getSize();
+        $mimeType = $audioFile->getMimeType();
+
+        // Get audio duration
+        $duration = $this->getAudioDuration($audioFile->getRealPath());
+
+        // Transcribe the audio using existing method
+        $transcribedText = $this->transcribeAudio($audioFile->getRealPath());
+
+        // If transcription is empty, try alternative method
+        if (empty($transcribedText)) {
+            $transcribedText = $this->fallbackTranscribeAudio($audioFile);
+        }
+
+        // If still empty, return error
+        if (empty($transcribedText)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Could not transcribe audio. Please try again with a clearer audio file.',
+                'data' => [
+                    'detected' => false,
+                    'duration' => $duration,
+                    'file_info' => [
+                        'size' => $fileSize,
+                        'type' => $mimeType
+                    ]
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transcription completed successfully',
+            'data' => [
+                'text' => $transcribedText,
+                'language' => $language,
+                'duration' => $duration,
+                'file_size' => $fileSize,
+                'mime_type' => $mimeType,
+                'task' => $task,
+                'word_count' => str_word_count($transcribedText)
+            ]
+        ], 200);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation error',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Exception $e) {
+        \Log::error('Transcription failed: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to transcribe audio file. Please try again.',
+            'error' => env('APP_DEBUG') ? $e->getMessage() : null
+        ], 500);
+    }
+}
+
 
 // ##################################################
 // Get Overall Business Dashboard Data
@@ -178,7 +337,7 @@ class ReviewNewController extends Controller
 
         $validated = $request->validate([
             'enable_detailed_survey' => 'boolean',
-            'detailed_survey_threshold' => 'integer|min:1|max:5',
+
             'export_settings' => 'json'
         ]);
 
@@ -190,7 +349,7 @@ class ReviewNewController extends Controller
             'data' => $business->only([
                 'id',
                 'enable_detailed_survey',
-                'detailed_survey_threshold',
+
                 'export_settings'
             ])
         ], 200);

@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::table('businesses', function (Blueprint $table) {
             $table->boolean('enable_detailed_survey')->default(false)->after('review_distance_limit');
-            $table->integer('detailed_survey_threshold')->default(4)->after('enable_detailed_survey');
-            $table->json('export_settings')->nullable()->after('detailed_survey_threshold');
+
+            $table->json('export_settings')->nullable()->after('enable_detailed_survey');
         });
     }
 
@@ -20,7 +20,6 @@ return new class extends Migration
         Schema::table('businesses', function (Blueprint $table) {
             $table->dropColumn([
                 'enable_detailed_survey',
-                'detailed_survey_threshold',
                 'export_settings',
             ]);
         });

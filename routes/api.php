@@ -126,8 +126,12 @@ Route::get('/review-new/get/questions-all-report/guest/unauthorized', [ReviewNew
 
 
 
-Route::post('/review-new-guest/{businessId}', [ReviewNewController::class, "storeReviewByGuest"]);
+Route::post('/v1.0/review-new-guest/{businessId}', [ReviewNewController::class, "storeReviewByGuest"]);
+
 Route::post('/v1.0/reviews/overall/ordering', [ReviewNewController::class, "orderOverallReviews"]);
+
+Route::post('/v1.0/voice/transcribe', [ReviewNewController::class, "transcribeVoice"]);
+
 
 
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
