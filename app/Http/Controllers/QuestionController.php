@@ -8,6 +8,7 @@ use App\Models\Business;
 use App\Models\Question;
 use App\Models\Survey;
 use App\Models\SurveyQuestion;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ class QuestionController extends Controller
     // ##################################################
 
 
-    
+
     /**
      * Get all review questions
      *
@@ -902,5 +903,95 @@ class QuestionController extends Controller
             'message' => 'Question active state updated successfully.',
             'data' => $question
         ], 200);
+    }
+
+    /**
+     * @OA\Patch(
+     *      path="/v1.0/questions/ordering",
+     *      operationId="displayQuestionOrder",
+     *      tags={"review.question_management"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Order questions by specific sequence",
+     *      description="Update the display order of questions using order numbers",
+     *
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"questions"},
+     *              @OA\Property(
+     *                  property="questions",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      type="object",
+     *                      required={"id", "order_no"},
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="order_no", type="integer", example=1)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Order updated successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Question updated successfully"),
+     *              @OA\Property(property="ok", type="boolean", example=true)
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *          @OA\JsonContent()
+     *      )
+     * )
+     */
+    public function displayQuestionOrder(Request $request)
+    {
+        try {
+            return DB::transaction(function () use ($request) {
+
+                // if (!$request->user()->hasPermissionTo('review_update')) {
+                //     return response()->json([
+                //         "message" => "You can not perform this action"
+                //     ], 403);
+                // }
+
+                $payload_request = $request->validate([
+                    'questions' => 'required|array',
+                    'questions.*.id' => 'required|integer|exists:questions,id',
+                    'questions.*.order_no' => 'required|integer|min:0'
+                ]);
+
+                foreach ($payload_request['questions'] as $question) {
+                    $item = Question::find($question['id']);
+                    $item->update([
+                        'order_no' => $question['order_no']
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Question updated successfully',
+                    'data' => true
+                ], 200);
+            });
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Error updating order',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

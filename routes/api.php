@@ -148,10 +148,12 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/questions', [QuestionController::class, 'getAllQuestions']);
     Route::get('/v1.0/questions/{id}', [QuestionController::class, 'questionById']);
     Route::post('/v1.0/questions', [QuestionController::class, 'createQuestion']);
-    Route::patch('/v1.0/questions/{id}', [QuestionController::class, 'updatedQuestion']);
     Route::delete('/v1.0/questions/{ids}', [QuestionController::class, 'deleteQuestion']);
+
+    Route::patch('/v1.0/questions/ordering', [QuestionController::class, 'displayQuestionOrder']);
     Route::patch('/v1.0/questions/set-overall', [QuestionController::class, 'setOverallQuestions']);
     Route::patch('/v1.0/questions/toggle', [QuestionController::class, 'toggleQuestionActivation']);
+    Route::patch('/v1.0/questions/{id}', [QuestionController::class, 'updatedQuestion'])->whereNumber('id');
 
     // Leaflet CRUD
     Route::post('/v1.0/leaflet/create',        [LeafletController::class, 'insertLeaflet']);
