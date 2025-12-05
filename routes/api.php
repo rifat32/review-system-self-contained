@@ -312,15 +312,15 @@ Route::middleware(['auth:api'])->group(function () {
     // review new  Routes
     // #################
 
-    Route::get('/v1.0/review-new/values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValues"]);
+    Route::get('/v1.0/review-new/values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValue"]);
 
     Route::post('/review-new/reviewvalue/{businessId}/{rate}', [ReviewNewController::class, "store"]);
     Route::get('/review-new/getvalues/{businessId}', [ReviewNewController::class, "getreviewvalueById"]);
-    Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [ReviewNewController::class, "getAverage"]);
+    Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [ReviewNewController::class, "getAverages"]);
     Route::post('/review-new/addupdatetags/{businessId}', [ReviewNewController::class, "store2"]);
 
-    Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReview"]);
-    Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "getReviewByBusinessId"]);
+    Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReviews"]);
+    Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "reviewByBusinessId"]);
     Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);
 
 
@@ -503,7 +503,7 @@ Route::get('/v1.0/client/staffs', [StaffController::class, 'getClientAllStaffs']
 Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetailsClient"]);
 
 
-Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReview"]);
+// Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReviews"]);
 Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "getReviewByBusinessId"]);
 Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);
 

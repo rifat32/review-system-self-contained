@@ -40,6 +40,8 @@ Route::get('/swagger-refresh', function () {
     Artisan::call('cache:clear');
     Artisan::call('route:clear');
     Artisan::call('view:clear');
+    Artisan::call('optimize:clear');
+
     // Force regenerate (clears old cache)
     Artisan::call('l5-swagger:generate');
     return "swagger generated";
