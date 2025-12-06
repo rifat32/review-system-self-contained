@@ -2019,10 +2019,18 @@ private function storeReviewValues($review, $values, $business)
     // ##################################################
     // AI Helpers
     // ##################################################
-    private function transcribeAudio($filePath)
-    {
+  private function transcribeAudio($filePath)
+{
+    try {
         $api_key = env('HF_API_KEY');
         $audio = file_get_contents($filePath);
+
+        // Log file basic info
+        \Log::info("HF Transcription Started", [
+            'file_path' => $filePath,
+            'file_size' => strlen($audio),
+            'mime' => mime_content_type($filePath)
+        ]);
 
         $ch = curl_init("https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3");
         curl_setopt_array($ch, [
@@ -2036,11 +2044,37 @@ private function storeReviewValues($review, $values, $business)
         ]);
 
         $result = curl_exec($ch);
+        $error  = curl_error($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        // Log full CURL response
+        \Log::info("HF Whisper API Response", [
+            'http_status' => $status,
+            'curl_error'  => $error,
+            'raw_result'  => $result
+        ]);
+
+        if ($error) {
+            \Log::error("HF Whisper CURL Error: $error");
+            return '';
+        }
+
         $data = json_decode($result, true);
+
+        // Log decoded output
+        \Log::info("HF Whisper Decoded Response", [
+            'decoded' => $data
+        ]);
+
         return $data['text'] ?? '';
+
+    } catch (\Exception $e) {
+        \Log::error("transcribeAudio() exception: " . $e->getMessage());
+        return '';
     }
+}
+
 
     private function detectEmotion($text)
     {

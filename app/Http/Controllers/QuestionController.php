@@ -20,7 +20,7 @@ class QuestionController extends Controller
     // ##################################################
 
 
-    
+
     /**
      * Get all review questions
      *
@@ -166,8 +166,7 @@ class QuestionController extends Controller
             }
 
             $query->where(function ($q) use ($businessId) {
-                $q->where('business_id', $businessId)
-                    ->orWhere('is_default', true);
+                $q->where('business_id', $businessId);
             });
         }
 
