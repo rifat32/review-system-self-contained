@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Laravel\Passport\Passport;
 
 
 class SetupController extends Controller
@@ -36,14 +37,25 @@ class SetupController extends Controller
             // Clear caches
             Artisan::call('config:clear');
             Artisan::call('cache:clear');
-            Artisan::call('route:clear');
-            Artisan::call('view:clear');
 
-            // Generate Passport keys manually to avoid STDIN issues
-            Artisan::call('passport:keys', ['--force' => true]);
+            // Run migrations first
+            Artisan::call('migrate', [
+                '--path' => 'vendor/laravel/passport/database/migrations',
+                '--force' => true
+            ]);
 
-            // Run Passport migrations if needed
-            Artisan::call('migrate', ['--path' => 'vendor/laravel/passport/database/migrations']);
+            // Generate keys programmatically
+            $keyPath = storage_path();
+
+            if (!file_exists($keyPath . '/oauth-private.key')) {
+                Artisan::call('passport:keys', ['--force' => true]);
+            }
+
+            // Install Passport
+            Artisan::call('passport:install', [
+                '--force' => true,
+                '--no-interaction' => true
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -56,7 +68,6 @@ class SetupController extends Controller
             ], 500);
         }
     }
-
 
     public function setup()
     {
