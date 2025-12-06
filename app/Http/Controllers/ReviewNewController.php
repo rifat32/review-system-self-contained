@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GuestUser;
 use App\Models\Question;
-use App\Models\QusetionStar;
+use App\Models\QuestionStar;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\ReviewValue;
@@ -178,7 +178,6 @@ class ReviewNewController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Transcription failed: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -3581,7 +3580,7 @@ class ReviewNewController extends Controller
      * @OA\Post(
      *      path="/review-new/create/tags",
      *      operationId="storeTag",
-     *      tags={"review.setting.tag"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -3662,7 +3661,7 @@ class ReviewNewController extends Controller
      * @OA\Post(
      *      path="/v1.0/review-new/create/tags/multiple/{businessId}",
      *      operationId="storeTagMultiple",
-     *      tags={"review.setting.tag"},
+     *      tags={"z.unused"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -3851,8 +3850,8 @@ class ReviewNewController extends Controller
      *
      * @OA\Put(
      *      path="/review-new/update/tags",
-     *      operationId="updateTag",
-     *      tags={"review.setting.tag"},
+     *      operationId="updatedTag",
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -3900,7 +3899,7 @@ class ReviewNewController extends Controller
      *      )
      *     )
      */
-    public function updateTag(Request $request)
+    public function updatedTag(Request $request)
     {
 
         $question = [
@@ -4018,8 +4017,8 @@ class ReviewNewController extends Controller
      *
      * @OA\Get(
      *      path="/review-new/get/tags/{id}",
-     *      operationId="getTagById",
-     *      tags={"review.setting.tag"},
+     *      operationId="TagById",
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -4062,7 +4061,7 @@ class ReviewNewController extends Controller
      *      )
      *     )
      */
-    public function   getTagById($id, Request $request)
+    public function   TagById($id, Request $request)
     {
         $questions =    Tag::where(["id" => $id])
             ->first();
@@ -4078,7 +4077,7 @@ class ReviewNewController extends Controller
      * @OA\Get(
      *      path="/review-new/get/tags/{id}/{reataurantId}",
      *      operationId="getTagById2",
-     *      tags={"review.setting.tag"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -4148,7 +4147,7 @@ class ReviewNewController extends Controller
      * @OA\Delete(
      *      path="/review-new/delete/tags/{id}",
      *      operationId="deleteTagById",
-     *      tags={"review.setting.tag"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -4592,7 +4591,7 @@ class ReviewNewController extends Controller
             foreach ($request->stars as $requestStar) {
 
 
-                QusetionStar::create([
+                QuestionStar::create([
                     "question_id" => $question_id,
                     "star_id" => $requestStar["star_id"]
                 ]);
@@ -4696,7 +4695,7 @@ class ReviewNewController extends Controller
             $starIds = collect($request->stars)->pluck('star_id')->toArray();
 
 
-            QusetionStar::where([
+            QuestionStar::where([
                 'question_id' => $question_id,
             ])
                 ->whereNotIn('star_id', $starIds)
@@ -4706,11 +4705,11 @@ class ReviewNewController extends Controller
 
             foreach ($request->stars as $requestStar) {
 
-                if (!(QusetionStar::where([
+                if (!(QuestionStar::where([
                     "question_id" => $question_id,
                     "star_id" => $requestStar["star_id"]
                 ])->exists())) {
-                    QusetionStar::create([
+                    QuestionStar::create([
                         "question_id" => $question_id,
                         "star_id" => $requestStar["star_id"]
                     ]);
@@ -6679,7 +6678,8 @@ class ReviewNewController extends Controller
     {
         // with
         $reviewValue = ReviewNew::with([
-            "value",
+            "value.question",
+            "value.tag",
             "user",
             "guest_user",
             "survey"

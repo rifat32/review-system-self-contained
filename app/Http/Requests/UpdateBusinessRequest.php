@@ -48,7 +48,7 @@ class UpdateBusinessRequest extends FormRequest
             'AdditionalInformation' => 'nullable|string',
             'GoogleMapApi' => 'nullable|string',
             'Is_guest_user' => 'nullable|boolean',
-            'is_review_silder' => 'nullable|boolean',
+            'is_review_slider' => 'nullable|boolean',
             'review_only' => 'nullable|boolean',
             'header_image' => 'nullable|string',
             'primary_color' => 'nullable|string',

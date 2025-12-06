@@ -3,20 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Utils\ErrorUtil;
-use App\Models\User;
 use App\Models\ActivityLog;
-use App\Models\Question;
-use App\Models\ReviewNew;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 
-use function PHPSTORM_META\map;
 
 class SetupController extends Controller
 {
@@ -67,41 +61,36 @@ class SetupController extends Controller
     public function setup()
     {
 
-        Artisan::call('optimize:clear');
+        // Clear caches
+        Artisan::call('config:clear');
+        Artisan::call('cache:clear');
+        Artisan::call('route:clear');
+        Artisan::call('view:clear');
+
+        // Run migrations
         Artisan::call('migrate:fresh');
+        // Run passport migrations
         Artisan::call('migrate', ['--path' => 'vendor/laravel/passport/database/migrations']);
-        Artisan::call('passport:install');
+
+        // Install passport
+        // Generate Passport keys manually to avoid STDIN issues
+        Artisan::call('passport:keys', ['--force' => true]);
+
+        // Run Passport migrations if needed
+        Artisan::call('migrate', ['--path' => 'vendor/laravel/passport/database/migrations']);
+
+        // Generate Swagger Documentation
         Artisan::call('l5-swagger:generate');
 
-        $superadmin_data = [
-            'email' => "asjadtariq@gmail.com",
-            'password' => '12345678@We',
-            'first_Name' => 'Asjaz',
-            'phone' => 'nullable',
-            'last_Name' => 'Tariq',
-            "type" => "superadmin",
-        ];
+        // Seed Super Admin
+        Artisan::call('db:seed', ['--class' => 'SuperAdminSeeder']);
 
-        $superadmin_data['password'] = Hash::make($superadmin_data['password']);
-        $superadmin_data['remember_token'] = Str::random(10);
-        $superadmin_data['email_verified_at']  = now();
-
-        $admin_exists = User::where([
-            "email" => $superadmin_data["email"]
-        ])
-            ->exists();
-
-        if (!$admin_exists) {
-            $user =  User::create($superadmin_data);
-            $token = $user->createToken('Laravel Password Grant Client')->accessToken;
-            $data["user"] = $user;
-            if (!Role::where(['name' => 'superadmin'])->exists()) {
-                Role::create(['name' => 'superadmin']);
-            }
-            $user->assignRole('superadmin');
-        }
-
-        return "ok";
+        // Setup Roles and Permissions
+        Artisan::call('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Setup Complete'
+        ]);
     }
 
     public function roleRefresh(Request $request)
@@ -109,18 +98,32 @@ class SetupController extends Controller
 
         $this->storeActivity($request, "DUMMY activity", "DUMMY description");
 
-        $this->roleRefreshFunc();
+        // Run the roles and permissions seeder
+        Artisan::call('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
 
-
-        return "You are done with setup";
+        // RESPONSE
+        return response()->json([
+            'success' => true,
+            'message' => 'Roles and Permissions refreshed successfully'
+        ], 200);
     }
 
+    // MIGRATE
     public function migrate(Request $request)
     {
         $this->storeActivity($request, "DUMMY activity", "DUMMY description");
+
+        // Run migrations
         Artisan::call('check:migrate');
-        return "migrated";
+
+        // RESPONSE
+        return response()->json([
+            'success' => true,
+            'message' => 'Migrations applied successfully'
+        ], 200);
     }
+
+    // ROLLBACK MIGRATE
     public function rollbackMigration(Request $request)
     {
         try {
@@ -143,14 +146,16 @@ class SetupController extends Controller
             ], 500);
         }
     }
+
+    // CLEAR CACHE
     public function clearCache(Request $request)
     {
 
+        Artisan::call('cache:clear');
         Artisan::call('optimize:clear');
         Artisan::call('route:clear');
         Artisan::call('config:clear');
         Artisan::call('view:clear');
-        Artisan::call('cache:clear');
 
         return response()->json([
             'success' => true,
@@ -220,7 +225,7 @@ class SetupController extends Controller
             // Determine permissions to remove
             $permissionsToRemove = array_diff($currentPermissions, $permissions);
 
-            // Deassign permissions not included in the configuration
+            // unassign permissions not included in the configuration
             if (!empty($permissionsToRemove)) {
                 foreach ($permissionsToRemove as $permission) {
                     $role->revokePermissionTo($permission);

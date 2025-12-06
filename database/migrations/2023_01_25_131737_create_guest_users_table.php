@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateGuestUsersTable extends Migration
+return new class extends Migration
 {
     /**
      * Run the migrations.
@@ -15,8 +15,12 @@ class CreateGuestUsersTable extends Migration
     {
         Schema::create('guest_users', function (Blueprint $table) {
             $table->id();
-            $table->string("full_name");
-            $table->string("phone")->nullable();
+            $table->string('full_name')->nullable()->default('anonymous');
+            $table->string('phone')->nullable();
+
+            // Added field from alteration
+            $table->string('email')->nullable();
+
             $table->timestamps();
         });
     }
@@ -30,4 +34,4 @@ class CreateGuestUsersTable extends Migration
     {
         Schema::dropIfExists('guest_users');
     }
-}
+};

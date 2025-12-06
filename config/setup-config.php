@@ -13,35 +13,30 @@ return [
             "role" => "superadmin",
             "permissions" => $superadminPermissions['permissions'],
         ],
-        [
-            "role" => "reseller",
-            "permissions" => $resellerPermissions['permissions'],
-        ],
+        // [
+        //     "role" => "reseller",
+        //     "permissions" => $resellerPermissions['permissions'],
+        // ],
         [
             "role" => "business_owner",
             "permissions" => $businessOwnerPermissions['permissions'],
         ],
-        [
-            "role" => "business_admin",
-            "permissions" => $businessAdminPermissions['permissions'],
-        ],
-        [
-            "role" => "business_manager",
-            "permissions" => $businessManagerPermissions['permissions'],
-        ],
-        [
-            "role" => "business_employee",
-            "permissions" => $businessEmployeePermissions['permissions'],
-        ],
+        // [
+        //     "role" => "business_admin",
+        //     "permissions" => $businessAdminPermissions['permissions'],
+        // ],
+        // [
+        //     "role" => "business_manager",
+        //     "permissions" => $businessManagerPermissions['permissions'],
+        // ],
+        // [
+        //     "role" => "business_employee",
+        //     "permissions" => $businessEmployeePermissions['permissions'],
+        // ],
     ],
     "roles" => [
         "superadmin",
-        'reseller',
         "business_owner",
-        "business_admin",
-        "business_manager",
-        "business_employee",
-
     ],
     "permissions" => [
 
@@ -378,9 +373,7 @@ return [
 
     ],
 
-    "permissions_titles" => [
-
-    ],
+    "permissions_titles" => [],
     "unchangeable_roles" => [
         // "superadmin",
         // "reseller"
@@ -1509,7 +1502,7 @@ return [
         ]
 
 
-        ],
+    ],
 
     "system_modules" => [
         "task_management",

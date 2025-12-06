@@ -9,7 +9,7 @@ use App\Http\Requests\PDFUploadRequest;
 use App\Mail\NotifyMail;
 use App\Models\BusinessDay;
 use App\Models\Question;
-use App\Models\QusetionStar;
+use App\Models\QuestionStar;
 use App\Models\Business;
 use App\Models\StarTag;
 use App\Models\Tag;
@@ -213,7 +213,7 @@ class OwnerController extends Controller
      *            @OA\Property(property="business_Layout", type="string", example="modern"),
      *            @OA\Property(property="review_type", type="string", enum={"emoji", "star"}, example="emoji"),
      *            @OA\Property(property="Is_guest_user", type="boolean", example=false),
-     *            @OA\Property(property="is_review_silder", type="boolean", example=false),
+     *            @OA\Property(property="is_review_slider", type="boolean", example=false),
      *            @OA\Property(property="review_only", type="boolean", example=true),
      *            @OA\Property(property="header_image", type="string", example="/header_image/default.png"),
      *            @OA\Property(property="primary_color", type="string", example="#FF0000"),

@@ -28,12 +28,13 @@ use Illuminate\Support\Facades\Hash;
 |
 */
 
+// Welcome Route
 Route::get('/', function () {
     return view('welcome');
 });
 
 
-
+// SWAGGER REFRESH
 Route::get('/swagger-refresh', function () {
     // Clear caches
     Artisan::call('config:clear');
@@ -47,24 +48,26 @@ Route::get('/swagger-refresh', function () {
     return "swagger generated";
 });
 
-
+// SETUP PASSPORT
 Route::get('/setup-passport', [SetupController::class, "setupPassport"])->name('setup.passport');
 
-
+// GENERATE PDF REPORTS
 Route::get('/pdf', function () {
     Artisan::call('guest_user_review_report:generate');
     Artisan::call('user_review_report:generate');
     return "pdf generated";
 });
 
-
+// MIGRATION
 Route::get('/migrate', [SetupController::class, "migrate"]);
 Route::get('/rollback-migrate', [SetupController::class, 'rollbackMigration'])->name('rollbackMigration');
 
-
+// CLEAR CACHE
 Route::get('/clear-cache', [SetupController::class, "clearCache"]);
+// ONE TIME DB OPERATION
 Route::get('/one-time-db-operation', [SetupController::class, "oneTimeDBOperation"]);
 
+// CHANGE PASSWORD FOR TEST USER
 Route::get('/change-password', function () {
     $user = User::where('email', 'test.tags@yopmail.com')->firstOrFail();
     $user->password = Hash::make('12345678');
@@ -73,22 +76,27 @@ Route::get('/change-password', function () {
 });
 
 
-
+// SWAGGER LOGIN
 Route::get("/swagger-login", [SwaggerLoginController::class, "login"])->name("login.view");
 Route::post("/swagger-login", [SwaggerLoginController::class, "passUser"]);
 
 
-
+// SETUP PROJECT
 Route::get("/setup", [SetupController::class, "setup"]);
 
-Route::get('/roleRefresh', [SetUpController::class, "roleRefresh"])->name("roleRefresh");
-Route::get('/activity-log', [SetUpController::class, "getActivityLogs"])->name("activity-log");
+// ROLE AND PERMISSION REFRESH
+Route::get('/roleRefresh', [SetupController::class, "roleRefresh"])->name("roleRefresh");
+
+// GET Activity Log
+Route::get('/activity-log', [SetupController::class, "getActivityLogs"])->name("activity-log");
+
+// Custom API
 Route::get('/custom-test-api', function () {
     return view("test_api_custom");
 })->name("custom_api_test");
 
 
-
+// EMAIL VERIFICATION LINK
 Route::get("/activate/{token}", function (Request $request, $token) {
     $user = User::where([
         "email_verify_token" => $token,
