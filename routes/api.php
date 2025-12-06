@@ -523,7 +523,7 @@ Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNe
 // #################
 // question  Routes
 // #################
-Route::post('/review-new/create/questions', [ReviewNewController::class, "storeQuestion"]);
+
 Route::put('/review-new/update/questions', [ReviewNewController::class, "updateQuestion"]);
 
 
@@ -563,7 +563,7 @@ Route::post('/review-new/create/tags', [ReviewNewController::class, "storeTag"])
 // Route::post('/v1.0/review-new/create/tags/multiple/{businessId}', [ReviewNewController::class, "storeTagMultiple"]);
 
 // Route::put('/review-new/update/tags', [ReviewNewController::class, "updateTag"]);
-Route::get('/review-new/get/tags', [ReviewNewController::class, "getTag"]);
+
 Route::get('/review-new/get/tags/{id}', [ReviewNewController::class, "getTagById"]);
 Route::get('/review-new/get/tags/{id}/{reataurantId}', [ReviewNewController::class, "getTagById2"]);
 Route::delete('/review-new/delete/tags/{id}', [ReviewNewController::class, "deleteTagById"]);

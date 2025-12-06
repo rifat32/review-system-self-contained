@@ -39,7 +39,7 @@ class StoreTagMultipleRequest extends FormRequest
             'businessId' => [
                 'required',
                 'integer',
-                new ValidBusinessOwner($businessId, true) // Check ownership
+                new ValidBusinessOwner(auth()->user()->id, true) // Check ownership
             ]
         ];
     }

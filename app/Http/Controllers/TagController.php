@@ -180,6 +180,7 @@ class TagController extends Controller
 
         $tags = Tag::query()
             ->when($request->filled('business_id'), fn($q) => $q->where('business_id', $request->integer('business_id')))
+             ->orWhere(["business_id" => NULL, "is_default" => 1])
             ->latest()
             ->get();
 
@@ -262,7 +263,7 @@ class TagController extends Controller
      *     required=true,
      *     @OA\JsonContent(
      *       @OA\Property(property="tag", type="string", maxLength=255, example="Updated tag"),
-     *       @OA\Property(property="business_id", type="integer", nullable=true, example=1)
+     *       @OA\Property(property="is_active", type="integer", nullable=true, example=1)
      *     )
      *   ),
      *
@@ -305,13 +306,10 @@ class TagController extends Controller
 
         $data = $request->validate([
             'tag' => 'sometimes|required|string|max:255',
-            'business_id' => ['sometimes', 'nullable', 'integer', new ValidBusiness()],
+            "is_active" => "required|boolean"
         ]);
 
-        // If superadmin sets business_id null, mark as default
-        if ($request->user()->hasRole('superadmin') && array_key_exists('business_id', $data) && empty($data['business_id'])) {
-            $data['is_default'] = true;
-        }
+
 
         $tag->update($data);
 
