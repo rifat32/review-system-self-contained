@@ -24,7 +24,9 @@ use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use getID3;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ReviewNewController extends Controller
 {
@@ -138,9 +140,9 @@ class ReviewNewController extends Controller
             $transcribedText = $this->transcribeAudio($audioFile->getRealPath());
 
             // If transcription is empty, try alternative method
-            if (empty($transcribedText)) {
-                $transcribedText = $this->fallbackTranscribeAudio($audioFile);
-            }
+            // if (empty($transcribedText)) {
+            //     $transcribedText = $this->fallbackTranscribeAudio($audioFile);
+            // }
 
             // If still empty, return error
             if (empty($transcribedText)) {
@@ -171,7 +173,7 @@ class ReviewNewController extends Controller
                     'word_count' => str_word_count($transcribedText)
                 ]
             ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -396,7 +398,7 @@ class ReviewNewController extends Controller
     private function getAudioDuration($filePath)
     {
         try {
-            $getID3 = new \getID3();
+            $getID3 = new getID3();
             $fileInfo = $getID3->analyze($filePath);
             return $fileInfo['playtime_seconds'] ?? null;
         } catch (\Exception $e) {
@@ -2840,7 +2842,7 @@ class ReviewNewController extends Controller
      * @OA\Get(
      *      path="/review-new/get/questions-all/customer",
      *      operationId="getQuestionAllUnauthorized",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
 
      *      summary="This method is to get all question without pagination",
      *      description="This method is to get all question without pagination",

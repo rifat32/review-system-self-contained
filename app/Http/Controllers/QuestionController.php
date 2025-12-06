@@ -468,9 +468,18 @@ class QuestionController extends Controller
         }
 
         $query = Question::with(['question_stars.star.star_tags.tag'])
-            ->where([
-                'business_id' => $business_id,
-            ])
+            ->when($request->filled('business_id'), function ($q) use ($request, $business_id) {
+                $q->where(function ($q2) use ($business_id) {
+                    $q2->where('questions.business_id', $business_id)
+                        ->orWhere('questions.is_default', 1);
+                });
+            }, function ($q) use ($business_id) {
+                // Default to the provided business_id if none in request
+                $q->where(function ($q2) use ($business_id) {
+                    $q2->where('questions.business_id', $business_id)
+                        ->orWhere('questions.is_default', 1);
+                });
+            })
             ->when($request->filled('is_active'), function ($q) use ($request) {
                 $q->where('questions.is_active', $request->input('is_active'));
             })
