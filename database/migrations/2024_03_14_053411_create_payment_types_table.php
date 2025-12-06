@@ -14,7 +14,7 @@ class CreatePaymentTypesTable extends Migration
      */
     public function up()
     {
-        Schema::create('expense_types', function (Blueprint $table) {
+        Schema::create('payment_types', function (Blueprint $table) {
             $table->id();
             $table->string("name");
             $table->text("description");
@@ -24,14 +24,13 @@ class CreatePaymentTypesTable extends Migration
         });
 
 
-if(env("first_setup")) {
-    DB::table("expense_types")->insert([
-        "name" => "cash",
-        "description" => "cash",
-        "is_active" => true
-    ]);
-}
-
+        if (env("first_setup")) {
+            DB::table("payment_types")->insert([
+                "name" => "cash",
+                "description" => "cash",
+                "is_active" => true
+            ]);
+        }
     }
 
     /**
@@ -41,6 +40,6 @@ if(env("first_setup")) {
      */
     public function down()
     {
-        Schema::dropIfExists('expense_types');
+        Schema::dropIfExists('payment_types');
     }
 }

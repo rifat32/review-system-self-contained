@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddEmailToGuestUsersTable extends Migration
+return new class extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,8 @@ class AddEmailToGuestUsersTable extends Migration
      */
     public function up()
     {
-        Schema::table('guest_users', function (Blueprint $table) {
-            $table->string('email')->nullable()->after('phone');
+        Schema::table('review_news', function (Blueprint $table) {
+            $table->foreign('guest_id')->references('id')->on('guest_users')->onDelete('cascade');
         });
     }
 
@@ -25,8 +25,8 @@ class AddEmailToGuestUsersTable extends Migration
      */
     public function down()
     {
-        Schema::table('guest_users', function (Blueprint $table) {
-            $table->dropColumn('email');
+        Schema::table('review_news', function (Blueprint $table) {
+            $table->dropForeign(['guest_id']);
         });
     }
-}
+};

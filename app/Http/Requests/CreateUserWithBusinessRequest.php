@@ -42,7 +42,7 @@ class CreateUserWithBusinessRequest extends FormRequest
 
             // Review settings
             'Is_guest_user' => ['nullable', 'boolean'],
-            'is_review_silder' => ['nullable', 'boolean'],
+            'is_review_slider' => ['nullable', 'boolean'],
             'review_only' => ['nullable', 'boolean'],
             'review_type' => ['nullable', 'string', 'in:emoji,star'],
             'google_map_iframe' => ['nullable', 'string'],

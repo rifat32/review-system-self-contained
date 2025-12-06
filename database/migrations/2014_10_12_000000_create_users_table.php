@@ -4,18 +4,13 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateUsersTable extends Migration
+return new class extends Migration
 {
     /**
      * Run the migrations.
      *
      * @return void
      */
-    /*
-    Owner_id = id
-
-
-    */
     public function up()
     {
         Schema::create('users', function (Blueprint $table) {
@@ -25,23 +20,28 @@ class CreateUsersTable extends Migration
             $table->string('phone')->nullable();
             $table->string('image')->nullable();
             $table->string('resetPasswordToken')->nullable();
-            $table->string('resetPasswordExpires')->nullable();
+            $table->timestamp('resetPasswordExpires')->nullable();
             $table->string('type')->nullable();
             $table->string('pin')->nullable();
             $table->string('post_code')->nullable();
             $table->string('Address')->nullable();
             $table->string('door_no')->nullable();
-
             $table->string('email')->unique();
             $table->string('email_verify_token')->nullable();
-            $table->string('email_verify_token_expires')->nullable();
+            $table->timestamp('email_verify_token_expires')->nullable();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password')->nullable();
-
+            $table->string('password');
             $table->integer('login_attempts')->default(0);
-            $table->dateTime('last_failed_login_attempt_at')->nullable();
-
+            $table->timestamp('last_failed_login_attempt_at')->nullable();
             $table->rememberToken();
+
+            // Added fields from alterations
+            $table->unsignedBigInteger('business_id')->nullable();
+            $table->date('date_of_birth')->nullable();
+            $table->string('job_title')->nullable();
+            $table->date('join_date')->nullable();
+            $table->json('skills')->nullable();
+
             $table->timestamps();
         });
     }
@@ -55,4 +55,4 @@ class CreateUsersTable extends Migration
     {
         Schema::dropIfExists('users');
     }
-}
+};

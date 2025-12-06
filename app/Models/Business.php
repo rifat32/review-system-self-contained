@@ -32,7 +32,7 @@ class Business extends Model
         "show_image",
         'google_map_iframe',
         'Is_guest_user',
-        'is_review_silder',
+        'is_review_slider',
         'review_only',
         "header_image",
         "rating_page_image",

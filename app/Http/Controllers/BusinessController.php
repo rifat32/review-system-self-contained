@@ -639,7 +639,7 @@ class BusinessController extends Controller
      *             @OA\Property(property="google_map_iframe", type="string", format="string", example="test"),
      *
      *             @OA\Property(property="Is_guest_user", type="boolean", format="boolean", example="false"),
-     *             @OA\Property(property="is_review_silder", type="boolean", format="boolean", example="false"),
+     *             @OA\Property(property="is_review_slider", type="boolean", format="boolean", example="false"),
      *
      *             @OA\Property(property="header_image", type="string", format="string", example="/header_image/default.png"),
      *

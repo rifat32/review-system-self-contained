@@ -92,7 +92,7 @@ class Question extends Model
     }
     public function question_stars()
     {
-        return $this->hasMany(QusetionStar::class, 'question_id', 'id');
+        return $this->hasMany(QuestionStar::class, 'question_id', 'id');
     }
 
 

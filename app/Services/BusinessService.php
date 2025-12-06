@@ -110,7 +110,7 @@ class BusinessService
             'google_map_iframe' => $payloadData['google_map_iframe'] ?? '',
             'show_image' => $payloadData['show_image'] ?? '',
             'Is_guest_user' => $payloadData['Is_guest_user'] ?? false,
-            'is_review_silder' => $payloadData['is_review_silder'] ?? false,
+            'is_review_slider' => $payloadData['is_review_slider'] ?? false,
             'review_only' => $payloadData['review_only'] ?? true,
             'Is_guest_user' => true,
             'guest_user_review_report' => true,

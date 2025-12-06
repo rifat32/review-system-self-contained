@@ -8,27 +8,35 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * @return void
      */
-    public function up(): void
+    public function up()
     {
         Schema::table('businesses', function (Blueprint $table) {
-            $table->unsignedBigInteger('guest_survey_id')->nullable();
-            $table->unsignedBigInteger('registered_user_survey_id')->nullable();
             $table->foreign('guest_survey_id')->references('id')->on('surveys')->onDelete('set null');
             $table->foreign('registered_user_survey_id')->references('id')->on('surveys')->onDelete('set null');
+        });
+
+        Schema::table('review_news', function (Blueprint $table) {
+            $table->foreign('survey_id')->references('id')->on('surveys')->onDelete('set null');
         });
     }
 
     /**
      * Reverse the migrations.
+     *
+     * @return void
      */
-    public function down(): void
+    public function down()
     {
         Schema::table('businesses', function (Blueprint $table) {
             $table->dropForeign(['guest_survey_id']);
             $table->dropForeign(['registered_user_survey_id']);
-            $table->dropColumn('guest_survey_id');
-            $table->dropColumn('registered_user_survey_id');
+        });
+
+        Schema::table('review_news', function (Blueprint $table) {
+            $table->dropForeign(['survey_id']);
         });
     }
 };

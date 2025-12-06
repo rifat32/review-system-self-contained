@@ -14,6 +14,7 @@
         "doctrine/dbal": "^3.0",
         "dompdf/dompdf": "^2.0",
         "guzzlehttp/guzzle": "^7.2",
+        "james-heinrich/getid3": "^1.9",
         "laravel/cashier": "^16.0",
         "laravel/framework": "^11.0",
         "laravel/passport": "^13.0",

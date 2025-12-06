@@ -25,6 +25,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SuperAdminReportController;
 use App\Http\Controllers\SurveyController;
+use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
 
 use Illuminate\Http\Request;
@@ -139,7 +140,7 @@ Route::post('/v1.0/voice/transcribe', [ReviewNewController::class, "transcribeVo
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 Route::middleware(['auth:api'])->group(function () {
 
-    Route::get('/v1.0/review-new/{businessId}', [ReviewNewController::class, "createReview"]);
+    Route::post('/v1.0/review-new/{businessId}', [ReviewNewController::class, "createReview"]);
     Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
 
     // #################
@@ -148,10 +149,12 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/questions', [QuestionController::class, 'getAllQuestions']);
     Route::get('/v1.0/questions/{id}', [QuestionController::class, 'questionById']);
     Route::post('/v1.0/questions', [QuestionController::class, 'createQuestion']);
-    Route::patch('/v1.0/questions/{id}', [QuestionController::class, 'updatedQuestion']);
     Route::delete('/v1.0/questions/{ids}', [QuestionController::class, 'deleteQuestion']);
+
+    Route::patch('/v1.0/questions/ordering', [QuestionController::class, 'displayQuestionOrder']);
     Route::patch('/v1.0/questions/set-overall', [QuestionController::class, 'setOverallQuestions']);
     Route::patch('/v1.0/questions/toggle', [QuestionController::class, 'toggleQuestionActivation']);
+    Route::patch('/v1.0/questions/{id}', [QuestionController::class, 'updatedQuestion'])->whereNumber('id');
 
     // Leaflet CRUD
     Route::post('/v1.0/leaflet/create',        [LeafletController::class, 'insertLeaflet']);
@@ -169,6 +172,16 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/v1.0/staffs/{id}',   [StaffController::class, 'deleteStaff']); // delete
     Route::post('/v1.0/staff-image',    [StaffController::class, 'uploadStaffImage']); // upload image
 
+
+    // #################
+    // notification  Routes
+    // #################
+    Route::post('/v1.0/tags', [TagController::class, 'createTag']);          // Create
+    Route::get('/v1.0/tags', [TagController::class, 'getAllTags']);          // Get all (optional ?business_id=)
+    Route::get('/v1.0/tags/{id}', [TagController::class, 'getTagById']);         // Get single
+    Route::patch('/v1.0/tags/multiple/{businessId}', [TagController::class, 'createMultipleTags']);    // Update
+    Route::patch('/v1.0/tags/{id}', [TagController::class, 'updateTag']);    // Update
+    Route::delete('/v1.0/tags/{ids}', [TagController::class, 'deleteTag']);  // Delete multiple: /tags/1,2,3
 
     // #################
     // notification  Routes
@@ -366,9 +379,9 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::post('/v1.0/review-new/create/tags/multiple/{businessId}', [ReviewNewController::class, "storeTagMultiple"]);
 
-    Route::put('/review-new/update/tags', [ReviewNewController::class, "updateTag"]);
+    Route::put('/review-new/update/tags', [ReviewNewController::class, "updatedTag"]);
     Route::get('/review-new/get/tags', [ReviewNewController::class, "getTag"]);
-    Route::get('/review-new/get/tags/{id}', [ReviewNewController::class, "getTagById"]);
+    Route::get('/review-new/get/tags/{id}', [ReviewNewController::class, "TagById"]);
     Route::get('/review-new/get/tags/{id}/{reataurantId}', [ReviewNewController::class, "getTagById2"]);
     Route::delete('/review-new/delete/tags/{id}', [ReviewNewController::class, "deleteTagById"]);
     // #################
@@ -547,9 +560,9 @@ Route::delete('/review-new/delete/questions/{id}', [ReviewNewController::class, 
 
 Route::post('/review-new/create/tags', [ReviewNewController::class, "storeTag"]);
 
-Route::post('/v1.0/review-new/create/tags/multiple/{businessId}', [ReviewNewController::class, "storeTagMultiple"]);
+// Route::post('/v1.0/review-new/create/tags/multiple/{businessId}', [ReviewNewController::class, "storeTagMultiple"]);
 
-Route::put('/review-new/update/tags', [ReviewNewController::class, "updateTag"]);
+// Route::put('/review-new/update/tags', [ReviewNewController::class, "updateTag"]);
 Route::get('/review-new/get/tags', [ReviewNewController::class, "getTag"]);
 Route::get('/review-new/get/tags/{id}', [ReviewNewController::class, "getTagById"]);
 Route::get('/review-new/get/tags/{id}/{reataurantId}', [ReviewNewController::class, "getTagById2"]);

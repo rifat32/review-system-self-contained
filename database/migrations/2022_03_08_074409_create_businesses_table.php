@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateBusinessesTable extends Migration
+return new class extends Migration
 {
     /**
      * Run the migrations.
@@ -15,104 +15,68 @@ class CreateBusinessesTable extends Migration
     {
         Schema::create('businesses', function (Blueprint $table) {
             $table->id();
+            $table->boolean('show_image')->default(1);
+            $table->string('Name');
+            $table->text('About')->nullable();
+            $table->string('Webpage')->nullable();
+            $table->string('PhoneNumber')->nullable();
+            $table->string('EmailAddress')->nullable();
+            $table->text('homeText')->nullable();
+            $table->text('AdditionalInformation')->nullable();
+            $table->text('GoogleMapApi')->nullable();
+            $table->text('Address')->nullable();
+            $table->string('PostCode')->nullable();
+            $table->string('Logo')->nullable();
+            $table->unsignedBigInteger('OwnerID');
+            $table->string('Key_ID')->nullable();
+            $table->timestamp('expiry_date')->nullable();
+            $table->enum('Status', ['approved', 'pending', 'rejected'])->default('pending');
+            $table->string('Layout')->nullable();
+            $table->boolean('Is_guest_user')->default(1);
+            $table->boolean('is_review_slider')->default(1);
+            $table->boolean('review_only')->default(0);
+            $table->string('review_type')->nullable();
+            $table->text('google_map_iframe')->nullable();
+            $table->string('header_image')->nullable();
+            $table->string('rating_page_image')->nullable();
+            $table->string('placeholder_image')->nullable();
+            $table->string('primary_color')->nullable();
+            $table->string('secondary_color')->nullable();
+            $table->string('client_primary_color')->nullable();
+            $table->string('client_secondary_color')->nullable();
+            $table->string('client_tertiary_color')->nullable();
+            $table->boolean('user_review_report')->default(1);
+            $table->boolean('guest_user_review_report')->default(1);
+            $table->string('pin')->nullable();
+            $table->string('STRIPE_KEY')->nullable();
+            $table->string('STRIPE_SECRET')->nullable();
+            $table->boolean('is_report_email_enabled')->default(0);
 
-
-            $table->boolean("show_image")->nullable()->default(1);
-
-
-
-            $table->string("Name");
-            $table->text("About")->nullable();
-            $table->string("Webpage")->nullable();
-            $table->string("PhoneNumber")->nullable();
-            $table->string("EmailAddress")->nullable();
-            $table->text("homeText")->nullable();
-            $table->string("AdditionalInformation")->nullable();
-            $table->string("GoogleMapApi")->nullable();
-
-            $table->string("Address");
-            $table->string("PostCode");
-            $table->string("Logo")->nullable();
-            $table->unsignedBigInteger("OwnerID");
-            $table->string("Key_ID")->nullable();
-            $table->date("expiry_date")->nullable();
-
-            $table->string("Status")->nullable();
-            $table->string("Layout")->nullable();
-
-    
-
-
-
-
-
-
-            $table->boolean("Is_guest_user")->default(false);
-            $table->boolean("is_review_silder")->default(false);
-            $table->boolean("review_only")->default(true)->nullable(false);
-
-
-            $table->string("review_type")->default("star")->nullable(false);
-
-            $table->text("google_map_iframe")->nullable();
-
-
-
-
-
-
-
-
-            $table->string("header_image")->default("/header_image/default.webp");
-            $table->string("rating_page_image")->default("/rating_page_image/default.webp");
-            $table->string("placeholder_image")->default("/placeholder_image/default.webp");
-
-
-
-
-
-
-
-
-
-
-
-            $table->string("primary_color")->nullable(true);
-            $table->string("secondary_color")->nullable(true);
-
-
-
-            $table->string("client_primary_color")->nullable(true)->default("#172c41");
-            $table->string("client_secondary_color")->nullable(true)->default("#ac8538");
-            $table->string("client_tertiary_color")->nullable(true)->default("#fffffff");
-
-            $table->boolean("user_review_report")->default(0);
-            $table->boolean("guest_user_review_report")->default(0);
-
-
-
-            $table->string("pin")->nullable(true);
-
-
-
-
-
-
-
-
-
-
-            $table->string("STRIPE_KEY")->nullable(true);
-            $table->string("STRIPE_SECRET")->nullable(true);
-
-
-
-
-
-
-
-           $table->boolean("is_report_email_enabled")->nullable(true)->default(0);
-
+            // Added fields from alterations
+            $table->string('time_zone')->default('UTC');
+            $table->boolean('is_guest_user_overall_review')->default(true);
+            $table->boolean('is_guest_user_survey')->default(false);
+            $table->boolean('is_guest_user_survey_required')->default(false);
+            $table->boolean('is_guest_user_show_stuffs')->default(false);
+            $table->boolean('is_guest_user_show_stuff_image')->default(false);
+            $table->boolean('is_guest_user_show_stuff_name')->default(false);
+            $table->boolean('is_registered_user_overall_review')->default(true);
+            $table->boolean('is_registered_user_survey')->default(false);
+            $table->boolean('is_registered_user_survey_required')->default(false);
+            $table->boolean('is_registered_user_show_stuffs')->default(false);
+            $table->boolean('is_registered_user_show_stuff_image')->default(false);
+            $table->boolean('is_registered_user_show_stuff_name')->default(false);
+            $table->boolean('enable_ip_check')->default(false);
+            $table->boolean('enable_location_check')->default(false);
+            $table->decimal('latitude', 10, 8)->nullable();
+            $table->decimal('longitude', 11, 8)->nullable();
+            $table->integer('review_distance_limit')->default(100);
+            $table->decimal('threshold_rating', 3, 1)->default(3.0);
+            $table->json('review_labels')->nullable();
+            $table->unsignedBigInteger('guest_survey_id')->nullable();
+            $table->unsignedBigInteger('registered_user_survey_id')->nullable();
+            $table->boolean('enable_detailed_survey')->default(false);
+            $table->json('export_settings')->nullable();
 
             $table->softDeletes();
             $table->timestamps();
@@ -128,4 +92,4 @@ class CreateBusinessesTable extends Migration
     {
         Schema::dropIfExists('businesses');
     }
-}
+};

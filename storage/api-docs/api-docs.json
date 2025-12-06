@@ -3434,7 +3434,7 @@
                                         "format": "boolean",
                                         "example": "false"
                                     },
-                                    "is_review_silder": {
+                                    "is_review_slider": {
                                         "type": "boolean",
                                         "format": "boolean",
                                         "example": "false"
@@ -7440,7 +7440,7 @@
                                         "type": "boolean",
                                         "example": false
                                     },
-                                    "is_review_silder": {
+                                    "is_review_slider": {
                                         "type": "boolean",
                                         "example": false
                                     },

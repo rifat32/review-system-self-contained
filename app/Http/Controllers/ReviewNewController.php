@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GuestUser;
 use App\Models\Question;
-use App\Models\QusetionStar;
+use App\Models\QuestionStar;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\ReviewValue;
@@ -24,7 +24,9 @@ use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use getID3;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ReviewNewController extends Controller
 {
@@ -138,9 +140,9 @@ class ReviewNewController extends Controller
             $transcribedText = $this->transcribeAudio($audioFile->getRealPath());
 
             // If transcription is empty, try alternative method
-            if (empty($transcribedText)) {
-                $transcribedText = $this->fallbackTranscribeAudio($audioFile);
-            }
+            // if (empty($transcribedText)) {
+            //     $transcribedText = $this->fallbackTranscribeAudio($audioFile);
+            // }
 
             // If still empty, return error
             if (empty($transcribedText)) {
@@ -171,14 +173,13 @@ class ReviewNewController extends Controller
                     'word_count' => str_word_count($transcribedText)
                 ]
             ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Transcription failed: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -397,7 +398,7 @@ class ReviewNewController extends Controller
     private function getAudioDuration($filePath)
     {
         try {
-            $getID3 = new \getID3();
+            $getID3 = new getID3();
             $fileInfo = $getID3->analyze($filePath);
             return $fileInfo['playtime_seconds'] ?? null;
         } catch (\Exception $e) {
@@ -446,17 +447,17 @@ class ReviewNewController extends Controller
             ->toArray();
     }
 
-  private function generatePredictions($reviews)
-{
-    // Calculate average rating from ReviewValue
-    $avgRating = $this->calculateAverageRatingForReviews($reviews);
-    $predictedIncrease = max(0, 5 - $avgRating) * 0.05;
+    private function generatePredictions($reviews)
+    {
+        // Calculate average rating from ReviewValue
+        $avgRating = $this->calculateAverageRatingForReviews($reviews);
+        $predictedIncrease = max(0, 5 - $avgRating) * 0.05;
 
-    return [[
-        'prediction' => 'Improving identified issues could boost overall rating.',
-        'estimated_impact' => '+' . round($predictedIncrease, 2) . ' points'
-    ]];
-}
+        return [[
+            'prediction' => 'Improving identified issues could boost overall rating.',
+            'estimated_impact' => '+' . round($predictedIncrease, 2) . ' points'
+        ]];
+    }
 
     private function extractSkillGapsFromSuggestions($suggestions)
     {
@@ -485,141 +486,141 @@ class ReviewNewController extends Controller
         ];
     }
 
-  private function calculateDashboardMetrics($businessId, $dateRange)
-{
-    // Get reviews with their values
-    $reviews = ReviewNew::with(['value'])
-        ->where('business_id', $businessId)
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->get();
+    private function calculateDashboardMetrics($businessId, $dateRange)
+    {
+        // Get reviews with their values
+        $reviews = ReviewNew::with(['value'])
+            ->where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->get();
 
-    $previousReviews = ReviewNew::with(['value'])
-        ->where('business_id', $businessId)
-        ->whereBetween('created_at', [
-            $dateRange['start']->copy()->subDays(30),
-            $dateRange['end']->copy()->subDays(30)
-        ])
-        ->get();
+        $previousReviews = ReviewNew::with(['value'])
+            ->where('business_id', $businessId)
+            ->whereBetween('created_at', [
+                $dateRange['start']->copy()->subDays(30),
+                $dateRange['end']->copy()->subDays(30)
+            ])
+            ->get();
 
-    $total = $reviews->count();
-    $previousTotal = $previousReviews->count();
+        $total = $reviews->count();
+        $previousTotal = $previousReviews->count();
 
-    // Calculate current period ratings
-    $currentAvgRating = $this->calculateAverageRatingForReviews($reviews);
+        // Calculate current period ratings
+        $currentAvgRating = $this->calculateAverageRatingForReviews($reviews);
 
-    // Calculate previous period ratings
-    $previousAvgRating = $this->calculateAverageRatingForReviews($previousReviews);
+        // Calculate previous period ratings
+        $previousAvgRating = $this->calculateAverageRatingForReviews($previousReviews);
 
-    // Calculate sentiment scores (still from ReviewNew)
-    $currentSentimentScore = $reviews->avg('sentiment_score') ?? 0;
-    $previousSentimentScore = $previousReviews->avg('sentiment_score') ?? 0;
+        // Calculate sentiment scores (still from ReviewNew)
+        $currentSentimentScore = $reviews->avg('sentiment_score') ?? 0;
+        $previousSentimentScore = $previousReviews->avg('sentiment_score') ?? 0;
 
-    return [
-        'avg_overall_rating' => [
-            'value' => $currentAvgRating,
-            'change' => $this->calculatePercentageChange(
-                $currentAvgRating,
-                $previousAvgRating
-            )
-        ],
-        'ai_sentiment_score' => [
-            'value' => round($currentSentimentScore * 10, 1),
-            'max' => 10,
-            'change' => $this->calculatePercentageChange(
-                $currentSentimentScore,
-                $previousSentimentScore
-            )
-        ],
-        'total_reviews' => [
-            'value' => $total,
-            'change' => $this->calculatePercentageChange($total, $previousTotal)
-        ],
-        'positive_negative_ratio' => [
-            'positive' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / max($total, 1)) * 100),
-            'negative' => round(($reviews->where('sentiment_score', '<', 0.4)->count() / max($total, 1)) * 100)
-        ],
-        'staff_linked_reviews' => [
-            'percentage' => round(($reviews->whereNotNull('staff_id')->count() / max($total, 1)) * 100),
-            'count' => $reviews->whereNotNull('staff_id')->count(),
-            'total' => $total
-        ],
-        'voice_reviews' => [
-            'percentage' => round(($reviews->where('is_voice_review', true)->count() / max($total, 1)) * 100),
-            'count' => $reviews->where('is_voice_review', true)->count(),
-            'total' => $total
-        ]
-    ];
-}
- private function calculateRatingBreakdown($businessId, $dateRange)
-{
-    $reviews = ReviewNew::where('business_id', $businessId)
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->get();
+        return [
+            'avg_overall_rating' => [
+                'value' => $currentAvgRating,
+                'change' => $this->calculatePercentageChange(
+                    $currentAvgRating,
+                    $previousAvgRating
+                )
+            ],
+            'ai_sentiment_score' => [
+                'value' => round($currentSentimentScore * 10, 1),
+                'max' => 10,
+                'change' => $this->calculatePercentageChange(
+                    $currentSentimentScore,
+                    $previousSentimentScore
+                )
+            ],
+            'total_reviews' => [
+                'value' => $total,
+                'change' => $this->calculatePercentageChange($total, $previousTotal)
+            ],
+            'positive_negative_ratio' => [
+                'positive' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / max($total, 1)) * 100),
+                'negative' => round(($reviews->where('sentiment_score', '<', 0.4)->count() / max($total, 1)) * 100)
+            ],
+            'staff_linked_reviews' => [
+                'percentage' => round(($reviews->whereNotNull('staff_id')->count() / max($total, 1)) * 100),
+                'count' => $reviews->whereNotNull('staff_id')->count(),
+                'total' => $total
+            ],
+            'voice_reviews' => [
+                'percentage' => round(($reviews->where('is_voice_review', true)->count() / max($total, 1)) * 100),
+                'count' => $reviews->where('is_voice_review', true)->count(),
+                'total' => $total
+            ]
+        ];
+    }
+    private function calculateRatingBreakdown($businessId, $dateRange)
+    {
+        $reviews = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->get();
 
-    // Get review IDs for bulk calculation
-    $reviewIds = $reviews->pluck('id')->toArray();
+        // Get review IDs for bulk calculation
+        $reviewIds = $reviews->pluck('id')->toArray();
 
-    // Calculate ratings in bulk
-    $ratings = $this->calculateBulkRatings($reviewIds);
+        // Calculate ratings in bulk
+        $ratings = $this->calculateBulkRatings($reviewIds);
 
-    $total = $reviews->count();
+        $total = $reviews->count();
 
-    // Initialize counters
-    $excellent = 0;
-    $good = 0;
-    $average = 0;
-    $poor = 0;
-    $totalRating = 0;
-    $validReviews = 0;
+        // Initialize counters
+        $excellent = 0;
+        $good = 0;
+        $average = 0;
+        $poor = 0;
+        $totalRating = 0;
+        $validReviews = 0;
 
-    // Count ratings based on calculated values
-    foreach ($reviews as $review) {
-        $rating = $ratings->get($review->id);
+        // Count ratings based on calculated values
+        foreach ($reviews as $review) {
+            $rating = $ratings->get($review->id);
 
-        if ($rating !== null) {
-            $totalRating += $rating;
-            $validReviews++;
+            if ($rating !== null) {
+                $totalRating += $rating;
+                $validReviews++;
 
-            switch (true) {
-                case $rating == 5:
-                    $excellent++;
-                    break;
-                case $rating == 4:
-                    $good++;
-                    break;
-                case $rating == 3:
-                    $average++;
-                    break;
-                case $rating <= 2:
-                    $poor++;
-                    break;
+                switch (true) {
+                    case $rating == 5:
+                        $excellent++;
+                        break;
+                    case $rating == 4:
+                        $good++;
+                        break;
+                    case $rating == 3:
+                        $average++;
+                        break;
+                    case $rating <= 2:
+                        $poor++;
+                        break;
+                }
             }
         }
+
+        // Calculate average rating
+        $avgRating = $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
+
+        return [
+            'excellent' => [
+                'percentage' => $validReviews > 0 ? round(($excellent / $validReviews) * 100) : 0,
+                'count' => $excellent
+            ],
+            'good' => [
+                'percentage' => $validReviews > 0 ? round(($good / $validReviews) * 100) : 0,
+                'count' => $good
+            ],
+            'average' => [
+                'percentage' => $validReviews > 0 ? round(($average / $validReviews) * 100) : 0,
+                'count' => $average
+            ],
+            'poor' => [
+                'percentage' => $validReviews > 0 ? round(($poor / $validReviews) * 100) : 0,
+                'count' => $poor
+            ],
+            'avg_rating' => $avgRating
+        ];
     }
-
-    // Calculate average rating
-    $avgRating = $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
-
-    return [
-        'excellent' => [
-            'percentage' => $validReviews > 0 ? round(($excellent / $validReviews) * 100) : 0,
-            'count' => $excellent
-        ],
-        'good' => [
-            'percentage' => $validReviews > 0 ? round(($good / $validReviews) * 100) : 0,
-            'count' => $good
-        ],
-        'average' => [
-            'percentage' => $validReviews > 0 ? round(($average / $validReviews) * 100) : 0,
-            'count' => $average
-        ],
-        'poor' => [
-            'percentage' => $validReviews > 0 ? round(($poor / $validReviews) * 100) : 0,
-            'count' => $poor
-        ],
-        'avg_rating' => $avgRating
-    ];
-}
 
     private function getAiInsightsPanel($businessId, $dateRange)
     {
@@ -641,79 +642,79 @@ class ReviewNewController extends Controller
         ];
     }
 
-  private function getStaffPerformanceSnapshot($businessId, $dateRange)
-{
-    // Use existing staff suggestions and reviews
-    $staffReviews = ReviewNew::with('staff', 'value')
-        ->where('business_id', $businessId)
-        ->whereNotNull('staff_id')
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->get()
-        ->groupBy('staff_id');
+    private function getStaffPerformanceSnapshot($businessId, $dateRange)
+    {
+        // Use existing staff suggestions and reviews
+        $staffReviews = ReviewNew::with('staff', 'value')
+            ->where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->get()
+            ->groupBy('staff_id');
 
-    $staffData = [];
+        $staffData = [];
 
-    foreach ($staffReviews as $staffId => $reviews) {
-        if ($reviews->count() < 3) continue; // Minimum reviews
+        foreach ($staffReviews as $staffId => $reviews) {
+            if ($reviews->count() < 3) continue; // Minimum reviews
 
-        $staff = $reviews->first()->staff;
+            $staff = $reviews->first()->staff;
 
-        // Calculate average rating from ReviewValue
-        $avgRating = $this->calculateAverageRatingForReviews($reviews);
+            // Calculate average rating from ReviewValue
+            $avgRating = $this->calculateAverageRatingForReviews($reviews);
 
-        $staffSuggestions = $reviews->pluck('staff_suggestions')->flatten()->unique();
+            $staffSuggestions = $reviews->pluck('staff_suggestions')->flatten()->unique();
 
-        $staffData[] = [
-            'id' => $staffId,
-            'name' => $staff->name,
-            'rating' => round($avgRating, 1),
-            'review_count' => $reviews->count(),
-            'skill_gaps' => $this->extractSkillGapsFromSuggestions($staffSuggestions),
-            'recommended_training' => $staffSuggestions->first() ?? 'General Training'
+            $staffData[] = [
+                'id' => $staffId,
+                'name' => $staff->name,
+                'rating' => round($avgRating, 1),
+                'review_count' => $reviews->count(),
+                'skill_gaps' => $this->extractSkillGapsFromSuggestions($staffSuggestions),
+                'recommended_training' => $staffSuggestions->first() ?? 'General Training'
+            ];
+        }
+
+        // Sort by rating
+        usort($staffData, fn($a, $b) => $b['rating'] <=> $a['rating']);
+
+        $top = array_slice($staffData, 0, 3);
+        $needsImprovement = array_slice(array_reverse($staffData), 0, 3);
+
+        return [
+            'top_performing' => $top,
+            'needs_improvement' => $needsImprovement
         ];
     }
 
-    // Sort by rating
-    usort($staffData, fn($a, $b) => $b['rating'] <=> $a['rating']);
+    private function getReviewFeed($businessId, $dateRange, $limit = 10)
+    {
+        $reviews = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tag', 'value'])
+            ->where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
 
-    $top = array_slice($staffData, 0, 3);
-    $needsImprovement = array_slice(array_reverse($staffData), 0, 3);
+        return $reviews->map(function ($review) {
+            // Calculate rating on the fly
+            $calculatedRating = $this->calculateRatingFromReviewValues($review->id);
 
-    return [
-        'top_performing' => $top,
-        'needs_improvement' => $needsImprovement
-    ];
-}
-
-  private function getReviewFeed($businessId, $dateRange, $limit = 10)
-{
-    $reviews = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tag', 'value'])
-        ->where('business_id', $businessId)
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->orderBy('created_at', 'desc')
-        ->limit($limit)
-        ->get();
-
-    return $reviews->map(function ($review) {
-        // Calculate rating on the fly
-        $calculatedRating = $this->calculateRatingFromReviewValues($review->id);
-
-        return [
-            'id' => $review->id,
-    'responded_at' => $review->responded_at,
-            'rating' => ($calculatedRating ?? 0) . '/5',
-            'calculated_rating' => $calculatedRating,
-            'author' => $review->user?->name ?? $review->guest_user?->full_name ?? 'Anonymous',
-            'time_ago' => $review->created_at->diffForHumans(),
-            'comment' => $review->comment,
-            'staff_name' => $review->staff?->name,
-            'tags' => $review->value->map(fn($v) => $v->tag->tag ?? null)->filter()->unique()->values()->toArray(),
-            'is_voice' => $review->is_voice_review,
-            'sentiment' => $this->getSentimentLabel($review->sentiment_score),
-            'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])
-        ];
-    });
-}
+            return [
+                'id' => $review->id,
+                'responded_at' => $review->responded_at,
+                'rating' => ($calculatedRating ?? 0) . '/5',
+                'calculated_rating' => $calculatedRating,
+                'author' => $review->user?->name ?? $review->guest_user?->full_name ?? 'Anonymous',
+                'time_ago' => $review->created_at->diffForHumans(),
+                'comment' => $review->comment,
+                'staff_name' => $review->staff?->name,
+                'tags' => $review->value->map(fn($v) => $v->tag->tag ?? null)->filter()->unique()->values()->toArray(),
+                'is_voice' => $review->is_voice_review,
+                'sentiment' => $this->getSentimentLabel($review->sentiment_score),
+                'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])
+            ];
+        });
+    }
 
 
 
@@ -895,57 +896,57 @@ class ReviewNewController extends Controller
      *      )
      *     )
      */
- public function getAverages($businessId, $start, $end, Request $request)
-{
-    // Get reviews with their values
-    $reviews = ReviewNew::with(['value'])
-        ->where("business_id", $businessId)
-        ->globalFilters()
-        ->whereBetween('created_at', [$start, $end])
-        ->orderBy('order_no', 'asc')
-        ->get();
+    public function getAverages($businessId, $start, $end, Request $request)
+    {
+        // Get reviews with their values
+        $reviews = ReviewNew::with(['value'])
+            ->where("business_id", $businessId)
+            ->globalFilters()
+            ->whereBetween('created_at', [$start, $end])
+            ->orderBy('order_no', 'asc')
+            ->get();
 
-    $data["total"] = $reviews->count();
-    $data["one"] = 0;
-    $data["two"] = 0;
-    $data["three"] = 0;
-    $data["four"] = 0;
-    $data["five"] = 0;
+        $data["total"] = $reviews->count();
+        $data["one"] = 0;
+        $data["two"] = 0;
+        $data["three"] = 0;
+        $data["four"] = 0;
+        $data["five"] = 0;
 
-    foreach ($reviews as $review) {
-        // Calculate rating from ReviewValue for each review
-        $rating = $this->calculateRatingFromReviewValues($review->id);
+        foreach ($reviews as $review) {
+            // Calculate rating from ReviewValue for each review
+            $rating = $this->calculateRatingFromReviewValues($review->id);
 
-        if ($rating) {
-            switch (round($rating)) {
-                case 1:
-                    $data["one"] += 1;
-                    break;
-                case 2:
-                    $data["two"] += 1;
-                    break;
-                case 3:
-                    $data["three"] += 1;
-                    break;
-                case 4:
-                    $data["four"] += 1;
-                    break;
-                case 5:
-                    $data["five"] += 1;
-                    break;
+            if ($rating) {
+                switch (round($rating)) {
+                    case 1:
+                        $data["one"] += 1;
+                        break;
+                    case 2:
+                        $data["two"] += 1;
+                        break;
+                    case 3:
+                        $data["three"] += 1;
+                        break;
+                    case 4:
+                        $data["four"] += 1;
+                        break;
+                    case 5:
+                        $data["five"] += 1;
+                        break;
+                }
             }
         }
+
+        // Calculate average rating
+        $totalReviews = $data["total"];
+        $weightedSum = ($data["one"] * 1) + ($data["two"] * 2) + ($data["three"] * 3) +
+            ($data["four"] * 4) + ($data["five"] * 5);
+
+        $data["average_rating"] = $totalReviews > 0 ? round($weightedSum / $totalReviews, 1) : 0;
+
+        return response($data, 200);
     }
-
-    // Calculate average rating
-    $totalReviews = $data["total"];
-    $weightedSum = ($data["one"] * 1) + ($data["two"] * 2) + ($data["three"] * 3) +
-                   ($data["four"] * 4) + ($data["five"] * 5);
-
-    $data["average_rating"] = $totalReviews > 0 ? round($weightedSum / $totalReviews, 1) : 0;
-
-    return response($data, 200);
-}
 
     // ##################################################
     // This method is to store   ReviewValue2
@@ -1200,53 +1201,53 @@ class ReviewNewController extends Controller
 
 
 
-   public function getCustommerReview($businessId, $start, $end, Request $request)
-{
-    // Get reviews with their values
-    $reviews = ReviewNew::with(['value'])
-        ->where("business_id", $businessId)
-        ->globalFilters()
-        ->whereBetween('created_at', [$start, $end])
-        ->orderBy('order_no', 'asc')
-        ->get();
+    public function getCustommerReview($businessId, $start, $end, Request $request)
+    {
+        // Get reviews with their values
+        $reviews = ReviewNew::with(['value'])
+            ->where("business_id", $businessId)
+            ->globalFilters()
+            ->whereBetween('created_at', [$start, $end])
+            ->orderBy('order_no', 'asc')
+            ->get();
 
-    $data["reviews"] = $reviews;
-    $data["total"] = $reviews->count();
+        $data["reviews"] = $reviews;
+        $data["total"] = $reviews->count();
 
-    // Initialize counters
-    $data["one"] = 0;
-    $data["two"] = 0;
-    $data["three"] = 0;
-    $data["four"] = 0;
-    $data["five"] = 0;
+        // Initialize counters
+        $data["one"] = 0;
+        $data["two"] = 0;
+        $data["three"] = 0;
+        $data["four"] = 0;
+        $data["five"] = 0;
 
-    foreach ($reviews as $review) {
-        // Calculate rating from ReviewValue for each review
-        $rating = $this->calculateRatingFromReviewValues($review->id);
+        foreach ($reviews as $review) {
+            // Calculate rating from ReviewValue for each review
+            $rating = $this->calculateRatingFromReviewValues($review->id);
 
-        if ($rating) {
-            switch (round($rating)) {
-                case 1:
-                    $data["one"] += 1;
-                    break;
-                case 2:
-                    $data["two"] += 1;
-                    break;
-                case 3:
-                    $data["three"] += 1;
-                    break;
-                case 4:
-                    $data["four"] += 1;
-                    break;
-                case 5:
-                    $data["five"] += 1;
-                    break;
+            if ($rating) {
+                switch (round($rating)) {
+                    case 1:
+                        $data["one"] += 1;
+                        break;
+                    case 2:
+                        $data["two"] += 1;
+                        break;
+                    case 3:
+                        $data["three"] += 1;
+                        break;
+                    case 4:
+                        $data["four"] += 1;
+                        break;
+                    case 5:
+                        $data["five"] += 1;
+                        break;
+                }
             }
         }
-    }
 
-    return response($data, 200);
-}
+        return response($data, 200);
+    }
 
   // ##################################################
 // Updated createReview method with audio support
@@ -1299,7 +1300,7 @@ class ReviewNewController extends Controller
     public function createReview($businessId, Request $request)
     {
         $request->validate([
-            'description' => 'required|string',
+            'description' => 'nullable|string',
             'rate' => 'required|numeric|min:1|max:5',
             'staff_id' => 'nullable|exists:users,id',
             'comment' => 'nullable|string',
@@ -1473,9 +1474,9 @@ class ReviewNewController extends Controller
     public function storeReviewByGuest($businessId, Request $request)
     {
         $request->validate([
-            'guest_full_name' => 'required|string',
-            'guest_phone' => 'required|string',
-            'description' => 'required|string',
+            'guest_full_name' => 'nullable|string',
+            'guest_phone' => 'nullable|string',
+            'description' => 'nullable|string',
             'rate' => 'required|numeric|min:1|max:5',
             'staff_id' => 'nullable|exists:users,id',
             'comment' => 'nullable|string',
@@ -1528,7 +1529,7 @@ class ReviewNewController extends Controller
         }
 
         $guest = GuestUser::create([
-            'full_name' => $request->guest_full_name,
+            'full_name' => $request->guest_full_name ?? 'anonymous',
             'phone' => $request->guest_phone,
         ]);
 
@@ -1611,6 +1612,7 @@ class ReviewNewController extends Controller
         $responseData = [
             "message" => "created successfully",
             "averageRating" => $averageRating,
+            "review" => $review,
             "review_id" => $review->id,
             "ai_analysis" => [
                 'sentiment_score' => $sentimentScore,
@@ -1855,155 +1857,173 @@ class ReviewNewController extends Controller
 // New Helper Methods for Calculating Ratings from ReviewValue
 // ##################################################
 
-/**
- * Calculate average rating for a single review from ReviewValue data
- */
-private function calculateRatingFromReviewValues($reviewId)
-{
-    $reviewValues = ReviewValueNew::where('review_id', $reviewId)->get();
+    /**
+     * Calculate average rating for a single review from ReviewValue data
+     */
+    private function calculateRatingFromReviewValues($reviewId)
+    {
+        $reviewValues = ReviewValueNew::where('review_id', $reviewId)->get();
 
-    if ($reviewValues->isEmpty()) {
-        return null;
-    }
-
-    // Get unique questions to avoid double counting
-    $uniqueQuestions = $reviewValues->pluck('question_id')->unique();
-
-    $totalRating = 0;
-    $questionCount = 0;
-
-    foreach ($uniqueQuestions as $questionId) {
-        $questionValues = $reviewValues->where('question_id', $questionId);
-
-        // Get the star rating for this question
-        $starValue = Star::where('id', $questionValues->first()->star_id)->value('value') ?? 0;
-        // Cast to float to ensure numeric value
-        $totalRating += (float) $starValue;
-        $questionCount++;
-    }
-
-    // Round to 1 decimal place
-    return $questionCount > 0 ? round($totalRating / $questionCount, 1) : null;
-}
-
-/**
- * Calculate average rating for multiple reviews from ReviewValue data
- */
-private function calculateAverageRatingForReviews($reviews)
-{
-    if ($reviews->isEmpty()) {
-        return 0;
-    }
-
-    $totalRating = 0;
-    $validReviews = 0;
-
-    foreach ($reviews as $review) {
-        $rating = $this->calculateRatingFromReviewValues($review->id);
-        if ($rating !== null) {
-            $totalRating += $rating;
-            $validReviews++;
+        if ($reviewValues->isEmpty()) {
+            return null;
         }
+
+        // Get unique questions to avoid double counting
+        $uniqueQuestions = $reviewValues->pluck('question_id')->unique();
+
+        $totalRating = 0;
+        $questionCount = 0;
+
+        foreach ($uniqueQuestions as $questionId) {
+            $questionValues = $reviewValues->where('question_id', $questionId);
+
+            // Get the star rating for this question
+            $starValue = Star::where('id', $questionValues->first()->star_id)->value('value') ?? 0;
+            // Cast to float to ensure numeric value
+            $totalRating += (float) $starValue;
+            $questionCount++;
+        }
+
+        // Round to 1 decimal place
+        return $questionCount > 0 ? round($totalRating / $questionCount, 1) : null;
     }
 
-    return $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
-}
-/**
- * Calculate rating distribution from ReviewValue data
- */
-private function calculateRatingDistribution($reviews)
-{
-    $distribution = [
-        'excellent' => ['count' => 0, 'percentage' => 0],
-        'good' => ['count' => 0, 'percentage' => 0],
-        'average' => ['count' => 0, 'percentage' => 0],
-        'poor' => ['count' => 0, 'percentage' => 0]
-    ];
+    /**
+     * Calculate average rating for multiple reviews from ReviewValue data
+     */
+    private function calculateAverageRatingForReviews($reviews)
+    {
+        if ($reviews->isEmpty()) {
+            return 0;
+        }
 
-    $totalReviews = $reviews->count();
-    $validReviews = 0;
+        $totalRating = 0;
+        $validReviews = 0;
 
-    foreach ($reviews as $review) {
-        $rating = $this->calculateRatingFromReviewValues($review->id);
-        if ($rating !== null) {
-            $validReviews++;
-
-            switch (true) {
-                case $rating == 5:
-                    $distribution['excellent']['count']++;
-                    break;
-                case $rating == 4:
-                    $distribution['good']['count']++;
-                    break;
-                case $rating == 3:
-                    $distribution['average']['count']++;
-                    break;
-                case $rating <= 2:
-                    $distribution['poor']['count']++;
-                    break;
+        foreach ($reviews as $review) {
+            $rating = $this->calculateRatingFromReviewValues($review->id);
+            if ($rating !== null) {
+                $totalRating += $rating;
+                $validReviews++;
             }
         }
+
+        return $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
+    }
+    /**
+     * Calculate rating distribution from ReviewValue data
+     */
+    private function calculateRatingDistribution($reviews)
+    {
+        $distribution = [
+            'excellent' => ['count' => 0, 'percentage' => 0],
+            'good' => ['count' => 0, 'percentage' => 0],
+            'average' => ['count' => 0, 'percentage' => 0],
+            'poor' => ['count' => 0, 'percentage' => 0]
+        ];
+
+        $totalReviews = $reviews->count();
+        $validReviews = 0;
+
+        foreach ($reviews as $review) {
+            $rating = $this->calculateRatingFromReviewValues($review->id);
+            if ($rating !== null) {
+                $validReviews++;
+
+                switch (true) {
+                    case $rating == 5:
+                        $distribution['excellent']['count']++;
+                        break;
+                    case $rating == 4:
+                        $distribution['good']['count']++;
+                        break;
+                    case $rating == 3:
+                        $distribution['average']['count']++;
+                        break;
+                    case $rating <= 2:
+                        $distribution['poor']['count']++;
+                        break;
+                }
+            }
+        }
+
+        // Calculate percentages
+        foreach ($distribution as $key => $value) {
+            $distribution[$key]['percentage'] = $validReviews > 0
+                ? round(($value['count'] / $validReviews) * 100)
+                : 0;
+        }
+
+        return $distribution;
     }
 
-    // Calculate percentages
-    foreach ($distribution as $key => $value) {
-        $distribution[$key]['percentage'] = $validReviews > 0
-            ? round(($value['count'] / $validReviews) * 100)
-            : 0;
+    /**
+     * Optimized method to calculate ratings for multiple reviews in one query
+     */
+    private function calculateBulkRatings($reviewIds)
+    {
+        if (empty($reviewIds)) {
+            return collect();
+        }
+
+        $ratings = DB::table('review_value_news as rvn')
+            ->join('stars as s', 'rvn.star_id', '=', 's.id')
+            ->whereIn('rvn.review_id', $reviewIds)
+            ->select(
+                'rvn.review_id',
+                'rvn.question_id',
+                's.value as star_value'
+            )
+            ->orderBy('rvn.review_id')
+            ->orderBy('rvn.question_id')
+            ->get();
+
+        // Group by review_id and calculate average per review
+        $result = [];
+
+        foreach ($ratings->groupBy('review_id') as $reviewId => $questionRatings) {
+            // Get unique questions for this review
+            $uniqueQuestions = $questionRatings->unique('question_id');
+            $totalRating = $uniqueQuestions->sum('star_value');
+            $questionCount = $uniqueQuestions->count();
+
+            $result[$reviewId] = $questionCount > 0
+                ? round($totalRating / $questionCount, 1)
+                : null;
+        }
+
+        return collect($result);
     }
-
-    return $distribution;
-}
-
-/**
- * Optimized method to calculate ratings for multiple reviews in one query
- */
-private function calculateBulkRatings($reviewIds)
-{
-    if (empty($reviewIds)) {
-        return collect();
-    }
-
-    $ratings = DB::table('review_value_news as rvn')
-        ->join('stars as s', 'rvn.star_id', '=', 's.id')
-        ->whereIn('rvn.review_id', $reviewIds)
-        ->select(
-            'rvn.review_id',
-            'rvn.question_id',
-            's.value as star_value'
-        )
-        ->orderBy('rvn.review_id')
-        ->orderBy('rvn.question_id')
-        ->get();
-
-    // Group by review_id and calculate average per review
-    $result = [];
-
-    foreach ($ratings->groupBy('review_id') as $reviewId => $questionRatings) {
-        // Get unique questions for this review
-        $uniqueQuestions = $questionRatings->unique('question_id');
-        $totalRating = $uniqueQuestions->sum('star_value');
-        $questionCount = $uniqueQuestions->count();
-
-        $result[$reviewId] = $questionCount > 0
-            ? round($totalRating / $questionCount, 1)
-            : null;
-    }
-
-    return collect($result);
-}
     // ##################################################
     // Helper to store review values (question/star)
-private function storeReviewValues($review, $values, $business)
-{
-    foreach ($values as $value) {
-        $value['review_id'] = $review->id;
-        ReviewValueNew::create($value);
-    }
+    private function storeReviewValues($review, $values, $business)
+    {
 
-    // NO LONGER CALCULATE AND STORE THE AVERAGE HERE
-    // Ratings will be calculated on-the-fly from ReviewValue data
-}
+        $averageRating = collect($values)
+            ->pluck('star_id')
+            ->filter()
+            ->avg();
+
+        $averageRating = $averageRating ? round($averageRating, 1) : null;
+
+        foreach ($values as $value) {
+            $value['review_id'] = $review->id;
+            ReviewValueNew::create($value);
+        }
+
+        if ($business && $review->guest_id) {
+            if ($averageRating >= $business->threshold_rating) {
+                $review->is_private = 0;
+                $review->save();
+            } else {
+                $review->is_private = 1;
+                $review->save();
+            }
+        }
+
+        // NO LONGER CALCULATE AND STORE THE AVERAGE HERE
+        // Ratings will be calculated on-the-fly from ReviewValue data
+    }
     private function getDistanceMeters($lat1, $lon1, $lat2, $lon2)
     {
         $earth_radius = 6371000; // meters
@@ -2304,7 +2324,6 @@ private function storeReviewValues($review, $values, $business)
             if (!$business) {
                 return response()->json(["message" => "No Business Found"], 400);
             }
-
         }
 
         $createdQuestion =    Question::create($question);
@@ -2674,7 +2693,6 @@ private function storeReviewValues($review, $values, $business)
             if (!$business && !$request->user()->hasRole("superadmin")) {
                 return response("No Business Found", 404);
             }
-
         }
 
 
@@ -2858,7 +2876,7 @@ private function storeReviewValues($review, $values, $business)
      * @OA\Get(
      *      path="/review-new/get/questions-all/customer",
      *      operationId="getQuestionAllUnauthorized",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
 
      *      summary="This method is to get all question without pagination",
      *      description="This method is to get all question without pagination",
@@ -3598,7 +3616,7 @@ private function storeReviewValues($review, $values, $business)
      * @OA\Post(
      *      path="/review-new/create/tags",
      *      operationId="storeTag",
-     *      tags={"review.setting.tag"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -3660,7 +3678,6 @@ private function storeReviewValues($review, $values, $business)
             if (!$business) {
                 return response()->json(["message" => "No Business Found"]);
             }
-
         }
 
 
@@ -3680,7 +3697,7 @@ private function storeReviewValues($review, $values, $business)
      * @OA\Post(
      *      path="/v1.0/review-new/create/tags/multiple/{businessId}",
      *      operationId="storeTagMultiple",
-     *      tags={"review.setting.tag"},
+     *      tags={"z.unused"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -3869,8 +3886,8 @@ private function storeReviewValues($review, $values, $business)
      *
      * @OA\Put(
      *      path="/review-new/update/tags",
-     *      operationId="updateTag",
-     *      tags={"review.setting.tag"},
+     *      operationId="updatedTag",
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -3918,7 +3935,7 @@ private function storeReviewValues($review, $values, $business)
      *      )
      *     )
      */
-    public function updateTag(Request $request)
+    public function updatedTag(Request $request)
     {
 
         $question = [
@@ -4036,8 +4053,8 @@ private function storeReviewValues($review, $values, $business)
      *
      * @OA\Get(
      *      path="/review-new/get/tags/{id}",
-     *      operationId="getTagById",
-     *      tags={"review.setting.tag"},
+     *      operationId="TagById",
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -4080,7 +4097,7 @@ private function storeReviewValues($review, $values, $business)
      *      )
      *     )
      */
-    public function   getTagById($id, Request $request)
+    public function   TagById($id, Request $request)
     {
         $questions =    Tag::where(["id" => $id])
             ->first();
@@ -4096,7 +4113,7 @@ private function storeReviewValues($review, $values, $business)
      * @OA\Get(
      *      path="/review-new/get/tags/{id}/{reataurantId}",
      *      operationId="getTagById2",
-     *      tags={"review.setting.tag"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -4166,7 +4183,7 @@ private function storeReviewValues($review, $values, $business)
      * @OA\Delete(
      *      path="/review-new/delete/tags/{id}",
      *      operationId="deleteTagById",
-     *      tags={"review.setting.tag"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -4610,7 +4627,7 @@ private function storeReviewValues($review, $values, $business)
             foreach ($request->stars as $requestStar) {
 
 
-                QusetionStar::create([
+                QuestionStar::create([
                     "question_id" => $question_id,
                     "star_id" => $requestStar["star_id"]
                 ]);
@@ -4714,7 +4731,7 @@ private function storeReviewValues($review, $values, $business)
             $starIds = collect($request->stars)->pluck('star_id')->toArray();
 
 
-            QusetionStar::where([
+            QuestionStar::where([
                 'question_id' => $question_id,
             ])
                 ->whereNotIn('star_id', $starIds)
@@ -4724,11 +4741,11 @@ private function storeReviewValues($review, $values, $business)
 
             foreach ($request->stars as $requestStar) {
 
-                if (!(QusetionStar::where([
+                if (!(QuestionStar::where([
                     "question_id" => $question_id,
                     "star_id" => $requestStar["star_id"]
                 ])->exists())) {
-                    QusetionStar::create([
+                    QuestionStar::create([
                         "question_id" => $question_id,
                         "star_id" => $requestStar["star_id"]
                     ]);
@@ -6450,70 +6467,75 @@ private function storeReviewValues($review, $values, $business)
      */
 
 
-public function getAverageRatingClient($businessId, Request $request)
-{
-    $reviews = ReviewNew::with(['value'])
-        ->where("business_id", $businessId)
-        ->globalFilters()
-        ->orderBy('order_no', 'asc')
-        ->get();
+    public function getAverageRatingClient($businessId, Request $request)
+    {
+        $reviews = ReviewNew::with('value')
+            ->where('business_id', $businessId)
+            ->where(function ($q) {
+                $q->where('is_private', 0)
+                    ->orWhereNull('is_private');
+            })
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
+            ->get();
 
-    $data["total_reviews"] = $reviews->count();
 
-    // Get review IDs for bulk calculation
-    $reviewIds = $reviews->pluck('id')->toArray();
+        $data["total_reviews"] = $reviews->count();
 
-    // Calculate ratings in bulk (more efficient)
-    $ratings = $this->calculateBulkRatings($reviewIds);
+        // Get review IDs for bulk calculation
+        $reviewIds = $reviews->pluck('id')->toArray();
 
-    // Initialize counters
-    $ratingCounts = [
-        'one' => 0,
-        'two' => 0,
-        'three' => 0,
-        'four' => 0,
-        'five' => 0
-    ];
+        // Calculate ratings in bulk (more efficient)
+        $ratings = $this->calculateBulkRatings($reviewIds);
 
-    $totalRating = 0;
-    $validReviews = 0;
+        // Initialize counters
+        $ratingCounts = [
+            'one' => 0,
+            'two' => 0,
+            'three' => 0,
+            'four' => 0,
+            'five' => 0
+        ];
 
-    foreach ($reviews as $review) {
-        $rating = $ratings->get($review->id);
+        $totalRating = 0;
+        $validReviews = 0;
 
-        if ($rating !== null) {
-            $totalRating += $rating;
-            $validReviews++;
+        foreach ($reviews as $review) {
+            $rating = $ratings->get($review->id);
 
-            switch (round($rating)) {
-                case 1:
-                    $ratingCounts['one'] += 1;
-                    break;
-                case 2:
-                    $ratingCounts['two'] += 1;
-                    break;
-                case 3:
-                    $ratingCounts['three'] += 1;
-                    break;
-                case 4:
-                    $ratingCounts['four'] += 1;
-                    break;
-                case 5:
-                    $ratingCounts['five'] += 1;
-                    break;
+            if ($rating !== null) {
+                $totalRating += $rating;
+                $validReviews++;
+
+                switch (round($rating)) {
+                    case 1:
+                        $ratingCounts['one'] += 1;
+                        break;
+                    case 2:
+                        $ratingCounts['two'] += 1;
+                        break;
+                    case 3:
+                        $ratingCounts['three'] += 1;
+                        break;
+                    case 4:
+                        $ratingCounts['four'] += 1;
+                        break;
+                    case 5:
+                        $ratingCounts['five'] += 1;
+                        break;
+                }
             }
         }
+
+        $data['rating'] = $ratingCounts;
+        $data['avg_rating'] = $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
+
+        return response([
+            "success" => true,
+            "message" => "Average rating retrieved successfully",
+            "data" => $data
+        ], 200);
     }
-
-    $data['rating'] = $ratingCounts;
-    $data['avg_rating'] = $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
-
-    return response([
-        "success" => true,
-        "message" => "Average rating retrieved successfully",
-        "data" => $data
-    ], 200);
-}
 
 
 
@@ -6544,6 +6566,13 @@ public function getAverageRatingClient($businessId, Request $request)
      *          required=false,
      *          description="Items per page",
      *          example=10
+     *      ),
+     *      @OA\Parameter(
+     *          name="is_private",
+     *          in="query",
+     *          required=false,
+     *          description="Filter by privacy status (0 for public, 1 for private)",
+     *          example=""
      *      ),
      *      @OA\Parameter(
      *          name="sort_by",
@@ -6582,7 +6611,21 @@ public function getAverageRatingClient($businessId, Request $request)
             "survey"
         ])->where([
             "business_id" => $businessId,
-        ])->globalFilters();
+        ])
+            ->when($request->has('is_private'), function ($q) use ($request) {
+                $isPrivate = $request->get('is_private', 0);
+                if ($isPrivate == 0) {
+                    // For public reviews, include both is_private = 0 and is_private = null
+                    $q->where(function ($subQ) {
+                        $subQ->where('is_private', 0)
+                            ->orWhereNull('is_private');
+                    });
+                } else {
+                    // For private reviews, only is_private = 1
+                    $q->where('is_private', $isPrivate);
+                }
+            })
+            ->globalFilters();
 
         // Sorting logic
         $sortBy = $request->get('sort_by');
@@ -6671,7 +6714,8 @@ public function getAverageRatingClient($businessId, Request $request)
     {
         // with
         $reviewValue = ReviewNew::with([
-            "value",
+            "value.question",
+            "value.tag",
             "user",
             "guest_user",
             "survey"
@@ -6869,12 +6913,12 @@ public function getAverageRatingClient($businessId, Request $request)
      */
     public function updateGuestEmailsByReviews($ids, Request $request)
     {
-        // Validate email in request
         $validated = $request->validate([
-            'email' => 'required|email|max:255'
+            'email' => 'required|email|max:255',
+            // add unique if needed:
+            // 'email' => 'required|email|max:255|unique:guest_users,email',
         ]);
 
-        // Validate and parse comma-separated IDs
         if (empty($ids)) {
             return response()->json([
                 'success' => false,
@@ -6882,13 +6926,8 @@ public function getAverageRatingClient($businessId, Request $request)
             ], 400);
         }
 
-        // Split the comma-separated string into an array
         $idArray = array_map('trim', explode(',', $ids));
-
-        // Filter out non-numeric values
-        $numericIds = array_filter($idArray, function ($id) {
-            return is_numeric($id) && $id > 0;
-        });
+        $numericIds = array_values(array_unique(array_map('intval', array_filter($idArray, fn($id) => ctype_digit((string)$id) && (int)$id > 0))));
 
         if (empty($numericIds)) {
             return response()->json([
@@ -6897,48 +6936,28 @@ public function getAverageRatingClient($businessId, Request $request)
             ], 400);
         }
 
-        // Convert to integers
-        $numericIds = array_map('intval', $numericIds);
-
-        // Find reviews with guest users
         $reviews = ReviewNew::whereIn('id', $numericIds)
             ->whereNotNull('guest_id')
-            ->with('guest_user')
-            ->get();
+            ->get(['id', 'guest_id']);
 
         if ($reviews->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'No valid reviews with guest users found for the provided IDs',
                 'data' => [
-                    'requested_ids' => $numericIds,
+                    'requested_review_ids' => $numericIds,
                     'updated_count' => 0,
                     'updated_guest_ids' => [],
-                    'review_ids' => []
+                    'found_review_ids' => []
                 ]
             ], 404);
         }
 
-        // Get unique guest IDs from the reviews
-        $guestIds = $reviews->pluck('guest_id')->unique()->toArray();
+        $foundReviewIds = $reviews->pluck('id')->unique()->values()->all();
+        $missingReviewIds = array_values(array_diff($numericIds, $foundReviewIds));
 
-        // Get the IDs that were not found
-        $invalidIds = array_diff($numericIds, $guestIds);
+        $guestIds = $reviews->pluck('guest_id')->unique()->values()->all();
 
-        // Return error response if no valid reviews found
-        if (!empty($invalidIds)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No valid reviews found with the provided IDs',
-                'data' => [
-                    'requested_ids' => $numericIds,
-                    'valid_ids' => $guestIds,
-                    'invalid_ids' => $invalidIds
-                ]
-            ], 404);
-        }
-
-        // Update email for all guest users
         $updatedCount = GuestUser::whereIn('id', $guestIds)
             ->update(['email' => $validated['email']]);
 
@@ -6948,7 +6967,8 @@ public function getAverageRatingClient($businessId, Request $request)
             'data' => [
                 'updated_count' => $updatedCount,
                 'updated_guest_ids' => $guestIds,
-                'review_ids' => $reviews->pluck('id')->toArray(),
+                'found_review_ids' => $foundReviewIds,
+                'missing_review_ids' => $missingReviewIds,
                 'email' => $validated['email']
             ]
         ], 200);

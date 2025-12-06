@@ -2,10 +2,10 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
-class CreateTagsTable extends Migration
+return new class extends Migration
 {
     /**
      * Run the migrations.
@@ -16,54 +16,50 @@ class CreateTagsTable extends Migration
     {
         Schema::create('tags', function (Blueprint $table) {
             $table->id();
-            $table->string("tag")->nullable();
-            $table->unsignedBigInteger("business_id")->nullable();
-            $table->boolean("is_default")->default(false);
+            $table->string('tag');
+            $table->unsignedBigInteger('business_id')->nullable();
+            $table->foreign('business_id')->references('id')->on('businesses')->onDelete('cascade');
+            $table->boolean('is_default')->default(false);
+
+            // Added fields from alterations
+            $table->boolean('is_active')->default(true);
+            $table->string('category')->nullable();
+            $table->enum('sentiment', ['positive', 'neutral', 'negative'])->nullable();
+
             $table->timestamps();
         });
 
+        // Insert default tags
+        $defaultTags = [
+            ['tag' => 'Excellent Service', 'is_default' => true, 'is_active' => true, 'category' => 'service', 'sentiment' => 'positive'],
+            ['tag' => 'Friendly Staff', 'is_default' => true, 'is_active' => true, 'category' => 'staff', 'sentiment' => 'positive'],
+            ['tag' => 'Clean Environment', 'is_default' => true, 'is_active' => true, 'category' => 'environment', 'sentiment' => 'positive'],
+            ['tag' => 'Quick Service', 'is_default' => true, 'is_active' => true, 'category' => 'service', 'sentiment' => 'positive'],
+            ['tag' => 'Great Value', 'is_default' => true, 'is_active' => true, 'category' => 'value', 'sentiment' => 'positive'],
+            ['tag' => 'Professional', 'is_default' => true, 'is_active' => true, 'category' => 'staff', 'sentiment' => 'positive'],
+            ['tag' => 'Convenient Location', 'is_default' => true, 'is_active' => true, 'category' => 'location', 'sentiment' => 'positive'],
+            ['tag' => 'High Quality', 'is_default' => true, 'is_active' => true, 'category' => 'quality', 'sentiment' => 'positive'],
+            ['tag' => 'Comfortable', 'is_default' => true, 'is_active' => true, 'category' => 'environment', 'sentiment' => 'positive'],
+            ['tag' => 'Recommend', 'is_default' => true, 'is_active' => true, 'category' => 'general', 'sentiment' => 'positive'],
+            ['tag' => 'Poor Service', 'is_default' => true, 'is_active' => true, 'category' => 'service', 'sentiment' => 'negative'],
+            ['tag' => 'Rude Staff', 'is_default' => true, 'is_active' => true, 'category' => 'staff', 'sentiment' => 'negative'],
+            ['tag' => 'Dirty', 'is_default' => true, 'is_active' => true, 'category' => 'environment', 'sentiment' => 'negative'],
+            ['tag' => 'Slow Service', 'is_default' => true, 'is_active' => true, 'category' => 'service', 'sentiment' => 'negative'],
+            ['tag' => 'Overpriced', 'is_default' => true, 'is_active' => true, 'category' => 'value', 'sentiment' => 'negative'],
+            ['tag' => 'Unprofessional', 'is_default' => true, 'is_active' => true, 'category' => 'staff', 'sentiment' => 'negative'],
+            ['tag' => 'Poor Location', 'is_default' => true, 'is_active' => true, 'category' => 'location', 'sentiment' => 'negative'],
+            ['tag' => 'Low Quality', 'is_default' => true, 'is_active' => true, 'category' => 'quality', 'sentiment' => 'negative'],
+            ['tag' => 'Uncomfortable', 'is_default' => true, 'is_active' => true, 'category' => 'environment', 'sentiment' => 'negative'],
+            ['tag' => 'Not Recommend', 'is_default' => true, 'is_active' => true, 'category' => 'general', 'sentiment' => 'negative'],
+            ['tag' => 'Average', 'is_default' => true, 'is_active' => true, 'category' => 'general', 'sentiment' => 'neutral'],
+            ['tag' => 'Okay', 'is_default' => true, 'is_active' => true, 'category' => 'general', 'sentiment' => 'neutral'],
+        ];
 
-        if(env("first_setup")) {
-            $defaultTags =  [
-                "Excellent",
-             "Very Good",
-             "Good",
-             "Fair",
-             "Poor",
-             "Outstanding",
-             "Above Average",
-             "Average",
-             "Below Average",
-             "Terrible",
-             "Highly Recommend",
-             "Recommend",
-             "Neutral",
-             "Do Not Recommend",
-             "Exceptional",
-             "Satisfactory",
-             "Unsatisfactory",
-             "Superb",
-             "Mediocre",
-             "Disappointing",
-             "Flawless",
-             "Needs Improvement"
-            ];
-
-            foreach($defaultTags as $tag){
-
-                DB::table("tags")
-                ->insert([
-                    "tag" => $tag,
-                    "is_default" => true,
-                    "business_id" => NULL
-
-                ]);
-            }
-
+        foreach ($defaultTags as $tag) {
+            $tag['created_at'] = now();
+            $tag['updated_at'] = now();
+            DB::table('tags')->insert($tag);
         }
-
-
-
     }
 
     /**
@@ -75,4 +71,4 @@ class CreateTagsTable extends Migration
     {
         Schema::dropIfExists('tags');
     }
-}
+};
