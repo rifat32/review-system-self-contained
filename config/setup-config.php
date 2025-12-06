@@ -33,10 +33,15 @@ return [
         //     "role" => "business_employee",
         //     "permissions" => $businessEmployeePermissions['permissions'],
         // ],
+        [
+            "role" => "business_staff",
+            "permissions" => [],
+        ],
     ],
     "roles" => [
         "superadmin",
         "business_owner",
+        "business_staff",
     ],
     "permissions" => [
 
