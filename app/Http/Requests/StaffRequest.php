@@ -31,7 +31,7 @@ class StaffRequest extends FormRequest
             'date_of_birth'     => 'nullable|string|max:255',
             'job_title'     => 'nullable|string|max:255',
             'image'     => 'nullable|string|max:255',
-            'role'     => 'required|string|in:staff',
+            'role'     => 'required|string|in:business_staff',
             'skills'     => 'nullable|string|max:255',
             'join_date'     => 'nullable|string|max:255',
         ];

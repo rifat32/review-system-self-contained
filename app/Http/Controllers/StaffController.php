@@ -37,7 +37,7 @@ class StaffController extends Controller
      *       @OA\Property(property="phone",      type="string", maxLength=255, example="+8801765432109"),
      *       @OA\Property(property="job_title", type="string", maxLength=255, example="Manager"),
      *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
-     *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff"),
+     *       @OA\Property(property="role", type="string", enum={"business_staff"}, example="business_staff"),
      *       @OA\Property(property="skills", type="string", example="PHP, Laravel"),
      *       @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *     )
@@ -58,7 +58,7 @@ class StaffController extends Controller
      *         @OA\Property(property="last_Name", type="string", example="Doe"),
      *         @OA\Property(property="email", type="string", format="email", example="john.doe@yopmail.com"),
      *         @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *         @OA\Property(property="role", type="string", example="staff"),
+     *         @OA\Property(property="role", type="string", example="business_staff"),
      *         @OA\Property(property="skills", type="string", example="PHP, Laravel"),
      *         @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01"),
      *         @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOi..."),
@@ -171,7 +171,7 @@ class StaffController extends Controller
      *       @OA\Property(property="phone",      type="string", maxLength=50, example="+8801765432109"),
      *       @OA\Property(property="job_title", type="string", maxLength=255, example="Manager"),
      *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
-     *       @OA\Property(property="role", type="string", enum={"staff"}, example="staff"),
+     *       @OA\Property(property="role", type="string", enum={"business_staff"}, example="business_staff"),
      *       @OA\Property(property="skills", type="string", example="PHP, Laravel"),
      *       @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *     )
@@ -194,7 +194,7 @@ class StaffController extends Controller
      *       @OA\Property(property="phone", type="string", example="+8801765432109"),
      *       @OA\Property(property="job_title", type="string", example="Manager"),
      *       @OA\Property(property="image", type="string", example="/image/uuid.jpg"),
-     *       @OA\Property(property="role", type="string", example="staff"),
+     *       @OA\Property(property="role", type="string", example="business_staff"),
      *       @OA\Property(property="skills", type="string", example="PHP, Laravel"),
      *       @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *       )
@@ -234,7 +234,7 @@ class StaffController extends Controller
         DB::beginTransaction();
         try {
             $user = User::where('business_id', auth()->user()->business()->value('id'))
-                ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
+                ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
                 ->find($id);
 
             if (!$user) {
@@ -432,7 +432,7 @@ class StaffController extends Controller
     public function getAllStaffs(Request $request)
     {
         try {
-            $businessId = auth()->user()->business()->value('id');
+            $businessId = auth()->user()->business->id??-1;
             $query = User::filterStaff($businessId)->orderByDesc('id');
 
             // Check if pagination is requested
@@ -512,7 +512,7 @@ class StaffController extends Controller
      *         @OA\Property(property="last_Name", type="string", example="Doe"),
      *         @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *         @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *         @OA\Property(property="role", type="string", example="staff"),
+     *         @OA\Property(property="role", type="string", example="business_staff"),
      *         @OA\Property(property="skills", type="string", example="PHP, Laravel"),
      *         @OA\Property(property="joining_date", type="string", format="date", example="2023-01-01")
      *       )

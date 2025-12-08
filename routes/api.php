@@ -637,7 +637,7 @@ Route::middleware(['superadmin'])->group(function () {
     Route::get('/v1.0/superadmin/dashboard-report/review-report', [SuperAdminReportController::class, "getReviewReport"]);
     Route::get('/v1.0/superadmin/customer-list/{perPage}', [UserController::class, "getCustomerReportSuperadmin"]);
 
-    Route::get('/superadmin/owner-list/{perPage}', [UserController::class, "getOwnerReport"]);
+   
     Route::delete('superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
     // EMAIL TEMPLATE WRAPPER MANAGEMENT
     Route::prefix('v1.0/email-template-wrappers')->group(function () {
