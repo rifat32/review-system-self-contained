@@ -619,7 +619,7 @@ Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController
 
 Route::middleware(['superadmin'])->group(function () {
 
-    Route::patch('/v1.0/auth/change-password-by-superadmin', [ForgotPasswordController::class, "changePasswordBySuperAdmin"]);
+
 
 
     Route::get('/v1.0/superadmin/dashboard-report/total-business', [SuperAdminReportController::class, "getTotalBusinessReport"]);
@@ -632,7 +632,7 @@ Route::middleware(['superadmin'])->group(function () {
 
 
 
-    Route::get('/v1.0/superadmin/dashboard-report/total-reviews', [SuperAdminReportController::class, "getTotalReviews"]);
+
     Route::get('/v1.0/superadmin/dashboard-report/today-reviews', [SuperAdminReportController::class, "getTodayReviews"]);
     Route::get('/v1.0/superadmin/dashboard-report/review-report', [SuperAdminReportController::class, "getReviewReport"]);
     Route::get('/v1.0/superadmin/customer-list/{perPage}', [UserController::class, "getCustomerReportSuperadmin"]);
@@ -671,7 +671,7 @@ Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [ReportCont
 
 Route::get('/v1.0/reports/staff-dashboard/{businessId}', [ReportController::class, 'staffDashboard']);
 
-Route::get('/v1.0/reports/review-analytics/{businessId}', [ReportController::class, 'reviewAnalytics']);
+
 
 // #################
 // Review Owner Routes
