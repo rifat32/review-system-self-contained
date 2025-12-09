@@ -28,11 +28,18 @@ class BranchRequest extends FormRequest
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
+            'is_geo_enabled' => 'required|boolean',
+            'lat' => 'nullable|string',
+            'long' => 'nullable|string',
         ];
 
-        // if ($this->isMethod('patch') || $this->isMethod('put')) {
-        //     $rules['id'] = 'required|integer';
-        // }
+        if ($this->isMethod('post')) {
+            $rules['branch_code'] = 'required|string|max:50|unique:branches,branch_code';
+        }
+
+        if ($this->isMethod('patch') || $this->isMethod('put')) {
+            $rules['branch_code'] = 'nullable|string|max:50|unique:branches,branch_code,' . ($this->route('id'));
+        }
 
         return $rules;
     }
@@ -56,6 +63,12 @@ class BranchRequest extends FormRequest
             'phone.max' => 'The phone may not be greater than 20 characters.',
             'email.email' => 'The email must be a valid email address.',
             'email.max' => 'The email may not be greater than 255 characters.',
+            'is_geo_enabled.boolean' => 'The geo enabled status must be true or false.',
+            'branch_code.string' => 'The branch code must be a string.',
+            'branch_code.max' => 'The branch code may not be greater than 50 characters.',
+            'branch_code.unique' => 'The branch code has already been taken.',
+            'lat.string' => 'The latitude must be a string.',
+            'long.string' => 'The longitude must be a string.',
         ];
     }
 }

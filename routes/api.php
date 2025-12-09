@@ -282,6 +282,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/', [BranchController::class, 'createBranch']);
         Route::get('/{id}', [BranchController::class, 'getBranchById']);
         Route::patch('/{id}', [BranchController::class, 'updateBranch']);
+        Route::patch('/{id}/toggle-active', [BranchController::class, 'toggleBranchActive']);
         Route::delete('/{id}', [BranchController::class, 'deleteBranches']);
     });
 
@@ -637,7 +638,7 @@ Route::middleware(['superadmin'])->group(function () {
     Route::get('/v1.0/superadmin/dashboard-report/review-report', [SuperAdminReportController::class, "getReviewReport"]);
     Route::get('/v1.0/superadmin/customer-list/{perPage}', [UserController::class, "getCustomerReportSuperadmin"]);
 
-   
+
     Route::delete('superadmin/user-delete/{id}', [UserController::class, "deleteCustomerById"]);
     // EMAIL TEMPLATE WRAPPER MANAGEMENT
     Route::prefix('v1.0/email-template-wrappers')->group(function () {

@@ -36,6 +36,11 @@ class BranchController extends Controller
      *                      @OA\Property(property="address", type="string", example="123 Main St"),
      *                      @OA\Property(property="phone", type="string", example="+1234567890"),
      *                      @OA\Property(property="email", type="string", example="branch@example.com"),
+     *                      @OA\Property(property="is_active", type="boolean", example=true),
+     *                      @OA\Property(property="is_geo_enabled", type="boolean", example=false),
+     *                      @OA\Property(property="branch_code", type="string", example="BR001"),
+     *                      @OA\Property(property="lat", type="string", format="float", example="40.7128"),
+     *                      @OA\Property(property="long", type="string", format="float", example="-74.0060"),
      *                      @OA\Property(property="created_at", type="string", format="date-time"),
      *                      @OA\Property(property="updated_at", type="string", format="date-time")
      *                  )
@@ -85,7 +90,12 @@ class BranchController extends Controller
      *              @OA\Property(property="name", type="string", example="Main Branch", description="Name of the branch"),
      *              @OA\Property(property="address", type="string", example="123 Main St", description="Address of the branch"),
      *              @OA\Property(property="phone", type="string", example="+1234567890", description="Phone number of the branch"),
-     *              @OA\Property(property="email", type="string", example="branch@example.com", description="Email of the branch")
+     *              @OA\Property(property="email", type="string", example="branch@example.com", description="Email of the branch"),
+     *              @OA\Property(property="is_active", type="boolean", example=true, description="Whether the branch is active"),
+     *              @OA\Property(property="is_geo_enabled", type="boolean", example=false, description="Whether geolocation is enabled for the branch"),
+     *              @OA\Property(property="branch_code", type="string", example="BR001", description="Unique code for the branch"),
+     *              @OA\Property(property="lat", type="string", format="float", example="40.7128", description="lat coordinate of the branch"),
+     *              @OA\Property(property="long", type="string", format="float", example="-74.0060", description="long coordinate of the branch")
      *          )
      *      ),
      *
@@ -103,7 +113,12 @@ class BranchController extends Controller
      *                  @OA\Property(property="name", type="string", example="Main Branch"),
      *                  @OA\Property(property="address", type="string", example="123 Main St"),
      *                  @OA\Property(property="phone", type="string", example="+1234567890"),
-     *                  @OA\Property(property="email", type="string", example="branch@example.com"),
+     *              @OA\Property(property="email", type="string", example="branch@example.com"),
+     *              @OA\Property(property="is_active", type="boolean", example=true),
+     *              @OA\Property(property="is_geo_enabled", type="boolean", example=false),
+     *              @OA\Property(property="branch_code", type="string", example="BR001"),
+     *              @OA\Property(property="lat", type="string", format="float", example="40.7128"),
+     *              @OA\Property(property="long", type="string", format="float", example="-74.0060"),
      *                  @OA\Property(property="created_at", type="string", format="date-time"),
      *                  @OA\Property(property="updated_at", type="string", format="date-time")
      *              )
@@ -195,6 +210,11 @@ class BranchController extends Controller
      *                  @OA\Property(property="address", type="string", example="123 Main St"),
      *                  @OA\Property(property="phone", type="string", example="+1234567890"),
      *                  @OA\Property(property="email", type="string", example="branch@example.com"),
+     *                  @OA\Property(property="is_active", type="boolean", example=true),
+     *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
+     *                  @OA\Property(property="branch_code", type="string", example="BR001"),
+                        @OA\Property(property="lat", type="string", format="float", example="40.7128"),
+     *                  @OA\Property(property="long", type="string", format="float", example="-74.0060"),
      *                  @OA\Property(property="created_at", type="string", format="date-time"),
      *                  @OA\Property(property="updated_at", type="string", format="date-time"),
      *                  @OA\Property(
@@ -246,7 +266,7 @@ class BranchController extends Controller
         }
 
         // Check ownership
-        $user = auth()->user();
+        $user = auth('api')->user();
         if ($branch->business->OwnerID != $user->id) {
             return response()->json([
                 'success' => false,
@@ -289,7 +309,12 @@ class BranchController extends Controller
      *              @OA\Property(property="name", type="string", example="Updated Branch", description="Name of the branch"),
      *              @OA\Property(property="address", type="string", example="456 Updated St", description="Address of the branch"),
      *              @OA\Property(property="phone", type="string", example="+0987654321", description="Phone number of the branch"),
-     *              @OA\Property(property="email", type="string", example="updated@example.com", description="Email of the branch")
+     *              @OA\Property(property="email", type="string", example="updated@example.com", description="Email of the branch"),
+     *              @OA\Property(property="is_active", type="boolean", example=true, description="Whether the branch is active"),
+     *              @OA\Property(property="is_geo_enabled", type="boolean", example=false, description="Whether geolocation is enabled for the branch"),
+     *              @OA\Property(property="branch_code", type="string", example="BR001", description="Unique code for the branch"),
+     *              @OA\Property(property="lat", type="string", format="float", example="40.7128", description="lat coordinate of the branch"),
+     *              @OA\Property(property="long", type="string", format="float", example="-74.0060", description="long coordinate of the branch")
      *          )
      *      ),
      *
@@ -308,6 +333,11 @@ class BranchController extends Controller
      *                  @OA\Property(property="address", type="string", example="456 Updated St"),
      *                  @OA\Property(property="phone", type="string", example="+0987654321"),
      *                  @OA\Property(property="email", type="string", example="updated@example.com"),
+     *                  @OA\Property(property="is_active", type="boolean", example=true),
+     *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
+     *                  @OA\Property(property="branch_code", type="string", example="BR001"),
+     *                  @OA\Property(property="lat", type="string", format="float", example="40.7128"),
+     *                  @OA\Property(property="long", type="string", format="float", example="-74.0060"),
      *                  @OA\Property(property="created_at", type="string", format="date-time"),
      *                  @OA\Property(property="updated_at", type="string", format="date-time")
      *              )
@@ -450,7 +480,7 @@ class BranchController extends Controller
         }
 
         // Check ownership
-        $user = auth()->user();
+        $user = auth('api')->user();
         if ($branch->business->OwnerID != $user->id) {
             return response()->json([
                 'success' => false,
@@ -463,6 +493,110 @@ class BranchController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Branch deleted successfully'
+        ]);
+    }
+
+    /**
+     * @OA\Patch(
+     *      path="/v1.0/branches/{id}/toggle-active",
+     *      operationId="toggleBranchActive",
+     *      tags={"branches"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Toggle branch active status",
+     *      description="Toggle the active status of a specific branch.",
+     *
+     *      @OA\Parameter(
+     *          name="id",
+     *          description="Branch ID",
+     *          required=true,
+     *          in="path",
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=200,
+     *          description="Branch status toggled successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Branch activated successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="business_id", type="integer", example=1),
+     *                  @OA\Property(property="name", type="string", example="Main Branch"),
+     *                  @OA\Property(property="is_active", type="boolean", example=true),
+     *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
+     *                  @OA\Property(property="branch_code", type="string", example="BR001"),
+     *                  @OA\Property(property="lat", type="string", format="float", example="40.7128"),
+     *                  @OA\Property(property="long", type="string", format="float", example="-74.0060"),
+     *                  @OA\Property(property="created_at", type="string", format="date-time"),
+     *                  @OA\Property(property="updated_at", type="string", format="date-time")
+     *              )
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=404,
+     *          description="Branch not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\JsonContent(
+     *                  @OA\Property(property="message", type="string", example="Branch not found")
+     *              )
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=403,
+     *          description="Unauthorized",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\JsonContent(
+     *                  @OA\Property(property="message", type="string", example="You do not own this branch")
+     *              )
+     *          )
+     *      )
+     * )
+     */
+    public function toggleBranchActive($id)
+    {
+        $user = auth('api')->user();
+
+        // Find the branch
+        $branch = Branch::find($id);
+
+        if (!$branch) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Branch not found'
+            ], 404);
+        }
+
+        // Check if the user owns this branch through business ownership
+        $business = Business::where('id', $branch->business_id)
+            ->where('OwnerID', $user->id)
+            ->first();
+
+        if (!$business) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not own this branch'
+            ], 403);
+        }
+
+        // Toggle the active status
+        $branch->is_active = !$branch->is_active;
+        $branch->save();
+
+        $message = $branch->is_active ? 'Branch activated successfully' : 'Branch deactivated successfully';
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $branch
         ]);
     }
 }
