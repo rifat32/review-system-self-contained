@@ -341,32 +341,47 @@ class StaffController extends Controller
      *   operationId="getAllStaffs",
      *   tags={"staff_management"},
      *   summary="List staff",
-     *   description="Returns staff users for the authenticated user's business. Supports simple name search and pagination.",
+     *   description="Returns staff users for the authenticated user's business. Supports name search, pagination, and sorting.",
      *   security={{"bearerAuth":{}}},
      *
      *   @OA\Parameter(
      *     name="search_key",
      *     in="query",
      *     required=false,
-     *     description="Search by first_Name or last_name (LIKE %search_key%).",
-     *     @OA\Schema(type="string"),
-     *     example=""
+     *     description="Search by first_Name or last_Name (LIKE %search_key%).",
+     *     @OA\Schema(type="string", example="john")
      *   ),
+     *
+     *   @OA\Parameter(
+     *     name="order_by",
+     *     in="query",
+     *     required=false,
+     *     description="Sort column (e.g. id, first_Name, last_Name, email, joining_date, created_at).",
+     *     @OA\Schema(type="string", example="joining_date")
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="sort_order",
+     *     in="query",
+     *     required=false,
+     *     description="Sort direction",
+     *     @OA\Schema(type="string", enum={"asc","desc"}, example="desc")
+     *   ),
+     *
      *   @OA\Parameter(
      *     name="per_page",
      *     in="query",
      *     required=false,
-     *     description="Number of staff per page (optional, if not provided returns all staff)",
-     *     @OA\Schema(type="integer"),
-     *     example=""
+     *     description="Number of staff per page (optional).",
+     *     @OA\Schema(type="integer", minimum=1, example=15)
      *   ),
+     *
      *   @OA\Parameter(
      *     name="page",
      *     in="query",
      *     required=false,
      *     description="Page number",
-     *     @OA\Schema(type="integer"),
-     *     example=""
+     *     @OA\Schema(type="integer", minimum=1, example=1)
      *   ),
      *
      *   @OA\Response(
@@ -411,6 +426,7 @@ class StaffController extends Controller
      *       )
      *     )
      *   ),
+     *
      *   @OA\Response(
      *     response=401,
      *     description="Unauthenticated",
@@ -418,6 +434,7 @@ class StaffController extends Controller
      *       @OA\Property(property="message", type="string", example="Unauthenticated.")
      *     )
      *   ),
+     *
      *   @OA\Response(
      *     response=403,
      *     description="Forbidden",
@@ -427,6 +444,7 @@ class StaffController extends Controller
      *   )
      * )
      */
+
 
     // LIST with simple filters & pagination
     public function getAllStaffs(Request $request)
