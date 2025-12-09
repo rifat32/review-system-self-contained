@@ -318,7 +318,7 @@ class StaffController extends Controller
     public function deleteStaff($id)
     {
         $user = User::where('business_id', auth()->user()->business()->value('id'))
-            ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
+            ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
             ->find($id);
 
         if (!$user) {

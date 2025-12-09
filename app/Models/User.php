@@ -113,7 +113,7 @@ class User extends Authenticatable
     public function scopeFilterStaff($query, $businessId)
     {
         return $query->where('business_id', $businessId)
-            ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
+            ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
             ->when(request()->filled('search_key'), function ($qq) {
                 $s = request()->input('search_key');
                 $qq->where(function ($w) use ($s) {

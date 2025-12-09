@@ -1032,12 +1032,15 @@ class AuthController extends Controller
     public function checkUserEmail(Request $request)
     {
         $request->validate([
+            "id" => "nullable|integer|exists:users,id",
             "email" => "required|email"
         ]);
 
         $user = User::where([
             "email" => $request->email
-        ])->exists();
+        ])->when(!empty($request->id), function ($query) use ($request) {
+            $query->where("id", "!=", $request->id);
+        })->exists();
 
         // Return true if email exists, false otherwise
         if ($user) {
