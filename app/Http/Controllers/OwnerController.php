@@ -271,6 +271,94 @@ class OwnerController extends Controller
         });
     }
 
+    /**
+     * @OA\Post(
+     *      path="/v1.0/client/create-user-with-business",
+     *      operationId="createUserWithBusinessClient",
+     *      tags={"auth"},
+     *      summary="Create a new user with associated business",
+     *      description="Register a new business owner user and create their business profile",
+     *      @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"email","password","first_Name","last_Name","business_name","business_address","business_postcode","times"},
+     *            @OA\Property(property="email", type="string", format="email", example="rifat@gmail.com"),
+     *            @OA\Property(property="password", type="string", format="password", example="12345678"),
+     *            @OA\Property(property="first_Name", type="string", example="Rifat"),
+     *            @OA\Property(property="last_Name", type="string", example="Khan"),
+     *            @OA\Property(property="phone", type="string", example="+1234567890"),
+     *            @OA\Property(property="business_name", type="string", example="Tech Solutions Ltd"),
+     *            @OA\Property(property="business_address", type="string", example="123 Business St"),
+     *            @OA\Property(property="business_postcode", type="string", example="12345"),
+
+     *            @OA\Property(property="business_EmailAddress", type="string", format="email", example="contact@business.com"),
+     *            @OA\Property(property="business_GoogleMapApi", type="string", example="AIzaSyXXXXXXXXX"),
+     *            @OA\Property(property="business_homeText", type="string", example="Welcome to our business"),
+     *            @OA\Property(property="business_AdditionalInformation", type="string", example="Additional info"),
+     *            @OA\Property(property="business_Webpage", type="string", format="url", example="https://business.com"),
+     *            @OA\Property(property="business_PhoneNumber", type="string", example="+1234567890"),
+     *            @OA\Property(property="business_About", type="string", example="About our business"),
+     *            @OA\Property(property="business_Layout", type="string", example="modern"),
+     *            @OA\Property(property="review_type", type="string", enum={"emoji", "star"}, example="emoji"),
+     *            @OA\Property(property="Is_guest_user", type="boolean", example=false),
+     *            @OA\Property(property="is_review_slider", type="boolean", example=false),
+     *            @OA\Property(property="review_only", type="boolean", example=true),
+     *            @OA\Property(property="header_image", type="string", example="/header_image/default.png"),
+     *            @OA\Property(property="primary_color", type="string", example="#FF0000"),
+     *            @OA\Property(property="secondary_color", type="string", example="#00FF00"),
+     *            @OA\Property(property="client_primary_color", type="string", example="#172c41"),
+     *            @OA\Property(property="client_secondary_color", type="string", example="#ac8538"),
+     *            @OA\Property(property="client_tertiary_color", type="string", example="#ffffff"),
+     *            @OA\Property(property="user_review_report", type="boolean", example=true),
+     *            @OA\Property(property="guest_user_review_report", type="boolean", example=true),
+     *            @OA\Property(property="times", type="array",
+     *                @OA\Items(
+     *                    @OA\Property(property="day", type="integer", example=0),
+     *                    @OA\Property(property="is_weekend", type="boolean", example=true),
+     *                    @OA\Property(property="time_slots", type="array",
+     *                        @OA\Items(
+     *                            @OA\Property(property="start_at", type="string", format="time", example="10:00"),
+     *                            @OA\Property(property="end_at", type="string", format="time", example="11:00")
+     *                        )
+     *                    )
+     *                )
+     *            )
+     *         )
+     *      ),
+     *      @OA\Response(response=200, description="User and business created successfully"),
+     *      @OA\Response(response=401, description="Unauthenticated"),
+     *      @OA\Response(response=422, description="Validation error"),
+     *      @OA\Response(response=403, description="Forbidden"),
+     *      @OA\Response(response=400, description="Bad Request"),
+     *      @OA\Response(response=404, description="Not found")
+     * )
+     */
+    public function createUserWithBusinessClient(CreateUserWithBusinessRequest $request,)
+    {
+        return DB::transaction(function () use ($request) {
+            $validatedData = $request->validated();
+
+            // Create user with verification email
+            $user = $this->userService->createBusinessOwner($validatedData);
+
+            // Create business with all configurations
+            $business = $this->businessService->createBusinessWithSchedule($user, $validatedData);
+
+            // Generate access token
+            $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
+
+
+            return response()->json([
+                'success' => true,
+                'message' => 'You have successfully registered',
+                'data' => [
+                    'user' => $user,
+                    'business' => $business
+                ],
+            ], 200);
+        });
+    }
+
 
 
 

@@ -42,34 +42,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Define route for GET method
-Route::get('/health', function () {
-    return response()->json(['status' => 'Server is up and running'], 200);
-});
-
-// Define route for POST method
-Route::post('/health', function () {
-    return response()->json(['status' => 'Server is up and running'], 200);
-});
-
-// Define route for PUT method
-Route::put('/health', function () {
-    return response()->json(['status' => 'Server is up and running'], 200);
-});
-
-// Define route for DELETE method
-Route::delete('/health', function () {
-    return response()->json(['status' => 'Server is up and running'], 200);
-});
-
-// Define route for PATCH method
-Route::patch('/health', function () {
-    return response()->json(['status' => 'Server is up and running'], 200);
-});
-
-
-
-// /review-new/get/questions-all-report/guest
 
 // Auth Route login user
 Route::post('/resend-email-verify-mail', [AuthController::class, "resendEmailVerifyByToken"]);
@@ -80,7 +52,6 @@ Route::post('/auth/register', [AuthController::class, "userRegister"]);
 
 
 Route::post('/owner/user/registration', [OwnerController::class, "createUser2"]);
-Route::post('/v1.0/create-user-with-business', [OwnerController::class, "createUserWithBusiness"]);
 
 
 
@@ -135,10 +106,12 @@ Route::post('/v1.0/voice/transcribe', [ReviewNewController::class, "transcribeVo
 
 
 
+
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 // @@@@@@@@@@@@@@@@@@@@  Protected Routes      @@@@@@@@@@@@@@@@@
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 Route::middleware(['auth:api'])->group(function () {
+    Route::post('/v1.0/create-user-with-business', [OwnerController::class, "createUserWithBusiness"]);
 
     Route::post('/v1.0/review-new/{businessId}', [ReviewNewController::class, "createReview"]);
     Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
@@ -698,6 +671,7 @@ Route::patch('/v1.0/forget-password/reset/{token}', [ForgotPasswordController::c
 
 Route::post('webhooks/stripe', [CustomWebhookController::class, "handleStripeWebhook"]);
 Route::get('/v1.0/client/businesses', [BusinessController::class, "getBusinessesClients"]);
+Route::post('/v1.0/client/create-user-with-business', [OwnerController::class, "createUserWithBusinessClient"]);
 
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 // coupon management section
@@ -725,3 +699,5 @@ Route::put('/v1.0/client/reviews/update-guest-email/{ids}', [ReviewNewController
 
 // Get Questions for Client Business
 Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
+
+// 
