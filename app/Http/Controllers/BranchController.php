@@ -498,69 +498,64 @@ class BranchController extends Controller
 
     /**
      * @OA\Patch(
-     *      path="/v1.0/branches/{id}/toggle-active",
-     *      operationId="toggleBranchActive",
-     *      tags={"branches"},
-     *      security={
-     *          {"bearerAuth": {}}
-     *      },
-     *      summary="Toggle branch active status",
-     *      description="Toggle the active status of a specific branch.",
+     *   path="/v1.0/branches/{id}/toggle-active",
+     *   operationId="toggleBranchActive",
+     *   tags={"branches"},
+     *   security={{"bearerAuth":{}}},
+     *   summary="Toggle branch active status",
+     *   description="Toggle the active status of a specific branch.",
      *
-     *      @OA\Parameter(
-     *          name="id",
-     *          description="Branch ID",
-     *          required=true,
-     *          in="path",
-     *          @OA\Schema(type="integer")
-     *      ),
+     *   @OA\Parameter(
+     *     name="id",
+     *     in="path",
+     *     required=true,
+     *     description="Branch ID",
+     *     @OA\Schema(type="integer")
+     *   ),
      *
-     *      @OA\Response(
-     *          response=200,
-     *          description="Branch status toggled successfully",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="Branch activated successfully"),
-     *              @OA\Property(
-     *                  property="data",
-     *                  type="object",
-     *                  @OA\Property(property="id", type="integer", example=1),
-     *                  @OA\Property(property="business_id", type="integer", example=1),
-     *                  @OA\Property(property="name", type="string", example="Main Branch"),
-     *                  @OA\Property(property="is_active", type="boolean", example=true),
-     *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
-     *                  @OA\Property(property="branch_code", type="string", example="BR001"),
-     *                  @OA\Property(property="lat", type="string", format="float", example="40.7128"),
-     *                  @OA\Property(property="long", type="string", format="float", example="-74.0060"),
-     *                  @OA\Property(property="created_at", type="string", format="date-time"),
-     *                  @OA\Property(property="updated_at", type="string", format="date-time")
-     *              )
-     *          )
-     *      ),
+     *   @OA\Response(
+     *     response=200,
+     *     description="Branch status toggled successfully",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="Branch activated successfully"),
+     *       @OA\Property(
+     *         property="data",
+     *         type="object",
+     *         @OA\Property(property="id", type="integer", example=1),
+     *         @OA\Property(property="business_id", type="integer", example=1),
+     *         @OA\Property(property="name", type="string", example="Main Branch"),
+     *         @OA\Property(property="is_active", type="boolean", example=true),
+     *         @OA\Property(property="is_geo_enabled", type="boolean", example=false),
+     *         @OA\Property(property="branch_code", type="string", example="BR001"),
+     *         @OA\Property(property="lat", type="number", format="float", example=40.7128),
+     *         @OA\Property(property="long", type="number", format="float", example=-74.0060),
+     *         @OA\Property(property="created_at", type="string", format="date-time"),
+     *         @OA\Property(property="updated_at", type="string", format="date-time")
+     *       )
+     *     )
+     *   ),
      *
-     *      @OA\Response(
-     *          response=404,
-     *          description="Branch not found",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\JsonContent(
-     *                  @OA\Property(property="message", type="string", example="Branch not found")
-     *              )
-     *          )
-     *      ),
+     *   @OA\Response(
+     *     response=404,
+     *     description="Branch not found",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Branch not found")
+     *     )
+     *   ),
      *
-     *      @OA\Response(
-     *          response=403,
-     *          description="Unauthorized",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\JsonContent(
-     *                  @OA\Property(property="message", type="string", example="You do not own this branch")
-     *              )
-     *          )
-     *      )
+     *   @OA\Response(
+     *     response=403,
+     *     description="Unauthorized",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="You do not own this branch")
+     *     )
+     *   )
      * )
      */
+
     public function toggleBranchActive($id)
     {
         $user = auth('api')->user();
