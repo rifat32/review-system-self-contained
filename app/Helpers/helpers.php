@@ -22,7 +22,16 @@ if (!function_exists('retrieve_data')) {
         if (request()->filled('order_by')) {
             $orderBy = request()->input('order_by');
         };
-        $orderBy = request()->input('order_by', $orderBy);
+        // Handle order_by safely (default to id if empty)
+if (request()->filled('order_by') && request()->input('order_by') !== '') {
+    $orderBy = request()->input('order_by');
+} else {
+    $orderBy = 'id'; // fallback default
+}
+
+
+
+
         $sortOrder = strtoupper(request()->input('sort_order', 'DESC'));
 
         // Ensure sort_order is valid
