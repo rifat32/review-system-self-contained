@@ -20,57 +20,9 @@ use Illuminate\Support\Facades\DB;
 class ReportController extends Controller
 {
 
-    /**
-     * Helper method to calculate rating from ReviewValueNew for a single review
-     */
-    private function calculateRatingFromReviewValues($reviewId)
-    {
-        $reviewValues = ReviewValueNew::where('review_id', $reviewId)->get();
 
-        if ($reviewValues->isEmpty()) {
-            return null;
-        }
 
-        // Get unique questions to avoid double counting
-        $uniqueQuestions = $reviewValues->pluck('question_id')->unique();
 
-        $totalRating = 0;
-        $questionCount = 0;
-
-        foreach ($uniqueQuestions as $questionId) {
-            $questionValues = $reviewValues->where('question_id', $questionId);
-
-            // Get the star rating for this question
-            $starValue = Star::where('id', $questionValues->first()->star_id)->value('value') ?? 0;
-            $totalRating += (float) $starValue;
-            $questionCount++;
-        }
-
-        return $questionCount > 0 ? round($totalRating / $questionCount, 1) : null;
-    }
-
-    /**
-     * Helper method to calculate average rating for multiple reviews from ReviewValueNew
-     */
-    private function calculateAverageRatingForReviews($reviews)
-    {
-        if ($reviews->isEmpty()) {
-            return 0;
-        }
-
-        $totalRating = 0;
-        $validReviews = 0;
-
-        foreach ($reviews as $review) {
-            $rating = $this->calculateRatingFromReviewValues($review->id);
-            if ($rating !== null) {
-                $totalRating += $rating;
-                $validReviews++;
-            }
-        }
-
-        return $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
-    }
 
     /**
      * Optimized method to calculate ratings for multiple reviews in one query
@@ -172,7 +124,7 @@ class ReportController extends Controller
         $reviews = ReviewNew::with("business", "value")->where([
             "user_id" => $request->customer_id
         ])
-            ->globalFilters()
+            ->globalFilters(1,auth()->user()->business->id)
             ->orderBy('order_no', 'asc')
             ->latest()
             ->take(5)
@@ -477,9 +429,9 @@ class ReportController extends Controller
         $reviewQuery = ReviewNew::when(!$request->user()->hasRole("superadmin"), function ($q) use ($businessId) {
                 $q->where("review_news.business_id", $businessId);
             })
-            ->where("status", "published")
+            ->globalFilters(1,$businessId)
             ->filterByOverall($is_overall)
-            ->globalFilters();
+            ;
 
         // Get review IDs for rating calculation
         $reviewIds = (clone $reviewQuery)
@@ -547,9 +499,8 @@ class ReportController extends Controller
             ->count();
 
         // Get distinct star ratings selected in reviews
-        $total_stars_selected = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-            ->where("review_news.status", "published")
+        $total_stars_selected = ReviewValueNew::
+           whereMeetsThreshold($businessId)
             ->filterByOverall($is_overall)
             ->select("review_value_news.star_id")
             ->distinct()
@@ -565,9 +516,8 @@ class ReportController extends Controller
                 ->first();
 
             // Count total times this star was selected overall
-            $data["selected_stars"][$key]["star_selected_time"] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                ->where("review_news.status", "published")
+            $data["selected_stars"][$key]["star_selected_time"] = ReviewValueNew::
+                 whereMeetsThreshold($businessId)
                 ->where([
                     "star_id" => $star_selected->star_id
                 ])
@@ -585,9 +535,8 @@ class ReportController extends Controller
                 $data["monthly_data"]["selected_stars"][$key]["star_selected_time_monthly"][$i]["month"] = $month;
 
                 // Count times this star was selected in the given month
-                $data["monthly_data"]["selected_stars"][$key]["star_selected_time_monthly"][$i]["value"] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                    ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                    ->where("review_news.status", "published")
+                $data["monthly_data"]["selected_stars"][$key]["star_selected_time_monthly"][$i]["value"] = ReviewValueNew::
+                    whereMeetsThreshold($businessId)
                     ->where([
                         "star_id" => $star_selected->star_id
                     ])
@@ -597,9 +546,7 @@ class ReportController extends Controller
             }
 
             // Count times this star was selected in the previous week
-            $data["selected_stars"][$key]["star_selected_time_previous_week"] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                ->where("review_news.status", "published")
+            $data["selected_stars"][$key]["star_selected_time_previous_week"] = ReviewValueNew::whereMeetsThreshold($businessId)
                 ->where([
                     "star_id" => $star_selected->star_id
                 ])
@@ -611,9 +558,7 @@ class ReportController extends Controller
                 ->count();
 
             // Count times this star was selected in the current week
-            $data["selected_stars"][$key]["star_selected_time_this_week"] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                ->where("review_news.status", "published")
+            $data["selected_stars"][$key]["star_selected_time_this_week"] = ReviewValueNew::whereMeetsThreshold($businessId)
                 ->where([
                     "star_id" => $star_selected->star_id
                 ])
@@ -623,9 +568,7 @@ class ReportController extends Controller
         }
 
         // Get all distinct tags selected in reviews
-        $total_tag_selected = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-            ->where("review_news.status", "published")
+        $total_tag_selected = ReviewValueNew::whereMeetsThreshold($businessId)
             ->select("review_value_news.tag_id")
             ->filterByOverall($is_overall)
             ->distinct()
@@ -641,9 +584,7 @@ class ReportController extends Controller
                 ->first();
 
             // Count total times this tag was selected overall
-            $data["selected_tags"][$key]["tag_selected_time"] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                ->where("review_news.status", "published")
+            $data["selected_tags"][$key]["tag_selected_time"] = ReviewValueNew::whereMeetsThreshold($businessId)
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
@@ -661,9 +602,7 @@ class ReportController extends Controller
                 $data["monthly_data"]["selected_tags"][$key]["tag_selected_time_monthly"][$i]["month"] = $month;
 
                 // Count times this tag was selected in the given month
-                $data["monthly_data"]["selected_tags"][$key]["tag_selected_time_monthly"][$i]["value"] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                    ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                    ->where("review_news.status", "published")
+                $data["monthly_data"]["selected_tags"][$key]["tag_selected_time_monthly"][$i]["value"] = ReviewValueNew::whereMeetsThreshold($businessId)
                     ->where([
                         "tag_id" =>  $tag_selected->tag_id
                     ])
@@ -679,9 +618,7 @@ class ReportController extends Controller
             $data["selected_tags"][$key]["tag_id"] = $tag_selected->tag_id;
 
             // Count times this tag was selected in the previous week
-            $data["selected_tags"][$key]["tag_selected_time_previous_week"] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                ->where("review_news.status", "published")
+            $data["selected_tags"][$key]["tag_selected_time_previous_week"] = ReviewValueNew::whereMeetsThreshold($businessId)
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
@@ -693,9 +630,7 @@ class ReportController extends Controller
                 ->count();
 
             // Count times this tag was selected in the current week
-            $data["selected_tags"][$key]["tag_selected_time_this_week"] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                ->where("review_news.status", "published")
+            $data["selected_tags"][$key]["tag_selected_time_this_week"] = ReviewValueNew::whereMeetsThreshold($businessId)
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
@@ -704,9 +639,7 @@ class ReportController extends Controller
                 ->count();
 
             // Count times this tag was selected in the last 30 days (approximate current month)
-            $data["selected_tags"][$key]["tag_selected_time_this_month"] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                ->where("review_news.status", "published")
+            $data["selected_tags"][$key]["tag_selected_time_this_month"] = ReviewValueNew::whereMeetsThreshold($businessId)
                 ->where([
                     "tag_id" =>  $tag_selected->tag_id
                 ])
@@ -727,8 +660,8 @@ class ReportController extends Controller
                 })
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->whereNotNull('user_id')
-                ->where("status", "published")
-                ->globalFilters()
+                 ->globalFilters(1,$businessId)
+                ->filterByOverall($is_overall)
                 ->distinct()
                 ->count();
         }
@@ -746,8 +679,7 @@ class ReportController extends Controller
                 })
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->filterByOverall($is_overall)
-                ->where("status", "published")
-                ->globalFilters()
+                 ->globalFilters(1,$businessId)
                 ->count();
         }
 
@@ -758,8 +690,7 @@ class ReportController extends Controller
             })
             ->where('created_at', '>', now()->subDays(30)->endOfDay())
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+               ->globalFilters(1,$businessId)
             ->count();
 
         // Count guest reviews from the previous month (between 30 and 60 days ago)
@@ -769,8 +700,8 @@ class ReportController extends Controller
             })
             ->whereBetween('created_at', [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()])
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+
+              ->globalFilters(1,$businessId)
             ->count();
 
         // Count guest reviews created in the current week (Monday to Sunday)
@@ -780,8 +711,7 @@ class ReportController extends Controller
             })
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+            ->globalFilters(1,$businessId)
             ->count();
 
         // Count guest reviews created in the previous week
@@ -791,8 +721,7 @@ class ReportController extends Controller
             })
             ->whereBetween('created_at', [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()])
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+              ->globalFilters(1,$businessId)
             ->count();
 
         // Count total guest reviews (all-time)
@@ -801,8 +730,7 @@ class ReportController extends Controller
                   ->where("user_id", NULL);
             })
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+   ->globalFilters(1,$businessId)
             ->count();
 
         // Prepare daily guest review data for the current week (last 7 days)
@@ -813,8 +741,7 @@ class ReportController extends Controller
                 })
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
-                ->globalFilters()
-                ->where("status", "published")
+   ->globalFilters(1,$businessId)
                 ->count();
 
             $data["this_week_guest_review"][$i]["total"] = $customer;
@@ -829,8 +756,7 @@ class ReportController extends Controller
                 })
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
-                ->globalFilters()
-                ->where("status", "published")
+          ->globalFilters(1,$businessId)
                 ->count();
 
             $data["this_month_guest_review"][$i]["total"] = $customer;
@@ -850,8 +776,7 @@ class ReportController extends Controller
                 })
                 ->whereBetween('created_at', [$startDateOfMonth, $endDateOfMonth])
                 ->filterByOverall($is_overall)
-                ->globalFilters()
-                ->where("status", "published")
+   ->globalFilters(1,$businessId)
                 ->count();
         }
 
@@ -862,8 +787,7 @@ class ReportController extends Controller
             })
             ->whereDate('created_at', '>', now()->subDays(30)->endOfDay())
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+           ->globalFilters(1,$businessId)
             ->count();
 
         // Count customer reviews for the previous month (between 30 and 60 days ago)
@@ -873,8 +797,7 @@ class ReportController extends Controller
             })
             ->whereBetween('created_at', [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()])
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+   ->globalFilters(1,$businessId)
             ->count();
 
         // Count customer reviews for the current week
@@ -884,8 +807,7 @@ class ReportController extends Controller
             })
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+   ->globalFilters(1,$businessId)
             ->count();
 
         // Count customer reviews for the previous week
@@ -895,8 +817,7 @@ class ReportController extends Controller
             })
             ->whereBetween('created_at', [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()])
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+   ->globalFilters(1,$businessId)
             ->count();
 
         // Count total customer reviews (all-time, excluding guests)
@@ -905,8 +826,7 @@ class ReportController extends Controller
                   ->where("guest_id", NULL);
             })
             ->filterByOverall($is_overall)
-            ->globalFilters()
-            ->where("status", "published")
+   ->globalFilters(1,$businessId)
             ->count();
 
         // Prepare daily customer review data for the current week (last 7 days, excluding guests)
@@ -917,8 +837,7 @@ class ReportController extends Controller
                 })
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
-                ->globalFilters()
-                ->where("status", "published")
+                ->globalFilters(1,$businessId)
                 ->count();
 
             $data["this_week_customer_review"][$i]["total"] = $customer;
@@ -933,8 +852,7 @@ class ReportController extends Controller
                 })
                 ->whereDate('created_at', Carbon::today()->subDay($i))
                 ->filterByOverall($is_overall)
-                ->where("status", "published")
-                ->globalFilters()
+   ->globalFilters(1,$businessId)
                 ->count();
 
             $data["this_month_customer_review"][$i]["total"] = $customer;
@@ -1107,8 +1025,7 @@ class ReportController extends Controller
 
         // 1️⃣ Review Growth Rate
         $review_query = ReviewNew::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
-            ->where("status", "published")
-            ->globalFilters()
+            ->globalFilters(1,$businessId)
             ->orderBy('order_no', 'asc')
             ->filterByOverall($is_overall);
 
@@ -1251,7 +1168,7 @@ class ReportController extends Controller
                 $low_rating_last_week++;
             }
         }
-        
+
         $low_rating_increase = $low_rating_last_week ? 
             round(($low_rating_this_week - $low_rating_last_week) / $low_rating_last_week * 100, 2) : 
             ($low_rating_this_week ? 100 : 0);
@@ -1264,13 +1181,12 @@ class ReportController extends Controller
         ];
 
         // 🏷️ Tag Report Enhancements
-        $tags_with_reviews = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-            ->where("review_news.status", "published")
+        $tags_with_reviews = ReviewValueNew:: whereMeetsThreshold($businessId)
             ->filterByOverall($is_overall)
-            ->select('review_news.id as review_id', 'review_value_news.tag_id')
+            ->select('review_value_news.review_id', 'review_value_news.tag_id')
             ->get()
             ->groupBy('review_id');
+
 
         $tag_co_occurrence = [];
         foreach ($tags_with_reviews as $review_tags) {
@@ -1291,13 +1207,12 @@ class ReportController extends Controller
         $data['tag_impact_on_ratings'] = $all_tags->mapWithKeys(function ($tag) use ($businessId, $is_overall) {
             // Get reviews with this tag
             $tagReviewIds = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+            ->whereMeetsThreshold($businessId)
                 ->where('review_value_news.tag_id', $tag->id)
-                ->when(!request()->user()->hasRole('superadmin'), function ($q) use ($businessId) {
-                    $q->where('review_news.business_id', $businessId);
-                })
+               
                 ->filterByOverall($is_overall)
            
-                ->where("status", "published")
+                
                 ->orderBy('order_no', 'asc')
                 ->pluck('review_news.id')
                 ->toArray();
@@ -1321,9 +1236,7 @@ class ReportController extends Controller
             $qst->id => [
                 'question_text' => $qst->text,
                 'completion_rate' => $total_users ? round(
-                    ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                        ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                        ->where("review_news.status", "published")
+                    ReviewValueNew:: whereMeetsThreshold($businessId)
                         ->where('question_id', $qst->id)
                         ->filterByOverall($is_overall)
                         ->count() / $total_users * 100,
@@ -1333,9 +1246,7 @@ class ReportController extends Controller
         ])->toArray();
 
         $data['average_response_per_question'] = $questions->mapWithKeys(fn($qst) => [
-            $qst->id => ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                ->where("review_news.status", "published")
+            $qst->id => ReviewValueNew:: whereMeetsThreshold($businessId)
                 ->where('question_id', $qst->id)
                 ->filterByOverall($is_overall)
                 ->count()
@@ -1343,9 +1254,7 @@ class ReportController extends Controller
 
         $data['response_distribution'] = $questions->mapWithKeys(fn($qst) => [
             $qst->id => collect($qst->options ?? [])->mapWithKeys(fn($opt) => [
-                $opt => ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                    ->when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-                    ->where("review_news.status", "published")
+                $opt => ReviewValueNew:: whereMeetsThreshold($businessId)
                     ->where('question_id', $qst->id)
                     ->where('answer', $opt)
                     ->filterByOverall($is_overall)
@@ -1384,9 +1293,7 @@ class ReportController extends Controller
         $total_customers = $reviewers->unique()->count();
         $data['advanced_insights']['customer_retention_rate'] = $total_customers ? round($repeat_reviewers_count / $total_customers * 100, 2) : 0;
 
-        $data['advanced_insights']['topic_analysis'] = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-            ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId))
-            ->where("review_news.status", "published")
+        $data['advanced_insights']['topic_analysis'] = ReviewValueNew:: whereMeetsThreshold($businessId)
             ->filterByOverall($is_overall)
             ->select('tag_id', DB::raw('count(*) as total'))
             ->groupBy('tag_id')

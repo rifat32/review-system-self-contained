@@ -633,7 +633,7 @@ Route::middleware(['superadmin'])->group(function () {
     Route::get('/v1.0/email-template-types', [EmailTemplateController::class, "getEmailTemplateTypes"]);
 });
 
-Route::get('/v1.0/customer-report', [ReportController::class, "customerDashboardReport"]);
+
 Route::get('/v1.0/business-report', [ReportController::class, "businessDashboardReport"]);
 Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
 Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);

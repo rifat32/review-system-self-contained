@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class ReviewNew extends Model
 {
@@ -122,10 +123,37 @@ class ReviewNew extends Model
     }
 
 
-    public function scopeGlobalFilters($query)
+    public function scopeGlobalFilters($query,$show_published_only = 0,$businessId = null)
     {
         return $query->when(request()->has('staff_id'), function ($q) {
             $q->where('staff_id', request()->input('staff_id'));
+        })
+        ->when($show_published_only, function ($q) use($businessId) {
+            $q->whereMeetsThreshold($businessId);
         });
     }
+
+    public function scopeWhereMeetsThreshold($query, $businessId)
+{
+    
+    // Get threshold rating
+    $business = \App\Models\Business::find($businessId);
+    $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
+    
+    return $query->whereExists(function ($subQuery) use ($thresholdRating) {
+        $subQuery->select(DB::raw(1))
+            ->from('review_value_news as rvn')
+            ->join('questions as q', 'rvn.question_id', '=', 'q.id')
+            ->when(request()->has('staff_id'), function ($q) {
+            $q->where('q.is_staff', 1);
+        })
+            ->join('stars as s', 'rvn.star_id', '=', 's.id')
+            ->whereColumn('rvn.review_id', 'review_news.id')
+            ->groupBy('rvn.review_id')
+            ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
+    });
+}
+
+
+
 }

@@ -235,7 +235,7 @@ class ReviewNewController extends Controller
             "last_month"
         ];
 
-        $business = Business::findOrFail($businessId);
+   
 
         if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
             return response()->json([
@@ -488,11 +488,13 @@ class ReviewNewController extends Controller
     {
         // Get reviews with their values
         $reviews = ReviewNew::with(['value'])
+               ->globalFilters(1,$businessId)
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->get();
 
         $previousReviews = ReviewNew::with(['value'])
+        ->globalFilters(1,$businessId)
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [
                 $dateRange['start']->copy()->subDays(30),
@@ -553,6 +555,7 @@ class ReviewNewController extends Controller
     {
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+          ->globalFilters(1,$businessId)
             ->get();
 
         // Get review IDs for bulk calculation
@@ -561,7 +564,7 @@ class ReviewNewController extends Controller
         // Calculate ratings in bulk
         $ratings = $this->calculateBulkRatings($reviewIds);
 
-        $total = $reviews->count();
+       
 
         // Initialize counters
         $excellent = 0;
@@ -626,6 +629,7 @@ class ReviewNewController extends Controller
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->whereNotNull('ai_suggestions')
+              ->globalFilters(1,$businessId)
             ->get();
 
         // Extract common themes from existing AI suggestions
@@ -645,6 +649,7 @@ class ReviewNewController extends Controller
         // Use existing staff suggestions and reviews
         $staffReviews = ReviewNew::with('staff', 'value')
             ->where('business_id', $businessId)
+              ->globalFilters(1,$businessId)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->get()
@@ -690,6 +695,7 @@ class ReviewNewController extends Controller
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->orderBy('created_at', 'desc')
+            ->globalFilters(1,$businessId)
             ->limit($limit)
             ->get();
 
@@ -713,15 +719,6 @@ class ReviewNewController extends Controller
             ];
         });
     }
-
-
-
-
-
-
-
-
-
 
 
     // ##################################################
@@ -899,7 +896,7 @@ class ReviewNewController extends Controller
         // Get reviews with their values
         $reviews = ReviewNew::with(['value'])
             ->where("business_id", $businessId)
-            ->globalFilters()
+            ->globalFilters(1,$businessId)
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
             ->get();
@@ -1050,7 +1047,7 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
             "rate" => $rate
         ])
-            ->globalFilters()
+            ->globalFilters(1,$businessId)
             ->with("business", "value")
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
@@ -1119,7 +1116,7 @@ class ReviewNewController extends Controller
         $reviewValue = ReviewNew::with("value")->where([
             "business_id" => $businessId,
         ])
-            ->globalFilters()
+            ->globalFilters(1,$businessId)
             ->orderBy('order_no', 'asc')
             ->get();
 
@@ -1197,14 +1194,12 @@ class ReviewNewController extends Controller
 
 
 
-
-
     public function getCustommerReview($businessId, $start, $end, Request $request)
     {
         // Get reviews with their values
         $reviews = ReviewNew::with(['value'])
             ->where("business_id", $businessId)
-            ->globalFilters()
+            ->globalFilters(1,$businessId)
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
             ->get();
@@ -1496,7 +1491,6 @@ class ReviewNewController extends Controller
             $existing_review = ReviewNew::where('business_id', $businessId)
                 ->where('ip_address', $ip_address)
                 ->whereDate('created_at', now()->toDateString())
-                ->globalFilters()
                 ->orderBy('order_no', 'asc')
                 ->first();
 
@@ -1908,52 +1902,7 @@ class ReviewNewController extends Controller
 
         return $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
     }
-    /**
-     * Calculate rating distribution from ReviewValue data
-     */
-    private function calculateRatingDistribution($reviews)
-    {
-        $distribution = [
-            'excellent' => ['count' => 0, 'percentage' => 0],
-            'good' => ['count' => 0, 'percentage' => 0],
-            'average' => ['count' => 0, 'percentage' => 0],
-            'poor' => ['count' => 0, 'percentage' => 0]
-        ];
 
-        $totalReviews = $reviews->count();
-        $validReviews = 0;
-
-        foreach ($reviews as $review) {
-            $rating = $this->calculateRatingFromReviewValues($review->id);
-            if ($rating !== null) {
-                $validReviews++;
-
-                switch (true) {
-                    case $rating == 5:
-                        $distribution['excellent']['count']++;
-                        break;
-                    case $rating == 4:
-                        $distribution['good']['count']++;
-                        break;
-                    case $rating == 3:
-                        $distribution['average']['count']++;
-                        break;
-                    case $rating <= 2:
-                        $distribution['poor']['count']++;
-                        break;
-                }
-            }
-        }
-
-        // Calculate percentages
-        foreach ($distribution as $key => $value) {
-            $distribution[$key]['percentage'] = $validReviews > 0
-                ? round(($value['count'] / $validReviews) * 100)
-                : 0;
-        }
-
-        return $distribution;
-    }
 
     /**
      * Optimized method to calculate ratings for multiple reviews in one query
@@ -1964,8 +1913,7 @@ class ReviewNewController extends Controller
             return collect();
         }
 
-        $ratings = DB::table('review_value_news as rvn')
-            ->join('stars as s', 'rvn.star_id', '=', 's.id')
+        $ratings = ReviewValueNew::join('stars as s', 'rvn.star_id', '=', 's.id')
             ->whereIn('rvn.review_id', $reviewIds)
             ->select(
                 'rvn.review_id',
@@ -3348,7 +3296,7 @@ class ReviewNewController extends Controller
         }
 
         $data2["total_comment"] = ReviewNew::with("user", "guest_user")
-            ->globalFilters()
+            ->globalFilters(1,$business->id)
             ->where([
                 "business_id" => $business->id,
                 "guest_id" => NULL,
@@ -5007,16 +4955,11 @@ class ReviewNewController extends Controller
         }
 
 
-
-
-
-
-
         $data2["total_comment"] = ReviewNew::with("user", "guest_user")->where([
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
-            ->globalFilters()
+            ->globalFilters(1,$business->id)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($request->start_date) && !empty($request->end_date)) {
@@ -5272,7 +5215,7 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "guest_id" => NULL,
         ])
-            ->globalFilters()
+            ->globalFilters(1,$business->id)
             ->whereNotNull("comment")
             ->orderBy('order_no', 'asc')
             ->get();
@@ -5547,7 +5490,7 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
-            ->globalFilters()
+            ->globalFilters(1,$business->id)
             ->whereNotNull("comment")
             ->orderBy('order_no', 'asc')
             ->get();
@@ -6094,7 +6037,7 @@ class ReviewNewController extends Controller
                 "guest_id" => NULL,
                 "review_news.user_id" => $users->items()[$i]->id
             ])
-                ->globalFilters()
+                ->globalFilters(1,$business->id)
                 ->orderBy('order_no', 'asc')
                 ->whereNotNull("comment");
             if (!empty($request->start_date) && !empty($request->end_date)) {
@@ -6382,7 +6325,7 @@ class ReviewNewController extends Controller
                 "guest_id" => $users->items()[$i]->id,
                 "review_news.user_id" => NULL
             ])
-                ->globalFilters()
+                ->globalFilters(1,$business->id)
                 ->orderBy('order_no', 'asc')
                 ->whereNotNull("comment");
             if (!empty($request->start_date) && !empty($request->end_date)) {
@@ -6473,7 +6416,7 @@ class ReviewNewController extends Controller
                 $q->where('is_private', 0)
                     ->orWhereNull('is_private');
             })
-            ->globalFilters()
+            ->globalFilters(1,$businessId)
             ->orderBy('order_no', 'asc')
             ->get();
 
@@ -6623,7 +6566,7 @@ class ReviewNewController extends Controller
                     $q->where('is_private', $isPrivate);
                 }
             })
-            ->globalFilters();
+            ->globalFilters(1,$businessId);
 
         // Sorting logic
         $sortBy = $request->get('sort_by');
