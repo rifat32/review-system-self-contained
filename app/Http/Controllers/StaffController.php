@@ -432,46 +432,19 @@ class StaffController extends Controller
     public function getAllStaffs(Request $request)
     {
         try {
-            $businessId = auth()->user()->business->id??-1;
-            $query = User::filterStaff($businessId)->orderByDesc('id');
+            $businessId =  auth()->user()->business()->value('id');
+
+            $query = User::filterStaff($businessId);
+
+            $staff = retrieve_data($query);
 
             // Check if pagination is requested
-            if ($request->filled('per_page')) {
-                $perPage = (int) $request->per_page;
-
-                // Validate per_page parameter
-                if ($perPage < 1 || $perPage > 100) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Invalid per_page value. Must be between 1 and 100'
-                    ], 400);
-                }
-
-                $paginatedStaff = $query->paginate($perPage);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Staff retrieved successfully',
-                    'data' => $paginatedStaff->items(),
-                    'meta' => [
-                        'current_page' => $paginatedStaff->currentPage(),
-                        'per_page' => $paginatedStaff->perPage(),
-                        'total' => $paginatedStaff->total(),
-                        'last_page' => $paginatedStaff->lastPage(),
-                        'from' => $paginatedStaff->firstItem(),
-                        'to' => $paginatedStaff->lastItem(),
-                    ]
-                ], 200);
-            } else {
-                // Return all staff without pagination
-                $staff = $query->get();
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Staff retrieved successfully',
-                    'data' => $staff
-                ], 200);
-            }
+            return response()->json([
+                'success' => true,
+                'message' => 'Staff retrieved successfully',
+                'meta' => $staff['meta'],
+                'data' => $staff['data'],
+            ], 200);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
