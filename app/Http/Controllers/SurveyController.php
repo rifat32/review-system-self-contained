@@ -299,98 +299,198 @@ class SurveyController extends Controller
 
 
     /**
-     *
      * @OA\Get(
-     *      path="/v1.0/surveys/{business_id}",
-     *      operationId="getAllSurveys",
-     *      tags={"survey_management"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-
-     *              @OA\Parameter(
-     *         name="business_id",
-     *         in="path",
-     *         description="business_id",
-     *         required=true,
-     *  example="6"
-     *      ),
-
-     *      * *  @OA\Parameter(
-     * name="start_date",
-     * in="query",
-     * description="start_date",
-     * required=true,
-     * example="2019-06-29"
-     * ),
-     * *  @OA\Parameter(
-     * name="end_date",
-     * in="query",
-     * description="end_date",
-     * required=true,
-     * example="2019-06-29"
-     * ),
-     * *  @OA\Parameter(
-     * name="search_key",
-     * in="query",
-     * description="search_key",
-     * required=true,
-     * example="search_key"
-     * ),
-     *      summary="This method is to get expense types ",
-     *      description="This method is to get expense types",
+     *   path="/v1.0/surveys/{business_id}",
+     *   operationId="getAllSurveys",
+     *   tags={"survey_management"},
+     *   security={{"bearerAuth":{}}},
+     *   summary="Get surveys (filters + pagination + sorting)",
+     *   description="Returns surveys for a business. Supports search, date range, active status, pagination, and sorting.",
      *
-
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocessable Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *   @OA\JsonContent()
-     * ),
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\Parameter(
+     *     name="business_id",
+     *     in="path",
+     *     required=true,
+     *     description="Business ID",
+     *     @OA\Schema(type="integer", example=6)
      *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found",
-     *   *@OA\JsonContent()
-     *   )
-     *      )
+     *
+     *   @OA\Parameter(
+     *     name="search_key",
+     *     in="query",
+     *     required=false,
+     *     description="Search by survey name (LIKE %search_key%)",
+     *     @OA\Schema(type="string", example="customer")
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="start_date",
+     *     in="query",
+     *     required=false,
+     *     description="Filter by created_at start date (YYYY-MM-DD)",
+     *     @OA\Schema(type="string", format="date", example="2019-06-29")
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="end_date",
+     *     in="query",
+     *     required=false,
+     *     description="Filter by created_at end date (YYYY-MM-DD)",
+     *     @OA\Schema(type="string", format="date", example="2019-07-29")
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="is_active",
+     *     in="query",
+     *     required=false,
+     *     description="Filter by active status",
+     *     @OA\Schema(type="boolean", example=true)
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="page",
+     *     in="query",
+     *     required=false,
+     *     description="Page number",
+     *     @OA\Schema(type="integer", minimum=1, example=1)
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="per_page",
+     *     in="query",
+     *     required=false,
+     *     description="Items per page",
+     *     @OA\Schema(type="integer", minimum=1, maximum=200, example=10)
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="order_by",
+     *     in="query",
+     *     required=false,
+     *     description="Sort column (example: id, name, created_at)",
+     *     @OA\Schema(type="string", example="created_at")
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="sort_order",
+     *     in="query",
+     *     required=false,
+     *     description="Sort direction",
+     *     @OA\Schema(type="string", enum={"asc","desc"}, example="desc")
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Successful operation",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="surveys retrieved successfully"),
+     *
+     *       @OA\Property(
+     *         property="meta",
+     *         type="object",
+     *         description="Pagination metadata",
+     *         @OA\Property(property="current_page", type="integer", example=1),
+     *         @OA\Property(property="per_page", type="integer", example=10),
+     *         @OA\Property(property="total", type="integer", example=57),
+     *         @OA\Property(property="last_page", type="integer", example=6)
+     *       ),
+     *
+     *       @OA\Property(
+     *         property="data",
+     *         type="array",
+     *         description="List of surveys",
+     *         @OA\Items(
+     *           type="object",
+     *           @OA\Property(property="id", type="integer", example=1),
+     *           @OA\Property(property="business_id", type="integer", example=6),
+     *           @OA\Property(property="name", type="string", example="Customer Feedback"),
+     *           @OA\Property(property="is_active", type="boolean", example=true),
+     *           @OA\Property(property="created_at", type="string", format="date-time", example="2025-12-09T10:20:30Z"),
+     *           @OA\Property(property="updated_at", type="string", format="date-time", example="2025-12-09T10:20:30Z")
+     *         )
+     *       )
      *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=401,
+     *     description="Unauthenticated",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Unauthenticated")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=403,
+     *     description="Forbidden",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Forbidden")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=404,
+     *     description="Not found",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Not found")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=422,
+     *     description="Unprocessable Content",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Validation error")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=400,
+     *     description="Bad Request",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Bad Request")
+     *     )
+     *   )
+     * )
      */
+
+
 
     public function getAllSurveys($business_id, Request $request)
     {
         try {
 
+            // FIRST CHECK
+            $business = Business::find($business_id);
+            if (!$business) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "no business found"
+                ], 404);
+            }
 
-            $surveyQuery =  Survey::with('questions')
+            // GET ALL SURVEYS WHICH BELONGS
+            $query =  Survey::with('questions')
                 ->where([
                     "business_id" => $business_id
-                ]);
-
-            $surveys = $surveyQuery
-                ->orderBy("order_no", "asc")
-                ->get();
+                ])->filter();
 
 
-            return response()->json($surveys, 200);
+            $surveys = retrieve_data($query, 'order_no');
+
+
+            return response()->json([
+                "success" => true,
+                "message" => "surveys retrieved successfully",
+                "meta" => $surveys['meta'],
+                "data" => $surveys['data']
+            ], 200);
         } catch (Exception $e) {
             return response()->json([
                 "message" => "some thing went wrong",
@@ -586,6 +686,131 @@ class SurveyController extends Controller
                 "message" => "some thing went wrong",
                 "original_message" => $e->getMessage()
             ], 404);
+        }
+    }
+
+    /**
+     * @OA\Patch(
+     *   path="/v1.0/surveys/{id}/toggle-active",
+     *   operationId="toggleSurveyActive",
+     *   tags={"survey_management"},
+     *   security={{"bearerAuth":{}}},
+     *   summary="Toggle survey active status",
+     *   description="Toggle the active status of a specific survey.",
+     *
+     *   @OA\Parameter(
+     *     name="id",
+     *     in="path",
+     *     required=true,
+     *     description="Survey ID",
+     *     @OA\Schema(type="integer", example=1)
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Survey status toggled successfully",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="Survey activated successfully"),
+     *       @OA\Property(
+     *         property="data",
+     *         type="object",
+     *         @OA\Property(property="id", type="integer", example=1),
+     *         @OA\Property(property="business_id", type="integer", example=6),
+     *         @OA\Property(property="name", type="string", example="Customer Feedback"),
+     *         @OA\Property(property="is_active", type="boolean", example=true),
+     *         @OA\Property(property="created_at", type="string", format="date-time", example="2025-12-09T10:20:30Z"),
+     *         @OA\Property(property="updated_at", type="string", format="date-time", example="2025-12-09T10:20:30Z")
+     *       )
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=401,
+     *     description="Unauthenticated",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Unauthenticated")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=403,
+     *     description="Forbidden",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Forbidden")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=404,
+     *     description="Not found",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Survey not found")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=400,
+     *     description="Bad Request",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Bad Request")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=422,
+     *     description="Unprocessable Content",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Validation error")
+     *     )
+     *   )
+     * )
+     */
+
+
+    public function toggleSurveyActive($id, Request $request)
+    {
+        try {
+            $survey = Survey::find($id);
+
+            if (!$survey) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "Survey not found"
+                ], 404);
+            }
+
+            // Check if the survey belongs to the authenticated user's business
+            $business = Business::where([
+                "OwnerID" => auth()->user()->id
+            ])->first();
+
+            if (!$business || $survey->business_id !== $business->id) {
+                return response()->json([
+                    "message" => "You do not owen this survey"
+                ], 403);
+            }
+
+            $survey->is_active = !$survey->is_active;
+            $survey->save();
+
+            $message = $survey->is_active ? 'Survey activated successfully' : 'Survey deactivated successfully';
+
+            return response()->json([
+                "success" => true,
+                "message" => $message,
+                "data" => $survey
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                "message" => "something went wrong",
+                "original_message" => $e->getMessage()
+            ], 500);
         }
     }
 }

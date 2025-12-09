@@ -236,6 +236,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/v1.0/surveys/{business_id}/{perPage}', [SurveyController::class, "getSurveys"]);
     Route::get('/v1.0/surveys/{business_id}', [SurveyController::class, "getAllSurveys"]);
+    Route::patch('/v1.0/surveys/{id}/toggle-active', [SurveyController::class, "toggleSurveyActive"]);
     Route::delete('/v1.0/surveys/{id}', [SurveyController::class, "deleteSurveyById"]);
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // expense type management section
