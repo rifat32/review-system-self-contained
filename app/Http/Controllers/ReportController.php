@@ -466,6 +466,7 @@ class ReportController extends Controller
             ->get();
 
         foreach ($total_tag_selected as $key => $tag_selected) {
+
             $data["selected_tags"][$key]["tag"] = Tag::where([
                 "id" => $tag_selected->tag_id
             ])->first();
@@ -2252,147 +2253,310 @@ class ReportController extends Controller
 
 
 
+  /**
+ * @OA\Get(
+ *      path="/v1.0/reports/review-analytics/{businessId}",
+ *      operationId="reviewAnalytics",
+ *      tags={"Reports"},
+ *      summary="Get review analytics with flexible filtering",
+ *      description="Get performance overview and recent submissions with optional filters for survey, guest reviews, user reviews, and overall reviews",
+ *      @OA\Parameter(
+ *          name="businessId",
+ *          in="path",
+ *          required=true,
+ *          example="1"
+ *      ),
+ *      @OA\Parameter(
+ *          name="survey_id",
+ *          in="query",
+ *          required=false,
+ *          description="Filter by survey ID",
+ *          example="1"
+ *      ),
+ *      @OA\Parameter(
+ *          name="is_guest_review",
+ *          in="query",
+ *          required=false,
+ *          description="Filter guest reviews: true=guest only, false=exclude guest",
+ *          example="true"
+ *      ),
+ *      @OA\Parameter(
+ *          name="is_user_review",
+ *          in="query",
+ *          required=false,
+ *          description="Filter user reviews: true=user only, false=exclude user",
+ *          example="true"
+ *      ),
+ *      @OA\Parameter(
+ *          name="is_overall",
+ *          in="query",
+ *          required=false,
+ *          description="Filter overall reviews: true=overall only, false=survey only",
+ *          example="true"
+ *      ),
+ *      @OA\Parameter(
+ *          name="staff_id",
+ *          in="query",
+ *          required=false,
+ *          description="Filter by staff member ID",
+ *          example="1"
+ *      ),
+ *      @OA\Parameter(
+ *          name="period",
+ *          in="query",
+ *          required=false,
+ *          description="Period for data: 7d, 30d, 90d, 1y",
+ *          example="30d"
+ *      ),
+ *      @OA\Parameter(
+ *          name="min_score",
+ *          in="query",
+ *          required=false,
+ *          description="Minimum rating score (1-5)",
+ *          example="3"
+ *      ),
+ *      @OA\Parameter(
+ *          name="max_score",
+ *          in="query",
+ *          required=false,
+ *          description="Maximum rating score (1-5)",
+ *          example="5"
+ *      ),
+ *      @OA\Parameter(
+ *          name="labels",
+ *          in="query",
+ *          required=false,
+ *          description="Filter by sentiment labels (comma separated)",
+ *          example="positive,neutral"
+ *      ),
+ *      @OA\Parameter(
+ *          name="review_type",
+ *          in="query",
+ *          required=false,
+ *          description="Filter by review type",
+ *          example="feedback"
+ *      ),
+ *      @OA\Parameter(
+ *          name="has_comment",
+ *          in="query",
+ *          required=false,
+ *          description="Filter by comments: true=with comments, false=without comments",
+ *          example="true"
+ *      ),
+ *      @OA\Parameter(
+ *          name="has_reply",
+ *          in="query",
+ *          required=false,
+ *          description="Filter by replies: true=replied, false=not replied",
+ *          example="false"
+ *      ),
+ *      @OA\Response(
+ *          response=200,
+ *          description="Successful operation",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="success", type="boolean", example=true),
+ *              @OA\Property(property="message", type="string", example="Review analytics retrieved successfully"),
+ *              @OA\Property(property="data", type="object",
+ *                  @OA\Property(property="business_id", type="integer", example=1),
+ *                  @OA\Property(property="business_name", type="string", example="Business Name"),
+ *                  @OA\Property(property="filters_applied", type="object"),
+ *                  @OA\Property(property="performance_overview", type="object"),
+ *                  @OA\Property(property="submissions_over_time", type="object"),
+ *                  @OA\Property(property="recent_submissions", type="array", @OA\Items(type="object")),
+ *                  // NEW: Add top_three_staff property
+ *                  @OA\Property(property="top_three_staff", type="object",
+ *                      @OA\Property(property="total_staff_reviewed", type="integer", example=5),
+ *                      @OA\Property(property="staff", type="array",
+ *                          @OA\Items(type="object",
+ *                              @OA\Property(property="staff_id", type="integer", example=1),
+ *                              @OA\Property(property="staff_name", type="string", example="John Doe"),
+ *                              @OA\Property(property="position", type="string", example="Manager"),
+ *                              @OA\Property(property="avg_rating", type="number", example=4.5),
+ *                              @OA\Property(property="review_count", type="integer", example=25),
+ *                              @OA\Property(property="sentiment_score", type="integer", example=80),
+ *                              @OA\Property(property="sentiment_label", type="string", example="Excellent"),
+ *                              @OA\Property(property="top_topics", type="array", @OA\Items(type="string")),
+ *                              @OA\Property(property="recent_activity", type="string", example="2 days ago")
+ *                          )
+ *                      )
+ *                  )
+ *              )
+ *          )
+ *       ),
+ *      @OA\Response(response=404, description="Not Found")
+ * )
+ */
+  public function reviewAnalytics($businessId, Request $request)
+{
+    $business = Business::findOrFail($businessId);
+
+    $filters = [
+        'survey_id' => $request->get('survey_id'),
+        'is_guest_review' => $request->get('is_guest_review'),
+        'is_user_review' => $request->get('is_user_review'),
+        'is_overall' => $request->get('is_overall'),
+        'staff_id' => $request->get('staff_id'),
+        'period' => $request->get('period', '30d'),
+        'min_score' => $request->get('min_score'),
+        'max_score' => $request->get('max_score'),
+        'labels' => $request->get('labels'),
+        'review_type' => $request->get('review_type'),
+        'has_comment' => $request->get('has_comment'),
+        'has_reply' => $request->get('has_reply')
+    ];
+
+    $reviewsQuery = ReviewNew::where('business_id', $businessId)
+        ->with(['user', 'guest_user', 'survey']);
+
+    $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);
+    $reviews = (clone $reviewsQuery)->get();
+
+    // Calculate performance overview using ReviewValueNew
+    $performanceOverview = $this->calculatePerformanceOverviewFromReviewValue((clone $reviewsQuery));
+    $submissionsOverTime = $this->getSubmissionsOverTime((clone $reviewsQuery), $filters['period']);
+    $recentSubmissions = $this->getRecentSubmissions($reviews);
+    
+    // NEW: Get top three staff
+    $topStaff = $this->getTopThreeStaff($businessId, $filters);
+    
+    $filterSummary = $this->getFilterSummary($filters, $business);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Review analytics retrieved successfully',
+        'data' => [
+            'business_id' => (int)$businessId,
+            'business_name' => $business->name,
+            'filters_applied' => $filterSummary,
+            'performance_overview' => $performanceOverview,
+            'submissions_over_time' => $submissionsOverTime,
+            'recent_submissions' => $recentSubmissions,
+            // NEW: Add top three staff to the response
+            'top_three_staff' => $topStaff
+        ]
+    ], 200);
+}
     /**
-     * @OA\Get(
-     *      path="/v1.0/reports/review-analytics/{businessId}",
-     *      operationId="reviewAnalytics",
-     *      tags={"Reports"},
-     *      summary="Get review analytics with flexible filtering",
-     *      description="Get performance overview and recent submissions with optional filters for survey, guest reviews, user reviews, and overall reviews",
-     * @OA\Parameter(
-     *     name="min_score",
-     *     in="query",
-     *     required=false,
-     *     description="Minimum rating score (1-5)",
-     *     example="3"
-     * ),
-     * @OA\Parameter(
-     *     name="max_score",
-     *     in="query",
-     *     required=false,
-     *     description="Maximum rating score (1-5)",
-     *     example="5"
-     * ),
-     * @OA\Parameter(
-     *     name="labels",
-     *     in="query",
-     *     required=false,
-     *     description="Filter by sentiment labels (comma separated)",
-     *     example="positive,neutral"
-     * ),
-     * @OA\Parameter(
-     *     name="review_type",
-     *     in="query",
-     *     required=false,
-     *     description="Filter by review type",
-     *     example="feedback"
-     * ),
-     * @OA\Parameter(
-     *     name="has_comment",
-     *     in="query",
-     *     required=false,
-     *     description="Filter by comments: true=with comments, false=without comments",
-     *     example="true"
-     * ),
-     * @OA\Parameter(
-     *     name="has_reply",
-     *     in="query",
-     *     required=false,
-     *     description="Filter by replies: true=replied, false=not replied",
-     *     example="false"
-     * ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="Review analytics retrieved successfully"),
-     *              @OA\Property(property="data", type="object",
-     *                  @OA\Property(property="business_id", type="integer", example=1),
-     *                  @OA\Property(property="business_name", type="string", example="Business Name"),
-     *                  @OA\Property(property="filters_applied", type="object",
-     *                      @OA\Property(property="business", type="string", example="Business Name"),
-     *                      @OA\Property(property="total_filters", type="integer", example=2),
-     *                      @OA\Property(property="period", type="string", example="30d")
-     *                  ),
-     *                  @OA\Property(property="performance_overview", type="object",
-     *                      @OA\Property(property="total_submissions", type="integer", example=150),
-     *                      @OA\Property(property="average_score", type="number", example=4.2),
-     *                      @OA\Property(property="score_out_of", type="integer", example=5),
-     *                      @OA\Property(property="sentiment_distribution", type="object",
-     *                          @OA\Property(property="positive", type="integer", example=70),
-     *                          @OA\Property(property="neutral", type="integer", example=20),
-     *                          @OA\Property(property="negative", type="integer", example=10)
-     *                      ),
-     *                      @OA\Property(property="submissions_today", type="integer", example=5),
-     *                      @OA\Property(property="submissions_this_week", type="integer", example=25),
-     *                      @OA\Property(property="submissions_this_month", type="integer", example=85),
-     *                      @OA\Property(property="guest_reviews_count", type="integer", example=45),
-     *                      @OA\Property(property="user_reviews_count", type="integer", example=105),
-     *                      @OA\Property(property="overall_reviews_count", type="integer", example=75),
-     *                      @OA\Property(property="survey_reviews_count", type="integer", example=75)
-     *                  ),
-     *                  @OA\Property(property="submissions_over_time", type="object",
-     *                      @OA\Property(property="period", type="string", example="30d"),
-     *                      @OA\Property(property="data", type="object", example={"2023-11-01": {"submissions_count": 5, "average_rating": 4.2, "sentiment_score": 75.5}}),
-     *                      @OA\Property(property="total_submissions", type="integer", example=150),
-     *                      @OA\Property(property="peak_submissions", type="integer", example=10),
-     *                      @OA\Property(property="date_range", type="object",
-     *                          @OA\Property(property="start", type="string", format="date", example="2023-10-31"),
-     *                          @OA\Property(property="end", type="string", format="date", example="2023-11-30")
-     *                      )
-     *                  ),
-     *                  @OA\Property(property="recent_submissions", type="array", @OA\Items(type="object"))
-     *              )
-     *          )
-     *       ),
-     *      @OA\Response(response=404, description="Not Found")
-     * )
-     */
-    public function reviewAnalytics($businessId, Request $request)
-    {
-        $business = Business::findOrFail($businessId);
+ * Get top three staff based on ratings and review count
+ */
+private function getTopThreeStaff($businessId, $filters = [])
+{
+    // Get reviews for the business with staff
+    $reviewsQuery = ReviewNew::where('business_id', $businessId)
+        ->whereNotNull('staff_id');
 
-        $filters = [
-            'survey_id' => $request->get('survey_id'),
-            'is_guest_review' => $request->get('is_guest_review'),
-            'is_user_review' => $request->get('is_user_review'),
-            'is_overall' => $request->get('is_overall'),
-            'staff_id' => $request->get('staff_id'),
-            'period' => $request->get('period', '30d'),
-            'min_score' => $request->get('min_score'),
-            'max_score' => $request->get('max_score'),
-            'labels' => $request->get('labels'),
-            'review_type' => $request->get('review_type'),
-            'has_comment' => $request->get('has_comment'),
-            'has_reply' => $request->get('has_reply')
+    // Apply the same filters as main query
+    $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);
+    
+    $reviews = $reviewsQuery->get();
+    
+    if ($reviews->isEmpty()) {
+        return [
+            'message' => 'No staff reviews found',
+            'staff' => []
         ];
-
-        $reviewsQuery = ReviewNew::where('business_id', $businessId)
-            ->with(['user', 'guest_user', 'survey']);
-
-        $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);
-        $reviews = (clone $reviewsQuery)->get();
-
-        // Calculate performance overview using ReviewValueNew
-        $performanceOverview = $this->calculatePerformanceOverviewFromReviewValue((clone $reviewsQuery));
-        $submissionsOverTime = $this->getSubmissionsOverTime((clone $reviewsQuery), $filters['period']);
-        $recentSubmissions = $this->getRecentSubmissions($reviews);
-        $filterSummary = $this->getFilterSummary($filters, $business);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Review analytics retrieved successfully',
-            'data' => [
-                'business_id' => (int)$businessId,
-                'business_name' => $business->name,
-                'filters_applied' => $filterSummary,
-                'performance_overview' => $performanceOverview,
-                'submissions_over_time' => $submissionsOverTime,
-                'recent_submissions' => $recentSubmissions
-            ]
-        ], 200);
     }
+
+    // Group reviews by staff
+    $staffGroups = $reviews->groupBy('staff_id');
+    
+    $staffPerformance = $staffGroups->map(function ($staffReviews, $staffId) {
+        $staff = User::find($staffId);
+        if (!$staff) return null;
+
+        // Calculate rating from ReviewValueNew
+        $reviewIds = $staffReviews->pluck('id')->toArray();
+        $ratings = $this->calculateBulkRatings($reviewIds);
+        $validRatings = $ratings->filter()->values();
+        $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+        
+        // Calculate sentiment
+        $positiveCount = $staffReviews->where('sentiment_score', '>=', 0.7)->count();
+        $totalReviews = $staffReviews->count();
+        $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
+        
+        // Extract common topics
+        $topTopics = $this->extractStaffTopics($staffReviews);
+        
+        return [
+            'staff_id' => $staffId,
+            'staff_name' => $staff->name,
+            'position' => $staff->job_title ?? 'Staff',
+            'avg_rating' => $avgRating,
+            'review_count' => $totalReviews,
+            'sentiment_score' => $sentimentPercentage,
+            'sentiment_label' => $this->getSentimentLabelByPercentage($sentimentPercentage),
+            'top_topics' => array_slice($topTopics, 0, 3), // Top 3 topics
+            'recent_activity' => $staffReviews->sortByDesc('created_at')
+                ->first()
+                ->created_at
+                ->diffForHumans() ?? 'No recent activity'
+        ];
+    })
+    ->filter(function ($staff) {
+        // Only include staff with at least 3 reviews
+        return $staff && $staff['review_count'] >= 3;
+    })
+    ->sortByDesc(function ($staff) {
+        // Sort by rating, then by review count
+        return [$staff['avg_rating'], $staff['review_count']];
+    })
+    ->take(3)
+    ->values()
+    ->toArray();
+
+    return [
+        'total_staff_reviewed' => $staffGroups->count(),
+        'staff' => $staffPerformance
+    ];
+}
+
+/**
+ * Extract common topics from staff reviews
+ */
+private function extractStaffTopics($staffReviews)
+{
+    $allTopics = [];
+    
+    foreach ($staffReviews as $review) {
+        if ($review->topics && is_array($review->topics)) {
+            foreach ($review->topics as $topic) {
+                $allTopics[$topic] = ($allTopics[$topic] ?? 0) + 1;
+            }
+        }
+        
+        // Also extract from comment if no topics set
+        if (empty($review->topics) && $review->comment) {
+            $commonWords = ['service', 'friendly', 'helpful', 'knowledge', 'slow', 'fast', 'polite', 'rude'];
+            $comment = strtolower($review->comment);
+            
+            foreach ($commonWords as $word) {
+                if (strpos($comment, $word) !== false) {
+                    $allTopics[$word] = ($allTopics[$word] ?? 0) + 1;
+                }
+            }
+        }
+    }
+    
+    arsort($allTopics);
+    return $allTopics;
+}
+
+/**
+ * Get sentiment label based on percentage
+ */
+private function getSentimentLabelByPercentage($percentage)
+{
+    if ($percentage >= 70) {
+        return 'Excellent';
+    } elseif ($percentage >= 50) {
+        return 'Good';
+    } elseif ($percentage >= 30) {
+        return 'Average';
+    } else {
+        return 'Needs Improvement';
+    }
+}
     private function calculatePerformanceOverviewFromReviewValue($reviews)
     {
         $totalSubmissions = (clone $reviews)->count();

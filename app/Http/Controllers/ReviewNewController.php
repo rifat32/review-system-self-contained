@@ -283,8 +283,6 @@ class ReviewNewController extends Controller
 
 
 
-
-
 // ##################################################
 // Update Business Settings
 // ##################################################
