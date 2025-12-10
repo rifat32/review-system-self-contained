@@ -235,7 +235,7 @@ class ReviewNewController extends Controller
             "last_month"
         ];
 
-   
+
 
         if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
             return response()->json([
@@ -488,13 +488,13 @@ class ReviewNewController extends Controller
     {
         // Get reviews with their values
         $reviews = ReviewNew::with(['value'])
-               ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->get();
 
         $previousReviews = ReviewNew::with(['value'])
-        ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [
                 $dateRange['start']->copy()->subDays(30),
@@ -555,7 +555,7 @@ class ReviewNewController extends Controller
     {
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-          ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->get();
 
         // Get review IDs for bulk calculation
@@ -564,7 +564,7 @@ class ReviewNewController extends Controller
         // Calculate ratings in bulk
         $ratings = $this->calculateBulkRatings($reviewIds);
 
-       
+
 
         // Initialize counters
         $excellent = 0;
@@ -629,7 +629,7 @@ class ReviewNewController extends Controller
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->whereNotNull('ai_suggestions')
-              ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->get();
 
         // Extract common themes from existing AI suggestions
@@ -649,7 +649,7 @@ class ReviewNewController extends Controller
         // Use existing staff suggestions and reviews
         $staffReviews = ReviewNew::with('staff', 'value')
             ->where('business_id', $businessId)
-              ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->get()
@@ -695,7 +695,7 @@ class ReviewNewController extends Controller
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->orderBy('created_at', 'desc')
-            ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->limit($limit)
             ->get();
 
@@ -896,7 +896,7 @@ class ReviewNewController extends Controller
         // Get reviews with their values
         $reviews = ReviewNew::with(['value'])
             ->where("business_id", $businessId)
-            ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
             ->get();
@@ -1047,7 +1047,7 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
             "rate" => $rate
         ])
-            ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->with("business", "value")
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
@@ -1116,7 +1116,7 @@ class ReviewNewController extends Controller
         $reviewValue = ReviewNew::with("value")->where([
             "business_id" => $businessId,
         ])
-            ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->orderBy('order_no', 'asc')
             ->get();
 
@@ -1199,7 +1199,7 @@ class ReviewNewController extends Controller
         // Get reviews with their values
         $reviews = ReviewNew::with(['value'])
             ->where("business_id", $businessId)
-            ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
             ->get();
@@ -1913,15 +1913,15 @@ class ReviewNewController extends Controller
             return collect();
         }
 
-        $ratings = ReviewValueNew::join('stars as s', 'rvn.star_id', '=', 's.id')
-            ->whereIn('rvn.review_id', $reviewIds)
+        $ratings = ReviewValueNew::join('stars as s', 'review_value_news.star_id', '=', 's.id')
+            ->whereIn('review_value_news.review_id', $reviewIds)
             ->select(
-                'rvn.review_id',
-                'rvn.question_id',
+                'review_value_news.review_id',
+                'review_value_news.question_id',
                 's.value as star_value'
             )
-            ->orderBy('rvn.review_id')
-            ->orderBy('rvn.question_id')
+            ->orderBy('review_value_news.review_id')
+            ->orderBy('review_value_news.question_id')
             ->get();
 
         // Group by review_id and calculate average per review
@@ -1985,61 +1985,60 @@ class ReviewNewController extends Controller
     // ##################################################
     // AI Helpers
     // ##################################################
-  private function transcribeAudio($filePath)
-{
-    try {
-        $api_key = env('HF_API_KEY');
-        $audio = file_get_contents($filePath);
+    private function transcribeAudio($filePath)
+    {
+        try {
+            $api_key = env('HF_API_KEY');
+            $audio = file_get_contents($filePath);
 
-        // Log file basic info
-        \Log::info("HF Transcription Started", [
-            'file_path' => $filePath,
-            'file_size' => strlen($audio),
-            'mime' => mime_content_type($filePath)
-        ]);
+            // Log file basic info
+            \Log::info("HF Transcription Started", [
+                'file_path' => $filePath,
+                'file_size' => strlen($audio),
+                'mime' => mime_content_type($filePath)
+            ]);
 
-        $ch = curl_init("https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3");
-        curl_setopt_array($ch, [
-            CURLOPT_HTTPHEADER => [
-                "Authorization: Bearer $api_key",
-                "Content-Type: audio/mpeg"
-            ],
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $audio,
-            CURLOPT_RETURNTRANSFER => true,
-        ]);
+            $ch = curl_init("https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3");
+            curl_setopt_array($ch, [
+                CURLOPT_HTTPHEADER => [
+                    "Authorization: Bearer $api_key",
+                    "Content-Type: audio/mpeg"
+                ],
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $audio,
+                CURLOPT_RETURNTRANSFER => true,
+            ]);
 
-        $result = curl_exec($ch);
-        $error  = curl_error($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+            $result = curl_exec($ch);
+            $error  = curl_error($ch);
+            $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
 
-        // Log full CURL response
-        \Log::info("HF Whisper API Response", [
-            'http_status' => $status,
-            'curl_error'  => $error,
-            'raw_result'  => $result
-        ]);
+            // Log full CURL response
+            \Log::info("HF Whisper API Response", [
+                'http_status' => $status,
+                'curl_error'  => $error,
+                'raw_result'  => $result
+            ]);
 
-        if ($error) {
-            \Log::error("HF Whisper CURL Error: $error");
+            if ($error) {
+                \Log::error("HF Whisper CURL Error: $error");
+                return '';
+            }
+
+            $data = json_decode($result, true);
+
+            // Log decoded output
+            \Log::info("HF Whisper Decoded Response", [
+                'decoded' => $data
+            ]);
+
+            return $data['text'] ?? '';
+        } catch (\Exception $e) {
+            \Log::error("transcribeAudio() exception: " . $e->getMessage());
             return '';
         }
-
-        $data = json_decode($result, true);
-
-        // Log decoded output
-        \Log::info("HF Whisper Decoded Response", [
-            'decoded' => $data
-        ]);
-
-        return $data['text'] ?? '';
-
-    } catch (\Exception $e) {
-        \Log::error("transcribeAudio() exception: " . $e->getMessage());
-        return '';
     }
-}
 
 
     private function detectEmotion($text)
@@ -3296,7 +3295,7 @@ class ReviewNewController extends Controller
         }
 
         $data2["total_comment"] = ReviewNew::with("user", "guest_user")
-            ->globalFilters(1,$business->id)
+            ->globalFilters(1, $business->id)
             ->where([
                 "business_id" => $business->id,
                 "guest_id" => NULL,
@@ -4057,7 +4056,7 @@ class ReviewNewController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/review-new/get/tags/{id}/{reataurantId}",
+     *      path="/review-new/get/tags/{id}/{restaurantId}",
      *      operationId="getTagById2",
      *      tags={"z.unused"},
      *       security={
@@ -4071,10 +4070,10 @@ class ReviewNewController extends Controller
      *         description="tag Id",
      *         required=false,
      *      ),
-     * *         @OA\Parameter(
-     *         name="reataurantId",
+     *        @OA\Parameter(
+     *         name="restaurantId",
      *         in="path",
-     *         description="reataurantId",
+     *         description="restaurantId",
      *         required=false,
      *      ),
 
@@ -4090,13 +4089,13 @@ class ReviewNewController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *  @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -4108,16 +4107,20 @@ class ReviewNewController extends Controller
      *      )
      *     )
      */
-    public function   getTagById2($id, $reataurantId, Request $request)
+    public function   getTagById2($id, $restaurantId, Request $request)
     {
-        $questions =    Tag::where(["id" => $id, "business_id" => $reataurantId])
+        $questions =    Tag::where(["id" => $id, "business_id" => $restaurantId])
             ->first();
         if (!$questions) {
             return response([
                 "message" => "No Tag Found"
             ], 404);
         }
-        return response($questions, 200);
+        return response([
+            "success" => true,
+            "message" => "Tag Found",
+            "data" => $questions
+        ], 200);
     }
 
     // ##################################################
@@ -4959,7 +4962,7 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
-            ->globalFilters(1,$business->id)
+            ->globalFilters(1, $business->id)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($request->start_date) && !empty($request->end_date)) {
@@ -5215,7 +5218,7 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "guest_id" => NULL,
         ])
-            ->globalFilters(1,$business->id)
+            ->globalFilters(1, $business->id)
             ->whereNotNull("comment")
             ->orderBy('order_no', 'asc')
             ->get();
@@ -5490,7 +5493,7 @@ class ReviewNewController extends Controller
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
-            ->globalFilters(1,$business->id)
+            ->globalFilters(1, $business->id)
             ->whereNotNull("comment")
             ->orderBy('order_no', 'asc')
             ->get();
@@ -6037,7 +6040,7 @@ class ReviewNewController extends Controller
                 "guest_id" => NULL,
                 "review_news.user_id" => $users->items()[$i]->id
             ])
-                ->globalFilters(1,$business->id)
+                ->globalFilters(1, $business->id)
                 ->orderBy('order_no', 'asc')
                 ->whereNotNull("comment");
             if (!empty($request->start_date) && !empty($request->end_date)) {
@@ -6325,7 +6328,7 @@ class ReviewNewController extends Controller
                 "guest_id" => $users->items()[$i]->id,
                 "review_news.user_id" => NULL
             ])
-                ->globalFilters(1,$business->id)
+                ->globalFilters(1, $business->id)
                 ->orderBy('order_no', 'asc')
                 ->whereNotNull("comment");
             if (!empty($request->start_date) && !empty($request->end_date)) {
@@ -6416,7 +6419,7 @@ class ReviewNewController extends Controller
                 $q->where('is_private', 0)
                     ->orWhereNull('is_private');
             })
-            ->globalFilters(1,$businessId)
+            ->globalFilters(1, $businessId)
             ->orderBy('order_no', 'asc')
             ->get();
 
@@ -6566,7 +6569,7 @@ class ReviewNewController extends Controller
                     $q->where('is_private', $isPrivate);
                 }
             })
-            ->globalFilters(1,$businessId);
+            ->globalFilters(1, $businessId);
 
         // Sorting logic
         $sortBy = $request->get('sort_by');

@@ -112,7 +112,7 @@ class ForgotPasswordController extends Controller
      *     operationId="changePassword",
      *     tags={"auth"},
      *     summary="This method is to change password",
-     *     description="This method is to change password",
+     *     description="If user_id is omitted, the authenticated user's ID will be used.",
      *     security={{"bearerAuth": {}}},
      *
      *     @OA\RequestBody(
@@ -130,69 +130,70 @@ class ForgotPasswordController extends Controller
      *                 type="string",
      *                 format="password",
      *                 example="OldOrNewPassword123"
+     *             ),
+     *             @OA\Property(
+     *                 property="user_id",
+     *                 type="integer",
+     *                 nullable=true,
+     *                 description="Target user ID. If not provided, authenticated user is used."
      *             )
      *         )
      *     ),
      *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Bad Request",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Forbidden",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Not found",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Unprocessable Content",
-     *         @OA\JsonContent()
-     *     )
+     *     @OA\Response(response=200, description="Successful operation", @OA\JsonContent()),
+     *     @OA\Response(response=400, description="Bad Request", @OA\JsonContent()),
+     *     @OA\Response(response=401, description="Unauthenticated", @OA\JsonContent()),
+     *     @OA\Response(response=403, description="Forbidden", @OA\JsonContent()),
+     *     @OA\Response(response=404, description="Not found", @OA\JsonContent()),
+     *     @OA\Response(response=422, description="Unprocessable Content", @OA\JsonContent())
      * )
      */
-
-
-
     public function changePassword(Request $request)
     {
+        // Ensure request is authenticated
+        $authUser = $request->user();
+        if (!$authUser) {
+            return response()->json([
+                "success" => false,
+                "message" => "Unauthenticated"
+            ], 401);
+        }
 
-        // GET AUTHENTICATED USER
-        $user = $request->user();
+        $requestPayload = $request->validate([
+            "password"          => "required|string|min:6",
+            "confirm_password"  => "required|string|min:6|same:password",
+            "user_id"           => "nullable|integer|exists:users,id"
+        ]);
 
-        // CHECK PASSWORD
-        if (!Hash::check($request->password, $user->password)) {
+        // Determine target user id: provided user_id or fallback to authenticated user
+        $targetUserId = $requestPayload["user_id"] ?? $authUser->id;
+
+        // Fetch target user
+        $targetUser = User::find($targetUserId);
+        if (!$targetUser) {
+            return response()->json([
+                "success" => false,
+                "message" => "user not found"
+            ], 404);
+        }
+
+        // NOTE: Your existing logic checks the provided password against the stored hash.
+        // Keeping that behavior intact:
+        if (!Hash::check($request->password, $targetUser->password)) {
             return response()->json([
                 "success" => false,
                 "message" => "Invalid password"
             ], 400);
         }
 
-        // UPDATE PASSWORD
-        $password = Hash::make($request->password);
-        $user->password = $password;
+        // Update password (re-hash provided value)
+        $targetUser->password = Hash::make($request->password);
 
-        // RESET LOGIN ATTEMPTS AND LAST FAILED LOGIN ATTEMPT TIME
-        $user->login_attempts = 0;
-        $user->last_failed_login_attempt_at = null;
-        $user->save();
+        // Reset login attempts metadata
+        $targetUser->login_attempts = 0;
+        $targetUser->last_failed_login_attempt_at = null;
+        $targetUser->save();
 
-        // RETURN RESPONSE
         return response()->json([
             "success" => true,
             "message" => "password changed"
@@ -200,109 +201,7 @@ class ForgotPasswordController extends Controller
     }
 
 
-    /**
-     * @OA\Patch(
-     *     path="/v1.0/auth/change-password-by-superadmin",
-     *     operationId="changePasswordBySuperAdmin",
-     *     tags={"auth"},
-     *     summary="This method is to change password by super admin",
-     *     description="This method is to change password by super admin",
-     *     security={{"bearerAuth": {}}},
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"password","confirm_password","user_id"},
-     *             @OA\Property(
-     *                 property="password",
-     *                 type="string",
-     *                 format="password",
-     *                 example="aaaaaaaa"
-     *             ),
-     *             @OA\Property(
-     *                 property="confirm_password",
-     *                 type="string",
-     *                 format="password",
-     *                 example="aaaaaaaa"
-     *             ),
-     *             @OA\Property(
-     *                 property="user_id",
-     *                 type="integer",
-     *                 format="int64",
-     *                 example=1
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Bad Request",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Forbidden",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Not found",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Unprocessable Content",
-     *         @OA\JsonContent()
-     *     )
-     * )
-     */
 
-
-
-    public function changePasswordBySuperAdmin(Request $request)
-    {
-
-        $request_payload = $request->validate([
-            "password" => "required|string|min:6",
-            "user_id" => "required|integer"
-        ]);
-
-        // GET USER
-        $user = User::find($request_payload["user_id"]);
-
-        if (!$user) {
-            return response()->json([
-                "success" => false,
-                "message" => "user not found"
-            ], 404);;
-        }
-
-        // UPDATE PASSWORD AND SAVE TO DB
-        $password = Hash::make($request_payload["password"]);
-        $user->password = $password;
-
-
-        // RESET LOGIN ATTEMPTS AND LAST FAILED LOGIN ATTEMPT TIME
-        $user->login_attempts = 0;
-        $user->last_failed_login_attempt_at = null;
-        $user->save();
-
-        // RETURN RESPONSE
-        return response()->json([
-            "success" => true,
-            "message" => "password changed"
-        ], 200);
-    }
 
 
     // ##################################################

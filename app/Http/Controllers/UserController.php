@@ -7,29 +7,36 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-      /**
+    /**
      *
      * @OA\Get(
-     *      path="/superadmin/customer-list/{perPage}",
+     *      path="/v1.0/customer-list",
      *      operationId="getCustomerReportSuperadmin",
      *      tags={"super_admin_report.customer"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
-     *  *  @OA\Parameter(
-            * name="perPage",
-            * in="path",
-            * description="perPage",
-            * required=true,
-            * example="1"
-            * ),
-             *  *  @OA\Parameter(
-            * name="search_term",
-            * in="query",
-            * description="search_term",
-            * required=true,
-            * example="1"
-            * ),
+     *    @OA\Parameter(
+     * name="page",
+     * in="query",
+     * description="page",
+     * required=true,
+     * example="1"
+     * ),
+     *    @OA\Parameter(
+     * name="per_page",
+     * in="query",
+     * description="per_page",
+     * required=true,
+     * example="1"
+     * ),
+     *    @OA\Parameter(
+     * name="search_term",
+     * in="query",
+     * description="search_term",
+     * required=true,
+     * example="1"
+     * ),
      *      summary="This method is to get  Customer report",
      *      description="This method is to get Customer  report",
      *      @OA\Response(
@@ -44,13 +51,13 @@ class UserController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -62,13 +69,16 @@ class UserController extends Controller
      *      )
      *     )
      */
-    public function getCustomerReportSuperadmin ($perPage,Request $request) {
+    public function getCustomerReportSuperadmin(Request $request)
+    {
 
         $userQuery =  User::where([
             "type" => "customer"
         ]);
-        if(!empty($request->search_term)) {
-            $userQuery = $userQuery->where(function($query) use ($request){
+
+        // Search Term
+        if (!empty($request->search_term)) {
+            $userQuery = $userQuery->where(function ($query) use ($request) {
                 $term = $request->search_term;
 
 
@@ -81,40 +91,51 @@ class UserController extends Controller
                 $query->orWhere("post_code", "like", "%" . $term . "%");
                 $query->orWhere("Address", "like", "%" . $term . "%");
                 $query->orWhere("door_no", "like", "%" . $term . "%");
-
             });
-
         }
-        $data = $userQuery
-                  ->latest()
-                  ->paginate($perPage)
-                  ->withQueryString();
-        return response()->json($data,200);
+
+        // 
+        $data = retrieve_data($userQuery);
+
+        // 
+        return response()->json([
+            "success" => true,
+            "message" => "Customer Report",
+            "meta" => $data['meta'],
+            "data" => $data['data'],
+        ], 200);
     }
 
-      /**
+    /**
      *
      * @OA\Get(
-     *      path="/superadmin/owner-list/{perPage}",
+     *      path="/v1.0/owner-list",
      *      operationId="getOwnerReport",
      *      tags={"super_admin_report.customer"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
-      *  *  @OA\Parameter(
-            * name="perPage",
-            * in="path",
-            * description="perPage",
-            * required=true,
-            * example="1"
-            * ),
-             *  *  @OA\Parameter(
-            * name="search_term",
-            * in="query",
-            * description="search_term",
-            * required=true,
-            * example="1"
-            * ),
+     *    @OA\Parameter(
+     * name="page",
+     * in="query",
+     * description="page",
+     * required=true,
+     * example="1"
+     * ),
+     *    @OA\Parameter(
+     * name="per_page",
+     * in="query",
+     * description="per_page",
+     * required=true,
+     * example="1"
+     * ),
+     *    @OA\Parameter(
+     * name="search_term",
+     * in="query",
+     * description="search_term",
+     * required=true,
+     * example="1"
+     * ),
      *      summary="This method is to get  Customer report",
      *      description="This method is to get Customer  report",
      *      @OA\Response(
@@ -129,13 +150,13 @@ class UserController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request"
      *   ),
@@ -148,12 +169,13 @@ class UserController extends Controller
      *     )
      */
 
-    public function getOwnerReport ($perPage,Request $request) {
+    public function getOwnerReport(Request $request)
+    {
         $userQuery =  User::with("business")->where([
             "type" => "business_Owner"
         ]);
-        if(!empty($request->search_term)) {
-            $userQuery = $userQuery->where(function($query) use ($request){
+        if (!empty($request->search_term)) {
+            $userQuery = $userQuery->where(function ($query) use ($request) {
                 $term = $request->search_term;
 
 
@@ -166,34 +188,37 @@ class UserController extends Controller
                 $query->orWhere("post_code", "like", "%" . $term . "%");
                 $query->orWhere("Address", "like", "%" . $term . "%");
                 $query->orWhere("door_no", "like", "%" . $term . "%");
-
             });
-
         }
-        $data = $userQuery
-                  ->latest()
-                  ->paginate($perPage)
-                  ->withQueryString();
-        return response()->json($data,200);
 
+        // 
+        $data = retrieve_data($userQuery);
+
+        // 
+        return response()->json([
+            "success" => true,
+            "message" => "Owner Report",
+            "meta" => $data['meta'],
+            "data" => $data['data'],
+        ], 200);
     }
 
-     /**
+    /**
      *
      * @OA\Delete(
-     *      path="/superadmin/user-delete/{id}",
+     *      path="/v1.0/users/{id}",
      *      operationId="deleteCustomerById",
      *      tags={"super_admin_report.customer"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
      *  *  @OA\Parameter(
-            * name="id",
-            * in="path",
-            * description="id",
-            * required=true,
-            * example="1"
-            * ),
+     * name="id",
+     * in="path",
+     * description="id",
+     * required=true,
+     * example="1"
+     * ),
      *      summary="This method is to delete  Customer by id",
      *      description="This method is to delete Customer  by id",
      *      @OA\Response(
@@ -208,7 +233,7 @@ class UserController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -226,14 +251,14 @@ class UserController extends Controller
      *      )
      *     )
      */
-    public function deleteCustomerById ($id,Request $request) {
+    public function deleteCustomerById($id, Request $request)
+    {
         User::where([
-                      "id" => $id,
-                  ])
-                ->delete();
+            "id" => $id,
+        ])
+            ->delete();
         return response()->json([
             "ok" => true
-    ],200);
+        ], 200);
     }
-
 }

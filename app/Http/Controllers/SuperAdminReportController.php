@@ -14,9 +14,9 @@ class SuperAdminReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/v1.0/superadmin/dashboard-report/total-business",
+     *      path="/v1.0/dashboard-report/total-business",
      *      operationId="getTotalBusinessReport",
-     *      tags={"super_admin_report"},
+     *      tags={"dashboard_management.super_admin"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -70,9 +70,9 @@ class SuperAdminReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/v1.0/superadmin/dashboard-report/total-business-enabled",
+     *      path="/v1.0/dashboard-report/total-business-enabled",
      *      operationId="getTotalEnabledBusinessReport",
-     *      tags={"super_admin_report"},
+     *      tags={"dashboard_management.super_admin"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -125,9 +125,9 @@ class SuperAdminReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/v1.o/superadmin/dashboard-report/total-business-disabled",
+     *      path="/v1.0/dashboard-report/total-business-disabled",
      *      operationId="getTotalDisabledBusinessReport",
-     *      tags={"super_admin_report"},
+     *      tags={"dashboard_management.super_admin"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -186,9 +186,9 @@ class SuperAdminReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/v1.0/superadmin/dashboard-report/total-reviews",
+     *      path="/v1.0/dashboard-report/total-reviews",
      *      operationId="getTotalReviews",
-     *      tags={"super_admin_report"},
+     *      tags={"dashboard_management.super_admin"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -241,9 +241,9 @@ class SuperAdminReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/v1.0/superadmin/dashboard-report/today-reviews",
+     *      path="/v1.0/dashboard-report/today-reviews",
      *      operationId="getTodayReviews",
-     *      tags={"super_admin_report"},
+     *      tags={"dashboard_management.super_admin"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -297,9 +297,9 @@ class SuperAdminReportController extends Controller
     /**
      *
      * @OA\Get(
-     *      path="/v1.0/superadmin/dashboard-report/review-report",
+     *      path="/v1.0/dashboard-report/review-report",
      *      operationId="getReviewReport",
-     *      tags={"super_admin_report"},
+     *      tags={"dashboard_management.super_admin"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
