@@ -1528,6 +1528,28 @@
                                                         "type": "string",
                                                         "example": "branch@example.com"
                                                     },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "is_geo_enabled": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "branch_code": {
+                                                        "type": "string",
+                                                        "example": "BR001"
+                                                    },
+                                                    "lat": {
+                                                        "type": "string",
+                                                        "format": "float",
+                                                        "example": "40.7128"
+                                                    },
+                                                    "long": {
+                                                        "type": "string",
+                                                        "format": "float",
+                                                        "example": "-74.0060"
+                                                    },
                                                     "created_at": {
                                                         "type": "string",
                                                         "format": "date-time"
@@ -1610,6 +1632,33 @@
                                         "description": "Email of the branch",
                                         "type": "string",
                                         "example": "branch@example.com"
+                                    },
+                                    "is_active": {
+                                        "description": "Whether the branch is active",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_geo_enabled": {
+                                        "description": "Whether geolocation is enabled for the branch",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "branch_code": {
+                                        "description": "Unique code for the branch",
+                                        "type": "string",
+                                        "example": "BR001"
+                                    },
+                                    "lat": {
+                                        "description": "lat coordinate of the branch",
+                                        "type": "string",
+                                        "format": "float",
+                                        "example": "40.7128"
+                                    },
+                                    "long": {
+                                        "description": "long coordinate of the branch",
+                                        "type": "string",
+                                        "format": "float",
+                                        "example": "-74.0060"
                                     }
                                 },
                                 "type": "object"
@@ -1657,6 +1706,28 @@
                                                 "email": {
                                                     "type": "string",
                                                     "example": "branch@example.com"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "is_geo_enabled": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "branch_code": {
+                                                    "type": "string",
+                                                    "example": "BR001"
+                                                },
+                                                "lat": {
+                                                    "type": "string",
+                                                    "format": "float",
+                                                    "example": "40.7128"
+                                                },
+                                                "long": {
+                                                    "type": "string",
+                                                    "format": "float",
+                                                    "example": "-74.0060"
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -1802,6 +1873,28 @@
                                                 "email": {
                                                     "type": "string",
                                                     "example": "branch@example.com"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "is_geo_enabled": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "branch_code": {
+                                                    "type": "string",
+                                                    "example": "BR001"
+                                                },
+                                                "lat": {
+                                                    "type": "string",
+                                                    "format": "float",
+                                                    "example": "40.7128"
+                                                },
+                                                "long": {
+                                                    "type": "string",
+                                                    "format": "float",
+                                                    "example": "-74.0060"
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -2053,6 +2146,33 @@
                                         "description": "Email of the branch",
                                         "type": "string",
                                         "example": "updated@example.com"
+                                    },
+                                    "is_active": {
+                                        "description": "Whether the branch is active",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_geo_enabled": {
+                                        "description": "Whether geolocation is enabled for the branch",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "branch_code": {
+                                        "description": "Unique code for the branch",
+                                        "type": "string",
+                                        "example": "BR001"
+                                    },
+                                    "lat": {
+                                        "description": "lat coordinate of the branch",
+                                        "type": "string",
+                                        "format": "float",
+                                        "example": "40.7128"
+                                    },
+                                    "long": {
+                                        "description": "long coordinate of the branch",
+                                        "type": "string",
+                                        "format": "float",
+                                        "example": "-74.0060"
                                     }
                                 },
                                 "type": "object"
@@ -2100,6 +2220,28 @@
                                                 "email": {
                                                     "type": "string",
                                                     "example": "updated@example.com"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "is_geo_enabled": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "branch_code": {
+                                                    "type": "string",
+                                                    "example": "BR001"
+                                                },
+                                                "lat": {
+                                                    "type": "string",
+                                                    "format": "float",
+                                                    "example": "40.7128"
+                                                },
+                                                "long": {
+                                                    "type": "string",
+                                                    "format": "float",
+                                                    "example": "-74.0060"
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -2190,6 +2332,141 @@
                                         },
                                         "errors": {
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branches/{id}/toggle-active": {
+            "patch": {
+                "tags": [
+                    "branches"
+                ],
+                "summary": "Toggle branch active status",
+                "description": "Toggle the active status of a specific branch.",
+                "operationId": "toggleBranchActive",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Branch ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Branch status toggled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch activated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Main Branch"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "is_geo_enabled": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "branch_code": {
+                                                    "type": "string",
+                                                    "example": "BR001"
+                                                },
+                                                "lat": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 40.7128
+                                                },
+                                                "long": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": -74.006
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Branch not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not own this branch"
                                         }
                                     },
                                     "type": "object"
@@ -2338,10 +2615,6 @@
                                                         "type": "integer",
                                                         "example": 1
                                                     },
-                                                    "enable_question": {
-                                                        "type": "boolean",
-                                                        "example": true
-                                                    },
                                                     "owner": {
                                                         "properties": {
                                                             "id": {
@@ -2459,8 +2732,7 @@
                                 "required": [
                                     "Name",
                                     "Address",
-                                    "PostCode",
-                                    "enable_question"
+                                    "PostCode"
                                 ],
                                 "properties": {
                                     "Name": {
@@ -2474,10 +2746,6 @@
                                     "PostCode": {
                                         "type": "string",
                                         "example": "SW1A 1AA"
-                                    },
-                                    "enable_question": {
-                                        "type": "boolean",
-                                        "example": true
                                     }
                                 },
                                 "type": "object"
@@ -2517,10 +2785,6 @@
                                                 "PostCode": {
                                                     "type": "string",
                                                     "example": "SW1A 1AA"
-                                                },
-                                                "enable_question": {
-                                                    "type": "boolean",
-                                                    "example": true
                                                 },
                                                 "OwnerID": {
                                                     "type": "integer",
@@ -2608,8 +2872,7 @@
                                     "Name",
                                     "Address",
                                     "PostCode",
-                                    "OwnerID",
-                                    "enable_question"
+                                    "OwnerID"
                                 ],
                                 "properties": {
                                     "Name": {
@@ -2627,10 +2890,6 @@
                                     "OwnerID": {
                                         "type": "integer",
                                         "example": 1
-                                    },
-                                    "enable_question": {
-                                        "type": "boolean",
-                                        "example": true
                                     }
                                 },
                                 "type": "object"
@@ -2674,10 +2933,6 @@
                                                 "OwnerID": {
                                                     "type": "integer",
                                                     "example": 1
-                                                },
-                                                "enable_question": {
-                                                    "type": "boolean",
-                                                    "example": true
                                                 },
                                                 "Status": {
                                                     "type": "string",
@@ -3225,10 +3480,6 @@
                                                     "type": "integer",
                                                     "example": 1
                                                 },
-                                                "enable_question": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                },
                                                 "expiry_date": {
                                                     "type": "string",
                                                     "format": "date",
@@ -3345,8 +3596,7 @@
                                     "Name",
                                     "Layout",
                                     "Address",
-                                    "PostCode",
-                                    "enable_question"
+                                    "PostCode"
                                 ],
                                 "properties": {
                                     "GoogleMapApi": {
@@ -3403,11 +3653,6 @@
                                         "type": "string",
                                         "format": "string",
                                         "example": "Street 1, City"
-                                    },
-                                    "enable_question": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
                                     },
                                     "show_image": {
                                         "type": "string",
@@ -6297,7 +6542,7 @@
                     "auth"
                 ],
                 "summary": "This method is to change password",
-                "description": "This method is to change password",
+                "description": "If user_id is omitted, the authenticated user's ID will be used.",
                 "operationId": "changePassword",
                 "requestBody": {
                     "required": true,
@@ -6318,103 +6563,11 @@
                                         "type": "string",
                                         "format": "password",
                                         "example": "OldOrNewPassword123"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/auth/change-password-by-superadmin": {
-            "patch": {
-                "tags": [
-                    "auth"
-                ],
-                "summary": "This method is to change password by super admin",
-                "description": "This method is to change password by super admin",
-                "operationId": "changePasswordBySuperAdmin",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "password",
-                                    "confirm_password",
-                                    "user_id"
-                                ],
-                                "properties": {
-                                    "password": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "aaaaaaaa"
-                                    },
-                                    "confirm_password": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "aaaaaaaa"
                                     },
                                     "user_id": {
+                                        "description": "Target user ID. If not provided, authenticated user is used.",
                                         "type": "integer",
-                                        "format": "int64",
-                                        "example": 1
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -7352,7 +7505,6 @@
                                     "business_name",
                                     "business_address",
                                     "business_postcode",
-                                    "business_enable_question",
                                     "times"
                                 ],
                                 "properties": {
@@ -7389,10 +7541,6 @@
                                     "business_postcode": {
                                         "type": "string",
                                         "example": "12345"
-                                    },
-                                    "business_enable_question": {
-                                        "type": "boolean",
-                                        "example": false
                                     },
                                     "business_EmailAddress": {
                                         "type": "string",
@@ -7545,6 +7693,212 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/v1.0/client/create-user-with-business": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Create a new user with associated business",
+                "description": "Register a new business owner user and create their business profile",
+                "operationId": "createUserWithBusinessClient",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password",
+                                    "first_Name",
+                                    "last_Name",
+                                    "business_name",
+                                    "business_address",
+                                    "business_postcode",
+                                    "times"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "rifat@gmail.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "12345678"
+                                    },
+                                    "first_Name": {
+                                        "type": "string",
+                                        "example": "Rifat"
+                                    },
+                                    "last_Name": {
+                                        "type": "string",
+                                        "example": "Khan"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+1234567890"
+                                    },
+                                    "business_name": {
+                                        "type": "string",
+                                        "example": "Tech Solutions Ltd"
+                                    },
+                                    "business_address": {
+                                        "type": "string",
+                                        "example": "123 Business St"
+                                    },
+                                    "business_postcode": {
+                                        "type": "string",
+                                        "example": "12345"
+                                    },
+                                    "business_EmailAddress": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "contact@business.com"
+                                    },
+                                    "business_GoogleMapApi": {
+                                        "type": "string",
+                                        "example": "AIzaSyXXXXXXXXX"
+                                    },
+                                    "business_homeText": {
+                                        "type": "string",
+                                        "example": "Welcome to our business"
+                                    },
+                                    "business_AdditionalInformation": {
+                                        "type": "string",
+                                        "example": "Additional info"
+                                    },
+                                    "business_Webpage": {
+                                        "type": "string",
+                                        "format": "url",
+                                        "example": "https://business.com"
+                                    },
+                                    "business_PhoneNumber": {
+                                        "type": "string",
+                                        "example": "+1234567890"
+                                    },
+                                    "business_About": {
+                                        "type": "string",
+                                        "example": "About our business"
+                                    },
+                                    "business_Layout": {
+                                        "type": "string",
+                                        "example": "modern"
+                                    },
+                                    "review_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "emoji",
+                                            "star"
+                                        ],
+                                        "example": "emoji"
+                                    },
+                                    "Is_guest_user": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_review_slider": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "review_only": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "header_image": {
+                                        "type": "string",
+                                        "example": "/header_image/default.png"
+                                    },
+                                    "primary_color": {
+                                        "type": "string",
+                                        "example": "#FF0000"
+                                    },
+                                    "secondary_color": {
+                                        "type": "string",
+                                        "example": "#00FF00"
+                                    },
+                                    "client_primary_color": {
+                                        "type": "string",
+                                        "example": "#172c41"
+                                    },
+                                    "client_secondary_color": {
+                                        "type": "string",
+                                        "example": "#ac8538"
+                                    },
+                                    "client_tertiary_color": {
+                                        "type": "string",
+                                        "example": "#ffffff"
+                                    },
+                                    "user_review_report": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "guest_user_review_report": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "times": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "day": {
+                                                    "type": "integer",
+                                                    "example": 0
+                                                },
+                                                "is_weekend": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "time_slots": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "start_at": {
+                                                                "type": "string",
+                                                                "format": "time",
+                                                                "example": "10:00"
+                                                            },
+                                                            "end_at": {
+                                                                "type": "string",
+                                                                "format": "time",
+                                                                "example": "11:00"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User and business created successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
             }
         },
         "/v1.0/register-guest-users": {
@@ -9462,6 +9816,102 @@
                 ]
             }
         },
+        "/v1.0/questions/ordering": {
+            "patch": {
+                "tags": [
+                    "review.question_management"
+                ],
+                "summary": "Order questions by specific sequence",
+                "description": "Update the display order of questions using order numbers",
+                "operationId": "displayQuestionOrder",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "questions"
+                                ],
+                                "properties": {
+                                    "questions": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "id",
+                                                "order_no"
+                                            ],
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "order_no": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Question updated successfully"
+                                        },
+                                        "ok": {
+                                            "type": "boolean",
+                                            "example": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/customer-report": {
             "get": {
                 "tags": [
@@ -9597,55 +10047,6 @@
                         "content": {
                             "application/json": {
                                 "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/dashboard-report/{businessId}": {
-            "get": {
-                "tags": [
-                    "report"
-                ],
-                "summary": "This method is to get dashboard report",
-                "description": "This method is to get dashboard report",
-                "operationId": "getDashboardReport",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "description": "businessId",
-                        "required": true,
-                        "example": "0"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Dashboard report retrieved successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
                             }
                         }
                     }
@@ -10278,6 +10679,54 @@
                 "operationId": "reviewAnalytics",
                 "parameters": [
                     {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "survey_id",
+                        "in": "query",
+                        "description": "Filter by survey ID",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "is_guest_review",
+                        "in": "query",
+                        "description": "Filter guest reviews: true=guest only, false=exclude guest",
+                        "required": false,
+                        "example": "true"
+                    },
+                    {
+                        "name": "is_user_review",
+                        "in": "query",
+                        "description": "Filter user reviews: true=user only, false=exclude user",
+                        "required": false,
+                        "example": "true"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "Filter overall reviews: true=overall only, false=survey only",
+                        "required": false,
+                        "example": "true"
+                    },
+                    {
+                        "name": "staff_id",
+                        "in": "query",
+                        "description": "Filter by staff member ID",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period for data: 7d, 30d, 90d, 1y",
+                        "required": false,
+                        "example": "30d"
+                    },
+                    {
                         "name": "min_score",
                         "in": "query",
                         "description": "Minimum rating score (1-5)",
@@ -10346,124 +10795,12 @@
                                                     "example": "Business Name"
                                                 },
                                                 "filters_applied": {
-                                                    "properties": {
-                                                        "business": {
-                                                            "type": "string",
-                                                            "example": "Business Name"
-                                                        },
-                                                        "total_filters": {
-                                                            "type": "integer",
-                                                            "example": 2
-                                                        },
-                                                        "period": {
-                                                            "type": "string",
-                                                            "example": "30d"
-                                                        }
-                                                    },
                                                     "type": "object"
                                                 },
                                                 "performance_overview": {
-                                                    "properties": {
-                                                        "total_submissions": {
-                                                            "type": "integer",
-                                                            "example": 150
-                                                        },
-                                                        "average_score": {
-                                                            "type": "number",
-                                                            "example": 4.2
-                                                        },
-                                                        "score_out_of": {
-                                                            "type": "integer",
-                                                            "example": 5
-                                                        },
-                                                        "sentiment_distribution": {
-                                                            "properties": {
-                                                                "positive": {
-                                                                    "type": "integer",
-                                                                    "example": 70
-                                                                },
-                                                                "neutral": {
-                                                                    "type": "integer",
-                                                                    "example": 20
-                                                                },
-                                                                "negative": {
-                                                                    "type": "integer",
-                                                                    "example": 10
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        "submissions_today": {
-                                                            "type": "integer",
-                                                            "example": 5
-                                                        },
-                                                        "submissions_this_week": {
-                                                            "type": "integer",
-                                                            "example": 25
-                                                        },
-                                                        "submissions_this_month": {
-                                                            "type": "integer",
-                                                            "example": 85
-                                                        },
-                                                        "guest_reviews_count": {
-                                                            "type": "integer",
-                                                            "example": 45
-                                                        },
-                                                        "user_reviews_count": {
-                                                            "type": "integer",
-                                                            "example": 105
-                                                        },
-                                                        "overall_reviews_count": {
-                                                            "type": "integer",
-                                                            "example": 75
-                                                        },
-                                                        "survey_reviews_count": {
-                                                            "type": "integer",
-                                                            "example": 75
-                                                        }
-                                                    },
                                                     "type": "object"
                                                 },
                                                 "submissions_over_time": {
-                                                    "properties": {
-                                                        "period": {
-                                                            "type": "string",
-                                                            "example": "30d"
-                                                        },
-                                                        "data": {
-                                                            "type": "object",
-                                                            "example": {
-                                                                "2023-11-01": {
-                                                                    "submissions_count": 5,
-                                                                    "average_rating": 4.2,
-                                                                    "sentiment_score": 75.5
-                                                                }
-                                                            }
-                                                        },
-                                                        "total_submissions": {
-                                                            "type": "integer",
-                                                            "example": 150
-                                                        },
-                                                        "peak_submissions": {
-                                                            "type": "integer",
-                                                            "example": 10
-                                                        },
-                                                        "date_range": {
-                                                            "properties": {
-                                                                "start": {
-                                                                    "type": "string",
-                                                                    "format": "date",
-                                                                    "example": "2023-10-31"
-                                                                },
-                                                                "end": {
-                                                                    "type": "string",
-                                                                    "format": "date",
-                                                                    "example": "2023-11-30"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        }
-                                                    },
                                                     "type": "object"
                                                 },
                                                 "recent_submissions": {
@@ -10471,6 +10808,63 @@
                                                     "items": {
                                                         "type": "object"
                                                     }
+                                                },
+                                                "top_three_staff": {
+                                                    "description": "Top 3 staff by aggregated review metrics",
+                                                    "properties": {
+                                                        "total_staff_reviewed": {
+                                                            "type": "integer",
+                                                            "example": 5
+                                                        },
+                                                        "staff": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "properties": {
+                                                                    "staff_id": {
+                                                                        "type": "integer",
+                                                                        "example": 1
+                                                                    },
+                                                                    "staff_name": {
+                                                                        "type": "string",
+                                                                        "example": "John Doe"
+                                                                    },
+                                                                    "position": {
+                                                                        "type": "string",
+                                                                        "example": "Manager"
+                                                                    },
+                                                                    "avg_rating": {
+                                                                        "type": "number",
+                                                                        "format": "float",
+                                                                        "example": 4.5
+                                                                    },
+                                                                    "review_count": {
+                                                                        "type": "integer",
+                                                                        "example": 25
+                                                                    },
+                                                                    "sentiment_score": {
+                                                                        "type": "integer",
+                                                                        "example": 80
+                                                                    },
+                                                                    "sentiment_label": {
+                                                                        "type": "string",
+                                                                        "example": "Excellent"
+                                                                    },
+                                                                    "top_topics": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "recent_activity": {
+                                                                        "type": "string",
+                                                                        "example": "2 days ago"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "object"
                                                 }
                                             },
                                             "type": "object"
@@ -12064,7 +12458,7 @@
         "/review-new/get/questions-all/customer": {
             "get": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to get all question without pagination",
                 "description": "This method is to get all question without pagination",
@@ -12475,7 +12869,7 @@
         "/review-new/create/tags": {
             "post": {
                 "tags": [
-                    "review.setting.tag"
+                    "z.unused"
                 ],
                 "summary": "This method is to store tag",
                 "description": "This method is to store tag",
@@ -12550,7 +12944,7 @@
         "/v1.0/review-new/create/tags/multiple/{businessId}": {
             "post": {
                 "tags": [
-                    "review.setting.tag"
+                    "z.unused"
                 ],
                 "summary": "Store multiple tags for a business",
                 "description": "Create multiple tags at once for a specific business. Checks for duplicate tags and validates business ownership.",
@@ -12752,11 +13146,11 @@
         "/review-new/update/tags": {
             "put": {
                 "tags": [
-                    "review.setting.tag"
+                    "z.unused"
                 ],
                 "summary": "This method is to update tag",
                 "description": "This method is to update tag",
-                "operationId": "updateTag",
+                "operationId": "updatedTag",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -12890,11 +13284,11 @@
         "/review-new/get/tags/{id}": {
             "get": {
                 "tags": [
-                    "review.setting.tag"
+                    "z.unused"
                 ],
                 "summary": "This method is to get tag  by id",
                 "description": "This method is to get tag  by id",
-                "operationId": "getTagById",
+                "operationId": "TagById",
                 "parameters": [
                     {
                         "name": "id",
@@ -12944,10 +13338,10 @@
                 ]
             }
         },
-        "/review-new/get/tags/{id}/{reataurantId}": {
+        "/review-new/get/tags/{id}/{restaurantId}": {
             "get": {
                 "tags": [
-                    "review.setting.tag"
+                    "z.unused"
                 ],
                 "summary": "This method is to get tag  by id",
                 "description": "This method is to get tag  by id",
@@ -12960,9 +13354,9 @@
                         "required": false
                     },
                     {
-                        "name": "reataurantId",
+                        "name": "restaurantId",
                         "in": "path",
-                        "description": "reataurantId",
+                        "description": "restaurantId",
                         "required": false
                     }
                 ],
@@ -12984,7 +13378,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -13010,7 +13404,7 @@
         "/review-new/delete/tags/{id}": {
             "delete": {
                 "tags": [
-                    "review.setting.tag"
+                    "z.unused"
                 ],
                 "summary": "This method is to delete tag  by id",
                 "description": "This method is to delete tag  by id",
@@ -13866,6 +14260,13 @@
                         "description": "Items per page",
                         "required": false,
                         "example": 10
+                    },
+                    {
+                        "name": "is_private",
+                        "in": "query",
+                        "description": "Filter by privacy status (0 for public, 1 for private)",
+                        "required": false,
+                        "example": ""
                     },
                     {
                         "name": "sort_by",
@@ -14787,28 +15188,53 @@
                     "staff_management"
                 ],
                 "summary": "List staff",
-                "description": "Returns staff users for the authenticated user's business. Supports simple name search and pagination.",
+                "description": "Returns staff users for the authenticated user's business. Supports name search, pagination, and sorting.",
                 "operationId": "getAllStaffs",
                 "parameters": [
                     {
                         "name": "search_key",
                         "in": "query",
-                        "description": "Search by first_Name or last_name (LIKE %search_key%).",
+                        "description": "Search by first_Name or last_Name (LIKE %search_key%).",
                         "required": false,
                         "schema": {
-                            "type": "string"
-                        },
-                        "example": ""
+                            "type": "string",
+                            "example": "john"
+                        }
+                    },
+                    {
+                        "name": "order_by",
+                        "in": "query",
+                        "description": "Sort column (e.g. id, first_Name, last_Name, email, joining_date, created_at).",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "joining_date"
+                        }
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort direction",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ],
+                            "example": "desc"
+                        }
                     },
                     {
                         "name": "per_page",
                         "in": "query",
-                        "description": "Number of staff per page (optional, if not provided returns all staff)",
+                        "description": "Number of staff per page (optional).",
                         "required": false,
                         "schema": {
-                            "type": "integer"
-                        },
-                        "example": ""
+                            "type": "integer",
+                            "minimum": 1,
+                            "example": 15
+                        }
                     },
                     {
                         "name": "page",
@@ -14816,9 +15242,10 @@
                         "description": "Page number",
                         "required": false,
                         "schema": {
-                            "type": "integer"
-                        },
-                        "example": ""
+                            "type": "integer",
+                            "minimum": 1,
+                            "example": 1
+                        }
                     }
                 ],
                 "responses": {
@@ -15037,9 +15464,9 @@
                                     "role": {
                                         "type": "string",
                                         "enum": [
-                                            "staff"
+                                            "business_staff"
                                         ],
-                                        "example": "staff"
+                                        "example": "business_staff"
                                     },
                                     "skills": {
                                         "type": "string",
@@ -15096,7 +15523,7 @@
                                                 },
                                                 "role": {
                                                     "type": "string",
-                                                    "example": "staff"
+                                                    "example": "business_staff"
                                                 },
                                                 "skills": {
                                                     "type": "string",
@@ -15263,7 +15690,7 @@
                                                 },
                                                 "role": {
                                                     "type": "string",
-                                                    "example": "staff"
+                                                    "example": "business_staff"
                                                 },
                                                 "skills": {
                                                     "type": "string",
@@ -15490,9 +15917,9 @@
                                     "role": {
                                         "type": "string",
                                         "enum": [
-                                            "staff"
+                                            "business_staff"
                                         ],
-                                        "example": "staff"
+                                        "example": "business_staff"
                                     },
                                     "skills": {
                                         "type": "string",
@@ -15557,7 +15984,7 @@
                                                 },
                                                 "role": {
                                                     "type": "string",
-                                                    "example": "staff"
+                                                    "example": "business_staff"
                                                 },
                                                 "skills": {
                                                     "type": "string",
@@ -16026,8 +16453,7 @@
                                     "Name",
                                     "Layout",
                                     "Address",
-                                    "PostCode",
-                                    "enable_question"
+                                    "PostCode"
                                 ],
                                 "properties": {
                                     "STRIPE_KEY": {
@@ -16206,10 +16632,10 @@
                 ]
             }
         },
-        "/v1.0/superadmin/dashboard-report/total-business": {
+        "/v1.0/dashboard-report/total-business": {
             "get": {
                 "tags": [
-                    "super_admin_report"
+                    "dashboard_management.super_admin"
                 ],
                 "summary": "This method is to get TotalBusiness report",
                 "description": "This method is to get TotalBusiness report",
@@ -16255,10 +16681,10 @@
                 ]
             }
         },
-        "/v1.0/superadmin/dashboard-report/total-business-enabled": {
+        "/v1.0/dashboard-report/total-business-enabled": {
             "get": {
                 "tags": [
-                    "super_admin_report"
+                    "dashboard_management.super_admin"
                 ],
                 "summary": "This method is to get TotalEnabled business report",
                 "description": "This method is to get TotalEnabled  business report",
@@ -16304,10 +16730,10 @@
                 ]
             }
         },
-        "/v1.o/superadmin/dashboard-report/total-business-disabled": {
+        "/v1.0/dashboard-report/total-business-disabled": {
             "get": {
                 "tags": [
-                    "super_admin_report"
+                    "dashboard_management.super_admin"
                 ],
                 "summary": "This method is to get Total Disabled business report",
                 "description": "This method is to get Total Disabled business report",
@@ -16353,10 +16779,10 @@
                 ]
             }
         },
-        "/v1.0/superadmin/dashboard-report/total-reviews": {
+        "/v1.0/dashboard-report/total-reviews": {
             "get": {
                 "tags": [
-                    "super_admin_report"
+                    "dashboard_management.super_admin"
                 ],
                 "summary": "This method is to get Total Reviews report",
                 "description": "This method is to Total Reviews  report",
@@ -16402,10 +16828,10 @@
                 ]
             }
         },
-        "/v1.0/superadmin/dashboard-report/today-reviews": {
+        "/v1.0/dashboard-report/today-reviews": {
             "get": {
                 "tags": [
-                    "super_admin_report"
+                    "dashboard_management.super_admin"
                 ],
                 "summary": "This method is to get Today Reviews report",
                 "description": "This method is to Today Reviews  report",
@@ -16451,10 +16877,10 @@
                 ]
             }
         },
-        "/v1.0/superadmin/dashboard-report/review-report": {
+        "/v1.0/dashboard-report/review-report": {
             "get": {
                 "tags": [
-                    "super_admin_report"
+                    "dashboard_management.super_admin"
                 ],
                 "summary": "This method is to get  Reviews report",
                 "description": "This method is to get Reviews  report",
@@ -16804,37 +17230,108 @@
                 "tags": [
                     "survey_management"
                 ],
-                "summary": "This method is to get expense types ",
-                "description": "This method is to get expense types",
+                "summary": "Get surveys (filters + pagination + sorting)",
+                "description": "Returns surveys for a business. Supports search, date range, active status, pagination, and sorting.",
                 "operationId": "getAllSurveys",
                 "parameters": [
                     {
                         "name": "business_id",
                         "in": "path",
-                        "description": "business_id",
+                        "description": "Business ID",
                         "required": true,
-                        "example": "6"
-                    },
-                    {
-                        "name": "start_date",
-                        "in": "query",
-                        "description": "start_date",
-                        "required": true,
-                        "example": "2019-06-29"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "end_date",
-                        "required": true,
-                        "example": "2019-06-29"
+                        "schema": {
+                            "type": "integer",
+                            "example": 6
+                        }
                     },
                     {
                         "name": "search_key",
                         "in": "query",
-                        "description": "search_key",
-                        "required": true,
-                        "example": "search_key"
+                        "description": "Search by survey name (LIKE %search_key%)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "customer"
+                        }
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Filter by created_at start date (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2019-06-29"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "Filter by created_at end date (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2019-07-29"
+                        }
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "example": true
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 200,
+                            "minimum": 1,
+                            "example": 10
+                        }
+                    },
+                    {
+                        "name": "order_by",
+                        "in": "query",
+                        "description": "Sort column (example: id, name, created_at)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "created_at"
+                        }
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort direction",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ],
+                            "example": "desc"
+                        }
                     }
                 ],
                 "responses": {
@@ -16842,7 +17339,76 @@
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "surveys retrieved successfully"
+                                        },
+                                        "meta": {
+                                            "description": "Pagination metadata",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 57
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 6
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "data": {
+                                            "description": "List of surveys",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 6
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Customer Feedback"
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-12-09T10:20:30Z"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-12-09T10:20:30Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -16850,15 +17416,19 @@
                         "description": "Unauthenticated",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -16866,7 +17436,59 @@
                         "description": "Forbidden",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -16874,15 +17496,19 @@
                         "description": "Bad Request",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bad Request"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -17077,7 +17703,816 @@
                 ]
             }
         },
-        "/superadmin/customer-list/{perPage}": {
+        "/v1.0/surveys/{id}/toggle-active": {
+            "patch": {
+                "tags": [
+                    "survey_management"
+                ],
+                "summary": "Toggle survey active status",
+                "description": "Toggle the active status of a specific survey.",
+                "operationId": "toggleSurveyActive",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Survey ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Survey status toggled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Survey activated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 6
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Customer Feedback"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-12-09T10:20:30Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-12-09T10:20:30Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Survey not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bad Request"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/tags": {
+            "get": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Get all tags",
+                "description": "Returns tags based on user role and optional filters. Superadmin gets only default tags (business_id=null, is_default=1). Non-superadmin gets business tags (business_id=business_id, is_default=0) plus default tags (business_id=null, is_default=1).",
+                "operationId": "getAllTags",
+                "parameters": [
+                    {
+                        "name": "business_id",
+                        "in": "query",
+                        "description": "Business ID. Required for non-superadmin users. Ignored for superadmin (superadmin always receives default tags).",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1,
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status (0/1 or true/false).",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "0",
+                                "1",
+                                "true",
+                                "false"
+                            ],
+                            "example": "1"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiSuccessTagList"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error (e.g., business_id missing for non-superadmin)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business not found (when business_id provided but invalid)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Create a tag",
+                "description": "Creates a new tag. business_id can be null. If user is superadmin and business_id is empty, server may set is_default=true.",
+                "operationId": "createTag",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "tag"
+                                ],
+                                "properties": {
+                                    "tag": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "How was this?"
+                                    },
+                                    "business_id": {
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tag created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiSuccessTag"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content / Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/tags/{id}": {
+            "get": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Get a tag by id",
+                "operationId": "getTagById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Tag id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiSuccessTag"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Update a tag",
+                "operationId": "updateTag",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Tag id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "tag": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Updated tag"
+                                    },
+                                    "is_active": {
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiSuccessTag"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/tags/{ids}": {
+            "delete": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Delete multiple tags",
+                "description": "Delete multiple tags by comma-separated ids. Example: /v1.0/tags/1,2,3 . If any id does not exist, nothing is deleted and 404 is returned with missing_ids.",
+                "operationId": "deleteTags",
+                "parameters": [
+                    {
+                        "name": "ids",
+                        "in": "path",
+                        "description": "Comma-separated tag ids (e.g. 1,2,3)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1,2,3"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Tags deleted successfully"
+                                        },
+                                        "data": {
+                                            "example": null,
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Some ids not found (no deletion performed)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Some tag ids were not found."
+                                        },
+                                        "missing_ids": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer",
+                                                "example": 99
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid ids format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid ids format. Use comma-separated integers like: 1,2,3"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/tags/multiple/{businessId}": {
+            "post": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Create multiple tags for a business",
+                "description": "Creates multiple tags at once. For superadmin: creates default tags (business_id=null, is_default=1). For non-superadmin: creates business tags (business_id={businessId}, is_default=0). If any tag already exists (business tag or default tag), the API returns 409 with duplicate_indexes and does not create anything.",
+                "operationId": "createMultipleTags",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "tags"
+                                ],
+                                "properties": {
+                                    "tags": {
+                                        "description": "Array of tag strings (duplicates will be removed before checking/creating).",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "maxLength": 255,
+                                            "example": "Service"
+                                        },
+                                        "minItems": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Tags created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Tags created successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Tag"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Duplicate tags found (no records created)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Duplicate tags found"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "duplicate_indexes": {
+                                                    "description": "Indexes of duplicates based on the unique tag list (after duplicates removed).",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer",
+                                                        "example": 0
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "tags": [
+                                                    "The tags field is required."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (not business owner)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Not Found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/customer-list": {
             "get": {
                 "tags": [
                     "super_admin_report.customer"
@@ -17087,9 +18522,16 @@
                 "operationId": "getCustomerReportSuperadmin",
                 "parameters": [
                     {
-                        "name": "perPage",
-                        "in": "path",
-                        "description": "perPage",
+                        "name": "page",
+                        "in": "query",
+                        "description": "page",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "per_page",
                         "required": true,
                         "example": "1"
                     },
@@ -17119,7 +18561,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -17142,7 +18584,7 @@
                 ]
             }
         },
-        "/superadmin/owner-list/{perPage}": {
+        "/v1.0/owner-list": {
             "get": {
                 "tags": [
                     "super_admin_report.customer"
@@ -17152,9 +18594,16 @@
                 "operationId": "getOwnerReport",
                 "parameters": [
                     {
-                        "name": "perPage",
-                        "in": "path",
-                        "description": "perPage",
+                        "name": "page",
+                        "in": "query",
+                        "description": "page",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "per_page",
                         "required": true,
                         "example": "1"
                     },
@@ -17184,7 +18633,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -17207,7 +18656,7 @@
                 ]
             }
         },
-        "/superadmin/user-delete/{id}": {
+        "/v1.0/users/{id}": {
             "delete": {
                 "tags": [
                     "super_admin_report.customer"
@@ -17242,7 +18691,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -17268,6 +18717,98 @@
     },
     "components": {
         "schemas": {
+            "Tag": {
+                "required": [
+                    "id",
+                    "tag"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "tag": {
+                        "type": "string",
+                        "example": "How was this?"
+                    },
+                    "business_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "is_default": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-12-06T10:12:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-12-06T10:12:00Z"
+                    }
+                },
+                "type": "object"
+            },
+            "ApiSuccessTag": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "OK"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/Tag"
+                    }
+                },
+                "type": "object"
+            },
+            "ApiSuccessTagList": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "OK"
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Tag"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ApiError": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Validation error"
+                    },
+                    "errors": {
+                        "type": "object",
+                        "example": {
+                            "tag": [
+                                "The tag field is required."
+                            ]
+                        }
+                    }
+                },
+                "type": "object"
+            },
             "Question": {
                 "title": "Question",
                 "description": "Review question model",
@@ -17356,32 +18897,6 @@
                     }
                 },
                 "type": "object"
-            }
-        },
-        "responses": {
-            "401": {
-                "description": "Unauthenticated",
-                "content": {
-                    "application/json": {
-                        "schema": {}
-                    }
-                }
-            },
-            "422": {
-                "description": "Unprocessable Content",
-                "content": {
-                    "application/json": {
-                        "schema": {}
-                    }
-                }
-            },
-            "403": {
-                "description": "Forbidden",
-                "content": {
-                    "application/json": {
-                        "schema": {}
-                    }
-                }
             }
         },
         "securitySchemes": {
@@ -17512,12 +19027,16 @@
             "description": "staff_management"
         },
         {
-            "name": "super_admin_report",
-            "description": "super_admin_report"
+            "name": "dashboard_management.super_admin",
+            "description": "dashboard_management.super_admin"
         },
         {
             "name": "survey_management",
             "description": "survey_management"
+        },
+        {
+            "name": "Tags",
+            "description": "Tags"
         },
         {
             "name": "super_admin_report.customer",
