@@ -19,8 +19,1186 @@ use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
+  /**
+     * @OA\Get(
+     *      path="/v1.0/reports/branch-comparison",
+     *      operationId="branchComparison",
+     *      tags={"report"},
+     *      summary="Compare multiple branches performance",
+     *      description="Compare up to 5 branches with real metrics from database",
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      @OA\Parameter(
+     *          name="branch_ids",
+     *          in="query",
+     *          required=true,
+     *          description="Comma-separated branch IDs (max 5)",
+     *          example="1,2,3"
+     *      ),
+     *      @OA\Parameter(
+     *          name="start_date",
+     *          in="query",
+     *          required=false,
+     *          description="Start date in Y-m-d format",
+     *          example="2024-01-01"
+     *      ),
+     *      @OA\Parameter(
+     *          name="end_date",
+     *          in="query",
+     *          required=false,
+     *          description="End date in Y-m-d format",
+     *          example="2024-03-31"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Branch comparison retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Validation error"
+     *      )
+     * )
+     */
+    public function branchComparison(Request $request)
+    {
+        $request->validate([
+            'branch_ids' => 'required|string',
+            'start_date' => 'sometimes|date_format:Y-m-d',
+            'end_date' => 'sometimes|date_format:Y-m-d',
+        ]);
+
+        // Parse branch IDs
+        $branchIds = explode(',', $request->branch_ids);
+        $branchIds = array_map('intval', $branchIds);
+        $branchIds = array_slice($branchIds, 0, 5); // Limit to max 5 branches
+
+        if (count($branchIds) === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'At least one branch ID is required'
+            ], 422);
+        }
+
+        // Get date range (default: last 90 days)
+        $startDate = $request->start_date 
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::now()->subDays(90)->startOfDay();
+        
+        $endDate = $request->end_date 
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        // Get branches with business info
+        $branches = Branch::with(['business', 'manager'])
+            ->whereIn('id', $branchIds)
+            ->get();
+
+        if ($branches->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No branches found'
+            ], 404);
+        }
+
+        // Collect all branch data
+        $comparisonData = [];
+        $allBranchMetrics = [];
+
+        foreach ($branches as $branch) {
+            $branchData = $this->getBranchComparisonData($branch, $startDate, $endDate);
+            $comparisonData[] = $branchData;
+            $allBranchMetrics[$branch->id] = $branchData['metrics'];
+        }
+
+        // Generate AI insights based on comparison
+        $aiInsights = $this->generateBranchComparisonInsights($comparisonData, $allBranchMetrics);
+
+        // Generate comparison highlights
+        $comparisonHighlights = $this->generateComparisonHighlights($comparisonData);
+
+        // Get sentiment trend over time (for chart)
+        $sentimentTrend = $this->getSentimentTrendOverTime($branches, $startDate, $endDate);
+
+        // Get staff performance complaints
+        $staffComplaints = $this->getStaffComplaintsByBranch($branches, $startDate, $endDate);
+
+        $data = [
+            'selected_branches' => $branches->pluck('name'),
+            'date_range' => [
+                'start' => $startDate->format('Y-m-d'),
+                'end' => $endDate->format('Y-m-d'),
+                'period_days' => $startDate->diffInDays($endDate)
+            ],
+            'branches' => $comparisonData,
+            'ai_insights' => $aiInsights,
+            'comparison_highlights' => $comparisonHighlights,
+            'sentiment_trend' => $sentimentTrend,
+            'staff_complaints' => $staffComplaints
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Branch comparison retrieved successfully',
+            'data' => $data
+        ], 200);
+    }
+
+    /**
+     * Get branch comparison data with real metrics
+     */
+    private function getBranchComparisonData($branch, $startDate, $endDate)
+    {
+        $businessId = $branch->business_id;
+
+        // Get reviews for this branch within date range
+        $reviews = ReviewNew::where('business_id', $businessId)
+            ->where('branch_id', $branch->id)
+             ->globalFilters(1, $businessId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get();
+
+        $totalReviews = $reviews->count();
+
+        // Calculate ratings from ReviewValueNew
+        $reviewIds = $reviews->pluck('id')->toArray();
+        $ratings = $this->calculateBulkRatings($reviewIds);
+        $validRatings = $ratings->filter()->values();
+
+        // Average rating
+        $averageRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+
+        // AI Sentiment Score (percentage of positive reviews)
+        $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $aiSentimentScore = $totalReviews > 0 ? round(($positiveReviews / $totalReviews) * 100) : 0;
+
+        // CSAT Score (percentage of 4-5 star ratings)
+        $csatCount = 0;
+        foreach ($reviews as $review) {
+            $rating = $ratings->get($review->id, $review->rate);
+            if ($rating >= 4) {
+                $csatCount++;
+            }
+        }
+        $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
+
+        // Staff performance metrics
+        $staffPerformance = $this->getBranchStaffPerformance($branch->id, $businessId, $startDate, $endDate);
+
+        // Top topics
+        $topTopics = $this->extractBranchTopics($reviews);
+
+        return [
+            'branch' => [
+                'id' => $branch->id,
+                'name' => $branch->name,
+                'code' => $branch->code ?? 'BRN-' . str_pad($branch->id, 5, '0', STR_PAD_LEFT),
+                'location' => $branch->location,
+                'manager_name' => $branch->manager ? $branch->manager->name : 'Not assigned',
+                'business_name' => $branch->business ? $branch->business->name : 'Unknown'
+            ],
+            'metrics' => [
+                'total_reviews' => $totalReviews,
+                'average_rating' => $averageRating,
+                'ai_sentiment_score' => $aiSentimentScore,
+                'csat_score' => $csatScore,
+                'response_rate' => $this->calculateResponseRate($reviews)
+            ],
+            'staff_performance' => $staffPerformance,
+            'top_topics' => array_slice($topTopics, 0, 5)
+        ];
+    }
+
+    /**
+     * Get branch staff performance
+     */
+    private function getBranchStaffPerformance($branchId, $businessId, $startDate, $endDate)
+    {
+        $staffReviews = ReviewNew::where('business_id', $businessId)
+            ->where('branch_id', $branchId)
+             ->globalFilters(1, $businessId,1)
+            ->whereNotNull('staff_id')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get()
+            ->groupBy('staff_id');
+
+        $staffPerformance = [];
+
+        foreach ($staffReviews as $staffId => $reviews) {
+            $staff = User::find($staffId);
+            if (!$staff) continue;
+
+            $reviewIds = $reviews->pluck('id')->toArray();
+            $ratings = $this->calculateBulkRatings($reviewIds);
+            $validRatings = $ratings->filter()->values();
+            $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+
+            $staffPerformance[] = [
+                'staff_id' => $staffId,
+                'staff_name' => $staff->name,
+                'avg_rating' => $avgRating,
+                'reviews_count' => $reviews->count(),
+                'positive_percentage' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / $reviews->count()) * 100),
+                'last_review_date' => $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans()
+            ];
+        }
+
+        // Sort by average rating descending
+        usort($staffPerformance, function($a, $b) {
+            return $b['avg_rating'] <=> $a['avg_rating'];
+        });
+
+        return array_slice($staffPerformance, 0, 3); // Return top 3 staff
+    }
+
+    /**
+     * Extract topics from branch reviews
+     */
+    private function extractBranchTopics($reviews)
+    {
+        $topicCounts = [];
+        
+        foreach ($reviews as $review) {
+            // Use stored topics if available
+            if ($review->topics && is_array($review->topics)) {
+                foreach ($review->topics as $topic) {
+                    $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
+                }
+            }
+            
+            // Also extract from comment
+            if ($review->comment) {
+                $commonTopics = ['service', 'staff', 'wait', 'quality', 'price', 'clean', 'product', 'location'];
+                $comment = strtolower($review->comment);
+                
+                foreach ($commonTopics as $topic) {
+                    if (strpos($comment, $topic) !== false) {
+                        $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
+                    }
+                }
+            }
+        }
+        
+        arsort($topicCounts);
+        return $topicCounts;
+    }
+
+    /**
+     * Generate AI insights for branch comparison
+     */
+    private function generateBranchComparisonInsights($branchesData, $allMetrics)
+    {
+        if (count($branchesData) === 0) {
+            return [
+                'overview' => 'No branch data available for comparison.',
+                'key_findings' => []
+            ];
+        }
+
+        // Find best performing branch by rating
+        $bestBranch = null;
+        $bestRating = 0;
+        $mostReviews = 0;
+        $mostReviewsBranch = null;
+
+        foreach ($branchesData as $branchData) {
+            $rating = $branchData['metrics']['average_rating'];
+            $reviews = $branchData['metrics']['total_reviews'];
+
+            if ($rating > $bestRating) {
+                $bestRating = $rating;
+                $bestBranch = $branchData['branch']['name'];
+            }
+
+            if ($reviews > $mostReviews) {
+                $mostReviews = $reviews;
+                $mostReviewsBranch = $branchData['branch']['name'];
+            }
+        }
+
+        // Find worst performing branch by rating
+        $worstBranch = null;
+        $worstRating = 5;
+        foreach ($branchesData as $branchData) {
+            $rating = $branchData['metrics']['average_rating'];
+            if ($rating < $worstRating && $branchData['metrics']['total_reviews'] > 0) {
+                $worstRating = $rating;
+                $worstBranch = $branchData['branch']['name'];
+            }
+        }
+
+        // Generate overview
+        $overview = "The {$bestBranch} branch consistently outperforms others in Average Rating ({$bestRating}) ";
+        $overview .= "and CSAT ({$branchesData[array_search($bestBranch, array_column($branchesData, 'branch'))]['metrics']['csat_score']}%), ";
+        $overview .= "driven by positive feedback on staff performance. ";
+        
+        if ($mostReviewsBranch !== $bestBranch) {
+            $overview .= "The {$mostReviewsBranch} branch has the highest volume of reviews, ";
+            $overview .= "indicating high traffic, but its sentiment score is slightly lower. ";
+        }
+
+        if ($worstBranch) {
+            $overview .= "{$worstBranch} lags in all key metrics, suggesting a need for operational review, ";
+            $overview .= "particularly in areas affecting customer sentiment.";
+        }
+
+        $keyFindings = [
+            "Highest rating: {$bestBranch} ({$bestRating})",
+            "Most reviews: {$mostReviewsBranch} ({$mostReviews})"
+        ];
+
+        if ($worstBranch) {
+            $keyFindings[] = "Needs improvement: {$worstBranch}";
+        }
+
+        return [
+            'overview' => $overview,
+            'key_findings' => $keyFindings
+        ];
+    }
+
+    /**
+     * Generate comparison highlights table
+     */
+    private function generateComparisonHighlights($branchesData)
+    {
+        if (count($branchesData) < 2) {
+            return [];
+        }
+
+        $highlights = [];
+
+        // CSAT comparison
+        $bestCsat = 0;
+        $bestCsatBranch = '';
+        $worstCsat = 100;
+        $worstCsatBranch = '';
+
+        foreach ($branchesData as $branchData) {
+            $csat = $branchData['metrics']['csat_score'];
+            $branchName = $branchData['branch']['name'];
+
+            if ($csat > $bestCsat) {
+                $bestCsat = $csat;
+                $bestCsatBranch = $branchName;
+            }
+
+            if ($csat < $worstCsat && $branchData['metrics']['total_reviews'] > 0) {
+                $worstCsat = $csat;
+                $worstCsatBranch = $branchName;
+            }
+        }
+
+        $highlights[] = [
+            'category' => 'CSAT',
+            'best_branch' => $bestCsatBranch,
+            'best_value' => "{$bestCsat}%",
+            'worst_branch' => $worstCsatBranch,
+            'worst_value' => "{$worstCsat}%"
+        ];
+
+        // Staff Performance complaints
+        $mostComplaints = 0;
+        $mostComplaintsBranch = '';
+        $leastComplaints = PHP_INT_MAX;
+        $leastComplaintsBranch = '';
+
+        foreach ($branchesData as $branchData) {
+            $totalReviews = $branchData['metrics']['total_reviews'];
+            if ($totalReviews === 0) continue;
+
+            // Calculate complaints percentage (negative sentiment reviews)
+            $negativeReviews = 0;
+            foreach ($branchData['staff_performance'] as $staff) {
+                $negativeReviews += (100 - $staff['positive_percentage']) * $staff['reviews_count'] / 100;
+            }
+            $complaintPercentage = $totalReviews > 0 ? round(($negativeReviews / $totalReviews) * 100) : 0;
+            $branchName = $branchData['branch']['name'];
+
+            if ($complaintPercentage > $mostComplaints) {
+                $mostComplaints = $complaintPercentage;
+                $mostComplaintsBranch = $branchName;
+            }
+
+            if ($complaintPercentage < $leastComplaints) {
+                $leastComplaints = $complaintPercentage;
+                $leastComplaintsBranch = $branchName;
+            }
+        }
+
+        $highlights[] = [
+            'category' => 'Staff Performance',
+            'most_complaints' => $mostComplaintsBranch,
+            'least_complaints' => $leastComplaintsBranch
+        ];
+
+        return $highlights;
+    }
+
+    /**
+     * Get sentiment trend over time for chart
+     */
+    private function getSentimentTrendOverTime($branches, $startDate, $endDate)
+    {
+        // Group by month for the trend
+        $months = [];
+        $current = $startDate->copy();
+        
+        while ($current <= $endDate) {
+            $months[] = $current->format('M Y');
+            $current->addMonth();
+        }
+
+        $trendData = [];
+
+        foreach ($branches as $branch) {
+            $branchTrend = [];
+            
+            $current = $startDate->copy();
+            while ($current <= $endDate) {
+                $monthStart = $current->copy()->startOfMonth();
+                $monthEnd = $current->copy()->endOfMonth();
+                
+                $reviews = ReviewNew::where('business_id', $branch->business_id)
+                    ->where('branch_id', $branch->id)
+                     ->globalFilters(1, $branch->business_id)
+                    ->whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->get();
+                
+                $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
+                $totalReviews = $reviews->count();
+                $sentimentScore = $totalReviews > 0 ? round(($positiveReviews / $totalReviews) * 100) : 0;
+                
+                $branchTrend[] = $sentimentScore;
+                $current->addMonth();
+            }
+            
+            $trendData[] = [
+                'branch_name' => $branch->name,
+                'data' => $branchTrend
+            ];
+        }
+
+        return [
+            'months' => $months,
+            'trends' => $trendData
+        ];
+    }
+
+    /**
+     * Get staff complaints by branch
+     */
+    private function getStaffComplaintsByBranch($branches, $startDate, $endDate)
+    {
+        $complaintsByBranch = [];
+
+        foreach ($branches as $branch) {
+            $reviews = ReviewNew::where('business_id', $branch->business_id)
+                ->where('branch_id', $branch->id)
+                ->globalFilters(1, $branch->business_id,1)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->get();
+
+            $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
+            $totalReviews = $reviews->count();
+            
+            $complaintsByBranch[] = [
+                'branch_name' => $branch->name,
+                'complaints_count' => $negativeReviews,
+                'total_reviews' => $totalReviews,
+                'complaint_percentage' => $totalReviews > 0 ? round(($negativeReviews / $totalReviews) * 100) : 0
+            ];
+        }
+
+        // Sort by complaint percentage descending
+        usort($complaintsByBranch, function($a, $b) {
+            return $b['complaint_percentage'] <=> $a['complaint_percentage'];
+        });
+
+        return $complaintsByBranch;
+    }
+
+   
+    /**
+     * @OA\Get(
+     *      path="/v1.0/branch-dashboard/{branchId}",
+     *      operationId="getBranchDashboard",
+     *      tags={"report"},
+     *      summary="Get branch dashboard data with real metrics",
+     *      description="Returns branch dashboard with real data from database",
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      @OA\Parameter(
+     *          name="branchId",
+     *          in="path",
+     *          required=true,
+     *          description="Branch ID",
+     *          example="1"
+     *      ),
+     *      @OA\Parameter(
+     *          name="start_date",
+     *          in="query",
+     *          required=false,
+     *          description="Start date in Y-m-d format",
+     *          example="2024-01-01"
+     *      ),
+     *      @OA\Parameter(
+     *          name="end_date",
+     *          in="query",
+     *          required=false,
+     *          description="End date in Y-m-d format",
+     *          example="2024-12-31"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Branch dashboard retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="Branch not found"
+     *      )
+     * )
+     */
+    public function getBranchDashboard($branchId, Request $request)
+    {
+        $request->validate([
+            'start_date' => 'sometimes|date_format:Y-m-d',
+            'end_date' => 'sometimes|date_format:Y-m-d',
+        ]);
+
+        // Get date range (default: last 30 days)
+        $startDate = $request->start_date 
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::now()->subDays(30)->startOfDay();
+        
+        $endDate = $request->end_date 
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        // Get branch with business relationship
+        $branch = Branch::with(['business'])
+            ->find($branchId);
+
+        if (!$branch) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Branch not found'
+            ], 404);
+        }
+
+        // Get business ID for reviews query
+        $businessId = $branch->business_id;
+
+        // Get reviews for this branch within date range
+        $reviewsQuery = ReviewNew::where('business_id', $businessId)
+            ->where('branch_id', $branchId)
+             ->globalFilters(1, $businessId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->with(['staff', 'user', 'guest_user', 'survey']);
+
+        $reviews = $reviewsQuery->get();
+        $reviewIds = $reviews->pluck('id')->toArray();
+
+        // Calculate ratings from ReviewValueNew
+        $ratings = $this->calculateBulkRatings($reviewIds);
+        $validRatings = $ratings->filter()->values();
+
+        // Calculate summary metrics
+        $summary = $this->calculateBranchSummary($reviews, $validRatings);
+
+        // Get AI insights
+        $aiInsights = $this->generateAiInsights($reviews, $validRatings);
+
+        // Get recommendations
+        $recommendations = $this->generateRecommendations($reviews, $validRatings, $branchId);
+
+        // Get recent reviews (last 5)
+        $recentReviews = $this->getRecentReviews($reviews, $ratings);
+
+        // Get staff performance (top 5)
+        $staffPerformance = $this->getStaffPerformance($branchId, $businessId, $startDate, $endDate);
+
+        $data = [
+            'branch' => [
+                'id' => $branch->id,
+                'code' => $branch->code ?? 'BRN-' . str_pad($branch->id, 5, '0', STR_PAD_LEFT),
+                'name' => $branch->name,
+                'status' => $branch->is_active ? 'Active' : 'Inactive',
+                'location' => $branch->location,
+                'manager_id' => $branch->manager_id,
+                'manager_name' => $branch->manager ? $branch->manager->name : 'Not assigned',
+                'business_id' => $businessId,
+                'business_name' => $branch->business ? $branch->business->name : 'Unknown'
+            ],
+            'summary' => $summary,
+            'ai_insights' => $aiInsights,
+            'recommendations' => $recommendations,
+            'recent_reviews' => $recentReviews,
+            'staff_performance' => $staffPerformance,
+            'date_range' => [
+                'start' => $startDate->format('Y-m-d'),
+                'end' => $endDate->format('Y-m-d'),
+                'period_days' => $startDate->diffInDays($endDate)
+            ]
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Branch dashboard retrieved successfully',
+            'data' => $data
+        ], 200);
+    }
+
+    /**
+     * Calculate branch summary metrics
+     */
+    private function calculateBranchSummary($reviews, $ratings)
+    {
+        $totalReviews = $reviews->count();
+        
+        // Average rating
+        $averageRating = $ratings->isNotEmpty() ? round($ratings->avg(), 1) : 0;
+        
+        // AI Sentiment
+        $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $sentiment = 'Neutral';
+        
+        if ($totalReviews > 0) {
+            $positivePercentage = ($positiveReviews / $totalReviews) * 100;
+            if ($positivePercentage >= 70) {
+                $sentiment = 'Positive';
+            } elseif ($positivePercentage <= 30) {
+                $sentiment = 'Negative';
+            }
+        }
+        
+        // CSAT Score (percentage of 4-5 star ratings)
+        $csatCount = 0;
+        foreach ($reviews as $review) {
+            $rating = $ratings->get($review->id, $review->rate);
+            if ($rating >= 4) {
+                $csatCount++;
+            }
+        }
+        $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
+        
+        // Top Topic (from review topics or extract from comments)
+        $topTopic = $this->extractTopTopic($reviews);
+        
+        // Flagged reviews
+        $flagged = $reviews->where('status', 'flagged')->count();
+
+        return [
+            'total_reviews' => $totalReviews,
+            'average_rating' => $averageRating,
+            'rating_out_of' => 5,
+            'ai_sentiment' => $sentiment,
+            'csat_score' => $csatScore,
+            'top_topic' => $topTopic['topic'] ?? 'General',
+            'flagged' => $flagged,
+            'response_rate' => $this->calculateResponseRate($reviews)
+        ];
+    }
+
+    /**
+     * Generate AI insights from reviews
+     */
+    private function generateAiInsights($reviews, $ratings)
+    {
+        if ($reviews->isEmpty()) {
+            return [
+                'summary' => 'No reviews available for analysis.',
+                'sentiment_breakdown' => [
+                    'positive' => 0,
+                    'neutral' => 0,
+                    'negative' => 0
+                ]
+            ];
+        }
+
+        $totalReviews = $reviews->count();
+        
+        // Sentiment breakdown
+        $positive = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $neutral = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
+        $negative = $reviews->where('sentiment_score', '<', 0.4)->count();
+        
+        $sentimentBreakdown = [
+            'positive' => round(($positive / $totalReviews) * 100),
+            'neutral' => round(($neutral / $totalReviews) * 100),
+            'negative' => round(($negative / $totalReviews) * 100)
+        ];
+        
+        // Generate summary
+        $summary = $this->generateAiSummary($reviews, $sentimentBreakdown, $ratings);
+        
+        return [
+            'summary' => $summary,
+            'sentiment_breakdown' => $sentimentBreakdown,
+            'key_trends' => $this->extractKeyTrends($reviews)
+        ];
+    }
+
+    /**
+     * Generate AI summary
+     */
+    private function generateAiSummary($reviews, $sentimentBreakdown, $ratings)
+    {
+        $totalReviews = $reviews->count();
+        $positivePercentage = $sentimentBreakdown['positive'];
+        
+        $summary = "Overall sentiment is ";
+        
+        if ($positivePercentage >= 70) {
+            $summary .= "highly positive";
+        } elseif ($positivePercentage >= 50) {
+            $summary .= "generally positive";
+        } elseif ($positivePercentage >= 30) {
+            $summary .= "mixed";
+        } else {
+            $summary .= "predominantly negative";
+        }
+        
+        $summary .= ", with {$positivePercentage}% of reviews expressing positive sentiment. ";
+        
+        // Calculate average rating
+        $avgRating = $ratings->isNotEmpty() ? round($ratings->avg(), 1) : 0;
+        $summary .= "The average rating is {$avgRating} out of 5. ";
+        
+        // Check for common issues
+        $commonIssues = $this->findCommonIssues($reviews);
+        if (!empty($commonIssues)) {
+            $summary .= "A recurring issue mentioned is " . $commonIssues[0]['topic'] . ". ";
+        }
+        
+        // Check for peak times if available
+        $peakTimes = $this->findPeakReviewTimes($reviews);
+        if ($peakTimes) {
+            $summary .= "Peak feedback times are around {$peakTimes}. ";
+        }
+        
+        return trim($summary);
+    }
+
+    /**
+     * Generate recommendations based on review analysis
+     */
+    private function generateRecommendations($reviews, $ratings, $branchId)
+    {
+        $recommendations = [];
+        $totalReviews = $reviews->count();
+        
+        if ($totalReviews === 0) {
+            return [
+                [
+                    'type' => 'Info',
+                    'title' => 'No Data Available',
+                    'description' => 'No reviews found for this period. Encourage customers to provide feedback.'
+                ]
+            ];
+        }
+        
+        // 1. Identify strengths (positive reviews with specific praise)
+        $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7);
+        
+        // Check for staff praise
+        $staffPraise = $positiveReviews->filter(function($review) {
+            $text = strtolower($review->comment ?? '');
+            return strpos($text, 'staff') !== false || 
+                   strpos($text, 'friendly') !== false || 
+                   strpos($text, 'helpful') !== false ||
+                   strpos($text, 'knowledgeable') !== false;
+        });
+        
+        if ($staffPraise->count() >= 3) {
+            // Get top mentioned staff
+            $staffMentions = $this->getTopMentionedStaff($positiveReviews);
+            
+            $recommendations[] = [
+                'type' => 'Strength',
+                'title' => 'Staff Friendliness & Service',
+                'description' => 'Customers consistently praise staff members for being welcoming and helpful.' . 
+                               ($staffMentions ? ' Top performers: ' . implode(', ', array_slice($staffMentions, 0, 2)) : ''),
+                'evidence_count' => $staffPraise->count(),
+                'priority' => 'low'
+            ];
+        }
+        
+        // 2. Identify weak areas (negative/neutral reviews with specific complaints)
+        $issues = $this->findCommonIssues($reviews);
+        
+        foreach (array_slice($issues, 0, 2) as $issue) {
+            if ($issue['count'] >= 3) {
+                $recommendations[] = [
+                    'type' => 'Weak Area',
+                    'title' => $issue['topic'],
+                    'description' => $issue['description'],
+                    'evidence_count' => $issue['count'],
+                    'priority' => $issue['count'] >= 5 ? 'high' : 'medium'
+                ];
+            }
+        }
+        
+        // 3. Generate action items based on weak areas
+        foreach ($recommendations as $rec) {
+            if ($rec['type'] === 'Weak Area') {
+                $action = $this->generateActionItem($rec['title'], $rec['evidence_count']);
+                if ($action) {
+                    $recommendations[] = $action;
+                }
+            }
+        }
+        
+        // Limit to 3 recommendations max
+        return array_slice($recommendations, 0, 3);
+    }
+
+    /**
+     * Get recent reviews for display
+     */
+    private function getRecentReviews($reviews, $ratings, $limit = 5)
+    {
+        return $reviews->sortByDesc('created_at')
+            ->take($limit)
+            ->map(function($review) use ($ratings) {
+                $rating = $ratings->get($review->id, $review->rate);
+                
+                return [
+                    'id' => $review->id,
+                    'rating' => $rating,
+                    'stars' => str_repeat('★', floor($rating)) . str_repeat('☆', 5 - floor($rating)),
+                    'review_text' => $review->comment ?? $review->raw_text ?? 'No comment',
+                    'staff_name' => $review->staff ? $review->staff->name : 'Not assigned',
+                    'staff_id' => $review->staff_id,
+                    'sentiment' => $this->getSentimentLabel($review->sentiment_score),
+                    'date' => $review->created_at->diffForHumans(),
+                    'exact_date' => $review->created_at->format('Y-m-d H:i:s'),
+                    'is_flagged' => $review->status === 'flagged',
+                    'has_actions' => true,
+                    'user_type' => $review->user_id ? 'Registered' : ($review->guest_id ? 'Guest' : 'Anonymous')
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Get staff performance data
+     */
+    private function getStaffPerformance($branchId, $businessId, $startDate, $endDate, $limit = 5)
+    {
+        // Get reviews with staff assigned
+        $staffReviews = ReviewNew::where('business_id', $businessId)
+            ->where('branch_id', $branchId)
+            ->globalFilters(1, $businessId,1)
+            ->whereNotNull('staff_id')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get()
+            ->groupBy('staff_id');
+        
+        $staffPerformance = [];
+        
+        foreach ($staffReviews as $staffId => $reviews) {
+            $staff = User::find($staffId);
+            if (!$staff) continue;
+            
+            $reviewIds = $reviews->pluck('id')->toArray();
+            $ratings = $this->calculateBulkRatings($reviewIds);
+            $validRatings = $ratings->filter()->values();
+            $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+            
+            // Skip staff with very few reviews
+            if ($reviews->count() < 3) continue;
+            
+            $staffPerformance[] = [
+                'staff_id' => $staffId,
+                'staff_name' => $staff->name,
+                'staff_code' => $staff->employee_code ?? 'EMP-' . $staffId,
+                'avg_rating' => $avgRating,
+                'rating_out_of' => 5,
+                'reviews_count' => $reviews->count(),
+                'ai_evaluation' => $this->getStaffEvaluation($avgRating, $reviews->count()),
+                'has_profile' => true,
+                'positive_percentage' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / $reviews->count()) * 100),
+                'last_review_date' => $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans()
+            ];
+        }
+        
+        // Sort by average rating descending
+        usort($staffPerformance, function($a, $b) {
+            return $b['avg_rating'] <=> $a['avg_rating'];
+        });
+        
+        return array_slice($staffPerformance, 0, $limit);
+    }
+
+    // ============================================
+    // HELPER METHODS
+    // ============================================
+
+    /**
+     * Extract top topic from reviews
+     */
+    private function extractTopTopic($reviews)
+    {
+        $topicCounts = [];
+        
+        foreach ($reviews as $review) {
+            // Use stored topics if available
+            if ($review->topics && is_array($review->topics)) {
+                foreach ($review->topics as $topic) {
+                    $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
+                }
+            }
+            
+            // Also extract from comment
+            if ($review->comment) {
+                $commonTopics = ['service', 'staff', 'wait', 'quality', 'price', 'clean', 'product', 'location'];
+                $comment = strtolower($review->comment);
+                
+                foreach ($commonTopics as $topic) {
+                    if (strpos($comment, $topic) !== false) {
+                        $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
+                    }
+                }
+            }
+        }
+        
+        if (empty($topicCounts)) {
+            return ['topic' => 'General', 'count' => 0];
+        }
+        
+        arsort($topicCounts);
+        $topTopic = array_key_first($topicCounts);
+        
+        return [
+            'topic' => ucfirst($topTopic),
+            'count' => $topicCounts[$topTopic],
+            'percentage' => $reviews->count() > 0 ? round(($topicCounts[$topTopic] / $reviews->count()) * 100, 1) : 0
+        ];
+    }
+
+    /**
+     * Calculate response rate
+     */
+    private function calculateResponseRate($reviews)
+    {
+        $total = $reviews->count();
+        if ($total === 0) return 0;
+        
+        $responded = $reviews->whereNotNull('responded_at')->count();
+        return round(($responded / $total) * 100, 1);
+    }
+
+    /**
+     * Extract key trends from reviews
+     */
+    private function extractKeyTrends($reviews)
+    {
+        $trends = [];
+        
+        if ($reviews->isEmpty()) {
+            return $trends;
+        }
+        
+        // Check for improving/declining sentiment over time
+        $sortedReviews = $reviews->sortBy('created_at');
+        $half = ceil($sortedReviews->count() / 2);
+        
+        $firstHalf = $sortedReviews->slice(0, $half);
+        $secondHalf = $sortedReviews->slice($half);
+        
+        $firstSentiment = $firstHalf->avg('sentiment_score');
+        $secondSentiment = $secondHalf->avg('sentiment_score');
+        
+        if ($secondSentiment > $firstSentiment + 0.1) {
+            $trends[] = 'Improving sentiment trend';
+        } elseif ($secondSentiment < $firstSentiment - 0.1) {
+            $trends[] = 'Declining sentiment trend';
+        }
+        
+        // Check for specific issue trends
+        $commonIssues = $this->findCommonIssues($reviews);
+        foreach ($commonIssues as $issue) {
+            if ($issue['count'] >= 5) {
+                $trends[] = "Frequent mentions of " . $issue['topic'];
+            }
+        }
+        
+        return array_slice($trends, 0, 3);
+    }
+
+    /**
+     * Find common issues in reviews
+     */
+    private function findCommonIssues($reviews)
+    {
+        $issues = [
+            'wait' => ['keywords' => ['wait', 'queue', 'slow', 'long'], 'count' => 0, 'description' => 'Long wait times mentioned'],
+            'service' => ['keywords' => ['rude', 'unhelpful', 'poor service'], 'count' => 0, 'description' => 'Service quality concerns'],
+            'clean' => ['keywords' => ['dirty', 'clean', 'messy'], 'count' => 0, 'description' => 'Cleanliness issues'],
+            'price' => ['keywords' => ['expensive', 'price', 'cost'], 'count' => 0, 'description' => 'Pricing concerns'],
+            'product' => ['keywords' => ['quality', 'broken', 'defective'], 'count' => 0, 'description' => 'Product quality issues']
+        ];
+        
+        foreach ($reviews as $review) {
+            if (empty($review->comment)) continue;
+            
+            $comment = strtolower($review->comment);
+            foreach ($issues as $key => &$issue) {
+                foreach ($issue['keywords'] as $keyword) {
+                    if (strpos($comment, $keyword) !== false) {
+                        $issue['count']++;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Filter and format
+        $result = [];
+        foreach ($issues as $key => $issue) {
+            if ($issue['count'] > 0) {
+                $result[] = [
+                    'topic' => ucfirst($key),
+                    'count' => $issue['count'],
+                    'description' => $issue['description']
+                ];
+            }
+        }
+        
+        // Sort by count descending
+        usort($result, function($a, $b) {
+            return $b['count'] <=> $a['count'];
+        });
+        
+        return $result;
+    }
+
+    /**
+     * Get top mentioned staff from positive reviews
+     */
+    private function getTopMentionedStaff($positiveReviews)
+    {
+        $staffMentions = [];
+        
+        foreach ($positiveReviews as $review) {
+            if ($review->staff_id) {
+                $staffMentions[$review->staff_id] = ($staffMentions[$review->staff_id] ?? 0) + 1;
+            }
+        }
+        
+        arsort($staffMentions);
+        
+        // Get staff names
+        $result = [];
+        foreach (array_slice($staffMentions, 0, 3) as $staffId => $count) {
+            $staff = User::find($staffId);
+            if ($staff) {
+                $result[] = $staff->name . " ({$count} reviews)";
+            }
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Generate action item based on issue
+     */
+    private function generateActionItem($issue, $evidenceCount)
+    {
+        $actions = [
+            'Wait' => [
+                'title' => 'Optimize Staffing',
+                'description' => 'Consider adding extra staff during peak hours to reduce wait times.',
+                'priority' => $evidenceCount >= 5 ? 'high' : 'medium'
+            ],
+            'Service' => [
+                'title' => 'Staff Training',
+                'description' => 'Provide additional customer service training to improve service quality.',
+                'priority' => 'medium'
+            ],
+            'Clean' => [
+                'title' => 'Cleanliness Audit',
+                'description' => 'Conduct regular cleanliness checks and address maintenance issues promptly.',
+                'priority' => 'medium'
+            ],
+            'Price' => [
+                'title' => 'Pricing Review',
+                'description' => 'Review pricing strategy and ensure clear communication of value proposition.',
+                'priority' => 'low'
+            ],
+            'Product' => [
+                'title' => 'Quality Control',
+                'description' => 'Implement stricter quality control measures for products.',
+                'priority' => 'high'
+            ]
+        ];
+        
+        if (isset($actions[$issue])) {
+            return [
+                'type' => 'Action',
+                'title' => $actions[$issue]['title'],
+                'description' => $actions[$issue]['description'],
+                'priority' => $actions[$issue]['priority']
+            ];
+        }
+        
+        return [
+            'type' => 'Action',
+            'title' => 'Address Customer Feedback',
+            'description' => 'Review customer feedback and implement improvements where needed.',
+            'priority' => 'medium'
+        ];
+    }
+
+    /**
+     * Find peak review times
+     */
+    private function findPeakReviewTimes($reviews)
+    {
+        if ($reviews->isEmpty()) return null;
+        
+        $hourlyCounts = array_fill(0, 24, 0);
+        
+        foreach ($reviews as $review) {
+            $hour = $review->created_at->hour;
+            $hourlyCounts[$hour]++;
+        }
+        
+        $peakHour = array_search(max($hourlyCounts), $hourlyCounts);
+        
+        return sprintf('%02d:00', $peakHour);
+    }
 
 
+
+    /**
+     * Get staff evaluation label
+     */
+    private function getStaffEvaluation($avgRating, $reviewCount)
+    {
+        if ($reviewCount < 3) return 'Insufficient Data';
+        if ($avgRating >= 4.5) return 'Top Performer';
+        if ($avgRating >= 4.0) return 'Excellent';
+        if ($avgRating >= 3.5) return 'Good';
+        if ($avgRating >= 3.0) return 'Consistent';
+        if ($avgRating >= 2.0) return 'Needs Improvement';
+        return 'Critical Attention';
+    }
+
+  
 
 
 
@@ -1204,10 +2382,7 @@ class ReportController extends Controller
             $tagReviewIds = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->whereMeetsThreshold($businessId)
                 ->where('review_value_news.tag_id', $tag->id)
-
                 ->filterByOverall($is_overall)
-
-
                 ->orderBy('order_no', 'asc')
                 ->pluck('review_news.id')
                 ->toArray();

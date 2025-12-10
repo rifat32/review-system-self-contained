@@ -215,6 +215,8 @@ class OwnerController extends Controller
      *            @OA\Property(property="Is_guest_user", type="boolean", example=false),
      *            @OA\Property(property="is_review_slider", type="boolean", example=false),
      *            @OA\Property(property="review_only", type="boolean", example=true),
+      *            @OA\Property(property="is_branch", type="boolean", example=true),
+     * 
      *            @OA\Property(property="header_image", type="string", example="/header_image/default.png"),
      *            @OA\Property(property="primary_color", type="string", example="#FF0000"),
      *            @OA\Property(property="secondary_color", type="string", example="#00FF00"),
@@ -303,6 +305,7 @@ class OwnerController extends Controller
      *            @OA\Property(property="Is_guest_user", type="boolean", example=false),
      *            @OA\Property(property="is_review_slider", type="boolean", example=false),
      *            @OA\Property(property="review_only", type="boolean", example=true),
+     *            @OA\Property(property="is_branch", type="boolean", example=true),
      *            @OA\Property(property="header_image", type="string", example="/header_image/default.png"),
      *            @OA\Property(property="primary_color", type="string", example="#FF0000"),
      *            @OA\Property(property="secondary_color", type="string", example="#00FF00"),

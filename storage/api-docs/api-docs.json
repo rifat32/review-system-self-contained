@@ -2410,12 +2410,12 @@
                                                 "lat": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 40.7128
+                                                    "example": 40.7128000000000014324541552923619747161865234375
                                                 },
                                                 "long": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": -74.006
+                                                    "example": -74.006000000000000227373675443232059478759765625
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -3814,6 +3814,11 @@
                                         "format": "boolean",
                                         "example": "1"
                                     },
+                                    "is_branch": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
                                     "is_guest_user_show_stuffs": {
                                         "type": "boolean",
                                         "format": "boolean",
@@ -4730,7 +4735,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.2
+                                                        "example": 4.20000000000000017763568394002504646778106689453125
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -7596,6 +7601,10 @@
                                         "type": "boolean",
                                         "example": true
                                     },
+                                    "is_branch": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
                                     "header_image": {
                                         "type": "string",
                                         "example": "/header_image/default.png"
@@ -7804,6 +7813,10 @@
                                         "example": false
                                     },
                                     "review_only": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_branch": {
                                         "type": "boolean",
                                         "example": true
                                     },
@@ -9912,6 +9925,1000 @@
                 ]
             }
         },
+        "/review-new/owner/update/questions": {
+            "post": {
+                "tags": [
+                    "review.setting.link"
+                ],
+                "summary": "This method is to update question",
+                "description": "This method is to update question",
+                "operationId": "updateOwnerQuestion",
+                "parameters": [
+                    {
+                        "name": "_method",
+                        "in": "query",
+                        "description": "method",
+                        "required": false,
+                        "example": "PATCH"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question_id",
+                                    "stars"
+                                ],
+                                "properties": {
+                                    "question_id": {
+                                        "type": "number",
+                                        "format": "number",
+                                        "example": "1"
+                                    },
+                                    "stars": {
+                                        "type": "string",
+                                        "format": "array",
+                                        "example": [
+                                            {
+                                                "star_id": "2",
+                                                "tags": [
+                                                    {
+                                                        "tag_id": "2"
+                                                    },
+                                                    {
+                                                        "tag_id": "2"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/owner/create/questions": {
+            "post": {
+                "tags": [
+                    "review.setting.link"
+                ],
+                "summary": "This method is to store question",
+                "description": "This method is to store question.",
+                "operationId": "storeOwnerQuestion",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question_id",
+                                    "stars"
+                                ],
+                                "properties": {
+                                    "question_id": {
+                                        "type": "number",
+                                        "format": "number",
+                                        "example": "1"
+                                    },
+                                    "stars": {
+                                        "type": "string",
+                                        "format": "array",
+                                        "example": [
+                                            {
+                                                "star_id": "2",
+                                                "tags": [
+                                                    {
+                                                        "tag_id": "2"
+                                                    },
+                                                    {
+                                                        "tag_id": "2"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/delete/questions/{id}": {
+            "delete": {
+                "tags": [
+                    "review.setting.question"
+                ],
+                "summary": "This method is to delete question by id",
+                "description": "This method is to delete question by id",
+                "operationId": "deleteQuestionById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "question Id",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/get/questions/{id}": {
+            "get": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to get question by id",
+                "description": "This method is to get question by id",
+                "operationId": "getQuestionById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "question Id",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/get/questions/{id}/{businessId}": {
+            "get": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to get question by id",
+                "description": "This method is to get question by id",
+                "operationId": "getQuestionById2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "question Id",
+                        "required": false
+                    },
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "businessId",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/review-new/get/questions": {
+            "get": {
+                "tags": [
+                    "review.setting.question"
+                ],
+                "summary": "This method is to get question",
+                "description": "This method is to get question",
+                "operationId": "getQuestion",
+                "parameters": [
+                    {
+                        "name": "business_id",
+                        "in": "query",
+                        "description": "business Id",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/update/active_state/questions": {
+            "put": {
+                "tags": [
+                    "review.setting.question"
+                ],
+                "summary": "This method is to update question's active state",
+                "description": "This method is to update question's active state",
+                "operationId": "updateQuestionActiveState",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "is_active",
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "number",
+                                        "format": "number",
+                                        "example": "1"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/review-new/set-overall-question": {
+            "put": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "Set questions as overall and make all others non-overall",
+                "description": "This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
+                "operationId": "setOverallQuestion",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question_ids",
+                                    "business_id"
+                                ],
+                                "properties": {
+                                    "question_ids": {
+                                        "description": "Array of question IDs to set as overall",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    },
+                                    "business_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Overall questions updated successfully"
+                                        },
+                                        "overall_questions": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "question": {
+                                                        "type": "string",
+                                                        "example": "What was your overall experience?"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "star",
+                                                            "emoji",
+                                                            "numbers",
+                                                            "heart"
+                                                        ],
+                                                        "example": "star"
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 1,
+                                                        "nullable": true
+                                                    },
+                                                    "is_default": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "sentiment": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "positive",
+                                                            "neutral",
+                                                            "negative"
+                                                        ],
+                                                        "example": "positive",
+                                                        "nullable": true
+                                                    },
+                                                    "is_overall": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "show_in_guest_user": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "show_in_user": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "survey_name": {
+                                                        "type": "string",
+                                                        "example": "Customer Satisfaction",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/update/questions": {
+            "put": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to update question",
+                "description": "This method is to update question",
+                "operationId": "updateQuestion",
+                "requestBody": {
+                    "description": "supported value is of type is 'star','emoji','numbers','heart'",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question",
+                                    "is_active",
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "number",
+                                        "format": "number",
+                                        "example": "1"
+                                    },
+                                    "question": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "was it good?"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "star"
+                                    },
+                                    "show_in_guest_user": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "show_in_user": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "survey_name": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/create/questions": {
+            "post": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to store question",
+                "description": "This method is to store question",
+                "operationId": "storeQuestion",
+                "requestBody": {
+                    "description": "supported value is of type is 'star','emoji','numbers','heart'",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question",
+                                    "business_id",
+                                    "is_active"
+                                ],
+                                "properties": {
+                                    "question": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "How was this?"
+                                    },
+                                    "business_id": {
+                                        "type": "number",
+                                        "format": "number",
+                                        "example": "1"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "show_in_guest_user": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "show_in_user": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "survey_name": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "survey_id": {
+                                        "type": "boolean",
+                                        "format": "boolean",
+                                        "example": "1"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "star"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branch-dashboard/{branchId}": {
+            "get": {
+                "tags": [
+                    "report"
+                ],
+                "summary": "Get branch dashboard data with real metrics",
+                "description": "Returns branch dashboard with real data from database",
+                "operationId": "getBranchDashboard",
+                "parameters": [
+                    {
+                        "name": "branchId",
+                        "in": "path",
+                        "description": "Branch ID",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in Y-m-d format",
+                        "required": false,
+                        "example": "2024-01-01"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in Y-m-d format",
+                        "required": false,
+                        "example": "2024-12-31"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch dashboard retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Branch not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/customer-report": {
             "get": {
                 "tags": [
@@ -10385,7 +11392,7 @@
                                                         },
                                                         "avg_rating": {
                                                             "type": "number",
-                                                            "example": 4.2
+                                                            "example": 4.20000000000000017763568394002504646778106689453125
                                                         },
                                                         "sentiment_distribution": {
                                                             "properties": {
@@ -10417,7 +11424,7 @@
                                                             "type": "object",
                                                             "example": {
                                                                 "2023-01": 4,
-                                                                "2023-02": 4.2
+                                                                "2023-02": 4.20000000000000017763568394002504646778106689453125
                                                             }
                                                         },
                                                         "trend_direction": {
@@ -10563,7 +11570,7 @@
                                                             "properties": {
                                                                 "value": {
                                                                     "type": "number",
-                                                                    "example": 4.2
+                                                                    "example": 4.20000000000000017763568394002504646778106689453125
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
@@ -10584,7 +11591,7 @@
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
-                                                                    "example": 2.1
+                                                                    "example": 2.100000000000000088817841970012523233890533447265625
                                                                 },
                                                                 "change_type": {
                                                                     "type": "string",
@@ -11579,6 +12586,10 @@
                                         "type": "integer",
                                         "example": "1"
                                     },
+                                    "branch_id": {
+                                        "type": "integer",
+                                        "example": "1"
+                                    },
                                     "audio": {
                                         "description": "Optional audio file",
                                         "type": "string",
@@ -11694,6 +12705,10 @@
                                         "example": "90.4125"
                                     },
                                     "staff_id": {
+                                        "type": "number",
+                                        "example": "1"
+                                    },
+                                    "branch_id": {
                                         "type": "number",
                                         "example": "1"
                                     },
@@ -11831,550 +12846,6 @@
                     },
                     "422": {
                         "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/create/questions": {
-            "post": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to store question",
-                "description": "This method is to store question",
-                "operationId": "storeQuestion",
-                "requestBody": {
-                    "description": "supported value is of type is 'star','emoji','numbers','heart'",
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "question",
-                                    "business_id",
-                                    "is_active"
-                                ],
-                                "properties": {
-                                    "question": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
-                                    },
-                                    "business_id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    },
-                                    "is_active": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "show_in_guest_user": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "show_in_user": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "survey_name": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "survey_id": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "type": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "star"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/update/questions": {
-            "put": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to update question",
-                "description": "This method is to update question",
-                "operationId": "updateQuestion",
-                "requestBody": {
-                    "description": "supported value is of type is 'star','emoji','numbers','heart'",
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "question",
-                                    "is_active",
-                                    "id"
-                                ],
-                                "properties": {
-                                    "id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    },
-                                    "question": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "was it good?"
-                                    },
-                                    "type": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "star"
-                                    },
-                                    "show_in_guest_user": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "show_in_user": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "survey_name": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_active": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "201": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/review-new/set-overall-question": {
-            "put": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "Set questions as overall and make all others non-overall",
-                "description": "This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
-                "operationId": "setOverallQuestion",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "question_ids",
-                                    "business_id"
-                                ],
-                                "properties": {
-                                    "question_ids": {
-                                        "description": "Array of question IDs to set as overall",
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer",
-                                            "example": 1
-                                        }
-                                    },
-                                    "business_id": {
-                                        "type": "integer",
-                                        "example": 1
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Overall questions updated successfully"
-                                        },
-                                        "overall_questions": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "question": {
-                                                        "type": "string",
-                                                        "example": "What was your overall experience?"
-                                                    },
-                                                    "type": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "star",
-                                                            "emoji",
-                                                            "numbers",
-                                                            "heart"
-                                                        ],
-                                                        "example": "star"
-                                                    },
-                                                    "business_id": {
-                                                        "type": "integer",
-                                                        "example": 1,
-                                                        "nullable": true
-                                                    },
-                                                    "is_default": {
-                                                        "type": "boolean",
-                                                        "example": false
-                                                    },
-                                                    "is_active": {
-                                                        "type": "boolean",
-                                                        "example": true
-                                                    },
-                                                    "sentiment": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "positive",
-                                                            "neutral",
-                                                            "negative"
-                                                        ],
-                                                        "example": "positive",
-                                                        "nullable": true
-                                                    },
-                                                    "is_overall": {
-                                                        "type": "boolean",
-                                                        "example": true
-                                                    },
-                                                    "show_in_guest_user": {
-                                                        "type": "boolean",
-                                                        "example": true
-                                                    },
-                                                    "show_in_user": {
-                                                        "type": "boolean",
-                                                        "example": true
-                                                    },
-                                                    "survey_name": {
-                                                        "type": "string",
-                                                        "example": "Customer Satisfaction",
-                                                        "nullable": true
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Validation error"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthorized"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Business not found"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/update/active_state/questions": {
-            "put": {
-                "tags": [
-                    "review.setting.question"
-                ],
-                "summary": "This method is to update question's active state",
-                "description": "This method is to update question's active state",
-                "operationId": "updateQuestionActiveState",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "is_active",
-                                    "id"
-                                ],
-                                "properties": {
-                                    "id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    },
-                                    "is_active": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "201": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/review-new/get/questions": {
-            "get": {
-                "tags": [
-                    "review.setting.question"
-                ],
-                "summary": "This method is to get question",
-                "description": "This method is to get question",
-                "operationId": "getQuestion",
-                "parameters": [
-                    {
-                        "name": "business_id",
-                        "in": "query",
-                        "description": "business Id",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "201": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -12626,982 +13097,6 @@
                         }
                     },
                     "201": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/get/questions/{id}": {
-            "get": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to get question by id",
-                "description": "This method is to get question by id",
-                "operationId": "getQuestionById",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "question Id",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "201": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/get/questions/{id}/{businessId}": {
-            "get": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to get question by id",
-                "description": "This method is to get question by id",
-                "operationId": "getQuestionById2",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "question Id",
-                        "required": false
-                    },
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "description": "businessId",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "201": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/delete/questions/{id}": {
-            "delete": {
-                "tags": [
-                    "review.setting.question"
-                ],
-                "summary": "This method is to delete question by id",
-                "description": "This method is to delete question by id",
-                "operationId": "deleteQuestionById",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "question Id",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "201": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/create/tags": {
-            "post": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to store tag",
-                "description": "This method is to store tag",
-                "operationId": "storeTag",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "tag",
-                                    "business_id"
-                                ],
-                                "properties": {
-                                    "tag": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
-                                    },
-                                    "business_id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/review-new/create/tags/multiple/{businessId}": {
-            "post": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "Store multiple tags for a business",
-                "description": "Create multiple tags at once for a specific business. Checks for duplicate tags and validates business ownership.",
-                "operationId": "storeTagMultiple",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "description": "Business ID",
-                        "required": true,
-                        "example": "1"
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "tags"
-                                ],
-                                "properties": {
-                                    "tags": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        },
-                                        "example": [
-                                            "Excellent Service",
-                                            "Great Food",
-                                            "Clean Environment"
-                                        ]
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Tags created successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Tags created successfully"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "tag": {
-                                                        "type": "string",
-                                                        "example": "Excellent Service"
-                                                    },
-                                                    "business_id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "is_default": {
-                                                        "type": "boolean",
-                                                        "example": false
-                                                    },
-                                                    "is_active": {
-                                                        "type": "boolean",
-                                                        "example": true
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden - Not business owner",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "You do not own this business"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Business not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Business not found"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Duplicate tags found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Duplicate tags found"
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "duplicate_indexes": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "integer"
-                                                    },
-                                                    "example": [
-                                                        0,
-                                                        2
-                                                    ]
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation failed",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Validation failed"
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/update/tags": {
-            "put": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to update tag",
-                "description": "This method is to update tag",
-                "operationId": "updatedTag",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "tag",
-                                    "id"
-                                ],
-                                "properties": {
-                                    "tag": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
-                                    },
-                                    "id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/get/tags": {
-            "get": {
-                "tags": [
-                    "review.setting.tag"
-                ],
-                "summary": "This method is to get tag",
-                "description": "This method is to get tag",
-                "operationId": "getTag",
-                "parameters": [
-                    {
-                        "name": "business_id",
-                        "in": "query",
-                        "description": "business Id",
-                        "required": false
-                    },
-                    {
-                        "name": "is_active",
-                        "in": "query",
-                        "description": "is_active",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/get/tags/{id}": {
-            "get": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to get tag  by id",
-                "description": "This method is to get tag  by id",
-                "operationId": "TagById",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "tag Id",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/get/tags/{id}/{restaurantId}": {
-            "get": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to get tag  by id",
-                "description": "This method is to get tag  by id",
-                "operationId": "getTagById2",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "tag Id",
-                        "required": false
-                    },
-                    {
-                        "name": "restaurantId",
-                        "in": "path",
-                        "description": "restaurantId",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/delete/tags/{id}": {
-            "delete": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to delete tag  by id",
-                "description": "This method is to delete tag  by id",
-                "operationId": "deleteTagById",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "tag Id",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/owner/create/questions": {
-            "post": {
-                "tags": [
-                    "review.setting.link"
-                ],
-                "summary": "This method is to store question",
-                "description": "This method is to store question.",
-                "operationId": "storeOwnerQuestion",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "question_id",
-                                    "stars"
-                                ],
-                                "properties": {
-                                    "question_id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    },
-                                    "stars": {
-                                        "type": "string",
-                                        "format": "array",
-                                        "example": [
-                                            {
-                                                "star_id": "2",
-                                                "tags": [
-                                                    {
-                                                        "tag_id": "2"
-                                                    },
-                                                    {
-                                                        "tag_id": "2"
-                                                    }
-                                                ]
-                                            }
-                                        ]
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/owner/update/questions": {
-            "post": {
-                "tags": [
-                    "review.setting.link"
-                ],
-                "summary": "This method is to update question",
-                "description": "This method is to update question",
-                "operationId": "updateOwnerQuestion",
-                "parameters": [
-                    {
-                        "name": "_method",
-                        "in": "query",
-                        "description": "method",
-                        "required": false,
-                        "example": "PATCH"
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "question_id",
-                                    "stars"
-                                ],
-                                "properties": {
-                                    "question_id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    },
-                                    "stars": {
-                                        "type": "string",
-                                        "format": "array",
-                                        "example": [
-                                            {
-                                                "star_id": "2",
-                                                "tags": [
-                                                    {
-                                                        "tag_id": "2"
-                                                    },
-                                                    {
-                                                        "tag_id": "2"
-                                                    }
-                                                ]
-                                            }
-                                        ]
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
@@ -18512,6 +18007,598 @@
                 ]
             }
         },
+        "/review-new/create/tags": {
+            "post": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to store tag",
+                "description": "This method is to store tag",
+                "operationId": "storeTag",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "tag",
+                                    "business_id"
+                                ],
+                                "properties": {
+                                    "tag": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "How was this?"
+                                    },
+                                    "business_id": {
+                                        "type": "number",
+                                        "format": "number",
+                                        "example": "1"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/review-new/create/tags/multiple/{businessId}": {
+            "post": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "Store multiple tags for a business",
+                "description": "Create multiple tags at once for a specific business. Checks for duplicate tags and validates business ownership.",
+                "operationId": "storeTagMultiple",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "example": "1"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "tags"
+                                ],
+                                "properties": {
+                                    "tags": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Excellent Service",
+                                            "Great Food",
+                                            "Clean Environment"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Tags created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Tags created successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "tag": {
+                                                        "type": "string",
+                                                        "example": "Excellent Service"
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "is_default": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Not business owner",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not own this business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Duplicate tags found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Duplicate tags found"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "duplicate_indexes": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer"
+                                                    },
+                                                    "example": [
+                                                        0,
+                                                        2
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/update/tags": {
+            "put": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to update tag",
+                "description": "This method is to update tag",
+                "operationId": "updatedTag",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "tag",
+                                    "id"
+                                ],
+                                "properties": {
+                                    "tag": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "How was this?"
+                                    },
+                                    "id": {
+                                        "type": "number",
+                                        "format": "number",
+                                        "example": "1"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/get/tags": {
+            "get": {
+                "tags": [
+                    "review.setting.tag"
+                ],
+                "summary": "This method is to get tag",
+                "description": "This method is to get tag",
+                "operationId": "getTag",
+                "parameters": [
+                    {
+                        "name": "business_id",
+                        "in": "query",
+                        "description": "business Id",
+                        "required": false
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "is_active",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/get/tags/{id}": {
+            "get": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to get tag  by id",
+                "description": "This method is to get tag  by id",
+                "operationId": "TagById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "tag Id",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/get/tags/{id}/{restaurantId}": {
+            "get": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to get tag  by id",
+                "description": "This method is to get tag  by id",
+                "operationId": "getTagById2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "tag Id",
+                        "required": false
+                    },
+                    {
+                        "name": "restaurantId",
+                        "in": "path",
+                        "description": "restaurantId",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/delete/tags/{id}": {
+            "delete": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to delete tag  by id",
+                "description": "This method is to delete tag  by id",
+                "operationId": "deleteTagById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "tag Id",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocesseble Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/customer-list": {
             "get": {
                 "tags": [
@@ -18975,6 +19062,14 @@
             "description": "review.question_management.client"
         },
         {
+            "name": "review.setting.link",
+            "description": "review.setting.link"
+        },
+        {
+            "name": "review.setting.question",
+            "description": "review.setting.question"
+        },
+        {
             "name": "report",
             "description": "report"
         },
@@ -18997,18 +19092,6 @@
         {
             "name": "review",
             "description": "review"
-        },
-        {
-            "name": "review.setting.question",
-            "description": "review.setting.question"
-        },
-        {
-            "name": "review.setting.tag",
-            "description": "review.setting.tag"
-        },
-        {
-            "name": "review.setting.link",
-            "description": "review.setting.link"
         },
         {
             "name": "review_management.client",
@@ -19037,6 +19120,10 @@
         {
             "name": "Tags",
             "description": "Tags"
+        },
+        {
+            "name": "review.setting.tag",
+            "description": "review.setting.tag"
         },
         {
             "name": "super_admin_report.customer",

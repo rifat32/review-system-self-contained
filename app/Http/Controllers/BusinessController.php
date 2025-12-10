@@ -674,6 +674,10 @@ class BusinessController extends Controller
      *             @OA\Property(property="is_guest_user_overall_review", type="boolean", format="boolean", example="1"),
      *             @OA\Property(property="is_guest_user_survey", type="boolean", format="boolean", example="1"),
      *             @OA\Property(property="is_guest_user_survey_required", type="boolean", format="boolean", example="1"),
+      *             @OA\Property(property="is_branch", type="boolean", format="boolean", example="1"), 
+     * 
+     * 
+     * 
      *             @OA\Property(property="is_guest_user_show_stuffs", type="boolean", format="boolean", example="1"),
      *             @OA\Property(property="is_guest_user_show_stuff_image", type="boolean", format="boolean", example="1"),
      *             @OA\Property(property="is_guest_user_show_stuff_name", type="boolean", format="boolean", example="1")

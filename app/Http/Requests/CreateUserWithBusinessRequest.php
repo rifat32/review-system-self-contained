@@ -44,6 +44,7 @@ class CreateUserWithBusinessRequest extends FormRequest
             'Is_guest_user' => ['nullable', 'boolean'],
             'is_review_slider' => ['nullable', 'boolean'],
             'review_only' => ['nullable', 'boolean'],
+            'is_branch' => ['nullable', 'boolean'],
             'review_type' => ['nullable', 'string', 'in:emoji,star'],
             'google_map_iframe' => ['nullable', 'string'],
             'show_image' => ['nullable', 'string'],

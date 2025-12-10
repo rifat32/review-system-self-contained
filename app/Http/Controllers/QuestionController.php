@@ -6,6 +6,11 @@ use App\Http\Requests\QuestionRequest;
 use App\Http\Requests\SetOverallQuestionRequest;
 use App\Models\Business;
 use App\Models\Question;
+use App\Models\QuestionStar;
+use App\Models\ReviewValueNew;
+use App\Models\Star;
+use App\Models\StarTag;
+use App\Models\StarTagQuestion;
 use App\Models\Survey;
 use App\Models\SurveyQuestion;
 use Exception;
@@ -1002,4 +1007,1226 @@ class QuestionController extends Controller
             ], 500);
         }
     }
+
+     /**
+     *
+     * @OA\Post(
+     *      path="/review-new/owner/update/questions",
+     *      operationId="updateOwnerQuestion",
+     *      tags={"review.setting.link"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to update question",
+     *      description="This method is to update question",
+     *             @OA\Parameter(
+     *         name="_method",
+     *         in="query",
+     *         description="method",
+     *         required=false,
+     * example="PATCH"
+     *      ),
+     *  @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"question_id","stars"},
+
+     *  @OA\Property(property="question_id", type="number", format="number",example="1"),
+     *  @OA\Property(property="stars", type="string", format="array",example={
+     *  {* "star_id":"2",
+     * "tags":{
+     * {"tag_id":"2"},
+     * {"tag_id":"2"}
+     *
+     * }
+     *
+     * }
+     * }
+     *
+     * ),
+     *
+     *
+     *
+     *
+     *         ),
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocesseble Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+    public function updateOwnerQuestion(Request $request)
+    {
+
+        return DB::transaction(function () use ($request) {
+            $question_id = $request->question_id;
+
+            $starIds = collect($request->stars)->pluck('star_id')->toArray();
+
+
+            QuestionStar::where([
+                'question_id' => $question_id,
+            ])
+                ->whereNotIn('star_id', $starIds)
+                ->delete();
+
+            foreach ($request->stars as $requestStar) {
+
+                if (!(QuestionStar::where([
+                    "question_id" => $question_id,
+                    "star_id" => $requestStar["star_id"]
+                ])->exists())) {
+                    QuestionStar::create([
+                        "question_id" => $question_id,
+                        "star_id" => $requestStar["star_id"]
+                    ]);
+                }
+
+                $starTagIds = collect($requestStar["tags"])->pluck('tag_id')->toArray();
+
+                StarTag::where([
+                    "question_id"  => $question_id,
+                    "star_id" => $requestStar["star_id"]
+                ])
+                    ->whereNotIn('tag_id', $starTagIds)
+                    ->delete();
+
+                foreach ($requestStar["tags"] as $tag) {
+
+                    if (!(StarTag::where([
+                        "question_id" => $question_id,
+                        "tag_id" => $tag["tag_id"],
+                        "star_id" => $requestStar["star_id"]
+                    ])->exists())) {
+                        StarTag::create([
+                            "question_id" => $question_id,
+                            "tag_id" => $tag["tag_id"],
+                            "star_id" => $requestStar["star_id"]
+                        ]);
+                    }
+                }
+            }
+
+            return response(["message" => "ok"], 201);
+        });
+    }
+
+
+     /**
+     *
+     * @OA\Post(
+     *      path="/review-new/owner/create/questions",
+     *      operationId="storeOwnerQuestion",
+     *      tags={"review.setting.link"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to store question",
+     *      description="This method is to store question.",
+     *
+     *  @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"question_id","stars"},
+
+     *  @OA\Property(property="question_id", type="number", format="number",example="1"),
+     *  @OA\Property(property="stars", type="string", format="array",example={
+     *
+     * { "star_id":"2",
+     *
+     * "tags":{
+     * {"tag_id":"2"},
+     * {"tag_id":"2"}
+     * }
+     *
+     * }
+     *
+     *
+     * }
+     *
+     * ),
+     *
+     *
+     *
+     *
+     *         ),
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocesseble Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+    public function storeOwnerQuestion(Request $request)
+    {
+        return DB::transaction(function () use ($request) {
+            $question_id = $request->question_id;
+            foreach ($request->stars as $requestStar) {
+
+
+                QuestionStar::create([
+                    "question_id" => $question_id,
+                    "star_id" => $requestStar["star_id"]
+                ]);
+
+
+                foreach ($requestStar["tags"] as $tag) {
+
+
+                    StarTag::create([
+                        "question_id" => $question_id,
+                        "tag_id" => $tag["tag_id"],
+                        "star_id" => $requestStar["star_id"]
+                    ]);
+                }
+            }
+
+            return response(["message" => "ok"], 201);
+        });
+    }
+
+
+   // ##################################################
+    // This method is to delete star tag by id
+    // ##################################################
+    public function   deleteStarTagById($id, Request $request)
+    {
+          StarTagQuestion::where(["id" => $id])
+            ->delete();
+        return response(["message" => "ok"], 200);
+    }
+// ##################################################
+    // This method is to get report
+    // ##################################################
+    public function   getSelectedTagCountByQuestion($questionId, Request $request)
+    {
+
+        $question =    Question::where(["id" => $questionId])
+            ->first();
+
+        $data =  json_decode(json_encode($question), true);
+
+
+        foreach ($question->question_stars as $key2 => $questionStar) {
+            $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
+            $data["stars"][$key2]["star_count"]  =  ReviewValueNew::where([
+                "question_id" => $question->id,
+                "star_id" => $questionStar->star->id,
+
+            ])->count();
+
+            foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+                if ($starTag->question_id == $question->id) {
+                    $data["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
+                   
+                    $data["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
+                        "question_id" => $question->id,
+                        "star_id" => $questionStar->star->id,
+                        "tag_id" => $starTag->tag->id
+
+                    ])->count();
+                }
+            }
+        }
+
+
+        return response($data, 200);
+    }
+
+     // ##################################################
+    // This method is to get report
+    // ##################################################
+    public function   getSelectedTagCount($businessId, Request $request)
+    {
+
+        $questions =    Question::where(["business_id" => $businessId])
+            ->get();
+        $data =  json_decode(json_encode($questions), true);
+        foreach ($questions as $key1 => $question) {
+
+            foreach ($question->question_stars as $key2 => $questionStar) {
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
+                $data[$key1]["stars"][$key2]["star_count"]  =  ReviewValueNew::where([
+                    "question_id" => $question->id,
+                    "star_id" => $questionStar->star->id,
+
+                ])->count();
+
+
+                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+                    if ($starTag->question_id == $question->id) {
+                        $data[$key1]["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
+                       
+
+                        $data[$key1]["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
+                            "question_id" => $question->id,
+                            "star_id" => $questionStar->star->id,
+                            "tag_id" => $starTag->tag->id
+
+                        ])->count();
+                    }
+                }
+            }
+        }
+        return response($data, 200);
+    }
+    
+ // ##################################################
+    // This method is to get star tag by id
+    // ##################################################
+    public function   getStarTagById($id, Request $request)
+    {
+
+        $questions =    StarTagQuestion::where(["id" => $id])
+            ->with("question", "star", "tag")
+            ->first();
+        return response($questions, 200);
+    }
+     // ##################################################
+    // This method is to get star tag
+    // ##################################################
+    public function   getStarTag(Request $request)
+    {
+        $query =  StarTagQuestion::where(["question_id" => $request->question_id])
+            ->with("question", "star", "tag");
+        if ($request->user()->hasRole("superadmin")) {
+            $query->where(["is_default" => true]);
+        }
+        $business =    Business::where(["id" => $request->business_id])->first();
+        $query->where(["is_default" => false]);
+
+        $questions =  $query->get();
+
+
+        return response($questions, 200);
+    }
+
+     // ##################################################
+    // This method is to update star tag
+    // ##################################################
+    public function updateStarTag(Request $request)
+    {
+        $question = [
+            'question_id' => $request->question_id,
+            'tag_id' => $request->tag_id,
+            'star_id' => $request->star_id,
+        ];
+        $checkQuestion =    StarTagQuestion::where(["id" => $request->id])->first();
+        if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
+            return response()->json(["message" => "you can not update the question. you are not a super admin"]);
+        }
+        $updatedQuestion =    tap(StarTagQuestion::where(["id" => $request->id]))->update(
+            $question
+        )
+            // ->with("somthing")
+
+            ->first();
+
+
+        return response($updatedQuestion, 200);
+    }
+
+    // ##################################################
+    // This method is to store star tag
+    // ##################################################
+    public function storeStarTag(Request $request)
+    {
+        $question = [
+            'question_id' => $request->question_id,
+            'tag_id' => $request->tag_id,
+            'star_id' => $request->star_id,
+        ];
+        if ($request->user()->hasRole("superadmin")) {
+            $question["is_default"] = true;
+        }
+        $createdQuestion =    StarTagQuestion::create($question);
+
+
+        return response($createdQuestion, 201);
+    }
+   
+     public function   deleteStarById($id, Request $request)
+    {
+        return "this api is closed by the developer";
+        Star::where(["id" => $id])
+            ->delete();
+        return response(["message" => "ok"], 200);
+    }
+  
+     // ##################################################
+    // This method is to get star by id
+    // ##################################################
+    public function   getStarById($id, Request $request)
+    {
+        $questions =    Star::where(["id" => $id])
+            ->first();
+        return response($questions, 200);
+    }
+  // ##################################################
+    // This method is to get star
+    // ##################################################
+    public function   getStar(Request $request)
+    {
+        return   Star::where()->paginate(10);
+        if ($request->user()->hasRole("superadmin")) {
+
+            $questions =  Star::where(["is_default" => true])->paginate(10);
+
+            return response($questions, 200);
+        }
+        $business =    Business::where(["id" => $request->business_id])->first();
+        if (!$business) {
+            return response("No Business Found", 404);
+        }
+
+
+        $query =  Star::where(["is_default" => false]);
+
+        $questions =  $query->paginate(10);
+
+        return response($questions, 200);
+    }
+   
+  // ##################################################
+    // This method is to update star
+    // ##################################################
+    public function updateStar(Request $request)
+    {
+        return "this api is closed by the developer";
+        $question = [
+            'value' => $request->value
+        ];
+        $checkQuestion =    Star::where(["id" => $request->id])->first();
+        if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
+            return response()->json(["message" => "you can not update the question. you are not a super admin"]);
+        }
+        $updatedQuestion =    tap(Star::where(["id" => $request->id]))->update(
+            $question
+        )
+            // ->with("somthing")
+
+            ->first();
+
+
+        return response($updatedQuestion, 200);
+    }
+    
+     // ##################################################
+    // This method is to store star
+    // ##################################################
+    public function storeStar(Request $request)
+    {
+        return "this api is closed by the developer";
+        $question = [
+            'value' => $request->value,
+            // 'business_id' => $request->business_id
+        ];
+        if ($request->user()->hasRole("superadmin")) {
+            $question["is_default"] = true;
+        } else {
+            $question["is_default"] = false;
+        }
+
+        $createdQuestion =    Star::create($question);
+
+
+        return response($createdQuestion, 201);
+    }
+
+
+     // ##################################################
+    // This method is to delete question by id
+    // ##################################################
+    /**
+     *
+     * @OA\Delete(
+     *      path="/review-new/delete/questions/{id}",
+     *      operationId="deleteQuestionById",
+     *      tags={"review.setting.question"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to delete question by id",
+     *      description="This method is to delete question by id",
+     *        @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="question Id",
+     *         required=false,
+     *      ),
+
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *           @OA\Response(
+     *          response=201,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocesseble Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+    public function   deleteQuestionById($id, Request $request)
+    {
+        Question::where(["id" => $id])
+            ->delete();
+
+        return response(["message" => "ok"], 200);
+    }
+
+
+        // ##################################################
+    // This method is to get question  by id
+    // ##################################################
+    /**
+     *
+     * @OA\Get(
+     *      path="/review-new/get/questions/{id}",
+     *      operationId="getQuestionById",
+     *      tags={"z.unused"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to get question by id",
+     *      description="This method is to get question by id",
+     *
+     *         @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="question Id",
+     *         required=false,
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *           @OA\Response(
+     *          response=201,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocesseble Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+    public function   getQuestionById($id, Request $request)
+    {
+        $questions =    Question::where(["id" => $id])
+            ->first();
+
+
+        if (!$questions) {
+            return response([
+                "message" => "No question found"
+            ], 404);
+        }
+        $data =  json_decode(json_encode($questions), true);
+
+        foreach ($questions->question_stars as $key2 => $questionStar) {
+            $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
+
+
+            $data["stars"][$key2]["tags"] = [];
+            foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+
+                if ($starTag->question_id == $questions->id) {
+
+                    array_push($data["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
+                }
+            }
+        }
+        return response($data, 200);
+    }
+    /**
+     *
+     * @OA\Get(
+     *      path="/review-new/get/questions/{id}/{businessId}",
+     *      operationId="getQuestionById2",
+     *      tags={"z.unused"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to get question by id",
+     *      description="This method is to get question by id",
+     *
+     *         @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="question Id",
+     *         required=false,
+     *      ),
+     *   *         @OA\Parameter(
+     *         name="businessId",
+     *         in="path",
+     *         description="businessId",
+     *         required=false,
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *           @OA\Response(
+     *          response=201,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocesseble Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+    public function   getQuestionById2($id, $businessId, Request $request)
+    {
+        $questions =    Question::where(["id" => $id, "business_id" => $businessId])
+            ->first();
+
+
+        if (!$questions) {
+            return response([
+                "message" => "No question found"
+            ], 404);
+        }
+        $data =  json_decode(json_encode($questions), true);
+
+        foreach ($questions->question_stars as $key2 => $questionStar) {
+            $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
+
+
+            $data["stars"][$key2]["tags"] = [];
+            foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+
+                if ($starTag->question_id == $questions->id) {
+
+                    array_push($data["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
+                }
+            }
+        }
+        return response($data, 200);
+    }
+
+
+    // ##################################################
+    // This method is to get question
+    // ##################################################
+
+
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/review-new/get/questions",
+     *      operationId="getQuestion",
+     *      tags={"review.setting.question"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to get question",
+     *      description="This method is to get question",
+     *
+     *         @OA\Parameter(
+     *         name="business_id",
+     *         in="query",
+     *         description="business Id",
+     *         required=false,
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *           @OA\Response(
+     *          response=201,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+    public function   getQuestion(Request $request)
+    {
+        $is_default = false;
+        $businessId = !empty($request->business_id) ? $request->business_id : NULL;
+        if ($request->user()->hasRole("superadmin")) {
+
+            $is_default = true;
+            $businessId = NULL;
+        } else {
+            $business =    Business::where(["id" => $request->business_id])->first();
+            if (!$business && !$request->user()->hasRole("superadmin")) {
+                return response("No Business Found", 404);
+            }
+        }
+
+
+        $query = Question::with(['surveys' => function ($q) {
+            $q->select(
+                "surveys.id",
+                "name",
+                "order_no"
+            );
+        }])->where(["business_id" => $businessId, "is_default" => $is_default])
+            ->when($request->boolean("is_user"), function ($q) use ($request) {
+                return $q->where("show_in_user", $request->boolean("is_user"));
+            })
+            ->when($request->boolean("exclude_user"), function ($q) use ($request) {
+                return $q->where("show_in_user", false);
+            })
+            ->when($request->boolean("is_guest_user"), function ($q) use ($request) {
+                return $q->where("show_in_guest_user", $request->boolean("is_guest_user"));
+            })
+            ->when($request->boolean("exclude_guest_user"), function ($q) use ($request) {
+                return $q->where("show_in_guest_user", false);
+            })
+            ->when($request->filled("survey_name"), function ($query) use ($request) {
+                $query->whereHas("surveys", function ($q) use ($request) {
+                    $q->where("survey_name", $request->input("survey_name"));
+                });
+            })
+            ->when($request->filled("ids"), function ($q) use ($request) {
+                $ids = array_filter(array_map('intval', explode(",", $request->query("ids"))));
+                return $q->whereIn("id", $ids);
+            })
+            ->when($request->filled("survey_id"), function ($q) use ($request) {
+                return $q->whereHas("surveys", function ($q2) use ($request) {
+                    $q2->where("id", $request->input("survey_id"));
+                });
+            });
+
+        $questions =  $query->get();
+
+
+        return response([
+            "status" => true,
+            "message" => "Questions fetched successfully",
+            "data" => $questions
+        ], 200);
+    }
+
+ // ##################################################
+    // This method is to update question's active state
+    // ##################################################
+
+    /**
+     *
+     * @OA\Put(
+     *      path="/review-new/update/active_state/questions",
+     *      operationId="updateQuestionActiveState",
+     *      tags={"review.setting.question"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to update question's active state",
+     *      description="This method is to update question's active state",
+     *
+     *  @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"is_active","id"},
+     *  @OA\Property(property="id", type="number", format="number",example="1"),
+     *   @OA\Property(property="is_active", type="boolean", format="boolean",example="1"),
+     *
+     *
+     *         ),
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *           @OA\Response(
+     *          response=201,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocesseble Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+    public function updateQuestionActiveState(Request $request)
+    {
+        $question = [
+            "is_active" => $request->is_active,
+        ];
+        $checkQuestion =    Question::where(["id" => $request->id])->first();
+        if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
+            return response()->json(["message" => "you can not update the question. you are not a super admin"]);
+        }
+        $updatedQuestion =    tap(Question::where(["id" => $request->id]))->update(
+            $question
+        )
+            // ->with("somthing")
+
+            ->first();
+
+
+        return response($updatedQuestion, 200);
+    }
+
+      /**
+     *
+     * @OA\Put(
+     *      path="/v1.0/review-new/set-overall-question",
+     *      operationId="setOverallQuestion",
+     *      tags={"z.unused"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Set questions as overall and make all others non-overall",
+     *      description="This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
+     *
+     *  @OA\RequestBody(
+     *      required=true,
+     *      @OA\JsonContent(
+     *          required={"question_ids","business_id"},
+     *          @OA\Property(
+     *              property="question_ids",
+     *              type="array",
+     *              @OA\Items(type="integer", example=1),
+     *              description="Array of question IDs to set as overall"
+     *          ),
+     *          @OA\Property(property="business_id", type="integer", example=1)
+     *      )
+     *  ),
+     *  @OA\Response(
+     *      response=200,
+     *      description="Successful operation",
+     *      @OA\JsonContent(
+     *          @OA\Property(property="success", type="boolean", example=true),
+     *          @OA\Property(property="message", type="string", example="Overall questions updated successfully"),
+     *          @OA\Property(
+     *              property="overall_questions",
+     *              type="array",
+     *              @OA\Items(
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="question", type="string", example="What was your overall experience?"),
+     *                  @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
+     *                  @OA\Property(property="business_id", type="integer", nullable=true, example=1),
+     *                  @OA\Property(property="is_default", type="boolean", example=false),
+     *                  @OA\Property(property="is_active", type="boolean", example=true),
+     *                  @OA\Property(property="sentiment", type="string", enum={"positive","neutral","negative"}, nullable=true, example="positive"),
+     *                  @OA\Property(property="is_overall", type="boolean", example=true),
+     *                  @OA\Property(property="show_in_guest_user", type="boolean", example=true),
+     *                  @OA\Property(property="show_in_user", type="boolean", example=true),
+     *                  @OA\Property(property="survey_name", type="string", nullable=true, example="Customer Satisfaction"),
+     *
+     *
+     *
+     *              )
+     *          )
+     *      )
+     *  ),
+     *  @OA\Response(
+     *      response=400,
+     *      description="Bad Request",
+     *      @OA\JsonContent(
+     *          @OA\Property(property="message", type="string", example="Validation error")
+     *      )
+     *  ),
+     *  @OA\Response(
+     *      response=403,
+     *      description="Forbidden",
+     *      @OA\JsonContent(
+     *          @OA\Property(property="message", type="string", example="Unauthorized")
+     *      )
+     *  ),
+     *  @OA\Response(
+     *      response=404,
+     *      description="Not Found",
+     *      @OA\JsonContent(
+     *          @OA\Property(property="message", type="string", example="Business not found")
+     *      )
+     *  )
+     * )
+     */
+    public function setOverallQuestion(SetOverallQuestionRequest $request): JsonResponse
+    {
+        // Already validated & passed ValidBusiness + ValidQuestion
+        $data        = $request->validated();
+        $businessId  = $data['business_id'];
+        $questionIds = $data['question_ids'];
+
+        // Perform the update within a transaction
+        DB::transaction(function () use ($businessId, $questionIds) {
+            // Reset all questions for this business
+            Question::where('business_id', $businessId)
+                ->update(['is_overall' => false]);
+
+            // Mark selected questions as overall
+            Question::where('business_id', $businessId)
+                ->whereIn('id', $questionIds)
+                ->update(['is_overall' => true]);
+        });
+
+        // Fetch updated overall questions
+        $overallQuestions = Question::where('business_id', $businessId)
+            ->where('is_overall', true)
+            ->get();
+
+        // send response
+        return response()->json([
+            'success'           => true,
+            'message'           => 'Overall questions updated successfully.',
+            'data' => $overallQuestions,
+        ], 200);
+    }
+
+// ##################################################
+    // This method is to update question
+    // ##################################################
+    /**
+     *
+     * @OA\Put(
+     *      path="/review-new/update/questions",
+     *      operationId="updateQuestion",
+     *      tags={"z.unused"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to update question",
+     *      description="This method is to update question",
+     *
+     *  @OA\RequestBody(
+     * description="supported value is of type is 'star','emoji','numbers','heart'",
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"question","is_active","id"},
+     *  @OA\Property(property="id", type="number", format="number",example="1"),
+     *            @OA\Property(property="question", type="string", format="string",example="was it good?"),
+     *  *            @OA\Property(property="type", type="string", format="string",example="star"),
+     *     *  *  @OA\Property(property="show_in_guest_user", type="boolean", format="boolean",example="1"),
+     * *  *  @OA\Property(property="show_in_user", type="boolean", format="boolean",example="1"),
+     *  * *  *  @OA\Property(property="survey_name", type="boolean", format="boolean",example="1"),
+     *
+
+     *   @OA\Property(property="is_active", type="boolean", format="boolean",example="1"),
+     *
+     *
+     *         ),
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *           @OA\Response(
+     *          response=201,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocesseble Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+    public function updateQuestion(Request $request)
+    {
+        $question = [
+            'type' => $request->type,
+            'question' => $request->question,
+            'show_in_guest_user' => $request->show_in_guest_user,
+            'show_in_user' => $request->show_in_user,
+            'survey_name' => $request->survey_name,
+            "is_active" => $request->is_active,
+        ];
+        $checkQuestion =    Question::where(["id" => $request->id])->first();
+        if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
+            return response()->json(["message" => "you can not update the question. you are not a super admin"]);
+        }
+        $updatedQuestion =    tap(Question::where(["id" => $request->id]))->update(
+            $question
+        )
+            // ->with("somthing")
+
+            ->first();
+        $updatedQuestion->info = "supported value is of type is 'star','emoji','numbers','heart'";
+
+        return response($updatedQuestion, 200);
+    }
+
+// ##################################################
+    // This method is to store question
+    // ##################################################
+    /**
+     *
+     * @OA\Post(
+     *      path="/review-new/create/questions",
+     *      operationId="storeQuestion",
+     *      tags={"z.unused"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to store question",
+     *      description="This method is to store question",
+     *
+     *  @OA\RequestBody(
+     *  * description="supported value is of type is 'star','emoji','numbers','heart'",
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"question","business_id","is_active"},
+     *            @OA\Property(property="question", type="string", format="string",example="How was this?"),
+     *  @OA\Property(property="business_id", type="number", format="number",example="1"),
+     * *  @OA\Property(property="is_active", type="boolean", format="boolean",example="1"),
+     *      *  *  @OA\Property(property="show_in_guest_user", type="boolean", format="boolean",example="1"),
+     * *  *  @OA\Property(property="show_in_user", type="boolean", format="boolean",example="1"),
+     * *  *  @OA\Property(property="survey_name", type="boolean", format="boolean",example="1"),
+     *   * *  *  @OA\Property(property="survey_id", type="boolean", format="boolean",example="1"),
+     * * *  @OA\Property(property="type", type="string", format="string",example="star"),
+     *
+     *
+     *
+     *         ),
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocesseble Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request"
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found"
+     *   ),
+     *@OA\JsonContent()
+     *      )
+     *     )
+     */
+
+
+    public function storeQuestion(Request $request)
+    {
+        $question = [
+            'question' => $request->question,
+            'business_id' => $request->business_id,
+            'is_active' => $request->is_active,
+            'type' => !empty($request->type) ? $request->type : "star",
+            'show_in_guest_user' => $request->show_in_guest_user,
+            'show_in_user' => $request->show_in_user,
+            'survey_name' => $request->survey_name,
+            "is_overall" => $request->is_overall ?? 0,
+        ];
+
+        if ($request->user()->hasRole("superadmin")) {
+            $question["is_default"] = true;
+            $question["business_id"] = NULL;
+        } else {
+
+            $business =    Business::where(["id" => $request->business_id, "OwnerID" => $request->user()->id])->first();
+
+            if (!$business) {
+                return response()->json(["message" => "No Business Found"], 400);
+            }
+        }
+
+        $createdQuestion =    Question::create($question);
+        $createdQuestion->info = "supported value is of type is 'star','emoji','numbers','heart'";
+
+        if (request()->has('survey_id')) {
+            SurveyQuestion::create([
+                'survey_id' => request()->survey_id,
+                'question_id' => $createdQuestion->id,
+            ]);
+        }
+
+        return response($createdQuestion, 201);
+    }
+    
+
 }

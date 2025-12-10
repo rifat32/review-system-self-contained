@@ -271,11 +271,11 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);
 
     // Questions (protected)
-    // Route::post('/review-new/create/questions', [ReviewNewController::class, "storeQuestion"]);
-    // Route::put('/review-new/update/questions', [ReviewNewController::class, "updateQuestion"]);
-    // Route::put('/v1.0/review-new/set-overall-question', [ReviewNewController::class, "setOverallQuestion"]);
-    // Route::put('/review-new/update/active_state/questions', [ReviewNewController::class, "updateQuestionActiveState"]);
-    // Route::get('/v1.0/review-new/get/questions', [ReviewNewController::class, "getQuestion"]);
+    // Route::post('/review-new/create/questions', [QuestionController::class, "storeQuestion"]);
+    // Route::put('/review-new/update/questions', [QuestionController::class, "updateQuestion"]);
+    // Route::put('/v1.0/review-new/set-overall-question', [QuestionController::class, "setOverallQuestion"]);
+    // Route::put('/review-new/update/active_state/questions', [QuestionController::class, "updateQuestionActiveState"]);
+    // Route::get('/v1.0/review-new/get/questions', [QuestionController::class, "getQuestion"]);
     // Route::get('/review-new/get/questions-all', [ReviewNewController::class, "getQuestionAll"]);
     // Route::get('/review-new/get/questions-all-report', [ReviewNewController::class, "getQuestionAllReport"]);
     // Route::get('/review-new/get/questions-all-report/guest', [ReviewNewController::class, "getQuestionAllReportGuest"]);
@@ -295,25 +295,25 @@ Route::middleware(['auth:api'])->group(function () {
     // Route::delete('/review-new/delete/tags/{id}', [ReviewNewController::class, "deleteTagById"]);
 
     // Stars (protected)
-    Route::post('/review-new/create/stars', [ReviewNewController::class, "storeStar"]);
-    Route::put('/review-new/update/stars', [ReviewNewController::class, "updateStar"]);
-    Route::get('/review-new/get/stars', [ReviewNewController::class, "getStar"]);
-    Route::get('/review-new/get/stars/{id}', [ReviewNewController::class, "getStarById"]);
+    Route::post('/review-new/create/stars', [QuestionController::class, "storeStar"]);
+    Route::put('/review-new/update/stars', [QuestionController::class, "updateStar"]);
+    Route::get('/review-new/get/stars', [QuestionController::class, "getStar"]);
+    Route::get('/review-new/get/stars/{id}', [QuestionController::class, "getStarById"]);
     Route::get('/review-new/get/stars/{id}/{businessId}', [ReviewNewController::class, "getStarById2"]);
-    Route::delete('/review-new/delete/stars/{id}', [ReviewNewController::class, "deleteStarById"]);
+    Route::delete('/review-new/delete/stars/{id}', [QuestionController::class, "deleteStarById"]);
 
     // Quantum reports (protected)
     Route::get('/review-new/get/questions-all-report/quantum', [ReviewNewController::class, "getQuestionAllReportQuantum"]);
     Route::get('/review-new/get/questions-all-report/guest/quantum', [ReviewNewController::class, "getQuestionAllReportGuestQuantum"]);
 
     // Star-tag-question (protected)
-    Route::post('/star-tag-question', [ReviewNewController::class, "storeStarTag"]);
-    Route::put('/star-tag-question', [ReviewNewController::class, "updateStarTag"]);
-    Route::get('/star-tag-question', [ReviewNewController::class, "getStarTag"]);
-    Route::get('/star-tag-question/{id}', [ReviewNewController::class, "getStarTagById"]);
-    Route::delete('/star-tag-question/{id}', [ReviewNewController::class, "deleteStarTagById"]);
-    Route::get('/tag-count/star-tag-question/{businessId}', [ReviewNewController::class, "getSelectedTagCount"]);
-    Route::get('/tag-count/star-tag-question/by-question/{questionId}', [ReviewNewController::class, "getSelectedTagCountByQuestion"]);
+    Route::post('/star-tag-question', [QuestionController::class, "storeStarTag"]);
+    Route::put('/star-tag-question', [QuestionController::class, "updateStarTag"]);
+    Route::get('/star-tag-question', [QuestionController::class, "getStarTag"]);
+    Route::get('/star-tag-question/{id}', [QuestionController::class, "getStarTagById"]);
+    Route::delete('/star-tag-question/{id}', [QuestionController::class, "deleteStarTagById"]);
+    Route::get('/tag-count/star-tag-question/{businessId}', [QuestionController::class, "getSelectedTagCount"]);
+    Route::get('/tag-count/star-tag-question/by-question/{questionId}', [QuestionController::class, "getSelectedTagCountByQuestion"]);
 
     // ============================================================================
     // CustomerController – Customers (protected)
@@ -323,8 +323,7 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // ReportController & DashboardManagementController – Reports/dashboards (protected)
     // ============================================================================
-    Route::get('/v1.0/customer-report', [ReportController::class, "customerDashboardReport"]);
-    Route::get('/v1.0/business-report', [ReportController::class, "businessDashboardReport"]);
+
     Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
     Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
     Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
@@ -333,12 +332,14 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [ReportController::class, 'staffPerformance']);
     Route::get('/v1.0/reports/staff-dashboard/{businessId}', [ReportController::class, 'staffDashboard']);
     Route::get('/v1.0/reports/review-analytics/{businessId}', [ReportController::class, 'reviewAnalytics']);
-
+  Route::get('/v1.0/branch-dashboard/{branchId}', [ReportController::class, 'getBranchDashboard']);
+    Route::get('/v1.0/reports/branch-comparison', [ReportController::class, 'branchComparison']);
+  
     // ============================================================================
     // ReviewNewController – Owner Questions (protected)
     // ============================================================================
-    Route::post('/review-new/owner/create/questions', [ReviewNewController::class, "storeOwnerQuestion"]);
-    Route::patch('/review-new/owner/update/questions', [ReviewNewController::class, "updateOwnerQuestion"]);
+    Route::post('/review-new/owner/create/questions', [QuestionController::class, "storeOwnerQuestion"]);
+    Route::patch('/review-new/owner/update/questions', [QuestionController::class, "updateOwnerQuestion"]);
 
     // ============================================================================
     // ReviewNewController – Review by id (protected)

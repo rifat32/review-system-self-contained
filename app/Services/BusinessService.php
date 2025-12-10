@@ -112,6 +112,7 @@ class BusinessService
             'Is_guest_user' => $payloadData['Is_guest_user'] ?? false,
             'is_review_slider' => $payloadData['is_review_slider'] ?? false,
             'review_only' => $payloadData['review_only'] ?? true,
+            'is_branch' => $payloadData['is_branch'] ?? false,
             'Is_guest_user' => true,
             'guest_user_review_report' => true,
             'is_guest_user_overall_review' => true,

@@ -34,6 +34,7 @@ class Business extends Model
         'Is_guest_user',
         'is_review_slider',
         'review_only',
+        'is_branch',
         "header_image",
         "rating_page_image",
         "placeholder_image",
