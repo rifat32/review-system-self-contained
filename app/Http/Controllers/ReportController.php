@@ -1181,7 +1181,7 @@ class ReportController extends Controller
         ];
 
         // 🏷️ Tag Report Enhancements
-        $tags_with_reviews = ReviewValueNew:: whereMeetsThreshold($businessId)
+        $tags_with_reviews = ReviewValueNew::whereMeetsThreshold($businessId)
             ->filterByOverall($is_overall)
             ->select('review_value_news.review_id', 'review_value_news.tag_id')
             ->get()
