@@ -3664,7 +3664,7 @@ class ReportController extends Controller
                 'submissions_over_time' => $submissionsOverTime,
                 'recent_submissions' => $recentSubmissions,
                 // NEW: Add top three staff to the response
-                'top_three_staff' => $topStaff
+                'top_staff' => $topStaff
             ]
         ], 200);
     }
@@ -3728,7 +3728,7 @@ class ReportController extends Controller
         })
             ->filter(function ($staff) {
                 // Only include staff with at least 3 reviews
-                return $staff && $staff['review_count'] >= 3;
+                return $staff && $staff['review_count'] >= 5;
             })
             ->sortByDesc(function ($staff) {
                 // Sort by rating, then by review count
