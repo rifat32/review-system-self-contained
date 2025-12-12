@@ -136,8 +136,8 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     Route::get('/v1.0/questions', [QuestionController::class, 'getAllQuestions']);
     Route::get('/v1.0/questions/{id}', [QuestionController::class, 'questionById']);
-    Route::post('/v1.0/questions', [QuestionController::class, 'createQuestion']);
     Route::post('/v1.0/questions/update-question-starts-and-tags', [QuestionController::class, 'updateQuestionStartsAndTags']);
+    Route::post('/v1.0/questions', [QuestionController::class, 'createQuestion']);
     Route::delete('/v1.0/questions/{ids}', [QuestionController::class, 'deleteQuestion']);
     Route::patch('/v1.0/questions/ordering', [QuestionController::class, 'displayQuestionOrder']);
     Route::patch('/v1.0/questions/set-overall', [QuestionController::class, 'setOverallQuestions']);

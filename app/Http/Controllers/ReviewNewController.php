@@ -1563,7 +1563,7 @@ class ReviewNewController extends Controller
             "review_id" => $review->id,
         ];
 
-        
+
         // Add voice info if present
         // if ($voiceData) {
         //     $responseData['voice_info'] = [
@@ -2465,10 +2465,10 @@ class ReviewNewController extends Controller
         ], 200);
     }
 
-   
-   
- 
-   
+
+
+
+
 
     /**
      *
@@ -4028,7 +4028,7 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
         ])
             ->when($request->has('is_private'), function ($q) use ($request) {
-                $isPrivate = $request->get('is_private', 0);
+                $isPrivate = $request->input('is_private');
                 if ($isPrivate == 0) {
                     // For public reviews, include both is_private = 0 and is_private = null
                     $q->where(function ($subQ) {
@@ -4039,8 +4039,7 @@ class ReviewNewController extends Controller
                     // For private reviews, only is_private = 1
                     $q->where('is_private', $isPrivate);
                 }
-            })
-            ->globalFilters(1, $businessId);
+            });
 
         // Sorting logic
         $sortBy = $request->get('sort_by');
