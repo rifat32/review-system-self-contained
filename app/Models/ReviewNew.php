@@ -76,7 +76,7 @@ class ReviewNew extends Model
     //     return $this->hasOne(Question::class,'id','tag_id');
     // }
 
-      public function isVoiceReview()
+    public function isVoiceReview()
     {
         return $this->is_voice_review;
     }
@@ -124,37 +124,34 @@ class ReviewNew extends Model
     }
 
 
-    public function scopeGlobalFilters($query,$show_published_only = 0,$businessId = null, $is_staff_review = 0)
+    public function scopeGlobalFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
         return $query->when(request()->has('staff_id'), function ($q) {
             $q->where('staff_id', request()->input('staff_id'));
         })
-        ->when($show_published_only, function ($q) use($businessId,$is_staff_review) {
-            $q->whereMeetsThreshold($businessId,1,$is_staff_review);
-        });
+            ->when($show_published_only, function ($q) use ($businessId, $is_staff_review) {
+                $q->whereMeetsThreshold($businessId, 1, $is_staff_review);
+            });
     }
 
     public function scopeWhereMeetsThreshold($query, $businessId, $is_staff_review = 0)
-{
-    
-    // Get threshold rating
-    $business = \App\Models\Business::find($businessId);
-    $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
-    
-    return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
-        $subQuery->select(DB::raw(1))
-            ->from('review_value_news as rvn')
-            ->join('questions as q', 'rvn.question_id', '=', 'q.id')
-            ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
-            $q->where('q.is_staff', 1);
-        })
-            ->join('stars as s', 'rvn.star_id', '=', 's.id')
-            ->whereColumn('rvn.review_id', 'review_news.id')
-            ->groupBy('rvn.review_id')
-            ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
-    });
-}
+    {
 
+        // Get threshold rating
+        $business = \App\Models\Business::find($businessId);
+        $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
 
-
+        return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
+            $subQuery->select(DB::raw(1))
+                ->from('review_value_news as rvn')
+                ->join('questions as q', 'rvn.question_id', '=', 'q.id')
+                ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
+                    $q->where('q.is_staff', 1);
+                })
+                ->join('stars as s', 'rvn.star_id', '=', 's.id')
+                ->whereColumn('rvn.review_id', 'review_news.id')
+                ->groupBy('rvn.review_id')
+                ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
+        });
+    }
 }
