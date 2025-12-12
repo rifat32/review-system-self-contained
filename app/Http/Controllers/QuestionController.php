@@ -243,7 +243,7 @@ class QuestionController extends Controller
         // Check permissions
         if (!$user->hasRole('superadmin')) {
             // Business owner: can only access default questions or their own business questions
-            if (!$question->is_default && !in_array($question->business_id, $user->businesses()->pluck('id')->toArray())) {
+            if (!$question->is_default && !in_array($question->business_id, $user->business()->pluck('id')->toArray())) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have access to this question.'
@@ -1008,7 +1008,7 @@ class QuestionController extends Controller
         }
     }
 
-     /**
+    /**
      *
      * @OA\Post(
      *      path="/review-new/owner/update/questions",
@@ -1138,7 +1138,7 @@ class QuestionController extends Controller
     }
 
 
-     /**
+    /**
      *
      * @OA\Post(
      *      path="/review-new/owner/create/questions",
@@ -1237,16 +1237,16 @@ class QuestionController extends Controller
     }
 
 
-   // ##################################################
+    // ##################################################
     // This method is to delete star tag by id
     // ##################################################
     public function   deleteStarTagById($id, Request $request)
     {
-          StarTagQuestion::where(["id" => $id])
+        StarTagQuestion::where(["id" => $id])
             ->delete();
         return response(["message" => "ok"], 200);
     }
-// ##################################################
+    // ##################################################
     // This method is to get report
     // ##################################################
     public function   getSelectedTagCountByQuestion($questionId, Request $request)
@@ -1269,7 +1269,7 @@ class QuestionController extends Controller
             foreach ($questionStar->star->star_tags as $key3 => $starTag) {
                 if ($starTag->question_id == $question->id) {
                     $data["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
-                   
+
                     $data["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
                         "question_id" => $question->id,
                         "star_id" => $questionStar->star->id,
@@ -1284,7 +1284,7 @@ class QuestionController extends Controller
         return response($data, 200);
     }
 
-     // ##################################################
+    // ##################################################
     // This method is to get report
     // ##################################################
     public function   getSelectedTagCount($businessId, Request $request)
@@ -1307,7 +1307,7 @@ class QuestionController extends Controller
                 foreach ($questionStar->star->star_tags as $key3 => $starTag) {
                     if ($starTag->question_id == $question->id) {
                         $data[$key1]["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
-                       
+
 
                         $data[$key1]["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
                             "question_id" => $question->id,
@@ -1321,8 +1321,8 @@ class QuestionController extends Controller
         }
         return response($data, 200);
     }
-    
- // ##################################################
+
+    // ##################################################
     // This method is to get star tag by id
     // ##################################################
     public function   getStarTagById($id, Request $request)
@@ -1333,7 +1333,7 @@ class QuestionController extends Controller
             ->first();
         return response($questions, 200);
     }
-     // ##################################################
+    // ##################################################
     // This method is to get star tag
     // ##################################################
     public function   getStarTag(Request $request)
@@ -1352,7 +1352,7 @@ class QuestionController extends Controller
         return response($questions, 200);
     }
 
-     // ##################################################
+    // ##################################################
     // This method is to update star tag
     // ##################################################
     public function updateStarTag(Request $request)
@@ -1395,16 +1395,16 @@ class QuestionController extends Controller
 
         return response($createdQuestion, 201);
     }
-   
-     public function   deleteStarById($id, Request $request)
+
+    public function   deleteStarById($id, Request $request)
     {
         return "this api is closed by the developer";
         Star::where(["id" => $id])
             ->delete();
         return response(["message" => "ok"], 200);
     }
-  
-     // ##################################################
+
+    // ##################################################
     // This method is to get star by id
     // ##################################################
     public function   getStarById($id, Request $request)
@@ -1413,7 +1413,7 @@ class QuestionController extends Controller
             ->first();
         return response($questions, 200);
     }
-  // ##################################################
+    // ##################################################
     // This method is to get star
     // ##################################################
     public function   getStar(Request $request)
@@ -1437,8 +1437,8 @@ class QuestionController extends Controller
 
         return response($questions, 200);
     }
-   
-  // ##################################################
+
+    // ##################################################
     // This method is to update star
     // ##################################################
     public function updateStar(Request $request)
@@ -1461,8 +1461,8 @@ class QuestionController extends Controller
 
         return response($updatedQuestion, 200);
     }
-    
-     // ##################################################
+
+    // ##################################################
     // This method is to store star
     // ##################################################
     public function storeStar(Request $request)
@@ -1924,7 +1924,7 @@ class QuestionController extends Controller
         return response($updatedQuestion, 200);
     }
 
-      /**
+    /**
      *
      * @OA\Put(
      *      path="/v1.0/review-new/set-overall-question",
@@ -2227,6 +2227,4 @@ class QuestionController extends Controller
 
         return response($createdQuestion, 201);
     }
-    
-
 }

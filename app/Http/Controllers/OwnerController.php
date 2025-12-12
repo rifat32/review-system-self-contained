@@ -24,7 +24,30 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
+
+
+use OpenApi\Annotations as OA;
+
+/**
+ * @OA\Schema(
+ *     schema="User",
+ *     type="object",
+ *     title="User",
+ *     required={"id", "first_Name", "last_Name", "email"},
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="first_Name", type="string", example="John"),
+ *     @OA\Property(property="last_Name", type="string", example="Doe"),
+ *     @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+ *     @OA\Property(property="phone", type="string", example="+1234567890"),
+ *     @OA\Property(property="Address", type="string", example="123 Main St"),
+ *     @OA\Property(property="door_no", type="string", example="A12", nullable=true),
+ *     @OA\Property(property="post_code", type="string", example="00123", nullable=true),
+ *     @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
+
 
 class OwnerController extends Controller
 {
@@ -215,7 +238,7 @@ class OwnerController extends Controller
      *            @OA\Property(property="Is_guest_user", type="boolean", example=false),
      *            @OA\Property(property="is_review_slider", type="boolean", example=false),
      *            @OA\Property(property="review_only", type="boolean", example=true),
-      *            @OA\Property(property="is_branch", type="boolean", example=true),
+     *            @OA\Property(property="is_branch", type="boolean", example=true),
      * 
      *            @OA\Property(property="header_image", type="string", example="/header_image/default.png"),
      *            @OA\Property(property="primary_color", type="string", example="#FF0000"),
@@ -1366,121 +1389,96 @@ class OwnerController extends Controller
 
 
 
-
     /**
-     *
      * @OA\Patch(
-     *      path="/owner/update-user/by-user",
-     *      operationId="updateUserByUser",
-     *      tags={"owner"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to update user by user",
-     *      description="This method is to update user by user",
-     *
-     *  @OA\RequestBody(
+     *     path="/v1.0/owner/update",
+     *     operationId="updateUserByUser",
+     *     tags={"owner"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Update authenticated user's profile",
+     *     description="Allows a user to update their own profile information including password (with old password verification)",
+     *     
+     *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *            required={"last_name","first_Name","phone","Address"},
-     *             @OA\Property(property="last_name", type="string", format="string",example="test@g.c"),
-     *            @OA\Property(property="first_Name", type="string", format="string",example="12345678"),
-     *            @OA\Property(property="phone", type="string", format="string",example="Rifat"),
-
-     *    *            @OA\Property(property="Address", type="string", format="string",example="12345678"),
-     *   *    *            @OA\Property(property="door_no", type="string", format="string",example="12345678"),
-     *
-     *            @OA\Property(property="password", type="string", format="string",example="Rifat"),
-     *  *            @OA\Property(property="old_password", type="string", format="string",example="Rifat"),
-     *
-
-     *  *               @OA\Property(property="post_code", type="string", format="string",example="Rifat"),
-
-     *
-     *
-     *         ),
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocessable Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
+     *             required={"first_Name", "last_Name", "phone", "Address"},
+     *             @OA\Property(property="first_Name", type="string", example="John"),
+     *             @OA\Property(property="last_Name", type="string", example="Doe"),
+     *             @OA\Property(property="phone", type="string", example="+1234567890"),
+     *             @OA\Property(property="Address", type="string", example="123 Main Street"),
+     *             @OA\Property(property="door_no", type="string", example="A-12", nullable=true),
+     *             @OA\Property(property="post_code", type="string", example="00123", nullable=true),
+     *             @OA\Property(property="password", type="string", example="newPassword123", description="New password (optional)", nullable=true),
+     *             @OA\Property(property="old_password", type="string", example="oldPassword123", description="Required only if changing password", nullable=true)
+     *         )
+     *     ),
+     *     
+     *     @OA\Response(response=200, description="Profile updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="User updated successfully"),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/User")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated or incorrect old password",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string"))
+     *     ),
+     *     @OA\Response(response=422, description="Validation error",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string"))
+     *     ),
+     *     @OA\Response(response=404, description="User not found",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string"))
+     *     ),
+     *     @OA\Response(response=400, description="Bad Request")
+     * )
      */
-
-
-
-
-
     public function updateUserByUser(Request $request)
     {
+        $user = $request->user();
 
-
+        // Validate input
+        $validated = $request->validate([
+            'first_Name'    => 'required|string|max:255',
+            'last_Name'     => 'required|string|max:255',
+            'phone'         => 'required|string|max:20',
+            'Address'       => 'required|string|max:255',
+            'door_no'       => 'nullable|string|max:50',
+            'post_code'     => 'nullable|string|max:20',
+            'password'      => 'nullable|string|min:8|confirmed', // assumes password_confirmation is sent if needed
+            'old_password'  => 'required_with:password|string',
+        ]);
 
         $updatableData = [
-            "first_Name" => $request->first_Name,
-            "last_Name" => $request->last_Name,
-            "phone" => $request->phone,
-            "Address" => $request->Address,
-            "door_no" => $request->door_no,
-
-            "post_code" => $request->post_code,
+            'first_Name' => $validated['first_Name'],
+            'last_Name'  => $validated['last_Name'],
+            'phone'      => $validated['phone'],
+            'Address'    => $validated['Address'],
+            'door_no'    => $validated['door_no'],
+            'post_code'  => $validated['post_code'],
         ];
-        $previousUser = User::where([
-            "id" => $request->user()->id
-        ])
-            ->first();
 
-        if (!empty($request->password)) {
-            if (!Hash::check((!empty($request->old_password) ? $request->old_password : ""), $previousUser->password)) {
-                return response()->json(["message" => "incorrect old password", 401]);
+        // Handle password update securely
+        if (!empty($validated['password'])) {
+            if (!Hash::check($validated['old_password'], $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The old password is incorrect.'
+                ], 401);
             }
 
-            $updatableData["password"] = Hash::make($request->password);
+            $updatableData['password'] = Hash::make($validated['password']);
         }
 
+        // Update user (using tap + update + first() to get fresh instance)
+        $updatedUser = tap($user)->update($updatableData);
 
-
-        $user =    tap(User::where(["id" => $request->user()->id]))->update(
-            $updatableData
-        )
-            // ->with("somthing")
-
-            ->first();
-
-
-        if (!$user) {
-            return response()->json(["message" => "No User Found"], 404);
-        }
-
+        // Reload relations if needed, or just return fresh instance
+        $updatedUser = $updatedUser->fresh();
 
         return response()->json([
-            "success" => true,
-            "message" => "user updates successfully",
-            "data" => $user
+            'success' => true,
+            'message' => 'User updated successfully',
+            'data'    => $updatedUser
         ], 200);
     }
 }

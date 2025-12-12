@@ -119,6 +119,7 @@ Route::middleware(['auth:api'])->group(function () {
     // OwnerController – Owner + business creation (protected)
     // ============================================================================
     Route::post('/v1.0/create-user-with-business', [OwnerController::class, "createUserWithBusiness"]);
+    Route::post('/v1.0/owner/update', [OwnerController::class, "updateUserByUser"]);
 
     // ============================================================================
     // ReviewNewController – Create review (protected)
@@ -332,9 +333,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [ReportController::class, 'staffPerformance']);
     Route::get('/v1.0/reports/staff-dashboard/{businessId}', [ReportController::class, 'staffDashboard']);
     Route::get('/v1.0/reports/review-analytics/{businessId}', [ReportController::class, 'reviewAnalytics']);
-  Route::get('/v1.0/branch-dashboard/{branchId}', [ReportController::class, 'getBranchDashboard']);
+    Route::get('/v1.0/branch-dashboard/{branchId}', [ReportController::class, 'getBranchDashboard']);
     Route::get('/v1.0/reports/branch-comparison', [ReportController::class, 'branchComparison']);
-  
+
     // ============================================================================
     // ReviewNewController – Owner Questions (protected)
     // ============================================================================
