@@ -231,7 +231,9 @@ class QuestionController extends Controller
     {
         $user = $request->user();
 
-        $question = Question::with(['surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no')])->find($id);
+        $question = Question::with([
+            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no')
+        ])->find($id);
 
         if (!$question) {
             return response()->json([
@@ -251,10 +253,26 @@ class QuestionController extends Controller
             }
         }
 
+        $data =  json_decode(json_encode($question), true);
+
+        foreach ($question->question_stars as $key2 => $questionStar) {
+            $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
+
+
+            $data["stars"][$key2]["tags"] = [];
+            foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+
+                if ($starTag->question_id == $question->id) {
+
+                    array_push($data["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
+                }
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Question retrieved successfully.',
-            'data'    => $question
+            'data'    => $data
         ], 200);
     }
 

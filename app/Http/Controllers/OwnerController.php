@@ -1436,6 +1436,11 @@ class OwnerController extends Controller
     {
         $user = $request->user();
 
+
+        if ($request->user()->hasRole("superadmin")) {
+            return response()->json(["message" => "You do not have permission", 401]);
+        }
+
         // Validate input
         $validated = $request->validate([
             'first_Name'    => 'required|string|max:255',

@@ -119,7 +119,7 @@ Route::middleware(['auth:api'])->group(function () {
     // OwnerController – Owner + business creation (protected)
     // ============================================================================
     Route::post('/v1.0/create-user-with-business', [OwnerController::class, "createUserWithBusiness"]);
-    Route::post('/v1.0/owner/update', [OwnerController::class, "updateUserByUser"]);
+    Route::patch('/v1.0/owner/update', [OwnerController::class, "updateUserByUser"]);
 
     // ============================================================================
     // ReviewNewController – Create review (protected)
