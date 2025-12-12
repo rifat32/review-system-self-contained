@@ -17,6 +17,7 @@ use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Global OpenAPI component schemas used across controllers.
@@ -1072,15 +1073,6 @@ class QuestionController extends Controller
      *     summary="Update question stars and tags",
      *     description="Update the stars associated with a question and the tags under each star.",
      *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="_method",
-     *         in="query",
-     *         description="HTTP method override (optional). Use 'PATCH' if you want to simulate a PATCH via POST.",
-     *         required=false,
-     *         @OA\Schema(type="string", example="PATCH")
-     *     ),
-     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(ref="#/components/schemas/UpdateQuestionStarsTagsRequest")
@@ -1108,59 +1100,92 @@ class QuestionController extends Controller
 
     public function updateQuestionStartsAndTags(Request $request)
     {
-        return DB::transaction(function () use ($request) {
+        // === 1. Validation (inside controller) ===
+        $validator = Validator::make($request->all(), [
+            'question_id' => 'required|integer|exists:questions,id',
 
-            $questionId = $request->question_id;
-            $stars = collect($request->stars);
+            'stars'                  => 'required|array|min:1',
+            'stars.*.star_id'        => 'required|integer|distinct|exists:stars,id',
+            'stars.*.tags'           => 'present|array', // allows [] or missing
+            'stars.*.tags.*.tag_id'  => 'required|integer|exists:tags,id',
+        ], [
+            'question_id.required'           => 'Question ID is required.',
+            'question_id.exists'             => 'The selected question does not exist.',
 
-            // Extract star_ids
-            $starIds = $stars->pluck('star_id');
+            'stars.required'                 => 'You must provide at least one star rating.',
+            'stars.min'                      => 'At least one star is required.',
+            'stars.*.star_id.required'       => 'Each star must have a star_id.',
+            'stars.*.star_id.distinct'       => 'Duplicate star ratings are not allowed.',
+            'stars.*.star_id.exists'         => 'One or more selected stars do not exist.',
 
-            // Delete removed stars
+            'stars.*.tags.*.tag_id.required' => 'Each tag must have a tag_id.',
+            'stars.*.tags.*.tag_id.exists'   => 'One or more selected tags do not exist.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $questionId = $request->input('question_id');
+        $stars      = collect($request->input('stars'));
+
+        return DB::transaction(function () use ($questionId, $stars) {
+
+            // === 2. Extract all incoming star IDs ===
+            $incomingStarIds = $stars->pluck('star_id')->unique();
+
+            // === 3. Delete removed stars (and their tags will cascade or be cleaned below) ===
             QuestionStar::where('question_id', $questionId)
-                ->whereNotIn('star_id', $starIds)
+                ->whereNotIn('star_id', $incomingStarIds)
                 ->delete();
 
-            foreach ($stars as $star) {
+            // === 4. Sync stars and tags efficiently ===
+            foreach ($stars as $starData) {
+                $starId  = $starData['star_id'];
+                $tagIds  = collect($starData['tags'] ?? [])->pluck('tag_id')->unique();
 
-                // Create or update star
+                // Upsert the star relationship
                 QuestionStar::updateOrCreate(
                     [
                         'question_id' => $questionId,
-                        'star_id' => $star['star_id']
+                        'star_id'     => $starId,
                     ],
-                    [] // no other fields
+                    [
+                        // You can add timestamps or other fields here if needed
+                    ]
                 );
 
-                $tagIds = collect($star['tags'])->pluck('tag_id');
-
-                // Delete removed tags for this star
+                // Delete tags that were removed for this star
                 StarTag::where('question_id', $questionId)
-                    ->where('star_id', $star['star_id'])
-                    ->whereNotIn('tag_id', $tagIds)
+                    ->where('star_id', $starId)
+                    ->whereNotIn('tag_id', $tagIds->isEmpty() ? [0] : $tagIds) // handle empty case
                     ->delete();
 
-                // Create or update tags
+                // Insert only new/missing tags
                 foreach ($tagIds as $tagId) {
-                    StarTag::updateOrCreate(
-                        [
-                            'question_id' => $questionId,
-                            'star_id' => $star['star_id'],
-                            'tag_id' => $tagId,
-                        ],
-                        []
-                    );
+                    StarTag::updateOrCreate([
+                        'question_id' => $questionId,
+                        'star_id'     => $starId,
+                        'tag_id'      => $tagId,
+                    ]);
                 }
             }
 
-            return response([
+            // Optional: Return fresh data if you want
+            // $question = Question::with(['stars.tags'])->find($questionId);
+
+            return response()->json([
                 'success' => true,
-                'message' => 'Question Stars and Tags updated successfully',
+                'message' => 'Question stars and tags updated successfully',
                 'data'    => null
+                // 'data' => $question // if you want to return updated structure
             ], 200);
         });
     }
-
 
 
     /**
