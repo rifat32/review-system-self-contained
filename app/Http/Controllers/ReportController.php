@@ -3317,7 +3317,8 @@ class ReportController extends Controller
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => $avgRating,
                 'total_reviews' => $staffReviews->count(),
-                'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score'))
+                'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score')),
+                'image' => $staff->image ?? null
             ];
         })
             ->filter(function ($staff) {
@@ -3713,6 +3714,7 @@ class ReportController extends Controller
                 'staff_id' => $staffId,
                 'staff_name' => $staff->name,
                 'position' => $staff->job_title ?? 'Staff',
+                'image' => $staff->image ?? null,
                 'avg_rating' => $avgRating,
                 'review_count' => $totalReviews,
                 'sentiment_score' => $sentimentPercentage,
