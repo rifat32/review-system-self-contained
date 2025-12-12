@@ -621,7 +621,7 @@ class ReportController extends Controller
         $aiInsights = $this->generateAiInsights($reviews, $validRatings);
 
         // Get recommendations
-        $recommendations = $this->generateRecommendations($reviews, $validRatings, $branchId);
+        $recommendations = $this->generateBranchRecommendations($reviews, $validRatings, $branchId);
 
         // Get recent reviews (last 5)
         $recentReviews = $this->getRecentReviews($reviews, $ratings);
@@ -794,7 +794,7 @@ class ReportController extends Controller
     /**
      * Generate recommendations based on review analysis
      */
-    private function generateRecommendations($reviews, $ratings, $branchId)
+    private function generateBranchRecommendations($reviews, $ratings, $branchId)
     {
         $recommendations = [];
         $totalReviews = $reviews->count();

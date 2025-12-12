@@ -167,6 +167,7 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // TagController – Tags CRUD (protected)
     // ============================================================================
+    
     Route::post('/v1.0/tags', [TagController::class, 'createTag']);
     Route::get('/v1.0/tags', [TagController::class, 'getAllTags']);
     Route::get('/v1.0/tags/{id}', [TagController::class, 'getTagById']);

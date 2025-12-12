@@ -23,11 +23,11 @@ if (!function_exists('retrieve_data')) {
             $orderBy = request()->input('order_by');
         };
         // Handle order_by safely (default to id if empty)
-if (request()->filled('order_by') && request()->input('order_by') !== '') {
-    $orderBy = request()->input('order_by');
-} else {
-    $orderBy = 'id'; // fallback default
-}
+        if (request()->filled('order_by') && request()->input('order_by') !== '') {
+            $orderBy = request()->input('order_by');
+        } else {
+            $orderBy = 'id'; // fallback default
+        }
 
 
 

@@ -45,7 +45,8 @@ class ReviewNew extends Model
         'voice_duration',
         'transcription_metadata',
         'is_private',
-        "branch_id"
+        "branch_id",
+        "is_ai_processed"
 
     ];
     protected $casts = [
