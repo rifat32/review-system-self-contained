@@ -1453,14 +1453,20 @@ class OwnerController extends Controller
             'old_password'  => 'required_with:password|string',
         ]);
 
+        // GET VALIDATED DATA
         $updatableData = [
             'first_Name' => $validated['first_Name'],
             'last_Name'  => $validated['last_Name'],
             'phone'      => $validated['phone'],
             'Address'    => $validated['Address'],
-            'door_no'    => $validated['door_no'],
-            'post_code'  => $validated['post_code'],
         ];
+
+        if (!empty($validated['post_code'])) {
+            $updatableData['post_code'] = $validated['post_code'];
+        }
+        if (!empty($validated['door_no'])) {
+            $updatableData['door_no'] = $validated['door_no'];
+        }
 
         // Handle password update securely
         if (!empty($validated['password'])) {

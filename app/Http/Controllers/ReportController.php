@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-  /**
+    /**
      * @OA\Get(
      *      path="/v1.0/reports/branch-comparison",
      *      operationId="branchComparison",
@@ -86,11 +86,11 @@ class ReportController extends Controller
         }
 
         // Get date range (default: last 90 days)
-        $startDate = $request->start_date 
+        $startDate = $request->start_date
             ? Carbon::parse($request->start_date)->startOfDay()
             : Carbon::now()->subDays(90)->startOfDay();
-        
-        $endDate = $request->end_date 
+
+        $endDate = $request->end_date
             ? Carbon::parse($request->end_date)->endOfDay()
             : Carbon::now()->endOfDay();
 
@@ -159,7 +159,7 @@ class ReportController extends Controller
         // Get reviews for this branch within date range
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branch->id)
-             ->globalFilters(1, $businessId)
+            ->globalFilters(1, $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
 
@@ -221,7 +221,7 @@ class ReportController extends Controller
     {
         $staffReviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branchId)
-             ->globalFilters(1, $businessId,1)
+            ->globalFilters(1, $businessId, 1)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get()
@@ -249,7 +249,7 @@ class ReportController extends Controller
         }
 
         // Sort by average rating descending
-        usort($staffPerformance, function($a, $b) {
+        usort($staffPerformance, function ($a, $b) {
             return $b['avg_rating'] <=> $a['avg_rating'];
         });
 
@@ -262,7 +262,7 @@ class ReportController extends Controller
     private function extractBranchTopics($reviews)
     {
         $topicCounts = [];
-        
+
         foreach ($reviews as $review) {
             // Use stored topics if available
             if ($review->topics && is_array($review->topics)) {
@@ -270,12 +270,12 @@ class ReportController extends Controller
                     $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
                 }
             }
-            
+
             // Also extract from comment
             if ($review->comment) {
                 $commonTopics = ['service', 'staff', 'wait', 'quality', 'price', 'clean', 'product', 'location'];
                 $comment = strtolower($review->comment);
-                
+
                 foreach ($commonTopics as $topic) {
                     if (strpos($comment, $topic) !== false) {
                         $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
@@ -283,7 +283,7 @@ class ReportController extends Controller
                 }
             }
         }
-        
+
         arsort($topicCounts);
         return $topicCounts;
     }
@@ -336,7 +336,7 @@ class ReportController extends Controller
         $overview = "The {$bestBranch} branch consistently outperforms others in Average Rating ({$bestRating}) ";
         $overview .= "and CSAT ({$branchesData[array_search($bestBranch, array_column($branchesData, 'branch'))]['metrics']['csat_score']}%), ";
         $overview .= "driven by positive feedback on staff performance. ";
-        
+
         if ($mostReviewsBranch !== $bestBranch) {
             $overview .= "The {$mostReviewsBranch} branch has the highest volume of reviews, ";
             $overview .= "indicating high traffic, but its sentiment score is slightly lower. ";
@@ -448,7 +448,7 @@ class ReportController extends Controller
         // Group by month for the trend
         $months = [];
         $current = $startDate->copy();
-        
+
         while ($current <= $endDate) {
             $months[] = $current->format('M Y');
             $current->addMonth();
@@ -458,26 +458,26 @@ class ReportController extends Controller
 
         foreach ($branches as $branch) {
             $branchTrend = [];
-            
+
             $current = $startDate->copy();
             while ($current <= $endDate) {
                 $monthStart = $current->copy()->startOfMonth();
                 $monthEnd = $current->copy()->endOfMonth();
-                
+
                 $reviews = ReviewNew::where('business_id', $branch->business_id)
                     ->where('branch_id', $branch->id)
-                     ->globalFilters(1, $branch->business_id)
+                    ->globalFilters(1, $branch->business_id)
                     ->whereBetween('created_at', [$monthStart, $monthEnd])
                     ->get();
-                
+
                 $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
                 $totalReviews = $reviews->count();
                 $sentimentScore = $totalReviews > 0 ? round(($positiveReviews / $totalReviews) * 100) : 0;
-                
+
                 $branchTrend[] = $sentimentScore;
                 $current->addMonth();
             }
-            
+
             $trendData[] = [
                 'branch_name' => $branch->name,
                 'data' => $branchTrend
@@ -500,13 +500,13 @@ class ReportController extends Controller
         foreach ($branches as $branch) {
             $reviews = ReviewNew::where('business_id', $branch->business_id)
                 ->where('branch_id', $branch->id)
-                ->globalFilters(1, $branch->business_id,1)
+                ->globalFilters(1, $branch->business_id, 1)
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->get();
 
             $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
             $totalReviews = $reviews->count();
-            
+
             $complaintsByBranch[] = [
                 'branch_name' => $branch->name,
                 'complaints_count' => $negativeReviews,
@@ -516,14 +516,14 @@ class ReportController extends Controller
         }
 
         // Sort by complaint percentage descending
-        usort($complaintsByBranch, function($a, $b) {
+        usort($complaintsByBranch, function ($a, $b) {
             return $b['complaint_percentage'] <=> $a['complaint_percentage'];
         });
 
         return $complaintsByBranch;
     }
 
-   
+
     /**
      * @OA\Get(
      *      path="/v1.0/branch-dashboard/{branchId}",
@@ -578,11 +578,11 @@ class ReportController extends Controller
         ]);
 
         // Get date range (default: last 30 days)
-        $startDate = $request->start_date 
+        $startDate = $request->start_date
             ? Carbon::parse($request->start_date)->startOfDay()
             : Carbon::now()->subDays(30)->startOfDay();
-        
-        $endDate = $request->end_date 
+
+        $endDate = $request->end_date
             ? Carbon::parse($request->end_date)->endOfDay()
             : Carbon::now()->endOfDay();
 
@@ -603,7 +603,7 @@ class ReportController extends Controller
         // Get reviews for this branch within date range
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branchId)
-             ->globalFilters(1, $businessId)
+            ->globalFilters(1, $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->with(['staff', 'user', 'guest_user', 'survey']);
 
@@ -666,14 +666,14 @@ class ReportController extends Controller
     private function calculateBranchSummary($reviews, $ratings)
     {
         $totalReviews = $reviews->count();
-        
+
         // Average rating
         $averageRating = $ratings->isNotEmpty() ? round($ratings->avg(), 1) : 0;
-        
+
         // AI Sentiment
         $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
         $sentiment = 'Neutral';
-        
+
         if ($totalReviews > 0) {
             $positivePercentage = ($positiveReviews / $totalReviews) * 100;
             if ($positivePercentage >= 70) {
@@ -682,7 +682,7 @@ class ReportController extends Controller
                 $sentiment = 'Negative';
             }
         }
-        
+
         // CSAT Score (percentage of 4-5 star ratings)
         $csatCount = 0;
         foreach ($reviews as $review) {
@@ -692,10 +692,10 @@ class ReportController extends Controller
             }
         }
         $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
-        
+
         // Top Topic (from review topics or extract from comments)
         $topTopic = $this->extractTopTopic($reviews);
-        
+
         // Flagged reviews
         $flagged = $reviews->where('status', 'flagged')->count();
 
@@ -728,21 +728,21 @@ class ReportController extends Controller
         }
 
         $totalReviews = $reviews->count();
-        
+
         // Sentiment breakdown
         $positive = $reviews->where('sentiment_score', '>=', 0.7)->count();
         $neutral = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
         $negative = $reviews->where('sentiment_score', '<', 0.4)->count();
-        
+
         $sentimentBreakdown = [
             'positive' => round(($positive / $totalReviews) * 100),
             'neutral' => round(($neutral / $totalReviews) * 100),
             'negative' => round(($negative / $totalReviews) * 100)
         ];
-        
+
         // Generate summary
         $summary = $this->generateAiSummary($reviews, $sentimentBreakdown, $ratings);
-        
+
         return [
             'summary' => $summary,
             'sentiment_breakdown' => $sentimentBreakdown,
@@ -757,9 +757,9 @@ class ReportController extends Controller
     {
         $totalReviews = $reviews->count();
         $positivePercentage = $sentimentBreakdown['positive'];
-        
+
         $summary = "Overall sentiment is ";
-        
+
         if ($positivePercentage >= 70) {
             $summary .= "highly positive";
         } elseif ($positivePercentage >= 50) {
@@ -769,25 +769,25 @@ class ReportController extends Controller
         } else {
             $summary .= "predominantly negative";
         }
-        
+
         $summary .= ", with {$positivePercentage}% of reviews expressing positive sentiment. ";
-        
+
         // Calculate average rating
         $avgRating = $ratings->isNotEmpty() ? round($ratings->avg(), 1) : 0;
         $summary .= "The average rating is {$avgRating} out of 5. ";
-        
+
         // Check for common issues
         $commonIssues = $this->findCommonIssues($reviews);
         if (!empty($commonIssues)) {
             $summary .= "A recurring issue mentioned is " . $commonIssues[0]['topic'] . ". ";
         }
-        
+
         // Check for peak times if available
         $peakTimes = $this->findPeakReviewTimes($reviews);
         if ($peakTimes) {
             $summary .= "Peak feedback times are around {$peakTimes}. ";
         }
-        
+
         return trim($summary);
     }
 
@@ -798,7 +798,7 @@ class ReportController extends Controller
     {
         $recommendations = [];
         $totalReviews = $reviews->count();
-        
+
         if ($totalReviews === 0) {
             return [
                 [
@@ -808,36 +808,36 @@ class ReportController extends Controller
                 ]
             ];
         }
-        
+
         // 1. Identify strengths (positive reviews with specific praise)
         $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7);
-        
+
         // Check for staff praise
-        $staffPraise = $positiveReviews->filter(function($review) {
+        $staffPraise = $positiveReviews->filter(function ($review) {
             $text = strtolower($review->comment ?? '');
-            return strpos($text, 'staff') !== false || 
-                   strpos($text, 'friendly') !== false || 
-                   strpos($text, 'helpful') !== false ||
-                   strpos($text, 'knowledgeable') !== false;
+            return strpos($text, 'staff') !== false ||
+                strpos($text, 'friendly') !== false ||
+                strpos($text, 'helpful') !== false ||
+                strpos($text, 'knowledgeable') !== false;
         });
-        
+
         if ($staffPraise->count() >= 3) {
             // Get top mentioned staff
             $staffMentions = $this->getTopMentionedStaff($positiveReviews);
-            
+
             $recommendations[] = [
                 'type' => 'Strength',
                 'title' => 'Staff Friendliness & Service',
-                'description' => 'Customers consistently praise staff members for being welcoming and helpful.' . 
-                               ($staffMentions ? ' Top performers: ' . implode(', ', array_slice($staffMentions, 0, 2)) : ''),
+                'description' => 'Customers consistently praise staff members for being welcoming and helpful.' .
+                    ($staffMentions ? ' Top performers: ' . implode(', ', array_slice($staffMentions, 0, 2)) : ''),
                 'evidence_count' => $staffPraise->count(),
                 'priority' => 'low'
             ];
         }
-        
+
         // 2. Identify weak areas (negative/neutral reviews with specific complaints)
         $issues = $this->findCommonIssues($reviews);
-        
+
         foreach (array_slice($issues, 0, 2) as $issue) {
             if ($issue['count'] >= 3) {
                 $recommendations[] = [
@@ -849,7 +849,7 @@ class ReportController extends Controller
                 ];
             }
         }
-        
+
         // 3. Generate action items based on weak areas
         foreach ($recommendations as $rec) {
             if ($rec['type'] === 'Weak Area') {
@@ -859,7 +859,7 @@ class ReportController extends Controller
                 }
             }
         }
-        
+
         // Limit to 3 recommendations max
         return array_slice($recommendations, 0, 3);
     }
@@ -871,9 +871,9 @@ class ReportController extends Controller
     {
         return $reviews->sortByDesc('created_at')
             ->take($limit)
-            ->map(function($review) use ($ratings) {
+            ->map(function ($review) use ($ratings) {
                 $rating = $ratings->get($review->id, $review->rate);
-                
+
                 return [
                     'id' => $review->id,
                     'rating' => $rating,
@@ -901,26 +901,26 @@ class ReportController extends Controller
         // Get reviews with staff assigned
         $staffReviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branchId)
-            ->globalFilters(1, $businessId,1)
+            ->globalFilters(1, $businessId, 1)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get()
             ->groupBy('staff_id');
-        
+
         $staffPerformance = [];
-        
+
         foreach ($staffReviews as $staffId => $reviews) {
             $staff = User::find($staffId);
             if (!$staff) continue;
-            
+
             $reviewIds = $reviews->pluck('id')->toArray();
             $ratings = $this->calculateBulkRatings($reviewIds);
             $validRatings = $ratings->filter()->values();
             $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
-            
+
             // Skip staff with very few reviews
             if ($reviews->count() < 3) continue;
-            
+
             $staffPerformance[] = [
                 'staff_id' => $staffId,
                 'staff_name' => $staff->name,
@@ -934,12 +934,12 @@ class ReportController extends Controller
                 'last_review_date' => $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans()
             ];
         }
-        
+
         // Sort by average rating descending
-        usort($staffPerformance, function($a, $b) {
+        usort($staffPerformance, function ($a, $b) {
             return $b['avg_rating'] <=> $a['avg_rating'];
         });
-        
+
         return array_slice($staffPerformance, 0, $limit);
     }
 
@@ -953,7 +953,7 @@ class ReportController extends Controller
     private function extractTopTopic($reviews)
     {
         $topicCounts = [];
-        
+
         foreach ($reviews as $review) {
             // Use stored topics if available
             if ($review->topics && is_array($review->topics)) {
@@ -961,12 +961,12 @@ class ReportController extends Controller
                     $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
                 }
             }
-            
+
             // Also extract from comment
             if ($review->comment) {
                 $commonTopics = ['service', 'staff', 'wait', 'quality', 'price', 'clean', 'product', 'location'];
                 $comment = strtolower($review->comment);
-                
+
                 foreach ($commonTopics as $topic) {
                     if (strpos($comment, $topic) !== false) {
                         $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
@@ -974,14 +974,14 @@ class ReportController extends Controller
                 }
             }
         }
-        
+
         if (empty($topicCounts)) {
             return ['topic' => 'General', 'count' => 0];
         }
-        
+
         arsort($topicCounts);
         $topTopic = array_key_first($topicCounts);
-        
+
         return [
             'topic' => ucfirst($topTopic),
             'count' => $topicCounts[$topTopic],
@@ -996,7 +996,7 @@ class ReportController extends Controller
     {
         $total = $reviews->count();
         if ($total === 0) return 0;
-        
+
         $responded = $reviews->whereNotNull('responded_at')->count();
         return round(($responded / $total) * 100, 1);
     }
@@ -1007,27 +1007,27 @@ class ReportController extends Controller
     private function extractKeyTrends($reviews)
     {
         $trends = [];
-        
+
         if ($reviews->isEmpty()) {
             return $trends;
         }
-        
+
         // Check for improving/declining sentiment over time
         $sortedReviews = $reviews->sortBy('created_at');
         $half = ceil($sortedReviews->count() / 2);
-        
+
         $firstHalf = $sortedReviews->slice(0, $half);
         $secondHalf = $sortedReviews->slice($half);
-        
+
         $firstSentiment = $firstHalf->avg('sentiment_score');
         $secondSentiment = $secondHalf->avg('sentiment_score');
-        
+
         if ($secondSentiment > $firstSentiment + 0.1) {
             $trends[] = 'Improving sentiment trend';
         } elseif ($secondSentiment < $firstSentiment - 0.1) {
             $trends[] = 'Declining sentiment trend';
         }
-        
+
         // Check for specific issue trends
         $commonIssues = $this->findCommonIssues($reviews);
         foreach ($commonIssues as $issue) {
@@ -1035,7 +1035,7 @@ class ReportController extends Controller
                 $trends[] = "Frequent mentions of " . $issue['topic'];
             }
         }
-        
+
         return array_slice($trends, 0, 3);
     }
 
@@ -1051,10 +1051,10 @@ class ReportController extends Controller
             'price' => ['keywords' => ['expensive', 'price', 'cost'], 'count' => 0, 'description' => 'Pricing concerns'],
             'product' => ['keywords' => ['quality', 'broken', 'defective'], 'count' => 0, 'description' => 'Product quality issues']
         ];
-        
+
         foreach ($reviews as $review) {
             if (empty($review->comment)) continue;
-            
+
             $comment = strtolower($review->comment);
             foreach ($issues as $key => &$issue) {
                 foreach ($issue['keywords'] as $keyword) {
@@ -1065,7 +1065,7 @@ class ReportController extends Controller
                 }
             }
         }
-        
+
         // Filter and format
         $result = [];
         foreach ($issues as $key => $issue) {
@@ -1077,12 +1077,12 @@ class ReportController extends Controller
                 ];
             }
         }
-        
+
         // Sort by count descending
-        usort($result, function($a, $b) {
+        usort($result, function ($a, $b) {
             return $b['count'] <=> $a['count'];
         });
-        
+
         return $result;
     }
 
@@ -1092,15 +1092,15 @@ class ReportController extends Controller
     private function getTopMentionedStaff($positiveReviews)
     {
         $staffMentions = [];
-        
+
         foreach ($positiveReviews as $review) {
             if ($review->staff_id) {
                 $staffMentions[$review->staff_id] = ($staffMentions[$review->staff_id] ?? 0) + 1;
             }
         }
-        
+
         arsort($staffMentions);
-        
+
         // Get staff names
         $result = [];
         foreach (array_slice($staffMentions, 0, 3) as $staffId => $count) {
@@ -1109,7 +1109,7 @@ class ReportController extends Controller
                 $result[] = $staff->name . " ({$count} reviews)";
             }
         }
-        
+
         return $result;
     }
 
@@ -1145,7 +1145,7 @@ class ReportController extends Controller
                 'priority' => 'high'
             ]
         ];
-        
+
         if (isset($actions[$issue])) {
             return [
                 'type' => 'Action',
@@ -1154,7 +1154,7 @@ class ReportController extends Controller
                 'priority' => $actions[$issue]['priority']
             ];
         }
-        
+
         return [
             'type' => 'Action',
             'title' => 'Address Customer Feedback',
@@ -1169,16 +1169,16 @@ class ReportController extends Controller
     private function findPeakReviewTimes($reviews)
     {
         if ($reviews->isEmpty()) return null;
-        
+
         $hourlyCounts = array_fill(0, 24, 0);
-        
+
         foreach ($reviews as $review) {
             $hour = $review->created_at->hour;
             $hourlyCounts[$hour]++;
         }
-        
+
         $peakHour = array_search(max($hourlyCounts), $hourlyCounts);
-        
+
         return sprintf('%02d:00', $peakHour);
     }
 
@@ -1198,7 +1198,7 @@ class ReportController extends Controller
         return 'Critical Attention';
     }
 
-  
+
 
 
 
@@ -3243,7 +3243,7 @@ class ReportController extends Controller
         $overallMetrics = $this->calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews);
         $complimentRatio = $this->calculateComplimentRatio($currentReviews);
         $topStaff = $this->getTopStaffByRatingFromReviewValue($currentReviews);
-        $allStaff = $this->getAllStaffMetricsFromReviewValue($currentReviews);
+        // $allStaff = $this->getAllStaffMetricsFromReviewValue($currentReviews);
 
         return response()->json([
             'success' => true,
@@ -3255,7 +3255,7 @@ class ReportController extends Controller
                 'overall_metrics' => $overallMetrics,
                 'compliment_ratio' => $complimentRatio,
                 'top_staff' => $topStaff,
-                'all_staff' => $allStaff
+                // 'all_staff' => $allStaff
             ]
         ], 200);
     }

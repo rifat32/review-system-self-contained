@@ -118,15 +118,15 @@ class ForgotPasswordController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"password","confirm_password"},
+     *             required={"current_password","new_password"},
      *             @OA\Property(
-     *                 property="password",
+     *                 property="current_password",
      *                 type="string",
      *                 format="password",
      *                 example="OldOrNewPassword123"
      *             ),
      *             @OA\Property(
-     *                 property="confirm_password",
+     *                 property="new_password",
      *                 type="string",
      *                 format="password",
      *                 example="OldOrNewPassword123"
@@ -160,8 +160,8 @@ class ForgotPasswordController extends Controller
         }
 
         $requestPayload = $request->validate([
-            "password"          => "required|string|min:6",
-            "confirm_password"  => "required|string|min:6|same:password",
+            "current_password"          => "required|string|min:6",
+            "new_password"  => "required|string|min:6",
             "user_id"           => "nullable|integer|exists:users,id"
         ]);
 
@@ -179,7 +179,7 @@ class ForgotPasswordController extends Controller
 
         // NOTE: Your existing logic checks the provided password against the stored hash.
         // Keeping that behavior intact:
-        if (!Hash::check($request->password, $targetUser->password)) {
+        if (!Hash::check($request->current_password, $targetUser->password)) {
             return response()->json([
                 "success" => false,
                 "message" => "Invalid password"
@@ -187,7 +187,7 @@ class ForgotPasswordController extends Controller
         }
 
         // Update password (re-hash provided value)
-        $targetUser->password = Hash::make($request->password);
+        $targetUser->password = Hash::make($request->new_password);
 
         // Reset login attempts metadata
         $targetUser->login_attempts = 0;
