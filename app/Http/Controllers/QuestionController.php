@@ -18,6 +18,44 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Global OpenAPI component schemas used across controllers.
+ *
+ * @OA\Components(
+ *   @OA\Schema(
+ *     schema="StarTagObject",
+ *     type="object",
+ *     title="StarTagObject",
+ *     @OA\Property(property="tag_id", type="integer", format="int64", example=2)
+ *   ),
+ *
+ *   @OA\Schema(
+ *     schema="StarObject",
+ *     type="object",
+ *     title="StarObject",
+ *     required={"star_id","tags"},
+ *     @OA\Property(property="star_id", type="integer", format="int64", example=2),
+ *     @OA\Property(
+ *         property="tags",
+ *         type="array",
+ *         @OA\Items(ref="#/components/schemas/StarTagObject")
+ *     )
+ *   ),
+ *
+ *   @OA\Schema(
+ *     schema="UpdateQuestionStarsTagsRequest",
+ *     type="object",
+ *     required={"question_id","stars"},
+ *     @OA\Property(property="question_id", type="integer", format="int64", example=1),
+ *     @OA\Property(
+ *         property="stars",
+ *         type="array",
+ *         @OA\Items(ref="#/components/schemas/StarObject")
+ *     )
+ *   )
+ * )
+ */
+
 class QuestionController extends Controller
 {
 
@@ -1027,133 +1065,102 @@ class QuestionController extends Controller
     }
 
     /**
-     *
      * @OA\Post(
-     *      path="/review-new/owner/update/questions",
-     *      operationId="updateOwnerQuestion",
-     *      tags={"review.setting.link"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to update question",
-     *      description="This method is to update question",
-     *             @OA\Parameter(
+     *     path="/v1.0/questions/update-question-starts-and-tags",
+     *     operationId="updateQuestionStartsAndTags",
+     *     tags={"review.question_management"},
+     *     summary="Update question stars and tags",
+     *     description="Update the stars associated with a question and the tags under each star.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
      *         name="_method",
      *         in="query",
-     *         description="method",
+     *         description="HTTP method override (optional). Use 'PATCH' if you want to simulate a PATCH via POST.",
      *         required=false,
-     * example="PATCH"
-     *      ),
-     *  @OA\RequestBody(
+     *         @OA\Schema(type="string", example="PATCH")
+     *     ),
+     *
+     *     @OA\RequestBody(
      *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/UpdateQuestionStarsTagsRequest")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Stars and tags updated successfully",
      *         @OA\JsonContent(
-     *            required={"question_id","stars"},
-
-     *  @OA\Property(property="question_id", type="number", format="number",example="1"),
-     *  @OA\Property(property="stars", type="string", format="array",example={
-     *  {* "star_id":"2",
-     * "tags":{
-     * {"tag_id":"2"},
-     * {"tag_id":"2"}
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Question Stars and Tags updated successfully"),
+     *             @OA\Property(property="data", type="object", nullable=true)
+     *         )
+     *     ),
      *
-     * }
-     *
-     * }
-     * }
-     *
-     * ),
-     *
-     *
-     *
-     *
-     *         ),
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
+     *     @OA\Response(response=400, description="Bad Request", @OA\JsonContent()),
+     *     @OA\Response(response=401, description="Unauthenticated", @OA\JsonContent()),
+     *     @OA\Response(response=403, description="Forbidden", @OA\JsonContent()),
+     *     @OA\Response(response=404, description="Not Found", @OA\JsonContent()),
+     *     @OA\Response(response=422, description="Unprocessable Entity (validation failed)", @OA\JsonContent())
+     * )
      */
 
-    public function updateOwnerQuestion(Request $request)
+
+
+    public function updateQuestionStartsAndTags(Request $request)
     {
-
         return DB::transaction(function () use ($request) {
-            $question_id = $request->question_id;
 
-            $starIds = collect($request->stars)->pluck('star_id')->toArray();
+            $questionId = $request->question_id;
+            $stars = collect($request->stars);
 
+            // Extract star_ids
+            $starIds = $stars->pluck('star_id');
 
-            QuestionStar::where([
-                'question_id' => $question_id,
-            ])
+            // Delete removed stars
+            QuestionStar::where('question_id', $questionId)
                 ->whereNotIn('star_id', $starIds)
                 ->delete();
 
-            foreach ($request->stars as $requestStar) {
+            foreach ($stars as $star) {
 
-                if (!(QuestionStar::where([
-                    "question_id" => $question_id,
-                    "star_id" => $requestStar["star_id"]
-                ])->exists())) {
-                    QuestionStar::create([
-                        "question_id" => $question_id,
-                        "star_id" => $requestStar["star_id"]
-                    ]);
-                }
+                // Create or update star
+                QuestionStar::updateOrCreate(
+                    [
+                        'question_id' => $questionId,
+                        'star_id' => $star['star_id']
+                    ],
+                    [] // no other fields
+                );
 
-                $starTagIds = collect($requestStar["tags"])->pluck('tag_id')->toArray();
+                $tagIds = collect($star['tags'])->pluck('tag_id');
 
-                StarTag::where([
-                    "question_id"  => $question_id,
-                    "star_id" => $requestStar["star_id"]
-                ])
-                    ->whereNotIn('tag_id', $starTagIds)
+                // Delete removed tags for this star
+                StarTag::where('question_id', $questionId)
+                    ->where('star_id', $star['star_id'])
+                    ->whereNotIn('tag_id', $tagIds)
                     ->delete();
 
-                foreach ($requestStar["tags"] as $tag) {
-
-                    if (!(StarTag::where([
-                        "question_id" => $question_id,
-                        "tag_id" => $tag["tag_id"],
-                        "star_id" => $requestStar["star_id"]
-                    ])->exists())) {
-                        StarTag::create([
-                            "question_id" => $question_id,
-                            "tag_id" => $tag["tag_id"],
-                            "star_id" => $requestStar["star_id"]
-                        ]);
-                    }
+                // Create or update tags
+                foreach ($tagIds as $tagId) {
+                    StarTag::updateOrCreate(
+                        [
+                            'question_id' => $questionId,
+                            'star_id' => $star['star_id'],
+                            'tag_id' => $tagId,
+                        ],
+                        []
+                    );
                 }
             }
 
-            return response(["message" => "ok"], 201);
+            return response([
+                'success' => true,
+                'message' => 'Question Stars and Tags updated successfully',
+                'data'    => null
+            ], 200);
         });
     }
+
 
 
     /**

@@ -12,7 +12,7 @@ class UserController extends Controller
      * @OA\Get(
      *      path="/v1.0/customer-list",
      *      operationId="getCustomerReportSuperadmin",
-     *      tags={"super_admin_report.customer"},
+     *      tags={"user_management.super_admin"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -111,7 +111,7 @@ class UserController extends Controller
      * @OA\Get(
      *      path="/v1.0/owner-list",
      *      operationId="getOwnerReport",
-     *      tags={"super_admin_report.customer"},
+     *      tags={"user_management.super_admin"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -208,7 +208,7 @@ class UserController extends Controller
      * @OA\Delete(
      *      path="/v1.0/users/{id}",
      *      operationId="deleteCustomerById",
-     *      tags={"super_admin_report.customer"},
+     *      tags={"user_management.super_admin"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
