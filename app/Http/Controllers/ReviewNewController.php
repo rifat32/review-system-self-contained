@@ -1304,30 +1304,32 @@ class ReviewNewController extends Controller
             'values.*.question_id' => 'required|integer',
             'values.*.tag_id' => 'nullable|integer',
             'values.*.star_id' => 'nullable|integer',
-            'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
+            // 'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
+            "is_voice_review" => 'required|boolean',
         ]);
 
         $business = Business::findOrFail($businessId);
         $raw_text = $request->input('comment', '');
 
         // Voice review handling
-        $voiceData = null;
-        if ($request->hasFile('audio')) {
-            $audioPath = $request->file('audio')->store('voice-reviews', 'public');
-            $audioUrl = Storage::url($audioPath);
-            $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
+        // $voiceData = null;
 
-            $voiceData = [
-                'is_voice_review' => true,
-                'voice_url' => $audioUrl,
-                'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
-                'transcription_metadata' => [
-                    'audio_path' => $audioPath,
-                    'file_size' => $request->file('audio')->getSize(),
-                    'mime_type' => $request->file('audio')->getMimeType(),
-                ]
-            ];
-        }
+        // if ($request->hasFile('audio')) {
+        //     $audioPath = $request->file('audio')->store('voice-reviews', 'public');
+        //     $audioUrl = Storage::url($audioPath);
+        //     $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
+
+        //     $voiceData = [
+        //         'is_voice_review' => true,
+        //         'voice_url' => $audioUrl,
+        //         'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
+        //         'transcription_metadata' => [
+        //             'audio_path' => $audioPath,
+        //             'file_size' => $request->file('audio')->getSize(),
+        //             'mime_type' => $request->file('audio')->getMimeType(),
+        //         ]
+        //     ];
+        // }
 
         // Step 2: AI Moderation Pipeline
         $moderationResults = $this->aiModeration($raw_text);
@@ -1382,12 +1384,13 @@ class ReviewNewController extends Controller
             "is_overall" => $request->is_overall ?? 0,
             "staff_id" => $request->staff_id ?? null,
             "branch_id" => $request->branch_id ?? null,
+            "is_voice_review" => $request->is_voice_review ?? false,
         ];
 
         // Add voice data if present
-        if ($voiceData) {
-            $reviewData = array_merge($reviewData, $voiceData);
-        }
+        // if ($voiceData) {
+        //     $reviewData = array_merge($reviewData, $voiceData);
+        // }
 
         $review = ReviewNew::create($reviewData);
         $this->storeReviewValues($review, $request->values, $business);
@@ -1404,13 +1407,13 @@ class ReviewNewController extends Controller
         ];
 
         // Add voice info if present
-        if ($voiceData) {
-            $responseData['voice_info'] = [
-                'voice_url' => $voiceData['voice_url'],
-                'duration' => $voiceData['voice_duration'],
-                'transcription' => $raw_text
-            ];
-        }
+        // if ($voiceData) {
+        //     $responseData['voice_info'] = [
+        //         'voice_url' => $voiceData['voice_url'],
+        //         'duration' => $voiceData['voice_duration'],
+        //         'transcription' => $raw_text
+        //     ];
+        // }
 
         return response($responseData, 201);
     }
@@ -1486,6 +1489,7 @@ class ReviewNewController extends Controller
             'values.*.tag_id' => 'nullable|integer',
             'values.*.star_id' => 'nullable|integer',
             'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
+            "is_voice_review" => 'required|boolean',
         ]);
 
         $business = Business::findOrFail($businessId);
@@ -1533,23 +1537,23 @@ class ReviewNewController extends Controller
         $raw_text = $request->input('comment', '');
 
         // Voice review handling
-        $voiceData = null;
-        if ($request->hasFile('audio')) {
-            $audioPath = $request->file('audio')->store('voice-reviews', 'public');
-            $audioUrl = Storage::url($audioPath);
-            $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
+        // $voiceData = null;
+        // if ($request->hasFile('audio')) {
+        //     $audioPath = $request->file('audio')->store('voice-reviews', 'public');
+        //     $audioUrl = Storage::url($audioPath);
+        //     $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
 
-            $voiceData = [
-                'is_voice_review' => true,
-                'voice_url' => $audioUrl,
-                'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
-                'transcription_metadata' => [
-                    'audio_path' => $audioPath,
-                    'file_size' => $request->file('audio')->getSize(),
-                    'mime_type' => $request->file('audio')->getMimeType(),
-                ]
-            ];
-        }
+        //     $voiceData = [
+        //         'is_voice_review' => true,
+        //         'voice_url' => $audioUrl,
+        //         'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
+        //         'transcription_metadata' => [
+        //             'audio_path' => $audioPath,
+        //             'file_size' => $request->file('audio')->getSize(),
+        //             'mime_type' => $request->file('audio')->getMimeType(),
+        //         ]
+        //     ];
+        // }
 
         // AI Pipeline
         $moderationResults = $this->aiModeration($raw_text);
@@ -1597,12 +1601,13 @@ class ReviewNewController extends Controller
             "is_overall" => $request->is_overall ?? 0,
             "staff_id" => $request->staff_id ?? null,
             "branch_id" => $request->branch_id ?? null,
+            "is_voice_review" => $request->is_voice_review  ? true : false
         ];
 
         // Add voice data if present
-        if ($voiceData) {
-            $reviewData = array_merge($reviewData, $voiceData);
-        }
+        // if ($voiceData) {
+        //     $reviewData = array_merge($reviewData, $voiceData);
+        // }
 
         $review = ReviewNew::create($reviewData);
         $this->storeReviewValues($review, $request->values, $business);
@@ -1619,14 +1624,15 @@ class ReviewNewController extends Controller
             ]
         ];
 
+        
         // Add voice info if present
-        if ($voiceData) {
-            $responseData['voice_info'] = [
-                'voice_url' => $voiceData['voice_url'],
-                'duration' => $voiceData['voice_duration'],
-                'transcription' => $raw_text
-            ];
-        }
+        // if ($voiceData) {
+        //     $responseData['voice_info'] = [
+        //         'voice_url' => $voiceData['voice_url'],
+        //         'duration' => $voiceData['voice_duration'],
+        //         'transcription' => $raw_text
+        //     ];
+        // }
 
         return response($responseData, 201);
     }
