@@ -1352,7 +1352,7 @@ class ReviewNewController extends Controller
             'survey_id' => $request->survey_id,
             'description' => $request->description,
             'business_id' => $businessId,
-            'rate' => 5,
+            'rate' => null,
             'user_id' => $request->user()->id,
             'comment' => $raw_text,
             'raw_text' => $raw_text,
@@ -1369,13 +1369,19 @@ class ReviewNewController extends Controller
         // if ($voiceData) {
         //     $reviewData = array_merge($reviewData, $voiceData);
         // }
-
+        $averageRating = collect($request->values)
+            ->pluck('star_id')
+            ->filter()
+            ->avg();
         $review = ReviewNew::create($reviewData);
         $this->storeReviewValues($review, $request->values, $business);
 
         $responseData = [
+            "success" => true,
             "message" => "created successfully",
+            "average_rating" => $averageRating,
             "review_id" => $review->id,
+            "review" => $review,
 
         ];
 
@@ -1537,7 +1543,7 @@ class ReviewNewController extends Controller
             'survey_id' => $request->survey_id,
             'description' => $request->description,
             'business_id' => $businessId,
-            'rate' => 5,
+            'rate' => null,
             'guest_id' => $guest->id,
             'comment' => $raw_text,
             'raw_text' => $raw_text,
@@ -1557,10 +1563,16 @@ class ReviewNewController extends Controller
         $review = ReviewNew::create($reviewData);
         $this->storeReviewValues($review, $request->values, $business);
 
+        $averageRating = collect($request->values)
+            ->pluck('star_id')
+            ->filter()
+            ->avg();
+
         $responseData = [
             "message" => "created successfully",
-            "review" => $review,
+            "averageRating" => $averageRating,
             "review_id" => $review->id,
+            "review" => $review,
         ];
 
 
