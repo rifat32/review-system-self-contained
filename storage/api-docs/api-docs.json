@@ -2410,12 +2410,12 @@
                                                 "lat": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 40.7128000000000014324541552923619747161865234375
+                                                    "example": 40.7128
                                                 },
                                                 "long": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": -74.006000000000000227373675443232059478759765625
+                                                    "example": -74.006
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -4735,7 +4735,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.20000000000000017763568394002504646778106689453125
+                                                        "example": 4.2
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -6555,16 +6555,16 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "password",
-                                    "confirm_password"
+                                    "current_password",
+                                    "new_password"
                                 ],
                                 "properties": {
-                                    "password": {
+                                    "current_password": {
                                         "type": "string",
                                         "format": "password",
                                         "example": "OldOrNewPassword123"
                                     },
-                                    "confirm_password": {
+                                    "new_password": {
                                         "type": "string",
                                         "format": "password",
                                         "example": "OldOrNewPassword123"
@@ -8765,13 +8765,13 @@
                 ]
             }
         },
-        "/owner/update-user/by-user": {
+        "/v1.0/owner/update": {
             "patch": {
                 "tags": [
                     "owner"
                 ],
-                "summary": "This method is to update user by user",
-                "description": "This method is to update user by user",
+                "summary": "Update authenticated user's profile",
+                "description": "Allows a user to update their own profile information including password (with old password verification)",
                 "operationId": "updateUserByUser",
                 "requestBody": {
                     "required": true,
@@ -8779,51 +8779,309 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "last_name",
                                     "first_Name",
+                                    "last_Name",
                                     "phone",
                                     "Address"
                                 ],
                                 "properties": {
-                                    "last_name": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "test@g.c"
-                                    },
                                     "first_Name": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "12345678"
+                                        "example": "John"
+                                    },
+                                    "last_Name": {
+                                        "type": "string",
+                                        "example": "Doe"
                                     },
                                     "phone": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "Rifat"
+                                        "example": "+1234567890"
                                     },
                                     "Address": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "12345678"
+                                        "example": "123 Main Street"
                                     },
                                     "door_no": {
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "12345678"
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "Rifat"
-                                    },
-                                    "old_password": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "Rifat"
+                                        "example": "A-12",
+                                        "nullable": true
                                     },
                                     "post_code": {
                                         "type": "string",
+                                        "example": "00123",
+                                        "nullable": true
+                                    },
+                                    "password": {
+                                        "description": "New password (optional)",
+                                        "type": "string",
+                                        "example": "newPassword123",
+                                        "nullable": true
+                                    },
+                                    "old_password": {
+                                        "description": "Required only if changing password",
+                                        "type": "string",
+                                        "example": "oldPassword123",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User updated successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated or incorrect old password",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/question-categories": {
+            "get": {
+                "tags": [
+                    "question_category_management"
+                ],
+                "summary": "This method is to get all question categories",
+                "description": "This method is to get all question categories",
+                "operationId": "getAllQuestionCategories",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "example": 1
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "example": 20
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "required": false,
+                        "example": 1
+                    },
+                    {
+                        "name": "is_default",
+                        "in": "query",
+                        "description": "Filter by default status",
+                        "required": false,
+                        "example": 0
+                    },
+                    {
+                        "name": "parent_id",
+                        "in": "query",
+                        "description": "Filter by parent category ID",
+                        "required": false,
+                        "example": 1
+                    },
+                    {
+                        "name": "created_by",
+                        "in": "query",
+                        "description": "Filter by creator user ID",
+                        "required": false,
+                        "example": 1
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search in title and description",
+                        "required": false,
+                        "example": "staff"
+                    },
+                    {
+                        "name": "has_children",
+                        "in": "query",
+                        "description": "Filter categories with/without children",
+                        "required": false,
+                        "example": 1
+                    },
+                    {
+                        "name": "has_questions",
+                        "in": "query",
+                        "description": "Filter categories with/without questions",
+                        "required": false,
+                        "example": 0
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Sort field (title, created_at, updated_at, is_active, is_default)",
+                        "required": false,
+                        "example": "title"
+                    },
+                    {
+                        "name": "sort_direction",
+                        "in": "query",
+                        "description": "Sort direction (asc, desc)",
+                        "required": false,
+                        "example": "asc"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "question_category_management"
+                ],
+                "summary": "This method is to create question category",
+                "description": "This method is to create question category",
+                "operationId": "createQuestionCategory",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
                                         "format": "string",
-                                        "example": "Rifat"
+                                        "example": "Staff"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "Staff-related questions"
+                                    },
+                                    "parent_question_category_id": {
+                                        "type": "integer",
+                                        "format": "integer",
+                                        "example": null
                                     }
                                 },
                                 "type": "object"
@@ -8858,6 +9116,450 @@
                     },
                     "403": {
                         "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/question-categories/{id}": {
+            "get": {
+                "tags": [
+                    "question_category_management"
+                ],
+                "summary": "This method is to get question category by id",
+                "description": "This method is to get question category by id",
+                "operationId": "getQuestionCategoryById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "id",
+                        "required": true,
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "question_category_management"
+                ],
+                "summary": "This method is to update question category",
+                "description": "This method is to update question category",
+                "operationId": "updateQuestionCategory",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Question category ID",
+                        "required": true,
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "Updated Staff Category"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "Updated staff-related questions"
+                                    },
+                                    "parent_question_category_id": {
+                                        "type": "integer",
+                                        "format": "integer",
+                                        "example": null
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/question-categories/toggle": {
+            "patch": {
+                "tags": [
+                    "question_category_management"
+                ],
+                "summary": "This method is to toggle question category active status",
+                "description": "This method is to toggle question category active status",
+                "operationId": "toggleQuestionCategory",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id",
+                                    "is_active"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "description": "Question category ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "is_active": {
+                                        "description": "New active state",
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Question category active state updated successfully."
+                                        },
+                                        "data": {
+                                            "description": "Updated question category object",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid input data."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You are not authorized to modify this question category."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Question category not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Question category not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/question-categories/{ids}": {
+            "delete": {
+                "tags": [
+                    "question_category_management"
+                ],
+                "summary": "This method is to delete question categories by IDs",
+                "description": "This method is to delete question categories by IDs",
+                "operationId": "deleteQuestionCategories",
+                "parameters": [
+                    {
+                        "name": "ids",
+                        "in": "path",
+                        "description": "Comma-separated list of question category IDs to delete (e.g., 1,2,3)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1,2,3"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Question categories deleted successfully."
+                                        },
+                                        "deleted_count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid IDs provided",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid question category IDs provided."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Question categories not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Question categories not found: 4, 5"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -9925,64 +10627,51 @@
                 ]
             }
         },
-        "/review-new/owner/update/questions": {
+        "/v1.0/questions/update-question-starts-and-tags": {
             "post": {
                 "tags": [
-                    "review.setting.link"
+                    "review.question_management"
                 ],
-                "summary": "This method is to update question",
-                "description": "This method is to update question",
-                "operationId": "updateOwnerQuestion",
-                "parameters": [
-                    {
-                        "name": "_method",
-                        "in": "query",
-                        "description": "method",
-                        "required": false,
-                        "example": "PATCH"
-                    }
-                ],
+                "summary": "Update question stars and tags",
+                "description": "Update the stars associated with a question and the tags under each star.",
+                "operationId": "updateQuestionStartsAndTags",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "question_id",
-                                    "stars"
-                                ],
-                                "properties": {
-                                    "question_id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    },
-                                    "stars": {
-                                        "type": "string",
-                                        "format": "array",
-                                        "example": [
-                                            {
-                                                "star_id": "2",
-                                                "tags": [
-                                                    {
-                                                        "tag_id": "2"
-                                                    },
-                                                    {
-                                                        "tag_id": "2"
-                                                    }
-                                                ]
-                                            }
-                                        ]
-                                    }
-                                },
-                                "type": "object"
+                                "$ref": "#/components/schemas/UpdateQuestionStarsTagsRequest"
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "Stars and tags updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Question Stars and Tags updated successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -9997,16 +10686,24 @@
                             }
                         }
                     },
-                    "422": {
-                        "description": "Unprocesseble Content",
+                    "403": {
+                        "description": "Forbidden",
                         "content": {
                             "application/json": {
                                 "schema": {}
                             }
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity (validation failed)",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -10024,7 +10721,7 @@
         "/review-new/owner/create/questions": {
             "post": {
                 "tags": [
-                    "review.setting.link"
+                    "z.unused"
                 ],
                 "summary": "This method is to store question",
                 "description": "This method is to store question.",
@@ -10111,7 +10808,7 @@
         "/review-new/delete/questions/{id}": {
             "delete": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to delete question by id",
                 "description": "This method is to delete question by id",
@@ -10150,7 +10847,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -10286,7 +10983,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -10312,7 +11009,7 @@
         "/v1.0/review-new/get/questions": {
             "get": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to get question",
                 "description": "This method is to get question",
@@ -10377,7 +11074,7 @@
         "/review-new/update/active_state/questions": {
             "put": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to update question's active state",
                 "description": "This method is to update question's active state",
@@ -10844,6 +11541,72 @@
                                 "schema": {}
                             }
                         }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/branch-comparison": {
+            "get": {
+                "tags": [
+                    "report"
+                ],
+                "summary": "Compare multiple branches performance",
+                "description": "Compare up to 5 branches with real metrics from database",
+                "operationId": "branchComparison",
+                "parameters": [
+                    {
+                        "name": "branch_ids",
+                        "in": "query",
+                        "description": "Comma-separated branch IDs (max 5)",
+                        "required": true,
+                        "example": "1,2,3"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in Y-m-d format",
+                        "required": false,
+                        "example": "2024-01-01"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in Y-m-d format",
+                        "required": false,
+                        "example": "2024-03-31"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch comparison retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 },
                 "security": [
@@ -11392,7 +12155,7 @@
                                                         },
                                                         "avg_rating": {
                                                             "type": "number",
-                                                            "example": 4.20000000000000017763568394002504646778106689453125
+                                                            "example": 4.2
                                                         },
                                                         "sentiment_distribution": {
                                                             "properties": {
@@ -11424,7 +12187,7 @@
                                                             "type": "object",
                                                             "example": {
                                                                 "2023-01": 4,
-                                                                "2023-02": 4.20000000000000017763568394002504646778106689453125
+                                                                "2023-02": 4.2
                                                             }
                                                         },
                                                         "trend_direction": {
@@ -11570,7 +12333,7 @@
                                                             "properties": {
                                                                 "value": {
                                                                     "type": "number",
-                                                                    "example": 4.20000000000000017763568394002504646778106689453125
+                                                                    "example": 4.2
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
@@ -11591,7 +12354,7 @@
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
-                                                                    "example": 2.100000000000000088817841970012523233890533447265625
+                                                                    "example": 2.1
                                                                 },
                                                                 "change_type": {
                                                                     "type": "string",
@@ -18602,7 +19365,7 @@
         "/v1.0/customer-list": {
             "get": {
                 "tags": [
-                    "super_admin_report.customer"
+                    "user_management.super_admin"
                 ],
                 "summary": "This method is to get  Customer report",
                 "description": "This method is to get Customer  report",
@@ -18674,7 +19437,7 @@
         "/v1.0/owner-list": {
             "get": {
                 "tags": [
-                    "super_admin_report.customer"
+                    "user_management.super_admin"
                 ],
                 "summary": "This method is to get  Customer report",
                 "description": "This method is to get Customer  report",
@@ -18746,7 +19509,7 @@
         "/v1.0/users/{id}": {
             "delete": {
                 "tags": [
-                    "super_admin_report.customer"
+                    "user_management.super_admin"
                 ],
                 "summary": "This method is to delete  Customer by id",
                 "description": "This method is to delete Customer  by id",
@@ -18804,6 +19567,119 @@
     },
     "components": {
         "schemas": {
+            "StarTagObject": {
+                "title": "StarTagObject",
+                "properties": {
+                    "tag_id": {
+                        "description": "Global OpenAPI component schemas used across controllers.",
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 2
+                    }
+                },
+                "type": "object"
+            },
+            "StarObject": {
+                "title": "StarObject",
+                "required": [
+                    "star_id",
+                    "tags"
+                ],
+                "properties": {
+                    "star_id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 2
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/StarTagObject"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "UpdateQuestionStarsTagsRequest": {
+                "required": [
+                    "question_id",
+                    "stars"
+                ],
+                "properties": {
+                    "question_id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "stars": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/StarObject"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "User": {
+                "title": "User",
+                "required": [
+                    "id",
+                    "first_Name",
+                    "last_Name",
+                    "email"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "first_Name": {
+                        "type": "string",
+                        "example": "John"
+                    },
+                    "last_Name": {
+                        "type": "string",
+                        "example": "Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "+1234567890"
+                    },
+                    "Address": {
+                        "type": "string",
+                        "example": "123 Main St"
+                    },
+                    "door_no": {
+                        "type": "string",
+                        "example": "A12",
+                        "nullable": true
+                    },
+                    "post_code": {
+                        "type": "string",
+                        "example": "00123",
+                        "nullable": true
+                    },
+                    "email_verified_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
             "Tag": {
                 "required": [
                     "id",
@@ -18917,6 +19793,11 @@
                         "example": 3,
                         "nullable": true
                     },
+                    "question_category_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
                     "is_active": {
                         "type": "boolean",
                         "example": true
@@ -18961,6 +19842,24 @@
                         "type": "string",
                         "format": "date-time",
                         "example": "2025-04-05T12:30:00Z"
+                    },
+                    "question_category": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "title": {
+                                "type": "string",
+                                "example": "Staff"
+                            },
+                            "description": {
+                                "type": "string",
+                                "example": "Staff-related questions"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
                     },
                     "surveys": {
                         "type": "array",
@@ -19054,20 +19953,16 @@
             "description": "owner"
         },
         {
+            "name": "question_category_management",
+            "description": "question_category_management"
+        },
+        {
             "name": "review.question_management",
             "description": "review.question_management"
         },
         {
             "name": "review.question_management.client",
             "description": "review.question_management.client"
-        },
-        {
-            "name": "review.setting.link",
-            "description": "review.setting.link"
-        },
-        {
-            "name": "review.setting.question",
-            "description": "review.setting.question"
         },
         {
             "name": "report",
@@ -19092,6 +19987,10 @@
         {
             "name": "review",
             "description": "review"
+        },
+        {
+            "name": "review.setting.question",
+            "description": "review.setting.question"
         },
         {
             "name": "review_management.client",
@@ -19126,8 +20025,8 @@
             "description": "review.setting.tag"
         },
         {
-            "name": "super_admin_report.customer",
-            "description": "super_admin_report.customer"
+            "name": "user_management.super_admin",
+            "description": "user_management.super_admin"
         }
     ]
 }

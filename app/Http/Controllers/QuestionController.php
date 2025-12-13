@@ -1287,15 +1287,7 @@ class QuestionController extends Controller
     }
 
 
-    // ##################################################
-    // This method is to delete star tag by id
-    // ##################################################
-    public function   deleteStarTagById($id, Request $request)
-    {
-        StarTagQuestion::where(["id" => $id])
-            ->delete();
-        return response(["message" => "ok"], 200);
-    }
+
     // ##################################################
     // This method is to get report
     // ##################################################
@@ -1372,79 +1364,7 @@ class QuestionController extends Controller
         return response($data, 200);
     }
 
-    // ##################################################
-    // This method is to get star tag by id
-    // ##################################################
-    public function   getStarTagById($id, Request $request)
-    {
-
-        $questions =    StarTagQuestion::where(["id" => $id])
-            ->with("question", "star", "tag")
-            ->first();
-        return response($questions, 200);
-    }
-    // ##################################################
-    // This method is to get star tag
-    // ##################################################
-    public function   getStarTag(Request $request)
-    {
-        $query =  StarTagQuestion::where(["question_id" => $request->question_id])
-            ->with("question", "star", "tag");
-        if ($request->user()->hasRole("superadmin")) {
-            $query->where(["is_default" => true]);
-        }
-        $business =    Business::where(["id" => $request->business_id])->first();
-        $query->where(["is_default" => false]);
-
-        $questions =  $query->get();
-
-
-        return response($questions, 200);
-    }
-
-    // ##################################################
-    // This method is to update star tag
-    // ##################################################
-    public function updateStarTag(Request $request)
-    {
-        $question = [
-            'question_id' => $request->question_id,
-            'tag_id' => $request->tag_id,
-            'star_id' => $request->star_id,
-        ];
-        $checkQuestion =    StarTagQuestion::where(["id" => $request->id])->first();
-        if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
-            return response()->json(["message" => "you can not update the question. you are not a super admin"]);
-        }
-        $updatedQuestion =    tap(StarTagQuestion::where(["id" => $request->id]))->update(
-            $question
-        )
-            // ->with("somthing")
-
-            ->first();
-
-
-        return response($updatedQuestion, 200);
-    }
-
-    // ##################################################
-    // This method is to store star tag
-    // ##################################################
-    public function storeStarTag(Request $request)
-    {
-        $question = [
-            'question_id' => $request->question_id,
-            'tag_id' => $request->tag_id,
-            'star_id' => $request->star_id,
-        ];
-        if ($request->user()->hasRole("superadmin")) {
-            $question["is_default"] = true;
-        }
-        $createdQuestion =    StarTagQuestion::create($question);
-
-
-        return response($createdQuestion, 201);
-    }
+   
 
 
      // ##################################################
@@ -1455,7 +1375,7 @@ class QuestionController extends Controller
      * @OA\Delete(
      *      path="/review-new/delete/questions/{id}",
      *      operationId="deleteQuestionById",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -1485,7 +1405,7 @@ class QuestionController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -1638,7 +1558,7 @@ class QuestionController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -1697,7 +1617,7 @@ class QuestionController extends Controller
      * @OA\Get(
      *      path="/v1.0/review-new/get/questions",
      *      operationId="getQuestion",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -1814,7 +1734,7 @@ class QuestionController extends Controller
      * @OA\Put(
      *      path="/review-new/update/active_state/questions",
      *      operationId="updateQuestionActiveState",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },

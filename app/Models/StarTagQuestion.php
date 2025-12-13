@@ -15,17 +15,22 @@ class StarTagQuestion extends Model
         "question_id",
         "is_default"
     ];
-    public function tag() {
-        return $this->hasOne(Tag::class,'id','tag_id');
-    }
-    public function question() {
-        return $this->hasOne(Question::class,'id','question_id');
-    }
-    public function star() {
-        return $this->hasOne(Star::class,'id','star_id');
-    }
+
     protected $hidden = [
         'created_at',
         'updated_at',
     ];
+
+    public function tag()
+    {
+        return $this->hasOne(Tag::class, 'id', 'tag_id');
+    }
+    public function question()
+    {
+        return $this->hasOne(Question::class, 'id', 'question_id');
+    }
+    public function star()
+    {
+        return $this->hasOne(Star::class, 'id', 'star_id');
+    }
 }

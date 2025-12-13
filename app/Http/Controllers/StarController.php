@@ -41,7 +41,7 @@ class StarController extends Controller
     // ##################################################
     // This method is to get star
     // ##################################################
-    public function   getAllStar(Request $request)
+    public function getAllStar(Request $request)
     {
 
         $query =  Star::query();

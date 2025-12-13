@@ -21,6 +21,8 @@ use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\ReviewNewController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\StarController;
+use App\Http\Controllers\StarTagQuestionController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SuperAdminReportController;
 use App\Http\Controllers\SurveyController;
@@ -309,27 +311,26 @@ Route::middleware(['auth:api'])->group(function () {
     // Route::delete('/review-new/delete/tags/{id}', [ReviewNewController::class, "deleteTagById"]);
 
     // Stars (protected)
-    Route::post('/review-new/create/stars', [QuestionController::class, "storeStar"]);
-    Route::put('/review-new/update/stars', [QuestionController::class, "updateStar"]);
-    Route::get('/review-new/get/stars', [QuestionController::class, "getStar"]);
-    Route::get('/review-new/get/stars/{id}', [QuestionController::class, "getStarById"]);
-    Route::get('/review-new/get/stars/{id}/{businessId}', [ReviewNewController::class, "getStarById2"]);
-    Route::delete('/review-new/delete/stars/{id}', [QuestionController::class, "deleteStarById"]);
+    Route::post('/v1.0/stars', [StarController::class, "createStar"]);
+    Route::patch('/v1.0/stars', [StarController::class, "updateStar"]);
+    Route::get('/v1.0/stars', [StarController::class, "getAllStar"]);
+    Route::get('/v1.0/stars/{id}', [StarController::class, "getStarById"]);
+    Route::delete('/v1.0/stars/{id}', [StarController::class, "deleteStarById"]);
 
     // Quantum reports (protected)
     Route::get('/review-new/get/questions-all-report/quantum', [ReviewNewController::class, "getQuestionAllReportQuantum"]);
     Route::get('/review-new/get/questions-all-report/guest/quantum', [ReviewNewController::class, "getQuestionAllReportGuestQuantum"]);
 
     // Star-tag-question (protected)
-    Route::post('/star-tag-question', [QuestionController::class, "storeStarTag"]);
-    Route::put('/star-tag-question', [QuestionController::class, "updateStarTag"]);
-    Route::get('/star-tag-question', [QuestionController::class, "getStarTag"]);
-    Route::get('/star-tag-question/{id}', [QuestionController::class, "getStarTagById"]);
-    Route::delete('/star-tag-question/{id}', [QuestionController::class, "deleteStarTagById"]);
-    Route::get('/tag-count/star-tag-question/{businessId}', [QuestionController::class, "getSelectedTagCount"]);
-    Route::get('/tag-count/star-tag-question/by-question/{questionId}', [QuestionController::class, "getSelectedTagCountByQuestion"]);
+    Route::post('/v1.0/star-tag-question', [StarTagQuestionController::class, "createStarTagQuestion"]);
+    Route::patch('/v1.0/star-tag-question/{id}', [StarTagQuestionController::class, "updateStarTagQuestion"]);
+    Route::get('/v1.0/star-tag-question', [StarTagQuestionController::class, "getAllStarQuestionTag"]);
+    Route::get('/v1.0/star-tag-question/{id}', [StarTagQuestionController::class, "getStarTagQuestionById"]);
+    Route::delete('/v1.0/star-tag-question/{id}', [StarTagQuestionController::class, "deleteStarTagQuestionById"]);
+    // Route::get('/tag-count/star-tag-question/{businessId}', [QuestionController::class, "getSelectedTagCount"]);
+    // Route::get('/tag-count/star-tag-question/by-question/{questionId}', [QuestionController::class, "getSelectedTagCountByQuestion"]);
 
-    // ============================================================================
+    // ============================================================================`
     // CustomerController – Customers (protected)
     // ============================================================================
     Route::get('/v1.0/customers', [CustomerController::class, "getCustomers"]);
