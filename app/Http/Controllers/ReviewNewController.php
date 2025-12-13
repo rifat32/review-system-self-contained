@@ -3902,7 +3902,7 @@ class ReviewNewController extends Controller
                 $q->where('is_private', 0)
                     ->orWhereNull('is_private');
             })
-            // ->globalFilters(1, $businessId)
+             ->globalFilters(1, $businessId)
             ->orderBy('order_no', 'asc')
             ->get();
 

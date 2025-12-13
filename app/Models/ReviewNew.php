@@ -127,11 +127,12 @@ class ReviewNew extends Model
 
     public function scopeGlobalFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
+          
         return $query->when(request()->has('staff_id'), function ($q) {
             $q->where('staff_id', request()->input('staff_id'));
         })
             ->when($show_published_only, function ($q) use ($businessId, $is_staff_review) {
-                $q->whereMeetsThreshold($businessId, 1, $is_staff_review);
+                $q->whereMeetsThreshold($businessId, $is_staff_review);
             });
     }
 
@@ -141,6 +142,8 @@ class ReviewNew extends Model
         // Get threshold rating
         $business = Business::find($businessId);
         $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
+
+   
 
         return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
             $subQuery->select(DB::raw(1))

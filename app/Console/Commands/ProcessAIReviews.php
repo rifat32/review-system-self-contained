@@ -66,7 +66,7 @@ class ProcessAIReviews extends Command
                 $review->key_phrases = $aiResults['key_phrases'];
                 
                 // Additional fields for report compatibility
-                $review->sentiment_label = $aiResults['sentiment_label'];
+                 $review->sentiment_label = $aiResults['sentiment_label'];
                 $review->is_ai_processed = 1;
                 $review->save();
 
@@ -75,7 +75,7 @@ class ProcessAIReviews extends Command
                 // Log successful processing
                 Log::info("AI processing completed for review ID: {$review->id}", [
                     'sentiment' => $aiResults['sentiment'],
-                    'sentiment_label' => $aiResults['sentiment_label'],
+                    // 'sentiment_label' => $aiResults['sentiment_label'],
                     'topics' => count($aiResults['topics']),
                     'staff_suggestions' => count($aiResults['staff_suggestions'])
                 ]);
