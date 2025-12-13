@@ -1193,7 +1193,7 @@ class QuestionController extends Controller
      * @OA\Post(
      *      path="/review-new/owner/create/questions",
      *      operationId="storeOwnerQuestion",
-     *      tags={"review.setting.link"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -1441,94 +1441,6 @@ class QuestionController extends Controller
             $question["is_default"] = true;
         }
         $createdQuestion =    StarTagQuestion::create($question);
-
-
-        return response($createdQuestion, 201);
-    }
-
-    public function   deleteStarById($id, Request $request)
-    {
-        return "this api is closed by the developer";
-        Star::where(["id" => $id])
-            ->delete();
-        return response(["message" => "ok"], 200);
-    }
-
-    // ##################################################
-    // This method is to get star by id
-    // ##################################################
-    public function   getStarById($id, Request $request)
-    {
-        $questions =    Star::where(["id" => $id])
-            ->first();
-        return response($questions, 200);
-    }
-    // ##################################################
-    // This method is to get star
-    // ##################################################
-    public function   getStar(Request $request)
-    {
-        return   Star::where()->paginate(10);
-        if ($request->user()->hasRole("superadmin")) {
-
-            $questions =  Star::where(["is_default" => true])->paginate(10);
-
-            return response($questions, 200);
-        }
-        $business =    Business::where(["id" => $request->business_id])->first();
-        if (!$business) {
-            return response("No Business Found", 404);
-        }
-
-
-        $query =  Star::where(["is_default" => false]);
-
-        $questions =  $query->paginate(10);
-
-        return response($questions, 200);
-    }
-
-    // ##################################################
-    // This method is to update star
-    // ##################################################
-    public function updateStar(Request $request)
-    {
-        return "this api is closed by the developer";
-        $question = [
-            'value' => $request->value
-        ];
-        $checkQuestion =    Star::where(["id" => $request->id])->first();
-        if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
-            return response()->json(["message" => "you can not update the question. you are not a super admin"]);
-        }
-        $updatedQuestion =    tap(Star::where(["id" => $request->id]))->update(
-            $question
-        )
-            // ->with("somthing")
-
-            ->first();
-
-
-        return response($updatedQuestion, 200);
-    }
-
-    // ##################################################
-    // This method is to store star
-    // ##################################################
-    public function storeStar(Request $request)
-    {
-        return "this api is closed by the developer";
-        $question = [
-            'value' => $request->value,
-            // 'business_id' => $request->business_id
-        ];
-        if ($request->user()->hasRole("superadmin")) {
-            $question["is_default"] = true;
-        } else {
-            $question["is_default"] = false;
-        }
-
-        $createdQuestion =    Star::create($question);
 
 
         return response($createdQuestion, 201);
