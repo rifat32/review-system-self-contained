@@ -1332,7 +1332,7 @@ class ReviewNewController extends Controller
         // }
 
 
-      
+
 
 
         // Check if content should be blocked
@@ -1344,9 +1344,9 @@ class ReviewNewController extends Controller
         //     ], 400);
         // }
 
-      
 
-       
+
+
 
         $reviewData = [
             'survey_id' => $request->survey_id,
@@ -1376,7 +1376,7 @@ class ReviewNewController extends Controller
         $responseData = [
             "message" => "created successfully",
             "review_id" => $review->id,
-           
+
         ];
 
         // Add voice info if present
@@ -1509,7 +1509,7 @@ class ReviewNewController extends Controller
 
         $raw_text = $request->input('comment', '');
 
-       
+
 
         // Voice review handling
         // $voiceData = null;
@@ -1530,8 +1530,8 @@ class ReviewNewController extends Controller
         //     ];
         // }
 
-       
-       
+
+
 
         $reviewData = [
             'survey_id' => $request->survey_id,
@@ -1784,9 +1784,9 @@ class ReviewNewController extends Controller
     }
 
 
-    
 
-  
+
+
 
 
 
@@ -3890,7 +3890,7 @@ class ReviewNewController extends Controller
                 $q->where('is_private', 0)
                     ->orWhereNull('is_private');
             })
-            ->globalFilters(1, $businessId)
+            // ->globalFilters(1, $businessId)
             ->orderBy('order_no', 'asc')
             ->get();
 
