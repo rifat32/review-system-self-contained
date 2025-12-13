@@ -22,6 +22,7 @@ class Question extends Model
      * @OA\Property(property="id", type="integer", example=5)
      * @OA\Property(property="question", type="string", example="How was your experience?")
      * @OA\Property(property="business_id", type="integer", nullable=true, example=3)
+     * @OA\Property(property="question_category_id", type="integer", nullable=true, example=1)
      * @OA\Property(property="is_active", type="boolean", example=true)
      * @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star")
      * @OA\Property(property="is_default", type="boolean", example=false)
@@ -32,6 +33,14 @@ class Question extends Model
      * @OA\Property(property="created_at", type="string", format="date-time", example="2025-04-05T10:00:00Z")
      * @OA\Property(property="updated_at", type="string", format="date-time", example="2025-04-05T12:30:00Z")
      *
+     * @OA\Property(
+     *     property="question_category",
+     *     type="object",
+     *     nullable=true,
+     *     @OA\Property(property="id", type="integer", example=1),
+     *     @OA\Property(property="title", type="string", example="Staff"),
+     *     @OA\Property(property="description", type="string", example="Staff-related questions")
+     * )
      * @OA\Property(
      *     property="surveys",
      *     type="array",
@@ -56,6 +65,7 @@ class Question extends Model
     protected $fillable = [
         "question",
         "business_id",
+        "question_category_id",
         "is_default",
         "is_active",
         "show_in_guest_user",
@@ -106,6 +116,14 @@ class Question extends Model
     public function surveys()
     {
         return $this->belongsToMany(Survey::class, 'survey_questions', 'question_id', 'survey_id');
+    }
+
+    /**
+     * Get the question category.
+     */
+    public function questionCategory()
+    {
+        return $this->belongsTo(QuestionCategory::class, 'question_category_id');
     }
 
 
