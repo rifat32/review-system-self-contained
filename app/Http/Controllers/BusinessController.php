@@ -12,8 +12,6 @@ use App\Models\Business;
 use App\Models\Review;
 use App\Models\ReviewNew;
 use App\Models\ReviewValue;
-use App\Models\ReviewValueNew;
-use App\Models\Star;
 use App\Models\Tag;
 use App\Models\User;
 
@@ -24,7 +22,6 @@ use App\Services\BusinessService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use PDF;
 use Maatwebsite\Excel\Facades\Excel;
@@ -674,7 +671,7 @@ class BusinessController extends Controller
      *             @OA\Property(property="is_guest_user_overall_review", type="boolean", format="boolean", example="1"),
      *             @OA\Property(property="is_guest_user_survey", type="boolean", format="boolean", example="1"),
      *             @OA\Property(property="is_guest_user_survey_required", type="boolean", format="boolean", example="1"),
-      *             @OA\Property(property="is_branch", type="boolean", format="boolean", example="1"), 
+     *             @OA\Property(property="is_branch", type="boolean", format="boolean", example="1"), 
      * 
      * 
      * 

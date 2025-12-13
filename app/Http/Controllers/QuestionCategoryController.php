@@ -345,7 +345,7 @@ class QuestionCategoryController extends Controller
      *  @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *            required={, "title"},
+     *            required={"title"},
      *    @OA\Property(property="title", type="string", format="string", example="Updated Staff Category"),
      *    @OA\Property(property="description", type="string", format="string", example="Updated staff-related questions"),
      *    @OA\Property(property="parent_question_category_id", type="integer", format="integer", example=null),
