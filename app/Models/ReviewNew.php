@@ -139,7 +139,7 @@ class ReviewNew extends Model
     {
 
         // Get threshold rating
-        $business = \App\Models\Business::find($businessId);
+        $business = Business::find($businessId);
         $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
 
         return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {

@@ -16,6 +16,7 @@ use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\LeafletController;
+use App\Http\Controllers\QuestionCategoryController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\ReviewNewController;
 use App\Http\Controllers\RolesController;
@@ -144,6 +145,15 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/questions/toggle', [QuestionController::class, 'toggleQuestionActivation']);
     Route::patch('/v1.0/questions/{id}', [QuestionController::class, 'updatedQuestion'])->whereNumber('id');
 
+    // #################
+    // Question Category Management Routes
+    // #################
+    Route::post('/v1.0/question-categories', [QuestionCategoryController::class, 'createQuestionCategory']);
+    Route::get('/v1.0/question-categories', [QuestionCategoryController::class, 'getAllQuestionCategories']);
+    Route::get('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'getQuestionCategoryById']);
+    Route::patch('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'updateQuestionCategory']);
+    Route::delete('/v1.0/question-categories/{ids}', [QuestionCategoryController::class, 'deleteQuestionCategories']);
+
     // ============================================================================
     // LeafletController – CRUD (protected)
     // ============================================================================
@@ -167,7 +177,7 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // TagController – Tags CRUD (protected)
     // ============================================================================
-    
+
     Route::post('/v1.0/tags', [TagController::class, 'createTag']);
     Route::get('/v1.0/tags', [TagController::class, 'getAllTags']);
     Route::get('/v1.0/tags/{id}', [TagController::class, 'getTagById']);
