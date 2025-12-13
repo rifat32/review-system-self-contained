@@ -31,9 +31,9 @@ class QuestionCategoryRequest extends FormRequest
         ];
 
         // If updating, add ID validation
-        if ($this->isMethod('put') || $this->isMethod('patch')) {
-            $rules['id'] = 'required|integer|exists:question_categories,id';
-        }
+        // if ($this->isMethod('put') || $this->isMethod('patch')) {
+        //     $rules['id'] = 'required|integer|exists:question_categories,id';
+        // }
 
         return $rules;
     }

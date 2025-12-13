@@ -152,6 +152,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/question-categories', [QuestionCategoryController::class, 'getAllQuestionCategories']);
     Route::get('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'getQuestionCategoryById']);
     Route::patch('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'updateQuestionCategory']);
+    Route::patch('/v1.0/question-categories/toggle', [QuestionCategoryController::class, 'toggleQuestionCategory']);
     Route::delete('/v1.0/question-categories/{ids}', [QuestionCategoryController::class, 'deleteQuestionCategories']);
 
     // ============================================================================

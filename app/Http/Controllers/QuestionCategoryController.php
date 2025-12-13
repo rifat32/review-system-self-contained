@@ -31,8 +31,6 @@ class QuestionCategoryController extends Controller
      *            required={"title"},
      *    @OA\Property(property="title", type="string", format="string", example="Staff"),
      *    @OA\Property(property="description", type="string", format="string", example="Staff-related questions"),
-     *    @OA\Property(property="is_active", type="boolean", format="boolean", example=true),
-     *    @OA\Property(property="is_default", type="boolean", format="boolean", example=false),
      *    @OA\Property(property="parent_question_category_id", type="integer", format="integer", example=null),
      *
      *         ),
@@ -347,12 +345,9 @@ class QuestionCategoryController extends Controller
      *  @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *            required={"id", "title"},
-     *    @OA\Property(property="id", type="integer", format="integer", example=1),
+     *            required={, "title"},
      *    @OA\Property(property="title", type="string", format="string", example="Updated Staff Category"),
      *    @OA\Property(property="description", type="string", format="string", example="Updated staff-related questions"),
-     *    @OA\Property(property="is_active", type="boolean", format="boolean", example=true),
-     *    @OA\Property(property="is_default", type="boolean", format="boolean", example=false),
      *    @OA\Property(property="parent_question_category_id", type="integer", format="integer", example=null),
      *
      *         ),
@@ -406,8 +401,13 @@ class QuestionCategoryController extends Controller
 
                 $payload_data = $request->validated();
 
-                // Remove id from payload as it's not fillable
-                unset($payload_data['id']);
+                if ($questionCategory->is_default) {
+                    // Prevent changing is_default of default category
+                    return response()->json([
+                        "success" => false,
+                        "message" => "Default question category cannot be modified"
+                    ], 406);
+                }
 
                 // Update the question category
                 $questionCategory->update($payload_data);
@@ -421,6 +421,126 @@ class QuestionCategoryController extends Controller
                     "data" => $questionCategory
                 ], 200);
             });
+        } catch (Exception $e) {
+            return response()->json([
+                "success" => false,
+                "message" => "Something went wrong",
+                "original_message" => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Patch(
+     *      path="/v1.0/question-categories/toggle",
+     *      operationId="toggleQuestionCategory",
+     *      tags={"question_category_management"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to toggle question category active status",
+     *      description="This method is to toggle question category active status",
+     *
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"id","is_active"},
+     *              @OA\Property(property="id", type="integer", example=1, description="Question category ID"),
+     *              @OA\Property(property="is_active", type="boolean", example=true, description="New active state")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Question category active state updated successfully."),
+     *              @OA\Property(property="data", type="object", description="Updated question category object")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Invalid input data.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="You are not authorized to modify this question category.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="Question category not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Question category not found.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=500,
+     *          description="Internal server error",
+     *          @OA\JsonContent()
+     *      )
+     * )
+     */
+    public function toggleQuestionCategory(Request $request)
+    {
+        try {
+            // Validate input
+            $request->validate([
+                'id' => 'required|integer|exists:question_categories,id',
+            ]);
+
+            $questionCategory = QuestionCategory::findOrFail($request->id);
+            // $user = $request->user();
+
+            // // Check authorization
+            // if ($user->hasRole('superadmin')) {
+            //     // Superadmin can toggle any category
+            // } else {
+            //     // Regular users can only toggle categories for their businesses or default categories
+            //     $userBusinessIds = $user->businesses()->pluck('id')->toArray();
+
+            //     if (!$questionCategory->is_default && !in_array($questionCategory->business_id, $userBusinessIds)) {
+            //         return response()->json([
+            //             'success' => false,
+            //             'message' => 'You are not authorized to modify this question category.'
+            //         ], 403);
+            //     }
+            // }
+            if ($questionCategory->is_default) {
+                // Prevent changing is_default of default category
+                return response()->json([
+                    "success" => false,
+                    "message" => "Default question category cannot be modified"
+                ], 406);
+            }
+
+            // Update the is_active field
+            $questionCategory->is_active = !$questionCategory->is_active;
+            $questionCategory->save();
+
+            // Reload to get fresh data
+            $questionCategory->refresh();
+            $questionCategory->load(['parent', 'children']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Question category active state updated successfully.',
+                'data' => $questionCategory
+            ], 200);
         } catch (Exception $e) {
             return response()->json([
                 "success" => false,
