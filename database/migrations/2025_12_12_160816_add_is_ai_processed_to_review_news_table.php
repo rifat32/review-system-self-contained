@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::table('review_news', function (Blueprint $table) {
             // Add is_ai_processed field with default false
-            $table->boolean('is_ai_processed')->default(false)->after('is_voice_review');
+            $table->boolean('is_ai_processed')->default(0)->after('is_voice_review');
             
         });
     }

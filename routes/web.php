@@ -8,7 +8,7 @@ use App\Http\Controllers\TestController;
 
 use App\Models\EmailTemplate;
 use App\Models\EmailTemplateWrapper;
-
+use App\Models\ReviewNew;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -32,6 +32,28 @@ use Illuminate\Support\Facades\Hash;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/reviews', function () {
+    return response()->json([
+        "data" => ReviewNew::
+    whereNotNull("raw_text")    ->select(
+            'id',
+            'raw_text',
+            'moderation_results',
+            'sentiment_score',
+            'topics',
+            'ai_suggestions',
+            'staff_suggestions',
+            'emotion',
+            'key_phrases',
+            'is_ai_processed',
+            'staff_id',
+            'created_at',
+            'updated_at'
+        )->get()
+    ]);
+});
+
 
 
 // SWAGGER REFRESH

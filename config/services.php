@@ -13,6 +13,9 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+    'huggingface' => [
+    'api_key' => env('HF_API_KEY', null),
+],
 
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
