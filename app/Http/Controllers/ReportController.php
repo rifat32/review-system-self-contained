@@ -13,6 +13,7 @@ use App\Models\Survey;
 use App\Models\Tag;
 use App\Models\User;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -2364,13 +2365,14 @@ $validAllRatings = $allRatings->filter();
         $weighted_sum = 0;
         $total_weight = 0;
 
-        foreach ($allRatings as $reviewId => $rating) {
-            if ($rating !== null) {
-                $review = ReviewNew::find($reviewId);
+     
+        foreach ($allReviews as  $review) {
+           
+
                 $weight = $review->user_id ? $weights['verified'] : $weights['guest'];
-                $weighted_sum += $rating * $weight;
+                $weighted_sum += $review->calculated_rating * $weight;
                 $total_weight += $weight;
-            }
+            
         }
 
         $data['weighted_star_rating'] = $total_weight ? round($weighted_sum / $total_weight, 2) : 0;
