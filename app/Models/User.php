@@ -63,6 +63,11 @@ class User extends Authenticatable
         return $this->hasMany(Business::class, "OwnerID", "id");
     }
 
+    public function businesses()
+    {
+        return $this->hasMany(Business::class, "OwnerID", "id");
+    }
+
     public function getNameAttribute()
     {
         return "{$this->first_Name} {$this->last_Name}";
