@@ -1268,7 +1268,7 @@ class OwnerController extends Controller
      * @OA\Patch(
      *      path="/owner/update-user",
      *      operationId="updateUser",
-     *      tags={"owner"},
+     *      tags={"z.unsed"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -1397,11 +1397,12 @@ class OwnerController extends Controller
      *     security={{"bearerAuth": {}}},
      *     summary="Update authenticated user's profile",
      *     description="Allows a user to update their own profile information including password (with old password verification)",
-     *     
+     *    
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             required={"first_Name", "last_Name", "phone", "Address"},
+     *             @OA\Property(property="id", type="number", example=""),
      *             @OA\Property(property="first_Name", type="string", example="John"),
      *             @OA\Property(property="last_Name", type="string", example="Doe"),
      *             @OA\Property(property="phone", type="string", example="+1234567890"),
@@ -1432,13 +1433,27 @@ class OwnerController extends Controller
      *     @OA\Response(response=400, description="Bad Request")
      * )
      */
+
+
+
+
+
     public function updateUserByUser(Request $request)
     {
-        $user = $request->user();
-
-
-        if ($request->user()->hasRole("superadmin")) {
-            return response()->json(["message" => "You do not have permission", 401]);
+        $authUser = $request->user();
+        if ($authUser->hasRole("superadmin")) {
+            // Superadmin: update user by id from request
+            $request->validate(['id' => 'required|integer|exists:users,id']);
+            $user = User::find($request->id);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found.'
+                ], 404);
+            }
+        } else {
+            // Regular user: update self
+            $user = $authUser;
         }
 
         // Validate input
@@ -1476,14 +1491,11 @@ class OwnerController extends Controller
                     'message' => 'The old password is incorrect.'
                 ], 401);
             }
-
             $updatableData['password'] = Hash::make($validated['password']);
         }
 
         // Update user (using tap + update + first() to get fresh instance)
         $updatedUser = tap($user)->update($updatableData);
-
-        // Reload relations if needed, or just return fresh instance
         $updatedUser = $updatedUser->fresh();
 
         return response()->json([
