@@ -88,8 +88,11 @@ class BranchController extends Controller
      *              required={"business_id", "name"},
      *              @OA\Property(property="business_id", type="integer", example=1, description="ID of the business"),
      *              @OA\Property(property="name", type="string", example="Main Branch", description="Name of the branch"),
-     *              @OA\Property(property="address", type="string", example="123 Main St", description="Address of the branch"),
-     *              @OA\Property(property="phone", type="string", example="+1234567890", description="Phone number of the branch"),
+     *              @OA\Property(property="address", type="string", example="123 Main St", description="Address of the branch"),              @OA\Property(property="street", type="string", example="Main Street", description="Street address"),
+              @OA\Property(property="door_no", type="string", example="123", description="Door number"),
+              @OA\Property(property="city", type="string", example="New York", description="City"),
+              @OA\Property(property="country", type="string", example="USA", description="Country"),
+              @OA\Property(property="postcode", type="string", example="10001", description="Postcode"),     *              @OA\Property(property="phone", type="string", example="+1234567890", description="Phone number of the branch"),
      *              @OA\Property(property="email", type="string", example="branch@example.com", description="Email of the branch"),
      *              @OA\Property(property="is_active", type="boolean", example=true, description="Whether the branch is active"),
      *              @OA\Property(property="is_geo_enabled", type="boolean", example=false, description="Whether geolocation is enabled for the branch"),
@@ -112,7 +115,12 @@ class BranchController extends Controller
      *                  @OA\Property(property="business_id", type="integer", example=1),
      *                  @OA\Property(property="name", type="string", example="Main Branch"),
      *                  @OA\Property(property="address", type="string", example="123 Main St"),
-     *                  @OA\Property(property="phone", type="string", example="+1234567890"),
+                  @OA\Property(property="street", type="string", example="Main Street"),
+                  @OA\Property(property="door_no", type="string", example="123"),
+                  @OA\Property(property="city", type="string", example="New York"),
+                  @OA\Property(property="country", type="string", example="USA"),
+                  @OA\Property(property="postcode", type="string", example="10001"),
+                  @OA\Property(property="phone", type="string", example="+1234567890"),
      *              @OA\Property(property="email", type="string", example="branch@example.com"),
      *              @OA\Property(property="is_active", type="boolean", example=true),
      *              @OA\Property(property="is_geo_enabled", type="boolean", example=false),
@@ -207,8 +215,13 @@ class BranchController extends Controller
      *                  @OA\Property(property="id", type="integer", example=1),
      *                  @OA\Property(property="business_id", type="integer", example=1),
      *                  @OA\Property(property="name", type="string", example="Main Branch"),
-     *                  @OA\Property(property="address", type="string", example="123 Main St"),
-     *                  @OA\Property(property="phone", type="string", example="+1234567890"),
+                  @OA\Property(property="address", type="string", example="123 Main St"),
+                  @OA\Property(property="street", type="string", example="Main Street"),
+                  @OA\Property(property="door_no", type="string", example="123"),
+                  @OA\Property(property="city", type="string", example="New York"),
+                  @OA\Property(property="country", type="string", example="USA"),
+                  @OA\Property(property="postcode", type="string", example="10001"),
+                  @OA\Property(property="phone", type="string", example="+1234567890"),
      *                  @OA\Property(property="email", type="string", example="branch@example.com"),
      *                  @OA\Property(property="is_active", type="boolean", example=true),
      *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
@@ -307,8 +320,11 @@ class BranchController extends Controller
      *              @OA\Property(property="id", type="integer", example=1, description="Branch ID (required for PATCH/PUT)"),
      *              @OA\Property(property="business_id", type="integer", example=1, description="ID of the business"),
      *              @OA\Property(property="name", type="string", example="Updated Branch", description="Name of the branch"),
-     *              @OA\Property(property="address", type="string", example="456 Updated St", description="Address of the branch"),
-     *              @OA\Property(property="phone", type="string", example="+0987654321", description="Phone number of the branch"),
+     *              @OA\Property(property="address", type="string", example="456 Updated St", description="Address of the branch"),              @OA\Property(property="street", type="string", example="Updated Street", description="Street address"),
+              @OA\Property(property="door_no", type="string", example="456", description="Door number"),
+              @OA\Property(property="city", type="string", example="Updated City", description="City"),
+              @OA\Property(property="country", type="string", example="Updated Country", description="Country"),
+              @OA\Property(property="postcode", type="string", example="20002", description="Postcode"),     *              @OA\Property(property="phone", type="string", example="+0987654321", description="Phone number of the branch"),
      *              @OA\Property(property="email", type="string", example="updated@example.com", description="Email of the branch"),
      *              @OA\Property(property="is_active", type="boolean", example=true, description="Whether the branch is active"),
      *              @OA\Property(property="is_geo_enabled", type="boolean", example=false, description="Whether geolocation is enabled for the branch"),
@@ -331,6 +347,11 @@ class BranchController extends Controller
      *                  @OA\Property(property="business_id", type="integer", example=1),
      *                  @OA\Property(property="name", type="string", example="Updated Branch"),
      *                  @OA\Property(property="address", type="string", example="456 Updated St"),
+     *                  @OA\Property(property="street", type="string", example="Updated Street"),
+     *                  @OA\Property(property="door_no", type="string", example="456"),
+     *                  @OA\Property(property="city", type="string", example="Updated City"),
+     *                  @OA\Property(property="country", type="string", example="Updated Country"),
+     *                  @OA\Property(property="postcode", type="string", example="20002"),
      *                  @OA\Property(property="phone", type="string", example="+0987654321"),
      *                  @OA\Property(property="email", type="string", example="updated@example.com"),
      *                  @OA\Property(property="is_active", type="boolean", example=true),
@@ -525,6 +546,14 @@ class BranchController extends Controller
      *         @OA\Property(property="id", type="integer", example=1),
      *         @OA\Property(property="business_id", type="integer", example=1),
      *         @OA\Property(property="name", type="string", example="Main Branch"),
+     *         @OA\Property(property="address", type="string", example="123 Main St"),
+     *         @OA\Property(property="street", type="string", example="Main Street"),
+     *         @OA\Property(property="door_no", type="string", example="123"),
+     *         @OA\Property(property="city", type="string", example="New York"),
+     *         @OA\Property(property="country", type="string", example="USA"),
+     *         @OA\Property(property="postcode", type="string", example="10001"),
+     *         @OA\Property(property="phone", type="string", example="+1234567890"),
+     *         @OA\Property(property="email", type="string", example="branch@example.com"),
      *         @OA\Property(property="is_active", type="boolean", example=true),
      *         @OA\Property(property="is_geo_enabled", type="boolean", example=false),
      *         @OA\Property(property="branch_code", type="string", example="BR001"),
@@ -594,41 +623,4 @@ class BranchController extends Controller
             'data' => $branch
         ]);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
 }

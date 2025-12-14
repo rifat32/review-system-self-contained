@@ -1623,6 +1623,31 @@
                                         "type": "string",
                                         "example": "123 Main St"
                                     },
+                                    "street": {
+                                        "description": "Street address",
+                                        "type": "string",
+                                        "example": "Main Street"
+                                    },
+                                    "door_no": {
+                                        "description": "Door number",
+                                        "type": "string",
+                                        "example": "123"
+                                    },
+                                    "city": {
+                                        "description": "City",
+                                        "type": "string",
+                                        "example": "New York"
+                                    },
+                                    "country": {
+                                        "description": "Country",
+                                        "type": "string",
+                                        "example": "USA"
+                                    },
+                                    "postcode": {
+                                        "description": "Postcode",
+                                        "type": "string",
+                                        "example": "10001"
+                                    },
                                     "phone": {
                                         "description": "Phone number of the branch",
                                         "type": "string",
@@ -1698,6 +1723,26 @@
                                                 "address": {
                                                     "type": "string",
                                                     "example": "123 Main St"
+                                                },
+                                                "street": {
+                                                    "type": "string",
+                                                    "example": "Main Street"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "123"
+                                                },
+                                                "city": {
+                                                    "type": "string",
+                                                    "example": "New York"
+                                                },
+                                                "country": {
+                                                    "type": "string",
+                                                    "example": "USA"
+                                                },
+                                                "postcode": {
+                                                    "type": "string",
+                                                    "example": "10001"
                                                 },
                                                 "phone": {
                                                     "type": "string",
@@ -1865,6 +1910,26 @@
                                                 "address": {
                                                     "type": "string",
                                                     "example": "123 Main St"
+                                                },
+                                                "street": {
+                                                    "type": "string",
+                                                    "example": "Main Street"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "123"
+                                                },
+                                                "city": {
+                                                    "type": "string",
+                                                    "example": "New York"
+                                                },
+                                                "country": {
+                                                    "type": "string",
+                                                    "example": "USA"
+                                                },
+                                                "postcode": {
+                                                    "type": "string",
+                                                    "example": "10001"
                                                 },
                                                 "phone": {
                                                     "type": "string",
@@ -2137,6 +2202,31 @@
                                         "type": "string",
                                         "example": "456 Updated St"
                                     },
+                                    "street": {
+                                        "description": "Street address",
+                                        "type": "string",
+                                        "example": "Updated Street"
+                                    },
+                                    "door_no": {
+                                        "description": "Door number",
+                                        "type": "string",
+                                        "example": "456"
+                                    },
+                                    "city": {
+                                        "description": "City",
+                                        "type": "string",
+                                        "example": "Updated City"
+                                    },
+                                    "country": {
+                                        "description": "Country",
+                                        "type": "string",
+                                        "example": "Updated Country"
+                                    },
+                                    "postcode": {
+                                        "description": "Postcode",
+                                        "type": "string",
+                                        "example": "20002"
+                                    },
                                     "phone": {
                                         "description": "Phone number of the branch",
                                         "type": "string",
@@ -2212,6 +2302,26 @@
                                                 "address": {
                                                     "type": "string",
                                                     "example": "456 Updated St"
+                                                },
+                                                "street": {
+                                                    "type": "string",
+                                                    "example": "Updated Street"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "456"
+                                                },
+                                                "city": {
+                                                    "type": "string",
+                                                    "example": "Updated City"
+                                                },
+                                                "country": {
+                                                    "type": "string",
+                                                    "example": "Updated Country"
+                                                },
+                                                "postcode": {
+                                                    "type": "string",
+                                                    "example": "20002"
                                                 },
                                                 "phone": {
                                                     "type": "string",
@@ -2394,6 +2504,38 @@
                                                 "name": {
                                                     "type": "string",
                                                     "example": "Main Branch"
+                                                },
+                                                "address": {
+                                                    "type": "string",
+                                                    "example": "123 Main St"
+                                                },
+                                                "street": {
+                                                    "type": "string",
+                                                    "example": "Main Street"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "123"
+                                                },
+                                                "city": {
+                                                    "type": "string",
+                                                    "example": "New York"
+                                                },
+                                                "country": {
+                                                    "type": "string",
+                                                    "example": "USA"
+                                                },
+                                                "postcode": {
+                                                    "type": "string",
+                                                    "example": "10001"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+1234567890"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "branch@example.com"
                                                 },
                                                 "is_active": {
                                                     "type": "boolean",
