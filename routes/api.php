@@ -15,6 +15,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\BusinessServiceController;
+use App\Http\Controllers\BusinessAreaController;
 use App\Http\Controllers\LeafletController;
 use App\Http\Controllers\QuestionCategoryController;
 use App\Http\Controllers\QuestionController;
@@ -156,6 +158,26 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'updateQuestionCategory']);
     Route::patch('/v1.0/question-categories/toggle', [QuestionCategoryController::class, 'toggleQuestionCategory']);
     Route::delete('/v1.0/question-categories/{ids}', [QuestionCategoryController::class, 'deleteQuestionCategories']);
+
+    // #################
+    // Business Service Management Routes
+    // #################
+    Route::post('/v1.0/business-services', [BusinessServiceController::class, 'createBusinessService']);
+    Route::get('/v1.0/business-services', [BusinessServiceController::class, 'getAllBusinessServices']);
+    Route::get('/v1.0/business-services/{id}', [BusinessServiceController::class, 'businessServiceById']);
+    Route::patch('/v1.0/business-services/{id}', [BusinessServiceController::class, 'updateBusinessService']);
+    Route::delete('/v1.0/business-services/{ids}', [BusinessServiceController::class, 'deleteBusinessServices']);
+    Route::patch('/v1.0/business-services/toggle', [BusinessServiceController::class, 'businessServiceToggle']);
+
+    // #################
+    // Business Area Management Routes
+    // #################
+    Route::post('/v1.0/business-areas', [BusinessAreaController::class, 'createBusinessArea']);
+    Route::get('/v1.0/business-areas', [BusinessAreaController::class, 'getAllBusinessAreas']);
+    Route::get('/v1.0/business-areas/{id}', [BusinessAreaController::class, 'businessAreaById']);
+    Route::patch('/v1.0/business-areas/{id}', [BusinessAreaController::class, 'updateBusinessArea']);
+    Route::delete('/v1.0/business-areas/{ids}', [BusinessAreaController::class, 'deleteBusinessAreas']);
+    Route::patch('/v1.0/business-areas/toggle', [BusinessAreaController::class, 'toggleBusinessArea']);
 
     // ============================================================================
     // LeafletController – CRUD (protected)
