@@ -155,35 +155,39 @@ class ReportController extends Controller
     {
         $businessId = $branch->business_id;
 
-        // Get reviews for this branch within date range
+        // Get reviews with calculated rating in one query
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branch->id)
             ->globalFilters(1, $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->select('review_news.*')
+            ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
             ->get();
 
         $totalReviews = $reviews->count();
 
-        // Calculate ratings from ReviewValueNew
-        $reviewIds = $reviews->pluck('id')->toArray();
-        $ratings = $this->calculateBulkRatings($reviewIds);
-        $validRatings = $ratings->filter()->values();
+        // Average rating from calculated_rating
+        $averageRating = $reviews->avg('calculated_rating') ?? 0;
 
-        // Average rating
-        $averageRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
-
-        // AI Sentiment Score (percentage of positive reviews)
+        // AI Sentiment Score
         $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
         $aiSentimentScore = $totalReviews > 0 ? round(($positiveReviews / $totalReviews) * 100) : 0;
 
-        // CSAT Score (percentage of 4-5 star ratings)
-        $csatCount = 0;
-        foreach ($reviews as $review) {
-            $rating = $ratings->get($review->id, $review->rate);
-            if ($rating >= 4) {
-                $csatCount++;
-            }
-        }
+        // CSAT Score
+        $csatCount = $reviews->filter(function ($review) {
+            return ($review->calculated_rating ?? 0) >= 4;
+        })->count();
+
         $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
 
         // Staff performance metrics
@@ -203,7 +207,7 @@ class ReportController extends Controller
             ],
             'metrics' => [
                 'total_reviews' => $totalReviews,
-                'average_rating' => $averageRating,
+                'average_rating' => round($averageRating, 1),
                 'ai_sentiment_score' => $aiSentimentScore,
                 'csat_score' => $csatScore,
                 'response_rate' => $this->calculateResponseRate($reviews)
@@ -223,6 +227,18 @@ class ReportController extends Controller
             ->globalFilters(1, $businessId, 1)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->select('review_news.*')
+            ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
             ->get()
             ->groupBy('staff_id');
 
@@ -232,15 +248,12 @@ class ReportController extends Controller
             $staff = User::find($staffId);
             if (!$staff) continue;
 
-            $reviewIds = $reviews->pluck('id')->toArray();
-            $ratings = $this->calculateBulkRatings($reviewIds);
-            $validRatings = $ratings->filter()->values();
-            $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+            $avgRating = $reviews->avg('calculated_rating') ?? 0;
 
             $staffPerformance[] = [
                 'staff_id' => $staffId,
                 'staff_name' => $staff->name,
-                'avg_rating' => $avgRating,
+                'avg_rating' => round($avgRating, 1),
                 'reviews_count' => $reviews->count(),
                 'positive_percentage' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / $reviews->count()) * 100),
                 'last_review_date' => $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans()
@@ -252,7 +265,7 @@ class ReportController extends Controller
             return $b['avg_rating'] <=> $a['avg_rating'];
         });
 
-        return array_slice($staffPerformance, 0, 3); // Return top 3 staff
+        return array_slice($staffPerformance, 0, 3);
     }
 
     /**
@@ -467,6 +480,18 @@ class ReportController extends Controller
                     ->where('branch_id', $branch->id)
                     ->globalFilters(1, $branch->business_id)
                     ->whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->select('review_news.*')
+            ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
                     ->get();
 
                 $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
@@ -501,6 +526,18 @@ class ReportController extends Controller
                 ->where('branch_id', $branch->id)
                 ->globalFilters(1, $branch->business_id, 1)
                 ->whereBetween('created_at', [$startDate, $endDate])
+                ->select('review_news.*')
+            ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
                 ->get();
 
             $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
@@ -604,26 +641,35 @@ class ReportController extends Controller
             ->where('branch_id', $branchId)
             ->globalFilters(1, $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->with(['staff', 'user', 'guest_user', 'survey']);
+            ->with(['staff', 'user', 'guest_user', 'survey'])
+            ->select('review_news.*')
+            ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ');
 
         $reviews = $reviewsQuery->get();
-        $reviewIds = $reviews->pluck('id')->toArray();
 
-        // Calculate ratings from ReviewValueNew
-        $ratings = $this->calculateBulkRatings($reviewIds);
-        $validRatings = $ratings->filter()->values();
+
 
         // Calculate summary metrics
-        $summary = $this->calculateBranchSummary($reviews, $validRatings);
+        $summary = $this->calculateBranchSummary($reviews);
 
         // Get AI insights
-        $aiInsights = $this->generateAiInsights($reviews, $validRatings);
+        $aiInsights = $this->generateAiInsights($reviews);
 
         // Get recommendations
-        $recommendations = $this->generateBranchRecommendations($reviews, $validRatings, $branchId);
+        $recommendations = $this->generateBranchRecommendations($reviews, $branchId);
 
         // Get recent reviews (last 5)
-        $recentReviews = $this->getRecentReviews($reviews, $ratings);
+        $recentReviews = $this->getRecentReviews($reviews);
 
         // Get staff performance (top 5)
         $staffPerformance = $this->getStaffPerformance($branchId, $businessId, $startDate, $endDate);
@@ -662,12 +708,12 @@ class ReportController extends Controller
     /**
      * Calculate branch summary metrics
      */
-    private function calculateBranchSummary($reviews, $ratings)
+    private function calculateBranchSummary($reviews)
     {
         $totalReviews = $reviews->count();
 
-        // Average rating
-        $averageRating = $ratings->isNotEmpty() ? round($ratings->avg(), 1) : 0;
+        // Use calculated_rating instead of separate rating calculation
+        $averageRating = $reviews->avg('calculated_rating') ?? 0;
 
         // AI Sentiment
         $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
@@ -683,13 +729,10 @@ class ReportController extends Controller
         }
 
         // CSAT Score (percentage of 4-5 star ratings)
-        $csatCount = 0;
-        foreach ($reviews as $review) {
-            $rating = $ratings->get($review->id, $review->rate);
-            if ($rating >= 4) {
-                $csatCount++;
-            }
-        }
+        $csatCount = $reviews->filter(function ($review) {
+            return ($review->calculated_rating ?? 0) >= 4;
+        })->count();
+
         $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
 
         // Top Topic (from review topics or extract from comments)
@@ -700,7 +743,7 @@ class ReportController extends Controller
 
         return [
             'total_reviews' => $totalReviews,
-            'average_rating' => $averageRating,
+            'average_rating' => round($averageRating, 1),
             'rating_out_of' => 5,
             'ai_sentiment' => $sentiment,
             'csat_score' => $csatScore,
@@ -713,7 +756,7 @@ class ReportController extends Controller
     /**
      * Generate AI insights from reviews
      */
-    private function generateAiInsights($reviews, $ratings)
+    private function generateAiInsights($reviews)
     {
         if ($reviews->isEmpty()) {
             return [
@@ -740,7 +783,7 @@ class ReportController extends Controller
         ];
 
         // Generate summary
-        $summary = $this->generateAiSummary($reviews, $sentimentBreakdown, $ratings);
+        $summary = $this->generateAiSummary($reviews, $sentimentBreakdown);
 
         return [
             'summary' => $summary,
@@ -752,7 +795,7 @@ class ReportController extends Controller
     /**
      * Generate AI summary
      */
-    private function generateAiSummary($reviews, $sentimentBreakdown, $ratings)
+    private function generateAiSummary($reviews, $sentimentBreakdown)
     {
         $totalReviews = $reviews->count();
         $positivePercentage = $sentimentBreakdown['positive'];
@@ -772,8 +815,8 @@ class ReportController extends Controller
         $summary .= ", with {$positivePercentage}% of reviews expressing positive sentiment. ";
 
         // Calculate average rating
-        $avgRating = $ratings->isNotEmpty() ? round($ratings->avg(), 1) : 0;
-        $summary .= "The average rating is {$avgRating} out of 5. ";
+       $avgRating = $reviews->avg('calculated_rating') ?? 0;
+    $summary .= "The average rating is " . round($avgRating, 1) . " out of 5. ";
 
         // Check for common issues
         $commonIssues = $this->findCommonIssues($reviews);
@@ -793,7 +836,7 @@ class ReportController extends Controller
     /**
      * Generate recommendations based on review analysis
      */
-    private function generateBranchRecommendations($reviews, $ratings, $branchId)
+    private function generateBranchRecommendations($reviews)
     {
         $recommendations = [];
         $totalReviews = $reviews->count();
@@ -866,12 +909,12 @@ class ReportController extends Controller
     /**
      * Get recent reviews for display
      */
-    private function getRecentReviews($reviews, $ratings, $limit = 5)
+    private function getRecentReviews($reviews, $limit = 5)
     {
         return $reviews->sortByDesc('created_at')
             ->take($limit)
-            ->map(function ($review) use ($ratings) {
-                $rating = $ratings->get($review->id, $review->rate);
+            ->map(function ($review) {
+                $rating = $review->calculated_rating ?? $review->rate;
 
                 return [
                     'id' => $review->id,
@@ -895,52 +938,61 @@ class ReportController extends Controller
     /**
      * Get staff performance data
      */
-    private function getStaffPerformance($branchId, $businessId, $startDate, $endDate, $limit = 5)
-    {
-        // Get reviews with staff assigned
-        $staffReviews = ReviewNew::where('business_id', $businessId)
-            ->where('branch_id', $branchId)
-            ->globalFilters(1, $businessId, 1)
-            ->whereNotNull('staff_id')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->get()
-            ->groupBy('staff_id');
+   private function getStaffPerformance($branchId, $businessId, $startDate, $endDate, $limit = 5)
+{
+    // Get reviews with staff assigned AND calculated rating in one query
+    $staffReviews = ReviewNew::where('business_id', $businessId)
+        ->where('branch_id', $branchId)
+        ->globalFilters(1, $businessId, 1)
+        ->whereNotNull('staff_id')
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->select('review_news.*')
+        ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
+        ->get();
 
-        $staffPerformance = [];
+    $staffPerformance = [];
 
-        foreach ($staffReviews as $staffId => $reviews) {
-            $staff = User::find($staffId);
-            if (!$staff) continue;
+    foreach ($staffReviews as $staffId => $reviews) {
+        $staff = User::find($staffId);
+        if (!$staff) continue;
 
-            $reviewIds = $reviews->pluck('id')->toArray();
-            $ratings = $this->calculateBulkRatings($reviewIds);
-            $validRatings = $ratings->filter()->values();
-            $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+        // Use calculated_rating directly from the query results
+        $avgRating = $reviews->avg('calculated_rating') ?? 0;
 
-            // Skip staff with very few reviews
-            if ($reviews->count() < 3) continue;
+        // Skip staff with very few reviews
+        if ($reviews->count() < 3) continue;
 
-            $staffPerformance[] = [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'staff_code' => $staff->employee_code ?? 'EMP-' . $staffId,
-                'avg_rating' => $avgRating,
-                'rating_out_of' => 5,
-                'reviews_count' => $reviews->count(),
-                'ai_evaluation' => $this->getStaffEvaluation($avgRating, $reviews->count()),
-                'has_profile' => true,
-                'positive_percentage' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / $reviews->count()) * 100),
-                'last_review_date' => $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans()
-            ];
-        }
-
-        // Sort by average rating descending
-        usort($staffPerformance, function ($a, $b) {
-            return $b['avg_rating'] <=> $a['avg_rating'];
-        });
-
-        return array_slice($staffPerformance, 0, $limit);
+        $staffPerformance[] = [
+            'staff_id' => $staffId,
+            'staff_name' => $staff->name,
+            'staff_code' => $staff->employee_code ?? 'EMP-' . $staffId,
+            'avg_rating' => round($avgRating, 1),
+            'rating_out_of' => 5,
+            'reviews_count' => $reviews->count(),
+            'ai_evaluation' => $this->getStaffEvaluation($avgRating, $reviews->count()),
+            'has_profile' => true,
+            'positive_percentage' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / $reviews->count()) * 100),
+            'last_review_date' => $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans()
+        ];
     }
+
+    // Sort by average rating descending
+    usort($staffPerformance, function ($a, $b) {
+        return $b['avg_rating'] <=> $a['avg_rating'];
+    });
+
+    return array_slice($staffPerformance, 0, $limit);
+}
 
     // ============================================
     // HELPER METHODS
@@ -1200,46 +1252,6 @@ class ReportController extends Controller
 
 
 
-
-    /**
-     * Optimized method to calculate ratings for multiple reviews in one query
-     */
-    private function calculateBulkRatings($reviewIds)
-    {
-        if (empty($reviewIds)) {
-            return collect();
-        }
-
-        $ratings = DB::table('review_value_news as rvn')
-            ->join('stars as s', 'rvn.star_id', '=', 's.id')
-            ->whereIn('rvn.review_id', $reviewIds)
-            ->select(
-                'rvn.review_id',
-                'rvn.question_id',
-                's.value as star_value'
-            )
-            ->orderBy('rvn.review_id')
-            ->orderBy('rvn.question_id')
-            ->get();
-
-        // Group by review_id and calculate average per review
-        $result = [];
-
-        foreach ($ratings->groupBy('review_id') as $reviewId => $questionRatings) {
-            // Get unique questions for this review
-            $uniqueQuestions = $questionRatings->unique('question_id');
-            $totalRating = $uniqueQuestions->sum('star_value');
-            $questionCount = $uniqueQuestions->count();
-
-            $result[$reviewId] = $questionCount > 0
-                ? round($totalRating / $questionCount, 1)
-                : null;
-        }
-
-        return collect($result);
-    }
-
-
     /**
      *
      * @OA\Get(
@@ -1295,36 +1307,39 @@ class ReportController extends Controller
      */
 
 
-    public function customerDashboardReport(Request $request)
-    {
-        // Get reviews
-        $reviews = ReviewNew::with("business", "value")->where([
+   public function customerDashboardReport(Request $request)
+{
+    // Get reviews with calculated rating in one query
+    $reviews = ReviewNew::with("business", "value")
+        ->where([
             "user_id" => $request->customer_id
         ])
-            ->globalFilters(1, auth()->user()->business->id)
-            ->orderBy('order_no', 'asc')
-            ->latest()
-            ->take(5)
-            ->get();
+        ->globalFilters(1, auth()->user()->business->id)
+        ->orderBy('order_no', 'asc')
+        ->latest()
+        ->select('review_news.*')
+        ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
+        ->take(5)
+        ->get();
 
-        // Calculate actual ratings from ReviewValueNew
-        $reviewIds = $reviews->pluck('id')->toArray();
-        $ratings = $this->calculateBulkRatings($reviewIds);
+    $data["last_five_reviews"] = $reviews;
 
-        // Add calculated ratings to each review
-        $reviewsWithRatings = $reviews->map(function ($review) use ($ratings) {
-            $review->calculated_rating = $ratings->get($review->id);
-            return $review;
-        });
-
-        $data["last_five_reviews"] = $reviewsWithRatings;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Customer report retrieved successfully',
-            'data' => $data
-        ], 200);
-    }
+    return response()->json([
+        'success' => true,
+        'message' => 'Customer report retrieved successfully',
+        'data' => $data
+    ], 200);
+}
 
 
 
@@ -1602,25 +1617,34 @@ class ReportController extends Controller
         // Calculate the total number of months between start and end dates
         $numberOfMonths = $startDate->diffInMonths($endDate);
 
-        // Get review query for this business and overall flag
-        $reviewQuery = ReviewNew::when(!$request->user()->hasRole("superadmin"), function ($q) use ($businessId) {
-            $q->where("review_news.business_id", $businessId);
-        })
-            ->globalFilters(1, $businessId)
-            ->filterByOverall($is_overall);
+      // Get review query for this business and overall flag WITH calculated rating
+$reviewQuery = ReviewNew::when(!$request->user()->hasRole("superadmin"), function ($q) use ($businessId) {
+    $q->where("review_news.business_id", $businessId);
+})
+    ->globalFilters(1, $businessId)
+    ->filterByOverall($is_overall)
+    ->select('review_news.*')
+    ->selectRaw('
+        COALESCE(
+            (
+                SELECT ROUND(AVG(DISTINCT s.value), 1)
+                FROM review_value_news rvn
+                INNER JOIN stars s ON rvn.star_id = s.id
+                WHERE rvn.review_id = review_news.id
+            ),
+            0
+        ) as calculated_rating
+    ');
 
-        // Get review IDs for rating calculation
-        $reviewIds = (clone $reviewQuery)
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->pluck('id')
-            ->toArray();
+// Get reviews with calculated rating for the date range
+$reviews = (clone $reviewQuery)
+    ->whereBetween('created_at', [$startDate, $endDate])
+    ->get();
 
-        // Calculate average rating from ReviewValueNew
-        $ratings = $this->calculateBulkRatings($reviewIds);
-        $validRatings = $ratings->filter()->values();
-        $data["average_rating"] = $validRatings->isNotEmpty()
-            ? round($validRatings->avg(), 1)
-            : 0;
+// Calculate average rating from calculated_rating field
+$data["average_rating"] = $reviews->isNotEmpty()
+    ? round($reviews->avg('calculated_rating'), 1)
+    : 0;
 
         // Loop through each month (from current going backwards)
         for ($i = 0; $i <= $numberOfMonths; $i++) {
@@ -2200,7 +2224,19 @@ class ReportController extends Controller
         $review_query = ReviewNew::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
             ->globalFilters(1, $businessId)
             ->orderBy('order_no', 'asc')
-            ->filterByOverall($is_overall);
+            ->filterByOverall($is_overall)
+            ->select('review_news.*')
+            ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ');
 
         // Count previous month reviews
         $previous_month_reviews = (clone $review_query)
@@ -2254,27 +2290,53 @@ class ReportController extends Controller
 
         // ⭐ Star Rating Enhancements - FIXED to use ReviewValueNew
         // Get review IDs for rating calculations
-        $allReviewIds = (clone $review_query)->pluck('id')->toArray();
-        $allRatings = $this->calculateBulkRatings($allReviewIds);
-        $validAllRatings = $allRatings->filter()->values();
+     // ⭐ Star Rating Enhancements - Optimized version
+// Get review query WITH calculated rating
+$reviewQueryWithRating = (clone $review_query)
+    ->select('review_news.*')
+    ->selectRaw('
+        COALESCE(
+            (
+                SELECT ROUND(AVG(DISTINCT s.value), 1)
+                FROM review_value_news rvn
+                INNER JOIN stars s ON rvn.star_id = s.id
+                WHERE rvn.review_id = review_news.id
+            ),
+            0
+        ) as calculated_rating
+    ');
 
-        // Calculate average ratings from ReviewValueNew
-        $avg_ratings = [
-            'today' => $this->calculateBulkRatings(
-                (clone $review_query)->whereDate('created_at', now())->pluck('id')->toArray()
-            )->filter()->avg() ?? 0,
-            'this_week' => $this->calculateBulkRatings(
-                (clone $review_query)->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->pluck('id')->toArray()
-            )->filter()->avg() ?? 0,
-            'this_month' => $this->calculateBulkRatings(
-                (clone $review_query)->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->pluck('id')->toArray()
-            )->filter()->avg() ?? 0
-        ];
+// Get all reviews with calculated rating
+$allReviews = $reviewQueryWithRating->get();
+
+// Get filtered reviews for specific periods
+    $todayReviews = (clone $reviewQueryWithRating)
+    ->whereDate('created_at', now())
+    ->get();
+    
+     $thisWeekReviews = (clone $reviewQueryWithRating)
+    ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+    ->get();
+    
+     $thisMonthReviews = (clone $reviewQueryWithRating)
+    ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+    ->get();
+
+// Calculate average ratings from calculated_rating field
+$avg_ratings = [
+    'today' => $todayReviews->isNotEmpty() ? round($todayReviews->avg('calculated_rating'), 1) : 0,
+    'this_week' => $thisWeekReviews->isNotEmpty() ? round($thisWeekReviews->avg('calculated_rating'), 1) : 0,
+    'this_month' => $thisMonthReviews->isNotEmpty() ? round($thisMonthReviews->avg('calculated_rating'), 1) : 0
+];
+
+// All ratings for distribution calculation
+$allRatings = $allReviews->pluck('calculated_rating');
+$validAllRatings = $allRatings->filter();
 
         $data['average_star_rating'] = array_map(fn($r) => round($r, 2), $avg_ratings);
 
         // Star Rating Distribution from ReviewValueNew
-        $total_reviews_count = count($allReviewIds);
+        $total_reviews_count = count($allReviews);
         $starDistribution = [];
 
         for ($i = 1; $i <= 5; $i++) {
@@ -2313,44 +2375,35 @@ class ReportController extends Controller
 
         $data['weighted_star_rating'] = $total_weight ? round($weighted_sum / $total_weight, 2) : 0;
 
-        // Low-Rating Alerts - FIXED to use ReviewValueNew ratings
-        $thisWeekReviewIds = (clone $review_query)
-            ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
-            ->pluck('id')
-            ->toArray();
+        
+       // Low-Rating Alerts - Optimized version
+$thisWeekReviews = (clone $review_query) // Using the same baseQuery from previous optimization
+    ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+    ->get();
 
-        $lastWeekReviewIds = (clone $review_query)
-            ->whereBetween('created_at', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])
-            ->pluck('id')
-            ->toArray();
+$lastWeekReviews = (clone $review_query)
+    ->whereBetween('created_at', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])
+    ->get();
 
-        $thisWeekRatings = $this->calculateBulkRatings($thisWeekReviewIds);
-        $lastWeekRatings = $this->calculateBulkRatings($lastWeekReviewIds);
+// Count low ratings using calculated_rating field
+$low_rating_this_week = $thisWeekReviews->filter(function ($review) {
+    return ($review->calculated_rating ?? 0) <= 2;
+})->count();
 
-        $low_rating_this_week = 0;
-        $low_rating_last_week = 0;
+$low_rating_last_week = $lastWeekReviews->filter(function ($review) {
+    return ($review->calculated_rating ?? 0) <= 2;
+})->count();
 
-        foreach ($thisWeekRatings as $rating) {
-            if ($rating !== null && $rating <= 2) {
-                $low_rating_this_week++;
-            }
-        }
+$low_rating_increase = $low_rating_last_week ?
+    round(($low_rating_this_week - $low_rating_last_week) / $low_rating_last_week * 100, 2) : 
+    ($low_rating_this_week ? 100 : 0);
 
-        foreach ($lastWeekRatings as $rating) {
-            if ($rating !== null && $rating <= 2) {
-                $low_rating_last_week++;
-            }
-        }
-
-        $low_rating_increase = $low_rating_last_week ?
-            round(($low_rating_this_week - $low_rating_last_week) / $low_rating_last_week * 100, 2) : ($low_rating_this_week ? 100 : 0);
-
-        $data['low_rating_alert'] = [
-            'this_week_low_ratings' => $low_rating_this_week,
-            'last_week_low_ratings' => $low_rating_last_week,
-            'increase_percent' => $low_rating_increase,
-            'alert' => $low_rating_increase >= 30
-        ];
+$data['low_rating_alert'] = [
+    'this_week_low_ratings' => $low_rating_this_week,
+    'last_week_low_ratings' => $low_rating_last_week,
+    'increase_percent' => $low_rating_increase,
+    'alert' => $low_rating_increase >= 30
+];
 
         // 🏷️ Tag Report Enhancements
         $tags_with_reviews = ReviewValueNew::whereMeetsThreshold($businessId)
@@ -2371,28 +2424,53 @@ class ReportController extends Controller
         }
         $data['tag_co_occurrence'] = $tag_co_occurrence;
 
-        // Calculate impact of each tag on average rating - FIXED
-        $all_tags = Tag::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
-            ->filterByOverall($is_overall)
-            ->get();
+       // Calculate impact of each tag on average rating - OPTIMIZED
+$all_tags = Tag::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
+    ->filterByOverall($is_overall)
+    ->get();
 
-        $data['tag_impact_on_ratings'] = $all_tags->mapWithKeys(function ($tag) use ($businessId, $is_overall) {
-            // Get reviews with this tag
-            $tagReviewIds = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-                ->whereMeetsThreshold($businessId)
-                ->where('review_value_news.tag_id', $tag->id)
-                ->filterByOverall($is_overall)
-                ->orderBy('order_no', 'asc')
-                ->pluck('review_news.id')
-                ->toArray();
-
-            // Calculate average rating for these reviews from ReviewValueNew
-            $tagRatings = $this->calculateBulkRatings($tagReviewIds);
-            $validTagRatings = $tagRatings->filter()->values();
-            $avgRating = $validTagRatings->isNotEmpty() ? round($validTagRatings->avg(), 2) : 0;
-
-            return [$tag->id => $avgRating];
-        })->toArray();
+// If there are no tags, return empty array
+if ($all_tags->isEmpty()) {
+    $data['tag_impact_on_ratings'] = [];
+} else {
+    // Get tag IDs
+    $tagIds = $all_tags->pluck('id')->toArray();
+    
+    // Single query to get average rating per tag
+    $tagRatings = ReviewValueNew::join('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+        ->whereMeetsThreshold($businessId)
+        ->whereIn('review_value_news.tag_id', $tagIds)
+        ->filterByOverall($is_overall)
+        ->orderBy('review_news.order_no', 'asc')
+        ->select([
+            'review_value_news.tag_id',
+            DB::raw('
+                COALESCE(
+                    ROUND(
+                        AVG(
+                            (
+                                SELECT AVG(DISTINCT s.value)
+                                FROM review_value_news rvn2
+                                INNER JOIN stars s ON rvn2.star_id = s.id
+                                WHERE rvn2.review_id = review_news.id
+                            )
+                        ),
+                        2
+                    ),
+                    0
+                ) as avg_rating
+            ')
+        ])
+        ->groupBy('review_value_news.tag_id')
+        ->get()
+        ->keyBy('tag_id');
+    
+    // Map results
+    $data['tag_impact_on_ratings'] = $all_tags->mapWithKeys(function ($tag) use ($tagRatings) {
+        $rating = $tagRatings->get($tag->id);
+        return [$tag->id => $rating ? (float) $rating->avg_rating : 0];
+    })->toArray();
+}
 
         // ❓ Question Report Enhancements
         $questions = Question::when(!$request->user()->hasRole('superadmin'), fn($q) => $q->where('business_id', $businessId))
@@ -2478,16 +2556,35 @@ class ReportController extends Controller
             ->groupBy('month')
             ->pluck('total', 'month');
 
-        // Response effectiveness - FIXED to use ReviewValueNew
-        $review_with_replies = (clone $review_query)->whereNotNull('responded_at')->get();
-        $reviewWithRepliesIds = $review_with_replies->pluck('id')->toArray();
-        $reviewWithRepliesRatings = $this->calculateBulkRatings($reviewWithRepliesIds);
-        $validReviewWithRepliesRatings = $reviewWithRepliesRatings->filter()->values();
+       // Response effectiveness - OPTIMIZED
+$reviewsWithReplies = (clone $review_query)
+    ->whereNotNull('responded_at')
+    ->select('review_news.*')
+    ->selectRaw('
+        COALESCE(
+            (
+                SELECT ROUND(AVG(DISTINCT s.value), 1)
+                FROM review_value_news rvn
+                INNER JOIN stars s ON rvn.star_id = s.id
+                WHERE rvn.review_id = review_news.id
+            ),
+            0
+        ) as calculated_rating
+    ')
+    ->get();
 
-        $data['advanced_insights']['response_effectiveness'] = [
-            'before_reply_avg' => $validReviewWithRepliesRatings->isNotEmpty() ? round($validReviewWithRepliesRatings->avg(), 2) : 0,
-            'after_reply_avg' => $validReviewWithRepliesRatings->isNotEmpty() ? round($validReviewWithRepliesRatings->avg(), 2) : 0
-        ];
+$avgRating = $reviewsWithReplies->isNotEmpty() 
+    ? round($reviewsWithReplies->avg('calculated_rating'), 2)
+    : 0;
+
+$data['advanced_insights']['response_effectiveness'] = [
+    'before_reply_avg' => $avgRating,
+    'after_reply_avg' => $avgRating,
+    'reviews_with_replies_count' => $reviewsWithReplies->count(),
+    'reply_rate_percentage' => $allReviews->count() > 0 
+        ? round(($reviewsWithReplies->count() / $allReviews->count()) * 100, 1)
+        : 0
+];
 
         return $data;
     }
@@ -2575,14 +2672,38 @@ class ReportController extends Controller
         $staffA = User::findOrFail($staffAId);
         $staffB = User::findOrFail($staffBId);
 
-        // Get reviews for both staff
-        $staffAReviews = ReviewNew::where('business_id', $businessId)
-            ->where('staff_id', $staffAId)
-            ->get();
+       // Get reviews for both staff WITH calculated rating
+$staffAReviews = ReviewNew::where('business_id', $businessId)
+    ->where('staff_id', $staffAId)
+    ->select('review_news.*')
+    ->selectRaw('
+        COALESCE(
+            (
+                SELECT ROUND(AVG(DISTINCT s.value), 1)
+                FROM review_value_news rvn
+                INNER JOIN stars s ON rvn.star_id = s.id
+                WHERE rvn.review_id = review_news.id
+            ),
+            0
+        ) as calculated_rating
+    ')
+    ->get();
 
-        $staffBReviews = ReviewNew::where('business_id', $businessId)
-            ->where('staff_id', $staffBId)
-            ->get();
+$staffBReviews = ReviewNew::where('business_id', $businessId)
+    ->where('staff_id', $staffBId)
+    ->select('review_news.*')
+    ->selectRaw('
+        COALESCE(
+            (
+                SELECT ROUND(AVG(DISTINCT s.value), 1)
+                FROM review_value_news rvn
+                INNER JOIN stars s ON rvn.star_id = s.id
+                WHERE rvn.review_id = review_news.id
+            ),
+            0
+        ) as calculated_rating
+    ')
+    ->get();
 
         // Calculate metrics from ReviewValueNew
         $staffAMetrics = $this->calculateStaffMetricsFromReviewValue($staffAReviews, $staffA);
@@ -2613,48 +2734,45 @@ class ReportController extends Controller
 
     private function calculateStaffMetricsFromReviewValue($reviews, $staffUser)
     {
-        $totalReviews = $reviews->count();
+     $totalReviews = $reviews->count();
 
-        if ($totalReviews === 0) {
-            return $this->emptyStaffMetrics($staffUser);
-        }
+    if ($totalReviews === 0) {
+        return $this->emptyStaffMetrics($staffUser);
+    }
 
-        // Calculate average rating from ReviewValueNew
-        $reviewIds = $reviews->pluck('id')->toArray();
-        $ratings = $this->calculateBulkRatings($reviewIds);
-        $validRatings = $ratings->filter()->values();
-        $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+    // Calculate average rating from calculated_rating field
+    $avgRating = $reviews->avg('calculated_rating') ?? 0;
 
-        // Calculate sentiment distribution (uses ReviewNew.sentiment_score - this is OK)
-        $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
-        $neutralCount = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
-        $negativeCount = $reviews->where('sentiment_score', '<', 0.4)->count();
+    // Calculate sentiment distribution
+    $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
+    $neutralCount = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
+    $negativeCount = $reviews->where('sentiment_score', '<', 0.4)->count();
 
-        $positivePercentage = round(($positiveCount / $totalReviews) * 100);
-        $neutralPercentage = round(($neutralCount / $totalReviews) * 100);
-        $negativePercentage = round(($negativeCount / $totalReviews) * 100);
+    $positivePercentage = round(($positiveCount / $totalReviews) * 100);
+    $neutralPercentage = round(($neutralCount / $totalReviews) * 100);
+    $negativePercentage = round(($negativeCount / $totalReviews) * 100);
 
-        // Extract topics and categories
-        $topics = $this->extractTopicsFromReviews($reviews);
-        $performanceByCategory = $this->calculatePerformanceByCategory($reviews);
-        $notableReviews = $this->getNotableReviews($reviews);
+    // Extract topics and categories
+    $topics = $this->extractTopicsFromReviews($reviews);
+    $performanceByCategory = $this->calculatePerformanceByCategory($reviews);
+    $notableReviews = $this->getNotableReviews($reviews);
 
-        return [
-            'id' => $staffUser->id,
-            'name' => $staffUser->name,
-            'job_title' => $staffUser->job_title ?? 'Staff',
-            'email' => $staffUser->email,
-            'total_reviews' => $totalReviews,
-            'avg_rating' => $avgRating, // Now from ReviewValueNew
-            'sentiment_breakdown' => [
-                'positive' => $positivePercentage,
-                'neutral' => $neutralPercentage,
-                'negative' => $negativePercentage
-            ],
-            'performance_by_category' => $performanceByCategory,
-            'top_topics' => array_slice($topics, 0, 5),
-            'notable_reviews' => $notableReviews
-        ];
+    return [
+        'id' => $staffUser->id,
+        'name' => $staffUser->name,
+        'job_title' => $staffUser->job_title ?? 'Staff',
+        'email' => $staffUser->email,
+        'total_reviews' => $totalReviews,
+        'avg_rating' => round($avgRating, 1),
+        'sentiment_breakdown' => [
+            'positive' => $positivePercentage,
+            'neutral' => $neutralPercentage,
+            'negative' => $negativePercentage
+        ],
+        'performance_by_category' => $performanceByCategory,
+        'top_topics' => array_slice($topics, 0, 5),
+        'notable_reviews' => $notableReviews
+    ];
     }
 
     private function emptyStaffMetrics($staffUser)
@@ -2845,15 +2963,27 @@ class ReportController extends Controller
         $business = Business::findOrFail($businessId);
         $staff = User::findOrFail($staffId);
 
-        $reviews = ReviewNew::where('business_id', $businessId)
-            ->where('staff_id', $staffId)
-            ->get();
+      // Get reviews WITH calculated rating in one query
+    $reviews = ReviewNew::where('business_id', $businessId)
+        ->where('staff_id', $staffId)
+        ->select('review_news.*')
+        ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
+        ->get();
 
-        // Calculate average rating from ReviewValueNew
-        $reviewIds = $reviews->pluck('id')->toArray();
-        $ratings = $this->calculateBulkRatings($reviewIds);
-        $validRatings = $ratings->filter()->values();
-        $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+    // Calculate average rating from calculated_rating field
+    $avgRating = $reviews->isNotEmpty() 
+        ? round($reviews->avg('calculated_rating'), 1) 
+        : 0;
 
         $tenure = $this->calculateTenure($staff->join_date);
         $ratingTrend = $this->getRatingTrendFromReviewValue($reviews);
@@ -2887,32 +3017,31 @@ class ReportController extends Controller
             ]
         ], 200);
     }
+
     private function getRatingTrendFromReviewValue($reviews)
-    {
-        $sixMonthsAgo = Carbon::now()->subMonths(6);
+{
+    $sixMonthsAgo = Carbon::now()->subMonths(6);
 
-        $monthlyReviews = $reviews->where('created_at', '>=', $sixMonthsAgo)
-            ->groupBy(function ($review) {
-                return $review->created_at->format('Y-m');
-            });
+    $monthlyReviews = $reviews->where('created_at', '>=', $sixMonthsAgo)
+        ->groupBy(function ($review) {
+            return $review->created_at->format('Y-m');
+        });
 
-        $monthlyRatings = [];
+    $monthlyRatings = [];
 
-        foreach ($monthlyReviews as $month => $monthReviews) {
-            $monthReviewIds = $monthReviews->pluck('id')->toArray();
-            $monthRatings = $this->calculateBulkRatings($monthReviewIds);
-            $validMonthRatings = $monthRatings->filter()->values();
-            $monthlyRatings[$month] = $validMonthRatings->isNotEmpty() ? round($validMonthRatings->avg(), 1) : 0;
-        }
-
-        ksort($monthlyRatings);
-
-        return [
-            'period' => 'last_6_months',
-            'data' => $monthlyRatings,
-            'trend_direction' => $this->calculateTrendDirection($monthlyRatings)
-        ];
+    foreach ($monthlyReviews as $month => $monthReviews) {
+        // Use calculated_rating field directly
+        $monthlyRatings[$month] = $monthReviews->avg('calculated_rating') ?? 0;
     }
+
+    ksort($monthlyRatings);
+
+    return [
+        'period' => 'last_6_months',
+        'data' => $monthlyRatings,
+        'trend_direction' => $this->calculateTrendDirection($monthlyRatings)
+    ];
+}
 
     private function calculateTenure($joinDate)
     {
@@ -3234,6 +3363,18 @@ class ReportController extends Controller
 
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
+             ->select('review_news.*')
+        ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
             ->get();
 
         $previousReviews = $this->getPreviousPeriodReviews($businessId, $period);
@@ -3242,7 +3383,7 @@ class ReportController extends Controller
         $overallMetrics = $this->calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews);
         $complimentRatio = $this->calculateComplimentRatio($currentReviews);
         $topStaff = $this->getTopStaffByRatingFromReviewValue($currentReviews);
-        // $allStaff = $this->getAllStaffMetricsFromReviewValue($currentReviews);
+        $allStaff = $this->getAllStaffMetricsFromReviewValue($currentReviews);
 
         return response()->json([
             'success' => true,
@@ -3254,129 +3395,127 @@ class ReportController extends Controller
                 'overall_metrics' => $overallMetrics,
                 'compliment_ratio' => $complimentRatio,
                 'top_staff' => $topStaff,
-                // 'all_staff' => $allStaff
+                'all_staff' => $allStaff
             ]
         ], 200);
     }
 
 
-    private function getAllStaffMetricsFromReviewValue($reviews)
-    {
-        $staffGroups = $reviews->groupBy('staff_id');
+   private function getAllStaffMetricsFromReviewValue($reviews)
+{
+    $staffGroups = $reviews->groupBy('staff_id');
 
-        $staffMetrics = $staffGroups->map(function ($staffReviews, $staffId) {
-            $staff = User::find($staffId);
-            if (!$staff) return null;
+    $staffMetrics = $staffGroups->map(function ($staffReviews, $staffId) {
+        $staff = User::find($staffId);
+        if (!$staff) return null;
 
-            $reviewIds = $staffReviews->pluck('id')->toArray();
-            $ratings = $this->calculateBulkRatings($reviewIds);
-            $validRatings = $ratings->filter()->values();
-            $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+        // Use calculated_rating field directly
+        $avgRating = $staffReviews->avg('calculated_rating') ?? 0;
 
-            $compliments = $staffReviews->where('sentiment_score', '>=', 0.7)->count();
-            $complaints = $staffReviews->where('sentiment_score', '<', 0.4)->count();
-            $neutral = $staffReviews->count() - $compliments - $complaints;
-
-            return [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'position' => $staff->job_title ?? 'Staff',
-                'avg_rating' => $avgRating,
-                'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score')),
-                'compliments_count' => $compliments,
-                'complaints_count' => $complaints,
-                'neutral_count' => $neutral,
-                'total_reviews' => $staffReviews->count(),
-                'sentiment_numeric' => round($staffReviews->avg('sentiment_score') * 100)
-            ];
-        })
-            ->filter()
-            ->sortByDesc('avg_rating')
-            ->values()
-            ->toArray();
-
-        return $staffMetrics;
-    }
-    private function getTopStaffByRatingFromReviewValue($reviews, $limit = 5)
-    {
-        $staffGroups = $reviews->groupBy('staff_id');
-
-        $staffRatings = $staffGroups->map(function ($staffReviews, $staffId) {
-            $staff = User::find($staffId);
-            if (!$staff) return null;
-
-            $reviewIds = $staffReviews->pluck('id')->toArray();
-            $ratings = $this->calculateBulkRatings($reviewIds);
-            $validRatings = $ratings->filter()->values();
-            $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
-
-            return [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'position' => $staff->job_title ?? 'Staff',
-                'avg_rating' => $avgRating,
-                'total_reviews' => $staffReviews->count(),
-                'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score')),
-                'image' => $staff->image ?? null
-            ];
-        })
-            ->filter(function ($staff) {
-                return $staff && $staff['total_reviews'] >= 3;
-            })
-            ->sortByDesc('avg_rating')
-            ->take($limit)
-            ->values()
-            ->toArray();
-
-        return $staffRatings;
-    }
-    private function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
-    {
-        // Calculate current period average rating from ReviewValueNew
-        $currentReviewIds = $currentReviews->pluck('id')->toArray();
-        $currentRatings = $this->calculateBulkRatings($currentReviewIds);
-        $validCurrentRatings = $currentRatings->filter()->values();
-        $currentAvgRating = $validCurrentRatings->isNotEmpty() ? round($validCurrentRatings->avg(), 1) : 0;
-
-        // Calculate previous period average rating from ReviewValueNew
-        $previousReviewIds = $previousReviews->pluck('id')->toArray();
-        $previousRatings = $this->calculateBulkRatings($previousReviewIds);
-        $validPreviousRatings = $previousRatings->filter()->values();
-        $previousAvgRating = $validPreviousRatings->isNotEmpty() ? round($validPreviousRatings->avg(), 1) : 0;
-
-        $currentSentiment = $this->calculateAverageSentiment($currentReviews);
-        $currentTotalReviews = $currentReviews->count();
-
-        $previousSentiment = $this->calculateAverageSentiment($previousReviews);
-        $previousTotalReviews = $previousReviews->count();
-
-        $ratingChange = $previousAvgRating > 0 ?
-            round((($currentAvgRating - $previousAvgRating) / $previousAvgRating) * 100, 1) : 0;
-
-        $sentimentChange = $previousSentiment > 0 ?
-            round($currentSentiment - $previousSentiment, 1) : 0;
-
-        $reviewsChange = $previousTotalReviews > 0 ?
-            $currentTotalReviews - $previousTotalReviews : $currentTotalReviews;
+        $compliments = $staffReviews->where('sentiment_score', '>=', 0.7)->count();
+        $complaints = $staffReviews->where('sentiment_score', '<', 0.4)->count();
+        $neutral = $staffReviews->count() - $compliments - $complaints;
 
         return [
-            'overall_rating' => [
-                'value' => $currentAvgRating,
-                'change' => $ratingChange,
-                'change_type' => $ratingChange >= 0 ? 'positive' : 'negative'
-            ],
-            'overall_sentiment' => [
-                'value' => $currentSentiment,
-                'change' => $sentimentChange,
-                'change_type' => $sentimentChange >= 0 ? 'positive' : 'negative'
-            ],
-            'total_reviews' => [
-                'value' => $currentTotalReviews,
-                'change' => $reviewsChange,
-                'change_type' => $reviewsChange >= 0 ? 'positive' : 'negative'
-            ]
+            'staff_id' => $staffId,
+            'staff_name' => $staff->name,
+            'position' => $staff->job_title ?? 'Staff',
+            'avg_rating' => round($avgRating, 1),
+            'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score')),
+            'compliments_count' => $compliments,
+            'complaints_count' => $complaints,
+            'neutral_count' => $neutral,
+            'total_reviews' => $staffReviews->count(),
+            'sentiment_numeric' => round($staffReviews->avg('sentiment_score') * 100)
         ];
-    }
+    })
+        ->filter()
+        ->sortByDesc('avg_rating')
+        ->values()
+        ->toArray();
+
+    return $staffMetrics;
+}
+
+
+
+
+  private function getTopStaffByRatingFromReviewValue($reviews, $limit = 5)
+{
+    $staffGroups = $reviews->groupBy('staff_id');
+
+    $staffRatings = $staffGroups->map(function ($staffReviews, $staffId) {
+        $staff = User::find($staffId);
+        if (!$staff) return null;
+
+        // Use calculated_rating field directly
+        $avgRating = $staffReviews->avg('calculated_rating') ?? 0;
+
+        return [
+            'staff_id' => $staffId,
+            'staff_name' => $staff->name,
+            'position' => $staff->job_title ?? 'Staff',
+            'avg_rating' => round($avgRating, 1),
+            'total_reviews' => $staffReviews->count(),
+            'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score')),
+            'image' => $staff->image ?? null
+        ];
+    })
+        ->filter(function ($staff) {
+            return $staff && $staff['total_reviews'] >= 3;
+        })
+        ->sortByDesc('avg_rating')
+        ->take($limit)
+        ->values()
+        ->toArray();
+
+    return $staffRatings;
+}
+   private function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
+{
+    // Calculate current period average rating from calculated_rating field
+    $currentAvgRating = $currentReviews->isNotEmpty() 
+        ? round($currentReviews->avg('calculated_rating'), 1) 
+        : 0;
+
+    // Calculate previous period average rating from calculated_rating field
+    $previousAvgRating = $previousReviews->isNotEmpty()
+        ? round($previousReviews->avg('calculated_rating'), 1)
+        : 0;
+
+    $currentSentiment = $this->calculateAverageSentiment($currentReviews);
+    $currentTotalReviews = $currentReviews->count();
+
+    $previousSentiment = $this->calculateAverageSentiment($previousReviews);
+    $previousTotalReviews = $previousReviews->count();
+
+    $ratingChange = $previousAvgRating > 0 ?
+        round((($currentAvgRating - $previousAvgRating) / $previousAvgRating) * 100, 1) : 0;
+
+    $sentimentChange = $previousSentiment > 0 ?
+        round($currentSentiment - $previousSentiment, 1) : 0;
+
+    $reviewsChange = $previousTotalReviews > 0 ?
+        $currentTotalReviews - $previousTotalReviews : $currentTotalReviews;
+
+    return [
+        'overall_rating' => [
+            'value' => $currentAvgRating,
+            'change' => $ratingChange,
+            'change_type' => $ratingChange >= 0 ? 'positive' : 'negative'
+        ],
+        'overall_sentiment' => [
+            'value' => $currentSentiment,
+            'change' => $sentimentChange,
+            'change_type' => $sentimentChange >= 0 ? 'positive' : 'negative'
+        ],
+        'total_reviews' => [
+            'value' => $currentTotalReviews,
+            'change' => $reviewsChange,
+            'change_type' => $reviewsChange >= 0 ? 'positive' : 'negative'
+        ]
+    ];
+}
 
     private function getPreviousPeriodReviews($businessId, $period)
     {
@@ -3398,6 +3537,19 @@ class ReportController extends Controller
 
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
+
+            ->select('review_news.*')
+            ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
             ->get();
     }
 
@@ -3638,8 +3790,8 @@ class ReportController extends Controller
 
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->with(['user', 'guest_user', 'survey'])
-              ->select('review_news.*')
-        ->selectRaw('
+            ->select('review_news.*')
+            ->selectRaw('
             COALESCE(
                 (
                     SELECT ROUND(AVG(DISTINCT s.value), 1)
@@ -3682,78 +3834,90 @@ class ReportController extends Controller
     /**
      * Get top three staff based on ratings and review count
      */
-    private function getTopThreeStaff($businessId, $filters = [])
-    {
-        // Get reviews for the business with staff
-        $reviewsQuery = ReviewNew::where('business_id', $businessId)
-            ->whereNotNull('staff_id');
+   private function getTopThreeStaff($businessId, $filters = [])
+{
+    // Get reviews for the business with staff AND calculated rating
+    $reviewsQuery = ReviewNew::where('business_id', $businessId)
+        ->whereNotNull('staff_id')
+        ->select('review_news.*')
+            ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ');
 
-        // Apply the same filters as main query
-        $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);
+    // Apply the same filters as main query
+    $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);
 
-        $reviews = $reviewsQuery->get();
+    // Add calculated rating to the query
+    $reviews = $reviewsQuery
+        
+        ->get();
 
-        if ($reviews->isEmpty()) {
-            return [
-                'message' => 'No staff reviews found',
-                'staff' => []
-            ];
-        }
-
-        // Group reviews by staff
-        $staffGroups = $reviews->groupBy('staff_id');
-
-        $staffPerformance = $staffGroups->map(function ($staffReviews, $staffId) {
-            $staff = User::find($staffId);
-            if (!$staff) return null;
-
-            // Calculate rating from ReviewValueNew
-            $reviewIds = $staffReviews->pluck('id')->toArray();
-            $ratings = $this->calculateBulkRatings($reviewIds);
-            $validRatings = $ratings->filter()->values();
-            $avgRating = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
-
-            // Calculate sentiment
-            $positiveCount = $staffReviews->where('sentiment_score', '>=', 0.7)->count();
-            $totalReviews = $staffReviews->count();
-            $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
-
-            // Extract common topics
-            $topTopics = $this->extractStaffTopics($staffReviews);
-
-            return [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'position' => $staff->job_title ?? 'Staff',
-                'image' => $staff->image ?? null,
-                'avg_rating' => $avgRating,
-                'review_count' => $totalReviews,
-                'sentiment_score' => $sentimentPercentage,
-                'sentiment_label' => $this->getSentimentLabelByPercentage($sentimentPercentage),
-                'top_topics' => array_slice($topTopics, 0, 3), // Top 3 topics
-                'recent_activity' => $staffReviews->sortByDesc('created_at')
-                    ->first()
-                    ->created_at
-                    ->diffForHumans() ?? 'No recent activity'
-            ];
-        })
-            ->filter(function ($staff) {
-                // Only include staff with at least 3 reviews
-                return $staff && $staff['review_count'] >= 5;
-            })
-            ->sortByDesc(function ($staff) {
-                // Sort by rating, then by review count
-                return [$staff['avg_rating'], $staff['review_count']];
-            })
-            ->take(3)
-            ->values()
-            ->toArray();
-
+    if ($reviews->isEmpty()) {
         return [
-            'total_staff_reviewed' => $staffGroups->count(),
-            'staff' => $staffPerformance
+            'message' => 'No staff reviews found',
+            'staff' => []
         ];
     }
+
+    // Group reviews by staff
+    $staffGroups = $reviews->groupBy('staff_id');
+
+    $staffPerformance = $staffGroups->map(function ($staffReviews, $staffId) {
+        $staff = User::find($staffId);
+        if (!$staff) return null;
+
+        // Calculate rating from calculated_rating field
+        $avgRating = $staffReviews->avg('calculated_rating') ?? 0;
+
+        // Calculate sentiment
+        $positiveCount = $staffReviews->where('sentiment_score', '>=', 0.7)->count();
+        $totalReviews = $staffReviews->count();
+        $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
+
+        // Extract common topics
+        $topTopics = $this->extractStaffTopics($staffReviews);
+
+        return [
+            'staff_id' => $staffId,
+            'staff_name' => $staff->name,
+            'position' => $staff->job_title ?? 'Staff',
+            'image' => $staff->image ?? null,
+            'avg_rating' => round($avgRating, 1),
+            'review_count' => $totalReviews,
+            'sentiment_score' => $sentimentPercentage,
+            'sentiment_label' => $this->getSentimentLabelByPercentage($sentimentPercentage),
+            'top_topics' => array_slice($topTopics, 0, 3), // Top 3 topics
+            'recent_activity' => $staffReviews->sortByDesc('created_at')
+                ->first()
+                ->created_at
+                ->diffForHumans() ?? 'No recent activity'
+        ];
+    })
+        ->filter(function ($staff) {
+            // Only include staff with at least 5 reviews (changed from 3 to 5 per your code)
+            return $staff && $staff['review_count'] >= 5;
+        })
+        ->sortByDesc(function ($staff) {
+            // Sort by rating, then by review count
+            return [$staff['avg_rating'], $staff['review_count']];
+        })
+        ->take(3)
+        ->values()
+        ->toArray();
+
+    return [
+        'total_staff_reviewed' => $staffGroups->count(),
+        'staff' => $staffPerformance
+    ];
+}
 
     /**
      * Extract common topics from staff reviews
@@ -3801,51 +3965,52 @@ class ReportController extends Controller
             return 'Needs Improvement';
         }
     }
-    private function calculatePerformanceOverviewFromReviewValue($reviews)
-    {
-        $totalSubmissions = (clone $reviews)->count();
+   private function calculatePerformanceOverviewFromReviewValue($reviews)
+{
+    $totalSubmissions = $reviews->count();
 
-        // Calculate average score from ReviewValueNew
-        $reviewIds = (clone $reviews)->pluck('id')->toArray();
-        $ratings = $this->calculateBulkRatings($reviewIds);
-        $validRatings = $ratings->filter()->values();
-        $averageScore = $validRatings->isNotEmpty() ? round($validRatings->avg(), 1) : 0;
+    // Calculate average score from calculated_rating field
+    $averageScore = $reviews->isNotEmpty() 
+        ? round($reviews->avg('calculated_rating'), 1) 
+        : 0;
 
-        $positiveCount = (clone $reviews)->where('sentiment_score', '>=', 0.7)->count();
-        $neutralCount = (clone $reviews)->whereBetween('sentiment_score', [0.4, 0.69])->count();
-        $negativeCount = (clone $reviews)->where('sentiment_score', '<', 0.4)->count();
+    $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
+    $neutralCount = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
+    $negativeCount = $reviews->where('sentiment_score', '<', 0.4)->count();
 
-        return [
-            'total_submissions' => $totalSubmissions,
-            'average_score' => $averageScore, // From ReviewValueNew
-            'score_out_of' => 5,
-            'sentiment_distribution' => [
-                'positive' => $totalSubmissions > 0 ? round(($positiveCount / $totalSubmissions) * 100) : 0,
-                'neutral' => $totalSubmissions > 0 ? round(($neutralCount / $totalSubmissions) * 100) : 0,
-                'negative' => $totalSubmissions > 0 ? round(($negativeCount / $totalSubmissions) * 100) : 0
-            ],
-            'submissions_today' => (clone $reviews)->where('created_at', Carbon::today())->count(),
-            'submissions_this_week' => (clone $reviews)
+    // Fix date comparisons
+    $today = Carbon::today();
+    $startOfWeek = Carbon::now()->startOfWeek();
+    $endOfWeek = Carbon::now()->endOfWeek();
+    $startOfMonth = Carbon::now()->startOfMonth();
+    $endOfMonth = Carbon::now()->endOfMonth();
 
-                ->whereDate('created_at', '>=', Carbon::now()->startOfWeek())
-                ->whereDate('created_at', '<=', Carbon::now()->endOfWeek())
+    return [
+        'total_submissions' => $totalSubmissions,
+        'average_score' => $averageScore,
+        'score_out_of' => 5,
+        'sentiment_distribution' => [
+            'positive' => $totalSubmissions > 0 ? round(($positiveCount / $totalSubmissions) * 100) : 0,
+            'neutral' => $totalSubmissions > 0 ? round(($neutralCount / $totalSubmissions) * 100) : 0,
+            'negative' => $totalSubmissions > 0 ? round(($negativeCount / $totalSubmissions) * 100) : 0
+        ],
+        'submissions_today' => $reviews->filter(function ($review) use ($today) {
+            return $review->created_at->isSameDay($today);
+        })->count(),
+        'submissions_this_week' => $reviews->filter(function ($review) use ($startOfWeek, $endOfWeek) {
+            return $review->created_at->between($startOfWeek, $endOfWeek);
+        })->count(),
+        'submissions_this_month' => $reviews->filter(function ($review) use ($startOfMonth, $endOfMonth) {
+            return $review->created_at->between($startOfMonth, $endOfMonth);
+        })->count(),
+        'guest_reviews_count' => $reviews->whereNotNull('guest_id')->count(),
+        'user_reviews_count' => $reviews->whereNotNull('user_id')->count(),
+        'overall_reviews_count' => $reviews->where('is_overall', 1)->count(),
+        'survey_reviews_count' => $reviews->whereNotNull('survey_id')->count()
+    ];
+}
 
-                ->count(),
-            'submissions_this_month' => (clone $reviews)
 
-                ->whereDate('created_at', '>=', Carbon::now()->startOfMonth())
-                ->whereDate('created_at', '<=', Carbon::now()->endOfWeek())
-
-                ->count(),
-
-
-
-            'guest_reviews_count' => (clone $reviews)->whereNotNull('guest_id')->count(),
-            'user_reviews_count' => (clone $reviews)->whereNotNull('user_id')->count(),
-            'overall_reviews_count' => (clone $reviews)->where('is_overall', 1)->count(),
-            'survey_reviews_count' => (clone $reviews)->whereNotNull('survey_id')->count()
-        ];
-    }
     private function applyFilters($query, $filters)
     {
         // Survey filter
