@@ -167,6 +167,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/business-services/{id}', [BusinessServiceController::class, 'businessServiceById']);
     Route::patch('/v1.0/business-services/{id}', [BusinessServiceController::class, 'updateBusinessService']);
     Route::delete('/v1.0/business-services/{ids}', [BusinessServiceController::class, 'deleteBusinessServices']);
+    Route::patch('/v1.0/business-services/toggle', [BusinessServiceController::class, 'businessServiceToggle']);
 
     // #################
     // Business Area Management Routes

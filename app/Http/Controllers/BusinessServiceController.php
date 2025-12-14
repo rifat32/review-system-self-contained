@@ -130,13 +130,6 @@ class BusinessServiceController extends Controller
      *         example=20
      *      ),
      *      @OA\Parameter(
-     *         name="business_id",
-     *         in="query",
-     *         description="Filter by business ID",
-     *         required=false,
-     *         example=1
-     *      ),
-     *      @OA\Parameter(
      *         name="is_active",
      *         in="query",
      *         description="Filter by active status",
@@ -202,9 +195,7 @@ class BusinessServiceController extends Controller
             // Regular users see only their business services
             $query->where('business_id', $business->id);
             // Apply filters
-            $query->when($request->filled('business_id'), function ($q) use ($request) {
-                $q->where('business_id', $request->business_id);
-            })->when($request->filled('is_active'), function ($q) use ($request) {
+            $query->when($request->filled('is_active'), function ($q) use ($request) {
                 $q->where('is_active', $request->boolean('is_active'));
             })->when($request->filled('search_key'), function ($q) use ($request) {
                 $searchTerm = $request->search_key;
@@ -299,13 +290,11 @@ class BusinessServiceController extends Controller
                 ], 404);
             }
 
-            if (!$user->hasRole('superadmin')) {
-                if ($businessService->business_id !== $businessId) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "You do not own this business service"
-                    ], 403);
-                }
+            if ($businessService->business_id !== $businessId) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "You do not own this business service"
+                ], 403);
             }
 
             return response()->json([
@@ -347,7 +336,6 @@ class BusinessServiceController extends Controller
      *            required={"name"},
      *    @OA\Property(property="name", type="string", format="string", example="Updated Room Service"),
      *    @OA\Property(property="description", type="string", format="string", example="Updated 24/7 room service available"),
-     *    @OA\Property(property="is_active", type="boolean", format="boolean", example=true),
      *    @OA\Property(property="question_title", type="string", format="string", example="How was our updated room service?"),
      *
      *         ),
@@ -403,13 +391,11 @@ class BusinessServiceController extends Controller
                     ], 404);
                 }
 
-                if (!$user->hasRole('superadmin')) {
-                    if ($businessService->business_id !== $businessId) {
-                        return response()->json([
-                            "success" => false,
-                            "message" => "You do not own this business service"
-                        ], 403);
-                    }
+                if ($businessService->business_id !== $businessId) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "You do not own this business service"
+                    ], 403);
                 }
 
                 $payload_data = $request->validated();
@@ -526,20 +512,18 @@ class BusinessServiceController extends Controller
             $business = $user->business()->first();
             $businessId = $business ? $business->id : null;
 
-            if (!$user->hasRole('superadmin')) {
-                $unauthorizedIds = [];
-                foreach ($businessServices as $service) {
-                    if ($service->business_id !== $businessId) {
-                        $unauthorizedIds[] = $service->id;
-                    }
+            $unauthorizedIds = [];
+            foreach ($businessServices as $service) {
+                if ($service->business_id !== $businessId) {
+                    $unauthorizedIds[] = $service->id;
                 }
+            }
 
-                if (!empty($unauthorizedIds)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'You do not have permission to delete services: ' . implode(', ', $unauthorizedIds)
-                    ], 403);
-                }
+            if (!empty($unauthorizedIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to delete services: ' . implode(', ', $unauthorizedIds)
+                ], 403);
             }
 
             // Delete the business services
@@ -550,6 +534,115 @@ class BusinessServiceController extends Controller
                 'message' => 'Business services deleted successfully.',
                 'data' => ['deleted_count' => $deletedCount]
             ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                "success" => false,
+                "message" => "Something went wrong",
+                "original_message" => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Patch(
+     *      path="/v1.0/business-services/toggle",
+     *      operationId="businessServiceToggle",
+     *      tags={"business_service_management"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to toggle business service active status",
+     *      description="This method is to toggle business service active status",
+     *
+     *  @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"id"},
+     *    @OA\Property(property="id", type="integer", format="integer", example=1),
+     *
+     *         ),
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *        @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *    @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *   @OA\JsonContent()
+     * ),
+     *  * @OA\Response(
+     *      response=400,
+     *      description="Bad Request",
+     *   *@OA\JsonContent()
+     *   ),
+     * @OA\Response(
+     *      response=404,
+     *      description="not found",
+     *   *@OA\JsonContent()
+     *   )
+     *      )
+     *     )
+     */
+
+    public function businessServiceToggle(Request $request)
+    {
+        try {
+            return DB::transaction(function () use ($request) {
+                $id = $request->id;
+
+                if (!$id) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "Business service ID is required"
+                    ], 400);
+                }
+
+                $businessService = BusinessService::find($id);
+
+                if (!$businessService) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "Business service not found"
+                    ], 404);
+                }
+
+                // Check authorization
+                $user = $request->user();
+                $business = $user->business()->first();
+                $businessId = $business ? $business->id : null;
+
+                if ($businessService->business_id !== $businessId) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "You do not have permission to toggle this business service"
+                    ], 403);
+                }
+
+                // Toggle the active status
+                $businessService->update(['is_active' => !$businessService->is_active]);
+
+                // Load relationships for response
+                $businessService->load('business');
+
+                return response()->json([
+                    "success" => true,
+                    "message" => "Business service status toggled successfully",
+                    "data" => $businessService
+                ], 200);
+            });
         } catch (Exception $e) {
             return response()->json([
                 "success" => false,

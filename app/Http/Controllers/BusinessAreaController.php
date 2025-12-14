@@ -145,13 +145,6 @@ class BusinessAreaController extends Controller
      *         example=20
      *      ),
      *      @OA\Parameter(
-     *         name="business_id",
-     *         in="query",
-     *         description="Filter by business ID",
-     *         required=false,
-     *         example=1
-     *      ),
-     *      @OA\Parameter(
      *         name="business_service_id",
      *         in="query",
      *         description="Filter by business service ID",
