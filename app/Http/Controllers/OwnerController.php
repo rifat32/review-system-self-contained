@@ -188,6 +188,9 @@ class OwnerController extends Controller
         // send verification email
         if (env("SEND_EMAIL") == "TRUE") {
             Mail::to($validatedData["email"])->send(new NotifyMail($user));
+        } else {
+            $user->email_verified_at = Carbon::now();
+            $user->save();
         }
 
         // generate access token

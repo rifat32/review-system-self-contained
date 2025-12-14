@@ -3637,7 +3637,19 @@ class ReportController extends Controller
         ];
 
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
-            ->with(['user', 'guest_user', 'survey']);
+            ->with(['user', 'guest_user', 'survey'])
+              ->select('review_news.*')
+        ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ');
 
         $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);
         $reviews = (clone $reviewsQuery)->get();
@@ -4079,7 +4091,8 @@ class ReportController extends Controller
                     'is_overall' => (bool)$review->is_overall,
                     'sentiment_score' => $review->sentiment_score,
                     'survey_name' => $review->survey ? $review->survey->name : null,
-                    'staff_name' => $review->staff ? $review->staff->name : null
+                    'staff_name' => $review->staff ? $review->staff->name : null,
+                    "calculated_rating" => $review->calculated_rating ?? null,
                 ];
             })
             ->values()

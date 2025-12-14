@@ -136,26 +136,100 @@ class ReviewNew extends Model
             });
     }
 
-    public function scopeWhereMeetsThreshold($query, $businessId, $is_staff_review = 0)
-    {
+  public function getReviewByBusinessIdClient($businessId, Request $request)
+{
+    $query = ReviewNew::with([
+        "value",
+        "user",
+        "guest_user",
+        "survey"
+    ])->where([
+        "business_id" => $businessId,
+    ])
+    ->when($request->has('is_private'), function ($q) use ($request) {
+        $isPrivate = $request->input('is_private');
+        if ($isPrivate == 0) {
+            // For public reviews, include both is_private = 0 and is_private = null
+            $q->where(function ($subQ) {
+                $subQ->where('is_private', 0)
+                    ->orWhereNull('is_private');
+            });
+        } else {
+            // For private reviews, only is_private = 1
+            $q->where('is_private', $isPrivate);
+        }
+    });
 
-        // Get threshold rating
-        $business = Business::find($businessId);
-        $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
+    // Get the IDs first
+    $reviewIds = $query->pluck('id')->toArray();
+    
+    // Calculate ratings for all reviews in bulk
+    $ratings = $this->calculateBulkRatings($reviewIds);
 
-   
+    // Sorting logic
+    $sortBy = $request->get('sort_by');
 
-        return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
-            $subQuery->select(DB::raw(1))
-                ->from('review_value_news as rvn')
-                ->join('questions as q', 'rvn.question_id', '=', 'q.id')
-                ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
-                    $q->where('q.is_staff', 1);
-                })
-                ->join('stars as s', 'rvn.star_id', '=', 's.id')
-                ->whereColumn('rvn.review_id', 'review_news.id')
-                ->groupBy('rvn.review_id')
-                ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
-        });
+    switch ($sortBy) {
+        case 'newest':
+            $query->orderBy('created_at', 'desc');
+            break;
+        case 'oldest':
+            $query->orderBy('created_at', 'asc');
+            break;
+        case 'highest_rating':
+            // Add calculated rating to results for sorting
+            $reviews = $query->get();
+            $reviews->each(function ($review) use ($ratings) {
+                $review->calculated_rating = $ratings->get($review->id, 0);
+            });
+            
+            // Sort by calculated rating
+            $sortedReviews = $reviews->sortByDesc('calculated_rating')->values();
+            
+            $result = retrieve_data_from_collection($sortedReviews, $request);
+            
+            return response([
+                "success" => true,
+                "message" => "Reviews retrieved successfully",
+                "meta" => $result['meta'],
+                "data" => $result['data']
+            ], 200);
+        case 'lowest_rating':
+            // Add calculated rating to results for sorting
+            $reviews = $query->get();
+            $reviews->each(function ($review) use ($ratings) {
+                $review->calculated_rating = $ratings->get($review->id, 0);
+            });
+            
+            // Sort by calculated rating
+            $sortedReviews = $reviews->sortBy('calculated_rating')->values();
+            
+            $result = retrieve_data_from_collection($sortedReviews, $request);
+            
+            return response([
+                "success" => true,
+                "message" => "Reviews retrieved successfully",
+                "meta" => $result['meta'],
+                "data" => $result['data']
+            ], 200);
+        default:
+            $query->orderBy('created_at', 'desc');
+            break;
     }
+
+    $result = retrieve_data($query);
+    
+    // Add calculated ratings to the response data
+    $result['data'] = array_map(function ($review) use ($ratings) {
+        $review['calculated_rating'] = $ratings->get($review['id'], 0);
+        return $review;
+    }, $result['data']);
+
+    return response([
+        "success" => true,
+        "message" => "Reviews retrieved successfully",
+        "meta" => $result['meta'],
+        "data" => $result['data']
+    ], 200);
+}
 }

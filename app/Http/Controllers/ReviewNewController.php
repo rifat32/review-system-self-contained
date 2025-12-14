@@ -11,17 +11,13 @@ use App\Models\ReviewValue;
 use App\Models\Survey;
 use App\Models\ReviewValueNew;
 use App\Models\Star;
-use App\Models\StarTag;
-use App\Models\StarTagQuestion;
-use App\Models\SurveyQuestion;
-use App\Models\Tag;
+
 use App\Models\User;
-use App\Http\Requests\SetOverallQuestionRequest;
-use App\Http\Requests\StoreTagMultipleRequest;
+
 use Exception;
-use Illuminate\Http\JsonResponse;
+
 use Illuminate\Http\Request;
-use Illuminate\Session\Middleware\StartSession;
+
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use getID3;
@@ -4029,62 +4025,69 @@ class ReviewNewController extends Controller
      *      )
      * )
      */
-    public function getReviewByBusinessIdClient($businessId, Request $request)
-    {
-        $query = ReviewNew::with([
+  public function getReviewByBusinessIdClient($businessId, Request $request)
+{
+    $query = ReviewNew::with([
             "value",
             "user",
             "guest_user",
             "survey"
-        ])->where([
-            "business_id" => $businessId,
         ])
-            ->when($request->has('is_private'), function ($q) use ($request) {
-                $isPrivate = $request->input('is_private');
-                if ($isPrivate == 0) {
-                    // For public reviews, include both is_private = 0 and is_private = null
-                    $q->where(function ($subQ) {
-                        $subQ->where('is_private', 0)
-                            ->orWhereNull('is_private');
-                    });
-                } else {
-                    // For private reviews, only is_private = 1
-                    $q->where('is_private', $isPrivate);
-                }
-            });
+        ->select('review_news.*')
+        ->selectRaw('
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ')
+        ->where("business_id", $businessId)
+        ->when($request->has('is_private'), function ($q) use ($request) {
+            $isPrivate = $request->input('is_private');
+            if ($isPrivate == 0) {
+                $q->where(function ($subQ) {
+                    $subQ->where('is_private', 0)
+                        ->orWhereNull('is_private');
+                });
+            } else {
+                $q->where('is_private', $isPrivate);
+            }
+        });
 
-        // Sorting logic
-        $sortBy = $request->get('sort_by');
+    // Sorting logic
+    $sortBy = $request->get('sort_by');
 
-        switch ($sortBy) {
-            case 'newest':
-                $query->orderBy('created_at', 'desc');
-                break;
-            case 'oldest':
-                $query->orderBy('created_at', 'asc');
-                break;
-            case 'highest_rating':
-                $query->orderBy('rate', 'desc');
-                break;
-            case 'lowest_rating':
-                $query->orderBy('rate', 'asc');
-                break;
-            default:
-                $query->orderBy('created_at', 'desc');
-                break;
-        }
-
-        // $reviewValue = $query->get();
-
-        $result = retrieve_data($query);
-
-        return response([
-            "success" => true,
-            "message" => "Reviews retrieved successfully",
-            "meta" => $result['meta'],
-            "data" => $result['data']
-        ], 200);
+    switch ($sortBy) {
+        case 'newest':
+            $query->orderBy('created_at', 'desc');
+            break;
+        case 'oldest':
+            $query->orderBy('created_at', 'asc');
+            break;
+        case 'highest_rating':
+            $query->orderByRaw('calculated_rating DESC NULLS LAST');
+            break;
+        case 'lowest_rating':
+            $query->orderByRaw('calculated_rating ASC NULLS LAST');
+            break;
+        default:
+            $query->orderBy('created_at', 'desc');
+            break;
     }
+
+    $result = retrieve_data($query);
+
+    return response([
+        "success" => true,
+        "message" => "Reviews retrieved successfully",
+        "meta" => $result['meta'],
+        "data" => $result['data']
+    ], 200);
+}
 
     /**
      *
