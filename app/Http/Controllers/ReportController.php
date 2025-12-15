@@ -2367,8 +2367,6 @@ $validAllRatings = $allRatings->filter();
 
      
         foreach ($allReviews as  $review) {
-           
-
                 $weight = $review->user_id ? $weights['verified'] : $weights['guest'];
                 $weighted_sum += $review->calculated_rating * $weight;
                 $total_weight += $weight;
