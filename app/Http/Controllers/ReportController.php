@@ -162,18 +162,7 @@ class ReportController extends Controller
             ->where('branch_id', $branch->id)
             ->globalFilters(1, $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ')
+           ->withCalculatedRating()
             ->get();
 
         $totalReviews = $reviews->count();
@@ -229,20 +218,9 @@ class ReportController extends Controller
             ->globalFilters(1, $businessId, 1)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ')
+            ->withCalculatedRating()
             ->get()
-            ->groupBy('staff_id');
+ ;
 
         $staffPerformance = [];
 
@@ -482,18 +460,7 @@ class ReportController extends Controller
                     ->where('branch_id', $branch->id)
                     ->globalFilters(1, $branch->business_id)
                     ->whereBetween('created_at', [$monthStart, $monthEnd])
-                    ->select('review_news.*')
-                    ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ')
+                    ->withCalculatedRating()
                     ->get();
 
                 $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
@@ -528,18 +495,7 @@ class ReportController extends Controller
                 ->where('branch_id', $branch->id)
                 ->globalFilters(1, $branch->business_id, 1)
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->select('review_news.*')
-                ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ')
+                ->withCalculatedRating()
                 ->get();
 
             $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
@@ -644,18 +600,7 @@ class ReportController extends Controller
             ->globalFilters(1, $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->with(['staff', 'user', 'guest_user', 'survey'])
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ');
+           ->withCalculatedRating();
 
         $reviews = $reviewsQuery->get();
 
@@ -785,7 +730,7 @@ class ReportController extends Controller
         ];
 
         // Generate summary
-        $summary = $this->generateAiSummary($reviews, $sentimentBreakdown);
+        $summary = $this->generateAiSummaryReport($reviews, $sentimentBreakdown);
 
         return [
             'summary' => $summary,
@@ -797,7 +742,7 @@ class ReportController extends Controller
     /**
      * Generate AI summary
      */
-    private function generateAiSummary($reviews, $sentimentBreakdown)
+    private function generateAiSummaryReport($reviews, $sentimentBreakdown)
     {
         $totalReviews = $reviews->count();
         $positivePercentage = $sentimentBreakdown['positive'];
@@ -925,7 +870,7 @@ class ReportController extends Controller
                     'review_text' => $review->comment ?? $review->raw_text ?? 'No comment',
                     'staff_name' => $review->staff ? $review->staff->name : 'Not assigned',
                     'staff_id' => $review->staff_id,
-                    'sentiment' => $this->getSentimentLabel($review->sentiment_score),
+                    'sentiment' => getSentimentLabel($review->sentiment_score),
                     'date' => $review->created_at->diffForHumans(),
                     'exact_date' => $review->created_at->format('Y-m-d H:i:s'),
                     'is_flagged' => $review->status === 'flagged',
@@ -948,18 +893,7 @@ class ReportController extends Controller
             ->globalFilters(1, $businessId, 1)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ')
+            ->withCalculatedRating()
             ->get();
 
         $staffPerformance = [];
@@ -1319,18 +1253,7 @@ class ReportController extends Controller
             ->globalFilters(1, auth()->user()->business->id)
             ->orderBy('order_no', 'asc')
             ->latest()
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ')
+            ->withCalculatedRating()
             ->take(5)
             ->get();
 
@@ -1626,17 +1549,7 @@ class ReportController extends Controller
             ->globalFilters(1, $businessId)
             ->filterByOverall($is_overall)
             ->select('review_news.*')
-            ->selectRaw('
-        COALESCE(
-            (
-                SELECT ROUND(AVG(DISTINCT s.value), 1)
-                FROM review_value_news rvn
-                INNER JOIN stars s ON rvn.star_id = s.id
-                WHERE rvn.review_id = review_news.id
-            ),
-            0
-        ) as calculated_rating
-    ');
+           ->withCalculatedRating();
 
         // Get reviews with calculated rating for the date range
         $reviews = (clone $reviewQuery)
@@ -2228,17 +2141,7 @@ class ReportController extends Controller
             ->orderBy('order_no', 'asc')
             ->filterByOverall($is_overall)
             ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ');
+           ->withCalculatedRating();
 
         // Count previous month reviews
         $previous_month_reviews = (clone $review_query)
@@ -2294,33 +2197,22 @@ class ReportController extends Controller
         // Get review IDs for rating calculations
         // ⭐ Star Rating Enhancements - Optimized version
         // Get review query WITH calculated rating
-        $reviewQueryWithRating = (clone $review_query)
-            ->select('review_news.*')
-            ->selectRaw('
-        COALESCE(
-            (
-                SELECT ROUND(AVG(DISTINCT s.value), 1)
-                FROM review_value_news rvn
-                INNER JOIN stars s ON rvn.star_id = s.id
-                WHERE rvn.review_id = review_news.id
-            ),
-            0
-        ) as calculated_rating
-    ');
+
+        
 
         // Get all reviews with calculated rating
-        $allReviews = $reviewQueryWithRating->get();
+        $allReviews = (clone $review_query)->get();
 
         // Get filtered reviews for specific periods
-        $todayReviews = (clone $reviewQueryWithRating)
+        $todayReviews = (clone $review_query)
             ->whereDate('created_at', now())
             ->get();
 
-        $thisWeekReviews = (clone $reviewQueryWithRating)
+        $thisWeekReviews = (clone $review_query)
             ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
             ->get();
 
-        $thisMonthReviews = (clone $reviewQueryWithRating)
+        $thisMonthReviews = (clone $review_query)
             ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
             ->get();
 
@@ -2559,18 +2451,7 @@ class ReportController extends Controller
         // Response effectiveness - OPTIMIZED
         $reviewsWithReplies = (clone $review_query)
             ->whereNotNull('responded_at')
-            ->select('review_news.*')
-            ->selectRaw('
-        COALESCE(
-            (
-                SELECT ROUND(AVG(DISTINCT s.value), 1)
-                FROM review_value_news rvn
-                INNER JOIN stars s ON rvn.star_id = s.id
-                WHERE rvn.review_id = review_news.id
-            ),
-            0
-        ) as calculated_rating
-    ')
+          
             ->get();
 
         $avgRating = $reviewsWithReplies->isNotEmpty()
@@ -2675,34 +2556,12 @@ class ReportController extends Controller
         // Get reviews for both staff WITH calculated rating
         $staffAReviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffAId)
-            ->select('review_news.*')
-            ->selectRaw('
-        COALESCE(
-            (
-                SELECT ROUND(AVG(DISTINCT s.value), 1)
-                FROM review_value_news rvn
-                INNER JOIN stars s ON rvn.star_id = s.id
-                WHERE rvn.review_id = review_news.id
-            ),
-            0
-        ) as calculated_rating
-    ')
+            ->withCalculatedRating()
             ->get();
 
         $staffBReviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffBId)
-            ->select('review_news.*')
-            ->selectRaw('
-        COALESCE(
-            (
-                SELECT ROUND(AVG(DISTINCT s.value), 1)
-                FROM review_value_news rvn
-                INNER JOIN stars s ON rvn.star_id = s.id
-                WHERE rvn.review_id = review_news.id
-            ),
-            0
-        ) as calculated_rating
-    ')
+            ->withCalculatedRating()
             ->get();
 
         // Calculate metrics from ReviewValueNew
@@ -2966,18 +2825,7 @@ class ReportController extends Controller
         // Get reviews WITH calculated rating in one query
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffId)
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ')
+           ->withCalculatedRating()
             ->get();
 
         // Calculate average rating from calculated_rating field
@@ -3363,18 +3211,7 @@ class ReportController extends Controller
 
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ')
+            ->withCalculatedRating()
             ->get();
 
         $previousReviews = $this->getPreviousPeriodReviews($businessId, $period);
@@ -3421,7 +3258,7 @@ class ReportController extends Controller
                 'staff_name' => $staff->name,
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
-                'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score')),
+                'sentiment_score' => getSentimentLabel($staffReviews->avg('sentiment_score')),
                 'compliments_count' => $compliments,
                 'complaints_count' => $complaints,
                 'neutral_count' => $neutral,
@@ -3457,7 +3294,7 @@ class ReportController extends Controller
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
                 'total_reviews' => $staffReviews->count(),
-                'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score')),
+                'sentiment_score' => getSentimentLabel($staffReviews->avg('sentiment_score')),
                 'image' => $staff->image ?? null
             ];
         })
@@ -3538,18 +3375,8 @@ class ReportController extends Controller
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
 
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ')
+            ->withCalculatedRating()
+
             ->get();
     }
 
@@ -3642,7 +3469,7 @@ class ReportController extends Controller
                     'position' => $staff->job_title ?? 'Staff',
                     'avg_rating' => round($staffReviews->avg('rate'), 1),
                     'total_reviews' => $staffReviews->count(),
-                    'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score'))
+                    'sentiment_score' => getSentimentLabel($staffReviews->avg('sentiment_score'))
                 ];
             })
             ->filter(function ($staff) {
@@ -3672,7 +3499,7 @@ class ReportController extends Controller
                     'staff_name' => $staff->name,
                     'position' => $staff->job_title ?? 'Staff',
                     'avg_rating' => round($staffReviews->avg('rate'), 1),
-                    'sentiment_score' => $this->getSentimentLabel($staffReviews->avg('sentiment_score')),
+                    'sentiment_score' => getSentimentLabel($staffReviews->avg('sentiment_score')),
                     'compliments_count' => $compliments,
                     'complaints_count' => $complaints,
                     'neutral_count' => $neutral,
@@ -3688,14 +3515,7 @@ class ReportController extends Controller
         return $staffMetrics;
     }
 
-    private function getSentimentLabel($sentimentScore)
-    {
-        if (!$sentimentScore) return 'Neutral';
-
-        if ($sentimentScore >= 0.7) return 'Positive';
-        if ($sentimentScore >= 0.4) return 'Neutral';
-        return 'Negative';
-    }
+  
 
 
 
@@ -3790,18 +3610,7 @@ class ReportController extends Controller
 
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->with(['user', 'guest_user', 'survey'])
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ');
+           ->withCalculatedRating();
 
         $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);
         $reviews = (clone $reviewsQuery)->get();
@@ -3839,18 +3648,7 @@ class ReportController extends Controller
         // Get reviews for the business with staff AND calculated rating
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->select('review_news.*')
-            ->selectRaw('
-            COALESCE(
-                (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
-                    FROM review_value_news rvn
-                    INNER JOIN stars s ON rvn.star_id = s.id
-                    WHERE rvn.review_id = review_news.id
-                ),
-                0
-            ) as calculated_rating
-        ');
+            ->withCalculatedRating();
 
         // Apply the same filters as main query
         $reviewsQuery = $this->applyFilters($reviewsQuery, $filters);

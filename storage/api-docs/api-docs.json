@@ -2552,12 +2552,12 @@
                                                 "lat": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 40.7128
+                                                    "example": 40.7128000000000014324541552923619747161865234375
                                                 },
                                                 "long": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": -74.006
+                                                    "example": -74.006000000000000227373675443232059478759765625
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -5991,7 +5991,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.2
+                                                        "example": 4.20000000000000017763568394002504646778106689453125
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -13402,7 +13402,7 @@
                                                         },
                                                         "avg_rating": {
                                                             "type": "number",
-                                                            "example": 4.2
+                                                            "example": 4.20000000000000017763568394002504646778106689453125
                                                         },
                                                         "sentiment_distribution": {
                                                             "properties": {
@@ -13434,7 +13434,7 @@
                                                             "type": "object",
                                                             "example": {
                                                                 "2023-01": 4,
-                                                                "2023-02": 4.2
+                                                                "2023-02": 4.20000000000000017763568394002504646778106689453125
                                                             }
                                                         },
                                                         "trend_direction": {
@@ -13580,7 +13580,7 @@
                                                             "properties": {
                                                                 "value": {
                                                                     "type": "number",
-                                                                    "example": 4.2
+                                                                    "example": 4.20000000000000017763568394002504646778106689453125
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
@@ -13601,7 +13601,7 @@
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
-                                                                    "example": 2.1
+                                                                    "example": 2.100000000000000088817841970012523233890533447265625
                                                                 },
                                                                 "change_type": {
                                                                     "type": "string",

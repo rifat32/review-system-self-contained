@@ -136,6 +136,25 @@ class ReviewNew extends Model
             });
     }
 
+ /**
+     * Add calculated rating to review query
+     */
+    public function scopeWithCalculatedRating($query)
+    {
+        return $query->selectRaw('
+            review_news.*,
+            COALESCE(
+                (
+                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    FROM review_value_news rvn
+                    INNER JOIN stars s ON rvn.star_id = s.id
+                    WHERE rvn.review_id = review_news.id
+                ),
+                0
+            ) as calculated_rating
+        ');
+    }
+
     public function scopeWhereMeetsThreshold($query, $businessId, $is_staff_review = 0)
     {
 
