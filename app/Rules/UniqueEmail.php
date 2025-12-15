@@ -35,7 +35,7 @@ class UniqueEmail implements ValidationRule
         }
 
         if ($query->exists()) {
-            $fail('The email has already been taken.');
+            $fail('The email has already been taken.', null);
         }
     }
 }

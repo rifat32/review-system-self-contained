@@ -37,11 +37,16 @@ return [
             "role" => "business_staff",
             "permissions" => [],
         ],
+        [
+            "role" => "branch_manager",
+            "permissions" => [],
+        ],
     ],
     "roles" => [
         "superadmin",
         "business_owner",
         "business_staff",
+        "branch_manager",
     ],
     "permissions" => [
 

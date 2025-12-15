@@ -10170,6 +10170,101 @@
             }
         },
         "/v1.0/question-categories": {
+            "post": {
+                "tags": [
+                    "question_category_management"
+                ],
+                "summary": "This method is to create question category",
+                "description": "This method is to create question category",
+                "operationId": "createQuestionCategory",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "Staff"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "Staff-related questions"
+                                    },
+                                    "parent_question_category_id": {
+                                        "type": "integer",
+                                        "format": "integer",
+                                        "example": null
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/question-categories/{business_id}": {
             "get": {
                 "tags": [
                     "question_category_management"
@@ -10256,99 +10351,6 @@
                         "example": "asc"
                     }
                 ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            },
-            "post": {
-                "tags": [
-                    "question_category_management"
-                ],
-                "summary": "This method is to create question category",
-                "description": "This method is to create question category",
-                "operationId": "createQuestionCategory",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "title"
-                                ],
-                                "properties": {
-                                    "title": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "Staff"
-                                    },
-                                    "description": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "Staff-related questions"
-                                    },
-                                    "parent_question_category_id": {
-                                        "type": "integer",
-                                        "format": "integer",
-                                        "example": null
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -10837,7 +10839,7 @@
         "/v1.0/questions": {
             "get": {
                 "tags": [
-                    "review.question_management"
+                    "question_management"
                 ],
                 "summary": "Retrieve review questions",
                 "description": "Fetches review questions based on user role and filters.\\n\\n• Superadmin: Gets all questions (default + all businesses)\\n• Business Owner: Gets default questions + their own business questions\\n• Use query parameters to filter results (all optional)",
@@ -11040,7 +11042,7 @@
             },
             "post": {
                 "tags": [
-                    "review.question_management"
+                    "question_management"
                 ],
                 "summary": "Store a new review question",
                 "description": "Creates a new review question. Superadmin creates default questions (business_id = null). Regular users can only create for their own business.",
@@ -11051,8 +11053,7 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "question",
-                                    "is_active"
+                                    "question"
                                 ],
                                 "properties": {
                                     "question": {
@@ -11065,10 +11066,6 @@
                                         "example": 1,
                                         "nullable": true
                                     },
-                                    "is_active": {
-                                        "type": "boolean",
-                                        "example": true
-                                    },
                                     "show_in_guest_user": {
                                         "type": "boolean",
                                         "example": true
@@ -11076,16 +11073,6 @@
                                     "show_in_user": {
                                         "type": "boolean",
                                         "example": true
-                                    },
-                                    "survey_name": {
-                                        "type": "string",
-                                        "example": "Post-Service Survey",
-                                        "nullable": true
-                                    },
-                                    "survey_id": {
-                                        "type": "integer",
-                                        "example": 5,
-                                        "nullable": true
                                     },
                                     "type": {
                                         "type": "string",
@@ -11141,7 +11128,7 @@
         "/v1.0/questions/{id}": {
             "get": {
                 "tags": [
-                    "review.question_management"
+                    "question_management"
                 ],
                 "summary": "Get a specific review question",
                 "description": "Retrieves a single review question by ID. Access depends on user role.",
@@ -11197,7 +11184,7 @@
             },
             "patch": {
                 "tags": [
-                    "review.question_management"
+                    "question_management"
                 ],
                 "summary": "Update an existing review question",
                 "description": "Updates a review question. Superadmin can update default questions. Regular users can only update questions for their own business.",
@@ -11310,7 +11297,7 @@
         "/v1.0/questions/{ids}": {
             "delete": {
                 "tags": [
-                    "review.question_management"
+                    "question_management"
                 ],
                 "summary": "Delete review questions",
                 "description": "Deletes one or more review questions. IDs can be comma-separated. Superadmin can delete default questions. Business owners can only delete their own business questions.",
@@ -11372,7 +11359,7 @@
         "/v1.0/client/questions/{business_id}": {
             "get": {
                 "tags": [
-                    "review.question_management.client"
+                    "question_management.client"
                 ],
                 "summary": "Get all questions for a business (client-facing)",
                 "description": "Retrieves all active questions for a specific business. Supports filtering by survey and overall flag. Includes star ratings and associated tags.",
@@ -11547,7 +11534,7 @@
         "/v1.0/questions/set-overall": {
             "patch": {
                 "tags": [
-                    "review.question_management"
+                    "question_management"
                 ],
                 "summary": "Set questions as overall and make all others non-overall",
                 "description": "This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
@@ -11726,7 +11713,7 @@
         "/v1.0/questions/toggle": {
             "patch": {
                 "tags": [
-                    "review.question_management"
+                    "question_management"
                 ],
                 "summary": "Toggle question active status",
                 "description": "Updates the `is_active` status of a question. Only super admins can modify default questions.",
@@ -11794,7 +11781,7 @@
         "/v1.0/questions/ordering": {
             "patch": {
                 "tags": [
-                    "review.question_management"
+                    "question_management"
                 ],
                 "summary": "Order questions by specific sequence",
                 "description": "Update the display order of questions using order numbers",
@@ -11890,7 +11877,7 @@
         "/v1.0/questions/update-question-starts-and-tags": {
             "post": {
                 "tags": [
-                    "review.question_management"
+                    "question_management"
                 ],
                 "summary": "Update question stars and tags",
                 "description": "Update the stars associated with a question and the tags under each star.",
@@ -20767,13 +20754,192 @@
             }
         },
         "/v1.0/users/{id}": {
+            "get": {
+                "tags": [
+                    "user_management"
+                ],
+                "summary": "Get a specific user by ID",
+                "description": "Retrieve detailed information for a specific user within the authenticated business",
+                "operationId": "getUserById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "john.manager@yopmail.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+1234567890"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "branch_manager"
+                                                },
+                                                "post_code": {
+                                                    "type": "string",
+                                                    "example": "12345"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main St"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "Apt 4B"
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1990-01-01"
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": "path/to/image.jpg"
+                                                },
+                                                "job_title": {
+                                                    "type": "string",
+                                                    "example": "Manager"
+                                                },
+                                                "join_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2023-01-01"
+                                                },
+                                                "skills": {
+                                                    "type": "string",
+                                                    "example": "PHP, Laravel"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User not found or not in your business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User not found or access denied"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
             "delete": {
                 "tags": [
+                    "user_management",
                     "user_management.super_admin"
                 ],
                 "summary": "This method is to delete  Customer by id",
                 "description": "This method is to delete Customer  by id",
-                "operationId": "deleteCustomerById",
+                "operationId": "deleteUserById",
                 "parameters": [
                     {
                         "name": "id",
@@ -20813,6 +20979,801 @@
                         "content": {
                             "application/json": {
                                 "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "user_management"
+                ],
+                "summary": "Update an existing user",
+                "description": "Update user information for users in the authenticated business",
+                "operationId": "updateBusinessUser",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "first_Name": {
+                                        "description": "User's first name",
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "last_Name": {
+                                        "description": "User's last name",
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "email": {
+                                        "description": "User's email address",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john.manager@yopmail.com"
+                                    },
+                                    "phone": {
+                                        "description": "User's phone number",
+                                        "type": "string",
+                                        "example": "+1234567890"
+                                    },
+                                    "role": {
+                                        "description": "User role",
+                                        "type": "string",
+                                        "enum": [
+                                            "branch_manager",
+                                            "business_staff"
+                                        ],
+                                        "example": "branch_manager"
+                                    },
+                                    "post_code": {
+                                        "description": "Postal code",
+                                        "type": "string",
+                                        "example": "12345"
+                                    },
+                                    "Address": {
+                                        "description": "User's address",
+                                        "type": "string",
+                                        "example": "123 Main St"
+                                    },
+                                    "door_no": {
+                                        "description": "Door number",
+                                        "type": "string",
+                                        "example": "Apt 4B"
+                                    },
+                                    "date_of_birth": {
+                                        "description": "Date of birth",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "1990-01-01"
+                                    },
+                                    "image": {
+                                        "description": "Profile image path",
+                                        "type": "string",
+                                        "example": "path/to/image.jpg"
+                                    },
+                                    "job_title": {
+                                        "description": "Job title",
+                                        "type": "string",
+                                        "example": "Manager"
+                                    },
+                                    "join_date": {
+                                        "description": "Join date",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2023-01-01"
+                                    },
+                                    "skills": {
+                                        "description": "User skills",
+                                        "type": "string",
+                                        "example": "PHP, Laravel"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User updated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "john.manager@yopmail.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+1234567890"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "branch_manager"
+                                                },
+                                                "post_code": {
+                                                    "type": "string",
+                                                    "example": "12345"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main St"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "Apt 4B"
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1990-01-01"
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": "path/to/image.jpg"
+                                                },
+                                                "job_title": {
+                                                    "type": "string",
+                                                    "example": "Manager"
+                                                },
+                                                "join_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2023-01-01"
+                                                },
+                                                "skills": {
+                                                    "type": "string",
+                                                    "example": "PHP, Laravel"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User not found or not in your business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User not found or access denied"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/users": {
+            "get": {
+                "tags": [
+                    "user_management"
+                ],
+                "summary": "Get all users for the authenticated business",
+                "description": "Retrieve a paginated list of all users belonging to the authenticated user's business. If no role filter is specified, only users with 'branch_manager' and 'business_staff' roles are returned.",
+                "operationId": "getAllBusinessUsers",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        },
+                        "example": 10
+                    },
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "description": "Filter users by role. If not specified, defaults to 'branch_manager' and 'business_staff' roles only",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "branch_manager",
+                                "business_staff"
+                            ]
+                        },
+                        "example": "branch_manager"
+                    },
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "Search term to filter users by name, email, phone, etc.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "john"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Users retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Users retrieved successfully"
+                                        },
+                                        "meta": {
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 25
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "from": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "to": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "first_Name": {
+                                                        "type": "string",
+                                                        "example": "John"
+                                                    },
+                                                    "last_Name": {
+                                                        "type": "string",
+                                                        "example": "Doe"
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "example": "john.manager@yopmail.com"
+                                                    },
+                                                    "phone": {
+                                                        "type": "string",
+                                                        "example": "+1234567890"
+                                                    },
+                                                    "role": {
+                                                        "type": "string",
+                                                        "example": "branch_manager"
+                                                    },
+                                                    "post_code": {
+                                                        "type": "string",
+                                                        "example": "12345"
+                                                    },
+                                                    "Address": {
+                                                        "type": "string",
+                                                        "example": "123 Main St"
+                                                    },
+                                                    "door_no": {
+                                                        "type": "string",
+                                                        "example": "Apt 4B"
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "date_of_birth": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "1990-01-01"
+                                                    },
+                                                    "image": {
+                                                        "type": "string",
+                                                        "example": "path/to/image.jpg"
+                                                    },
+                                                    "job_title": {
+                                                        "type": "string",
+                                                        "example": "Manager"
+                                                    },
+                                                    "join_date": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2023-01-01"
+                                                    },
+                                                    "skills": {
+                                                        "type": "string",
+                                                        "example": "PHP, Laravel"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "user_management"
+                ],
+                "summary": "Create a new user",
+                "description": "Create a new user with the provided information",
+                "operationId": "createUser",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "first_Name": {
+                                        "description": "User's first name",
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "last_Name": {
+                                        "description": "User's last name",
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "email": {
+                                        "description": "User's email address",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john.manager@yopmail.com"
+                                    },
+                                    "password": {
+                                        "description": "User's password (min 6 characters)",
+                                        "type": "string",
+                                        "example": "password123"
+                                    },
+                                    "phone": {
+                                        "description": "User's phone number",
+                                        "type": "string",
+                                        "example": "+1234567890"
+                                    },
+                                    "role": {
+                                        "description": "User role",
+                                        "type": "string",
+                                        "enum": [
+                                            "branch_manager",
+                                            "business_staff"
+                                        ],
+                                        "example": "branch_manager"
+                                    },
+                                    "post_code": {
+                                        "description": "Postal code",
+                                        "type": "string",
+                                        "example": "12345"
+                                    },
+                                    "Address": {
+                                        "description": "User's address",
+                                        "type": "string",
+                                        "example": "123 Main St"
+                                    },
+                                    "door_no": {
+                                        "description": "Door number",
+                                        "type": "string",
+                                        "example": "Apt 4B"
+                                    },
+                                    "date_of_birth": {
+                                        "description": "Date of birth",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "1990-01-01"
+                                    },
+                                    "image": {
+                                        "description": "Profile image path",
+                                        "type": "string",
+                                        "example": "path/to/image.jpg"
+                                    },
+                                    "job_title": {
+                                        "description": "Job title",
+                                        "type": "string",
+                                        "example": "Manager"
+                                    },
+                                    "join_date": {
+                                        "description": "Join date",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2023-01-01"
+                                    },
+                                    "skills": {
+                                        "description": "User skills",
+                                        "type": "string",
+                                        "example": "PHP, Laravel"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User created successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "first_Name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "last_Name": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "john.manager@yopmail.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "+1234567890"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "branch_manager"
+                                                },
+                                                "post_code": {
+                                                    "type": "string",
+                                                    "example": "12345"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main St"
+                                                },
+                                                "door_no": {
+                                                    "type": "string",
+                                                    "example": "Apt 4B"
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "date_of_birth": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1990-01-01"
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": "path/to/image.jpg"
+                                                },
+                                                "job_title": {
+                                                    "type": "string",
+                                                    "example": "Manager"
+                                                },
+                                                "join_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2023-01-01"
+                                                },
+                                                "skills": {
+                                                    "type": "string",
+                                                    "example": "PHP, Laravel"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -21229,12 +22190,12 @@
             "description": "question_category_management"
         },
         {
-            "name": "review.question_management",
-            "description": "review.question_management"
+            "name": "question_management",
+            "description": "question_management"
         },
         {
-            "name": "review.question_management.client",
-            "description": "review.question_management.client"
+            "name": "question_management.client",
+            "description": "question_management.client"
         },
         {
             "name": "report",
@@ -21299,6 +22260,10 @@
         {
             "name": "user_management.super_admin",
             "description": "user_management.super_admin"
+        },
+        {
+            "name": "user_management",
+            "description": "user_management"
         }
     ]
 }

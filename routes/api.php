@@ -96,7 +96,7 @@ Route::middleware(['auth:api'])->group(function () {
         // -------------------------------------------------------------------------
         Route::get('/v1.0/customer-list', [UserController::class, 'getCustomerReportSuperadmin']);
         Route::get('/v1.0/owner-list', [UserController::class, 'getOwnerReport']);
-        Route::delete('/v1.0/users/{id}', [UserController::class, 'deleteCustomerById']);
+        Route::delete('/v1.0/users/{id}', [UserController::class, 'deleteUserById']);
 
         // -------------------------------------------------------------------------
         // EmailTemplateWrapperController – Wrapper management
@@ -178,6 +178,14 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/business-areas/{id}', [BusinessAreaController::class, 'updateBusinessArea']);
     Route::delete('/v1.0/business-areas/{ids}', [BusinessAreaController::class, 'deleteBusinessAreas']);
     Route::patch('/v1.0/business-areas/toggle', [BusinessAreaController::class, 'toggleBusinessArea']);
+
+    // #################
+    // User Management Routes (Business Owner)
+    // #################
+    Route::post('/v1.0/users', [UserController::class, 'createUser']);
+    Route::get('/v1.0/users', [UserController::class, 'getAllBusinessUsers']);
+    Route::get('/v1.0/users/{id}', [UserController::class, 'getUserById']);
+    Route::patch('/v1.0/users/{id}', [UserController::class, 'updateBusinessUser']);
 
     // ============================================================================
     // LeafletController – CRUD (protected)

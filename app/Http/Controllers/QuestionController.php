@@ -67,8 +67,6 @@ class QuestionController extends Controller
 
 
     /**
-     * Get all review questions
-     *
      * @OA\Get(
      *      path="/v1.0/questions",
      *      operationId="getAllQuestions",
