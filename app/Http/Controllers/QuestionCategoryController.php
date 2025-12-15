@@ -102,7 +102,7 @@ class QuestionCategoryController extends Controller
 
     /**
      * @OA\Get(
-     *      path="/v1.0/question-categories",
+     *      path="/v1.0/question-categories/{business_id}",
      *      operationId="getAllQuestionCategories",
      *      tags={"question_category_management"},
      *       security={
@@ -223,10 +223,10 @@ class QuestionCategoryController extends Controller
      *     )
      */
 
-    public function getAllQuestionCategories(Request $request)
+    public function getAllQuestionCategories(Request $request, $business_id)
     {
         try {
-            $query = QuestionCategory::with(['parent', 'children'])->filters();
+            $query = QuestionCategory::with(['parent', 'children'])->filters($business_id);
 
             $questionCategories = retrieve_data($query);
 

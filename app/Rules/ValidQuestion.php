@@ -36,7 +36,7 @@ class ValidQuestion implements ValidationRule
             $message = $this->businessId
                 ? 'The selected question is invalid or does not belong to this business.'
                 : 'The selected question is invalid.';
-            $fail($message);
+            $fail($message, null);
         }
     }
 }

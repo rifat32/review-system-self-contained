@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Question;
 use App\Rules\ValidBusiness;
+use App\Rules\ValidQuestionCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,14 +22,12 @@ class QuestionRequest extends FormRequest
         return [
             'question'           => 'required|string|max:255',
             'business_id'        => ['nullable', 'integer', new ValidBusiness()],
-            'is_active'          => 'required|boolean',
-            'show_in_guest_user' => 'sometimes|boolean',
-            'show_in_user'       => 'sometimes|boolean',
-            'survey_name'        => 'nullable|string|max:255',
-            'survey_id'          => 'nullable|integer|exists:surveys,id',
+            'question_category_id' => ['required', 'integer', new ValidQuestionCategory()],
+            'show_in_guest_user' => 'required|boolean',
+            'show_in_user'       => 'required|boolean',
             'type'               => ['nullable', 'string', Rule::in(array_values(Question::QUESTION_TYPES))],
-            'is_overall'         => 'sometimes|boolean',
-            'is_staff'           => 'sometimes|boolean',
+            'is_overall'         => 'required|boolean',
+            'is_staff'           => 'required|boolean',
         ];
     }
 
@@ -44,7 +43,6 @@ class QuestionRequest extends FormRequest
     protected function prepareForValidation()
     {
         $this->merge([
-            'is_active'          => $this->boolean('is_active'),
             'show_in_guest_user' => $this->boolean('show_in_guest_user'),
             'show_in_user'       => $this->boolean('show_in_user'),
             'is_overall'         => $this->boolean('is_overall', false),

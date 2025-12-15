@@ -153,7 +153,7 @@ Route::middleware(['auth:api'])->group(function () {
     // Question Category Management Routes
     // #################
     Route::post('/v1.0/question-categories', [QuestionCategoryController::class, 'createQuestionCategory']);
-    Route::get('/v1.0/question-categories', [QuestionCategoryController::class, 'getAllQuestionCategories']);
+    Route::get('/v1.0/question-categories/{business_id}', [QuestionCategoryController::class, 'getAllQuestionCategories']);
     Route::get('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'getQuestionCategoryById']);
     Route::patch('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'updateQuestionCategory']);
     Route::patch('/v1.0/question-categories/toggle', [QuestionCategoryController::class, 'toggleQuestionCategory']);

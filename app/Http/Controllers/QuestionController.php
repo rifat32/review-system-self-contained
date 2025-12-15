@@ -72,7 +72,7 @@ class QuestionController extends Controller
      * @OA\Get(
      *      path="/v1.0/questions",
      *      operationId="getAllQuestions",
-     *      tags={"review.question_management"},
+     *      tags={"question_management"},
      *      security={{"bearerAuth":{}}},
      *      summary="Retrieve review questions",
      *      description="Fetches review questions based on user role and filters.\n\n• Superadmin: Gets all questions (default + all businesses)\n• Business Owner: Gets default questions + their own business questions\n• Use query parameters to filter results (all optional)",
@@ -241,7 +241,7 @@ class QuestionController extends Controller
      * @OA\Get(
      *      path="/v1.0/questions/{id}",
      *      operationId="questionById",
-     *      tags={"review.question_management"},
+     *      tags={"question_management"},
      *      security={{"bearerAuth":{}}},
      *      summary="Get a specific review question",
      *      description="Retrieves a single review question by ID. Access depends on user role.",
@@ -324,7 +324,7 @@ class QuestionController extends Controller
      * @OA\Delete(
      *      path="/v1.0/questions/{ids}",
      *      operationId="deleteQuestion",
-     *      tags={"review.question_management"},
+     *      tags={"question_management"},
      *      security={{"bearerAuth":{}}},
      *      summary="Delete review questions",
      *      description="Deletes one or more review questions. IDs can be comma-separated. Superadmin can delete default questions. Business owners can only delete their own business questions.",
@@ -415,7 +415,7 @@ class QuestionController extends Controller
      * @OA\Get(
      *      path="/v1.0/client/questions/{business_id}",
      *      operationId="getAllQuestionClient",
-     *      tags={"review.question_management.client"},
+     *      tags={"question_management.client"},
      *      summary="Get all questions for a business (client-facing)",
      *      description="Retrieves all active questions for a specific business. Supports filtering by survey and overall flag. Includes star ratings and associated tags.",
      *
@@ -590,7 +590,7 @@ class QuestionController extends Controller
      * @OA\Post(
      *      path="/v1.0/questions",
      *      operationId="createQuestion",
-     *      tags={"review.question_management"},
+     *      tags={"question_management"},
      *      security={{"bearerAuth":{}}},
      *      summary="Store a new review question",
      *      description="Creates a new review question. Superadmin creates default questions (business_id = null). Regular users can only create for their own business.",
@@ -598,14 +598,11 @@ class QuestionController extends Controller
      *      @OA\RequestBody(
      *          required=true,
      *          @OA\JsonContent(
-     *              required={"question", "is_active"},
+     *              required={"question"},
      *              @OA\Property(property="question", type="string", example="How was your experience?"),
      *              @OA\Property(property="business_id", type="integer", nullable=true, example=1, description="Required for non-superadmin"),
-     *              @OA\Property(property="is_active", type="boolean", example=true),
      *              @OA\Property(property="show_in_guest_user", type="boolean", example=true),
      *              @OA\Property(property="show_in_user", type="boolean", example=true),
-     *              @OA\Property(property="survey_name", type="string", nullable=true, example="Post-Service Survey"),
-     *              @OA\Property(property="survey_id", type="integer", nullable=true, example=5),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
      *              @OA\Property(property="is_overall", type="boolean", example=false),
      *          ),
@@ -623,36 +620,26 @@ class QuestionController extends Controller
     public function createQuestion(QuestionRequest $request): JsonResponse
     {
         $user = $request->user();
+        $business = $request->user()->businesses()->first();
+
+        if (!$business) {
+            return response()->json([
+                "success" => false,
+                "message" => "No business associated with your account"
+            ], 403);
+        }
 
         $data = $request->validated();
+
+        if (!isset($data['business_id'])) {
+            $data['business_id'] = null;
+        }
+
 
         // Handle superadmin: create default question
         if ($user->hasRole('superadmin')) {
             $data['is_default'] = true;
             $data['business_id'] = null;
-        } else {
-            // Regular user: must own the business
-            $business = Business::where([
-                'id'       => $data['business_id'] ?? null,
-                'OwnerID'  => $user->id
-            ])->first();
-
-            if (!$business) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not own this business or business not found.'
-                ], 400);
-            }
-
-
-
-            // Ensure business_id is set for non-superadmin
-            $data['business_id'] = $business->id;
-        }
-
-        // Remove survey_name if not needed (optional cleanup)
-        if (empty($data['survey_name'])) {
-            unset($data['survey_name']);
         }
 
         $question = Question::create($data);
@@ -683,7 +670,7 @@ class QuestionController extends Controller
      * @OA\Patch(
      *      path="/v1.0/questions/{id}",
      *      operationId="updatedQuestion",
-     *      tags={"review.question_management"},
+     *      tags={"question_management"},
      *      security={{"bearerAuth":{}}},
      *      summary="Update an existing review question",
      *      description="Updates a review question. Superadmin can update default questions. Regular users can only update questions for their own business.",
@@ -798,7 +785,7 @@ class QuestionController extends Controller
      * @OA\patch(
      *      path="/v1.0/questions/set-overall",
      *      operationId="setOverallQuestions",
-     *      tags={"review.question_management"},
+     *      tags={"question_management"},
      *      security={{"bearerAuth": {}}},
      *      summary="Set questions as overall and make all others non-overall",
      *      description="This method marks selected questions as overall and updates all other questions for the same business to non-overall.",
@@ -903,7 +890,7 @@ class QuestionController extends Controller
      * @OA\Patch(
      *      path="/v1.0/questions/toggle",
      *      operationId="toggleQuestionActivation",
-     *      tags={"review.question_management"},
+     *      tags={"question_management"},
      *      security={{"bearerAuth":{}}},
      *      summary="Toggle question active status",
      *      description="Updates the `is_active` status of a question. Only super admins can modify default questions.",
@@ -979,7 +966,7 @@ class QuestionController extends Controller
      * @OA\Patch(
      *      path="/v1.0/questions/ordering",
      *      operationId="displayQuestionOrder",
-     *      tags={"review.question_management"},
+     *      tags={"question_management"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -1069,7 +1056,7 @@ class QuestionController extends Controller
      * @OA\Post(
      *     path="/v1.0/questions/update-question-starts-and-tags",
      *     operationId="updateQuestionStartsAndTags",
-     *     tags={"review.question_management"},
+     *     tags={"question_management"},
      *     summary="Update question stars and tags",
      *     description="Update the stars associated with a question and the tags under each star.",
      *     security={{"bearerAuth":{}}},
