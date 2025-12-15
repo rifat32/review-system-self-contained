@@ -109,51 +109,54 @@ class QuestionCategory extends Model
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeFilters($query)
+    public function scopeFilters($query, $businessId)
     {
         $request = request();
 
-        return $query->when(
-            $request->filled('is_active'),
-            fn($q) => $q->where('is_active', $request->boolean('is_active'))
-        )->when(
-            $request->filled('is_default'),
-            fn($q) => $q->where('is_default', $request->boolean('is_default'))
-        )->when(
-            $request->filled('business_id', $request->user()->business()->value('id')),
-            fn($q) => $q->where('business_id', $request->business_id)->whereNull('business_id')
-        )->when(
-            $request->filled('parent_id'),
-            fn($q) => $q->where('parent_question_category_id', $request->parent_id)
-        )->when(
-            $request->filled('created_by'),
-            fn($q) => $q->where('created_by', $request->created_by)
-        )->when(
-            $request->filled('search'),
-            fn($q) => $q->where(function ($sq) use ($request) {
-                $searchTerm = $request->search;
-                $sq->where('title', 'like', '%' . $searchTerm . '%')
-                    ->orWhere('description', 'like', '%' . $searchTerm . '%');
-            })
-        )->when(
-            $request->filled('has_children'),
-            fn($q) => $request->boolean('has_children') ? $q->has('children') : $q->doesntHave('children')
-        )->when(
-            $request->filled('has_questions'),
-            fn($q) => $request->boolean('has_questions') ? $q->has('questions') : $q->doesntHave('questions')
-        )->when(
-            $request->filled('sort_by'),
-            function ($q) use ($request) {
-                $sortField = $request->sort_by;
-                $sortDirection = $request->sort_direction ?? 'asc';
-                // Only allow safe sort fields
-                $allowedSortFields = ['title', 'created_at', 'updated_at', 'is_active', 'is_default'];
-                if (in_array($sortField, $allowedSortFields)) {
-                    return $q->orderBy($sortField, $sortDirection);
-                }
-                return $q;
-            },
-            fn($q) => $q->orderBy('title', 'asc') // default ordering
-        );
+        return $query->where(function ($q) use ($request, $businessId) {
+            $q->where(function ($sq) use ($request) {
+                $sq->where('is_default', true)
+                    ->whereNull('business_id');
+            })->orWhere(function ($sq) use ($request, $businessId) {
+                $sq->where('business_id', $businessId)
+                    ->where('is_default', false);
+            });
+        })
+            ->when(
+                $request->filled('is_active'),
+                fn($q) => $q->where('is_active', $request->boolean('is_active'))
+            )->when(
+                $request->filled('parent_id'),
+                fn($q) => $q->where('parent_question_category_id', $request->parent_id)
+            )->when(
+                $request->filled('created_by'),
+                fn($q) => $q->where('created_by', $request->created_by)
+            )->when(
+                $request->filled('search'),
+                fn($q) => $q->where(function ($sq) use ($request) {
+                    $searchTerm = $request->search;
+                    $sq->where('title', 'like', '%' . $searchTerm . '%')
+                        ->orWhere('description', 'like', '%' . $searchTerm . '%');
+                })
+            )->when(
+                $request->filled('has_children'),
+                fn($q) => $request->boolean('has_children') ? $q->has('children') : $q->doesntHave('children')
+            )->when(
+                $request->filled('has_questions'),
+                fn($q) => $request->boolean('has_questions') ? $q->has('questions') : $q->doesntHave('questions')
+            )->when(
+                $request->filled('sort_by'),
+                function ($q) use ($request) {
+                    $sortField = $request->sort_by;
+                    $sortDirection = $request->sort_direction ?? 'asc';
+                    // Only allow safe sort fields
+                    $allowedSortFields = ['title', 'created_at', 'updated_at', 'is_active', 'is_default'];
+                    if (in_array($sortField, $allowedSortFields)) {
+                        return $q->orderBy($sortField, $sortDirection);
+                    }
+                    return $q;
+                },
+                fn($q) => $q->orderBy('title', 'asc') // default ordering
+            );
     }
 }
