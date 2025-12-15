@@ -212,7 +212,7 @@ class OwnerController extends Controller
      * @OA\Post(
      *      path="/v1.0/create-user-with-business",
      *      operationId="createUserWithBusiness",
-     *      tags={"owner"},
+     *      tags={"auth", "owner"},
      *      security={{"bearerAuth": {}}},
      *      summary="Create a new user with associated business",
      *      description="Register a new business owner user and create their business profile",
@@ -284,10 +284,12 @@ class OwnerController extends Controller
             // Create business with all configurations
             $business = $this->businessService->createBusinessWithSchedule($user, $validatedData);
 
+            // Associate business ID with user
+            $user->business_id = $business->id;
             // Generate access token
             $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
 
-
+            // SEND RESPONSE
             return response()->json([
                 'success' => true,
                 'message' => 'You have successfully registered',
