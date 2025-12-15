@@ -1618,6 +1618,12 @@
                                         "type": "string",
                                         "example": "Main Branch"
                                     },
+                                    "manager_id": {
+                                        "description": "ID of the branch manager (user with branch_manager role)",
+                                        "type": "integer",
+                                        "example": 5,
+                                        "nullable": true
+                                    },
                                     "address": {
                                         "description": "Address of the branch",
                                         "type": "string",
@@ -1719,6 +1725,11 @@
                                                 "name": {
                                                     "type": "string",
                                                     "example": "Main Branch"
+                                                },
+                                                "manager_id": {
+                                                    "type": "integer",
+                                                    "example": 5,
+                                                    "nullable": true
                                                 },
                                                 "address": {
                                                     "type": "string",
@@ -1906,6 +1917,11 @@
                                                 "name": {
                                                     "type": "string",
                                                     "example": "Main Branch"
+                                                },
+                                                "manager_id": {
+                                                    "type": "integer",
+                                                    "example": 5,
+                                                    "nullable": true
                                                 },
                                                 "address": {
                                                     "type": "string",
@@ -2197,6 +2213,12 @@
                                         "type": "string",
                                         "example": "Updated Branch"
                                     },
+                                    "manager_id": {
+                                        "description": "ID of the branch manager (user with branch_manager role)",
+                                        "type": "integer",
+                                        "example": 5,
+                                        "nullable": true
+                                    },
                                     "address": {
                                         "description": "Address of the branch",
                                         "type": "string",
@@ -2298,6 +2320,11 @@
                                                 "name": {
                                                     "type": "string",
                                                     "example": "Updated Branch"
+                                                },
+                                                "manager_id": {
+                                                    "type": "integer",
+                                                    "example": 5,
+                                                    "nullable": true
                                                 },
                                                 "address": {
                                                     "type": "string",
@@ -2504,6 +2531,11 @@
                                                 "name": {
                                                     "type": "string",
                                                     "example": "Main Branch"
+                                                },
+                                                "manager_id": {
+                                                    "type": "integer",
+                                                    "example": 5,
+                                                    "nullable": true
                                                 },
                                                 "address": {
                                                     "type": "string",
@@ -8748,6 +8780,7 @@
         "/v1.0/create-user-with-business": {
             "post": {
                 "tags": [
+                    "auth",
                     "owner"
                 ],
                 "summary": "Create a new user with associated business",
