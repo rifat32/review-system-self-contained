@@ -78,7 +78,7 @@ class QuestionCategoryController extends Controller
                 // Set created_by if user is authenticated
                 // ADD CREATOR
                 $authUser = $request->user();
-                $business_id = $request->user()->business()->value('id');
+                $business_id = $request->user()->business->id;
                 $payload_data['created_by'] = $authUser->id;
                 $payload_data['business_id'] = $business_id ?? null;
                 // Create the question category

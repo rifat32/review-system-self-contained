@@ -379,7 +379,7 @@ class UserController extends Controller
         // ]);
 
         // Get the authenticated user's business ID
-        $business_id = $request->user()->businesses()->value('id');
+        $business_id = $request->user()->business()->id;
 
         if (!$business_id) {
             return response()->json([
@@ -519,7 +519,7 @@ class UserController extends Controller
     public function updateBusinessUser(UserRequest $request, $id)
     {
         // Get the authenticated user's business ID
-        $business_id = $request->user()->businesses()->value('id');
+        $business_id = $request->user()->business()->id;
 
         if (!$business_id) {
             return response()->json([
@@ -627,7 +627,7 @@ class UserController extends Controller
     public function getUserById(Request $request, $id)
     {
         // Get the authenticated user's business ID
-        $business_id = $request->user()->businesses()->value('id');
+        $business_id = $request->user()->business->id;
 
         if (!$business_id) {
             return response()->json([
@@ -742,7 +742,7 @@ class UserController extends Controller
     {
         // Validate request data
         $validatedData = $request->validated();
-        $business_id = $request->user()->businesses()->value('id');
+        $business_id = $request->user()->business->id;
 
         // ADD BUSINESS ID
         $validatedData['business_id'] = $business_id;

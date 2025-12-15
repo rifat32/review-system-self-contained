@@ -76,7 +76,7 @@ class StarTagQuestionController extends Controller
 
         $query
             ->where("is_default", false)
-            ->where("business_id", $request->user()->business()->value('id'));
+            ->where("business_id", $request->user()->business->id);
 
         // ELSE BUSINESS USER
         $questions =  $query->get();

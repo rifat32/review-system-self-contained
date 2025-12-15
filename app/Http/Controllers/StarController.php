@@ -52,7 +52,7 @@ class StarController extends Controller
         }
 
         // ELSE BUSINESS USER
-        $business_id = $request->user()->business()->value('id');
+        $business_id = $request->user()->business->id;
 
         if (!$business_id) {
             return response()->json([

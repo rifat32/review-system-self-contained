@@ -618,7 +618,7 @@ class QuestionController extends Controller
     public function createQuestion(QuestionRequest $request): JsonResponse
     {
         $user = $request->user();
-        $business = $request->user()->businesses()->first();
+        $business = $request->user()->business;
 
         if (!$business) {
             return response()->json([

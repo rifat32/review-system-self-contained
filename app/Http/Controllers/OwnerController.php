@@ -286,6 +286,8 @@ class OwnerController extends Controller
 
             // Associate business ID with user
             $user->business_id = $business->id;
+            $user->save();
+
             // Generate access token
             $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
 
@@ -374,6 +376,10 @@ class OwnerController extends Controller
 
             // Create business with all configurations
             $business = $this->businessService->createBusinessWithSchedule($user, $validatedData);
+
+            // Associate business ID with user
+            $user->business_id = $business->id;
+            $user->save();
 
             // Generate access token
             $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;

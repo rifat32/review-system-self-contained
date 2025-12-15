@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Cashier\Billable;
@@ -58,9 +59,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    public function business()
+    public function business(): HasOne
     {
-        return $this->hasMany(Business::class, "OwnerID", "id");
+        return $this->hasOne(Business::class, "OwnerID", "id");
     }
 
     public function businesses()

@@ -112,7 +112,7 @@ class StaffController extends Controller
 
 
             $request_payload['password'] = Hash::make($request_payload['password']);
-            $request_payload['business_id'] =  auth()->user()->business()->value('id');
+            $request_payload['business_id'] =  auth()->user()->business->id;
 
 
             $user = User::create($request_payload);
@@ -233,7 +233,7 @@ class StaffController extends Controller
     {
         DB::beginTransaction();
         try {
-            $user = User::where('business_id', auth()->user()->business()->value('id'))
+            $user = User::where('business_id', auth()->user()->business->id)
                 ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
                 ->find($id);
 
@@ -317,7 +317,7 @@ class StaffController extends Controller
     // DELETE (soft delete if your model uses SoftDeletes)
     public function deleteStaff($id)
     {
-        $user = User::where('business_id', auth()->user()->business()->value('id'))
+        $user = User::where('business_id', auth()->user()->business->id)
             ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
             ->find($id);
 
@@ -450,7 +450,7 @@ class StaffController extends Controller
     public function getAllStaffs(Request $request)
     {
         try {
-            $businessId =  auth()->user()->business()->value('id');
+            $businessId =  auth()->user()->business->id;
 
             $query = User::filterStaff($businessId);
 
@@ -542,7 +542,7 @@ class StaffController extends Controller
 
         $user = User::with('roles', function ($query) {
             $query->select('name', 'id');
-        })->where('business_id', auth()->user()->business()->value('id'))
+        })->where('business_id', auth()->user()->business->id)
             ->whereHas('roles', fn($r) => $r->where('name', 'staff'))
             ->find($id);
 
