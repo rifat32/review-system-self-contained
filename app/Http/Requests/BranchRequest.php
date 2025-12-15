@@ -24,6 +24,7 @@ class BranchRequest extends FormRequest
     {
         $rules = [
             'business_id' => ['required', 'integer', new ValidBusiness()],
+            'manager_id' => ['nullable', 'integer', 'exists:users,id'],
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
             'street' => 'nullable|string|max:255',

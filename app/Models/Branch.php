@@ -27,10 +27,16 @@ class Branch extends Model
         'branch_code',
         'lat',
         'long',
+        'manager_id',
     ];
 
     public function business()
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function manager()
+    {
+        return $this->belongsTo(User::class, 'manager_id');
     }
 }
