@@ -174,7 +174,7 @@ class UserController extends Controller
 
     public function getOwnerReport(Request $request)
     {
-        $userQuery =  User::with("business")->where([
+        $userQuery =  User::with(["business", "roles"])->where([
             "type" => "business_Owner"
         ]);
         if (!empty($request->search_term)) {
@@ -207,63 +207,149 @@ class UserController extends Controller
     }
 
     /**
-     *
      * @OA\Delete(
-     *      path="/v1.0/users/{id}",
-     *      operationId="deleteUserById",
-     *      tags={"user_management", "user_management.super_admin"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *    @OA\Parameter(
-     * name="id",
-     * in="path",
-     * description="id",
-     * required=true,
-     * example="1"
-     * ),
-     *      summary="This method is to delete  Customer by id",
-     *      description="This method is to delete Customer  by id",
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocessable Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
+     *     path="/v1.0/users/{id}",
+     *     operationId="deleteUserById",
+     *     tags={"user_management", "user_management.super_admin"},
+     *     security={{"bearerAuth":{}}},
+     *     summary="Delete user by id",
+     *     description="
+     *     Rules:
+     *     - Superadmin can delete ONLY business owners and it's business
+     *     - Business owner can delete users within their own business
+     *     - Business owner cannot delete another business owner
+     *     ",
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="User ID",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="User deleted successfully"),
+     *             @OA\Property(property="data", type="boolean", example=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="You are not authorized to delete user")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Not found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="User not found")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Unprocessable Content",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object", example={})
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad Request",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Bad Request")
+     *         )
      *     )
+     * )
      */
-    public function deleteUserById($id, Request $request)
+
+    public function deleteUserById(int $id, Request $request)
     {
-        User::where([
-            "id" => $id,
-        ])
-            ->delete();
+        $authUser = $request->user();
+
+        // Only superadmin or business_owner allowed
+        if (
+            !$authUser->hasRole('superadmin') &&
+            !$authUser->hasRole('business_owner')
+        ) {
+            return response()->json([
+                "success" => false,
+                "message" => "You are not authorized to delete user"
+            ], 403);
+        }
+
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                "success" => false,
+                "message" => "User not found"
+            ], 404);
+        }
+
+        /** SUPER ADMIN RULE */
+        // if ($authUser->hasRole('superadmin')) {
+
+        //     // superadmin can delete ONLY business owners
+        //     if (!$user->hasRole('business_owner')) {
+        //         return response()->json([
+        //             "success" => false,
+        //             "message" => "Super admin can delete only business owners"
+        //         ], 403);
+        //     }
+        // }
+
+        // /** BUSINESS OWNER RULE */
+        // if ($authUser->hasRole('business_owner')) {
+
+        //     // must be same business
+        //     if ($user->business_id !== $authUser->business_id) {
+        //         return response()->json([
+        //             "success" => false,
+        //             "message" => "You can delete users only from your business"
+        //         ], 403);
+        //     }
+
+        //     // business owner cannot delete another business owner
+        //     if ($user->hasRole('business_owner')) {
+        //         return response()->json([
+        //             "success" => false,
+        //             "message" => "You cannot delete a business owner"
+        //         ], 403);
+        //     }
+        // }
+
+        $user->delete();
+
         return response()->json([
-            "ok" => true
+            "success" => true,
+            "message" => "User deleted successfully",
+            "data" => true
         ], 200);
     }
+
+
 
 
     /**
@@ -755,6 +841,16 @@ class UserController extends Controller
 
         // Create the user
         $user = User::create($validatedData);
+
+        // ASSIGN ROLE
+        if ($validatedData['role'] === User::USER_ROLE['BUSINESS_STAFF']) {
+            $user->assignRole(User::USER_ROLE['BUSINESS_STAFF']);
+        } elseif ($validatedData['role'] === User::USER_ROLE['BRANCH_MANAGER']) {
+            $user->assignRole(User::USER_ROLE['BRANCH_MANAGER']);
+        }
+
+        // Save the user
+        $user->save();
 
         // Return success response
         return response()->json([

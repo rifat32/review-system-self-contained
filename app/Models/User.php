@@ -59,6 +59,13 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
+    const USER_ROLE = [
+        'SUPER_ADMIN' => 'superadmin',
+        'BUSINESS_OWNER' => 'business_owner',
+        'BRANCH_MANAGER' => 'branch_manager',
+        'BUSINESS_STAFF' => 'business_staff',
+    ];
+
     public function business(): HasOne
     {
         return $this->hasOne(Business::class, "OwnerID", "id");
