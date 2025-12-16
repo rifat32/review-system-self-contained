@@ -17,9 +17,6 @@ class ReviewNew extends Model
         'user_id',
         'comment',
         'guest_id',
-        // "question_id",
-        // 'tag_id' ,
-        // 'star_id',
         'raw_text',
         'emotion',
         'key_phrases',
@@ -70,12 +67,6 @@ class ReviewNew extends Model
         });
     }
 
-    // public function question() {
-    //     return $this->hasOne(Question::class,'id','question_id');
-    // }
-    // public function tag() {
-    //     return $this->hasOne(Question::class,'id','tag_id');
-    // }
 
     public function isVoiceReview()
     {
@@ -127,7 +118,7 @@ class ReviewNew extends Model
 
     public function scopeGlobalFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
-          
+
         return $query->when(request()->has('staff_id'), function ($q) {
             $q->where('staff_id', request()->input('staff_id'));
         })
@@ -136,7 +127,7 @@ class ReviewNew extends Model
             });
     }
 
- /**
+    /**
      * Add calculated rating to review query
      */
     public function scopeWithCalculatedRating($query)
@@ -162,7 +153,7 @@ class ReviewNew extends Model
         $business = Business::find($businessId);
         $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
 
-   
+
 
         return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
             $subQuery->select(DB::raw(1))

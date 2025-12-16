@@ -379,6 +379,7 @@ class OwnerController extends Controller
 
             // Associate business ID with user
             $user->business_id = $business->id;
+            $user->assignRole(User::USER_ROLE['BUSINESS_OWNER']);
             $user->save();
 
             // Generate access token
