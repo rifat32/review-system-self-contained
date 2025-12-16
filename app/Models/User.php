@@ -49,7 +49,6 @@ class User extends Authenticatable
         'updated_at',
         'email_verify_token',
         'email_verify_token_expires',
-        'email_verified_at',
         "login_attempts",
         "last_failed_login_attempt_at"
     ];

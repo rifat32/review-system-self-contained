@@ -10,6 +10,8 @@ class Business extends Model
 {
     use HasFactory, SoftDeletes;
 
+        protected $appends = ['is_subscribed'];
+
     protected $table = "businesses";
 
     protected $fillable = [
@@ -89,8 +91,86 @@ class Business extends Model
         "STRIPE_SECRET"
 
     ];
+  private function isTrailDateValid($trail_end_date)
+{
+    // If date is null, empty, or zero-date → treat as NOT expired
+    if (
+        empty($trail_end_date) ||
+        $trail_end_date === '0000-00-00 00:00:00' ||
+        $trail_end_date === '0000-00-00'
+    ) {
+        return true;
+    }
+
+    try {
+        $parsedDate = Carbon::parse($trail_end_date)->endOfDay();
+    } catch (\Exception $e) {
+        // If parsing fails, assume not expired
+        return true;
+    }
+
+    // Valid if today or future
+    return !$parsedDate->isPast();
+}
+
+     public function getIsSubscribedAttribute($value)
+    {
+
+        $user = auth()->user();
+        if (empty($user)) {
+            return 0;
+        }
+
+       
+
+        // Check for self-registered businesses
+        if ($this->is_self_registered_businesses??0) {
+            $validTrailDate = $this->isTrailDateValid($this->trail_end_date);
+            $latest_subscription = $this->current_subscription;
+
+            // If no valid subscription and no valid trail date, return 0
+            if (!$this->isValidSubscription($latest_subscription) && !$validTrailDate) {
+                return 0;
+            }
+        } else {
+            // For non-self-registered businesses
+            // If the trail date is empty or invalid, return 0
+            if (!$this->isTrailDateValid($this->expiry_date)) {
+                return 0;
+            }
+        }
+
+        return 1;
+    }
+
+     private function isValidSubscription($subscription)
+    {
+        if (!$subscription) {
+            return false;
+        } // No subscription
+
+        // Return false if start_date or end_date is empty
+        if (empty($subscription->start_date) || empty($subscription->end_date)) {
+            return false;
+        }
 
 
+        $startDate = Carbon::parse($subscription->start_date)->startOfDay();
+        $endDate = Carbon::parse($subscription->end_date)->endOfDay();
+        $today = Carbon::today(); // Get today's date (start of day)
+
+        // Return false if the subscription hasn't started
+        if ($startDate->isFuture()) {
+            return false;
+        };
+
+        // Return false if the subscription has expired (end_date is before today)
+        if ($endDate->isPast() && !$endDate->isSameDay($today)) {
+            return false;
+        };
+
+        return true;
+    }
 
     public function times()
     {
