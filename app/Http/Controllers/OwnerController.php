@@ -286,6 +286,7 @@ class OwnerController extends Controller
 
             // Associate business ID with user
             $user->business_id = $business->id;
+            $user->assignRole(User::USER_ROLE['BUSINESS_OWNER']);
             $user->save();
 
             // Generate access token
@@ -373,6 +374,7 @@ class OwnerController extends Controller
 
             // Create user with verification email
             $user = $this->userService->createBusinessOwner($validatedData);
+
 
             // Create business with all configurations
             $business = $this->businessService->createBusinessWithSchedule($user, $validatedData);
