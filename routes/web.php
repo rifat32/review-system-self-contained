@@ -35,8 +35,7 @@ Route::get('/', function () {
 
 Route::get('/reviews', function () {
     return response()->json([
-        "data" => ReviewNew::
-    whereNotNull("raw_text")    ->select(
+        "data" => ReviewNew::whereNotNull("raw_text")->select(
             'id',
             'raw_text',
             'moderation_results',
@@ -82,6 +81,7 @@ Route::get('/pdf', function () {
 
 // MIGRATION
 Route::get('/migrate', [SetupController::class, "migrate"]);
+Route::get('/migrate-status', [SetupController::class, "migrateStatus"]);
 Route::get('/rollback-migrate', [SetupController::class, 'rollbackMigration'])->name('rollbackMigration');
 
 // CLEAR CACHE

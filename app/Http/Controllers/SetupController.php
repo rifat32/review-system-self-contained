@@ -134,6 +134,22 @@ class SetupController extends Controller
         ], 200);
     }
 
+    // MIGRATE
+    public function migrateStatus(Request $request)
+    {
+        $this->storeActivity($request, "DUMMY activity", "DUMMY description");
+
+        // Run migrations
+        Artisan::call('migrate:status');
+
+        // RESPONSE
+        return response()->json([
+            'success' => true,
+            'message' => 'Migrations status retrieved successfully',
+            'data' => Artisan::output()
+        ], 200);
+    }
+
     // ROLLBACK MIGRATE
     public function rollbackMigration(Request $request)
     {
