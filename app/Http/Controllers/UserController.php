@@ -309,38 +309,44 @@ class UserController extends Controller
         }
 
         /** SUPER ADMIN RULE */
-        // if ($authUser->hasRole('superadmin')) {
+        if ($authUser->hasRole('superadmin')) {
 
-        //     // superadmin can delete ONLY business owners
-        //     if (!$user->hasRole('business_owner')) {
-        //         return response()->json([
-        //             "success" => false,
-        //             "message" => "Super admin can delete only business owners"
-        //         ], 403);
-        //     }
-        // }
+            // superadmin can delete ONLY business owners
+            if (!$user->hasRole('business_owner')) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "Super admin can delete only business owners"
+                ], 403);
+            }
+        }
 
-        // /** BUSINESS OWNER RULE */
-        // if ($authUser->hasRole('business_owner')) {
+        /** BUSINESS OWNER RULE */
+        if ($authUser->hasRole('business_owner')) {
 
-        //     // must be same business
-        //     if ($user->business_id !== $authUser->business_id) {
-        //         return response()->json([
-        //             "success" => false,
-        //             "message" => "You can delete users only from your business"
-        //         ], 403);
-        //     }
+            // must be same business
+            if ($user->business_id !== $authUser->business_id) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "You can delete users only from your business"
+                ], 403);
+            }
 
-        //     // business owner cannot delete another business owner
-        //     if ($user->hasRole('business_owner')) {
-        //         return response()->json([
-        //             "success" => false,
-        //             "message" => "You cannot delete a business owner"
-        //         ], 403);
-        //     }
-        // }
+            // business owner cannot delete another business owner
+            if ($user->hasRole('business_owner')) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "You cannot delete a business owner"
+                ], 403);
+            }
+        }
 
+        // if business exist then delete
+        if ($user->business) {
+            $user->business->delete();
+        }
+        // delete user
         $user->delete();
+
 
         return response()->json([
             "success" => true,
