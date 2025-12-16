@@ -115,14 +115,10 @@ class Business extends Model
 
      public function getIsSubscribedAttribute($value)
     {
-
         $user = auth()->user();
         if (empty($user)) {
             return 0;
         }
-
-       
-
         // Check for self-registered businesses
         if ($this->is_self_registered_businesses??0) {
             $validTrailDate = $this->isTrailDateValid($this->trail_end_date);
