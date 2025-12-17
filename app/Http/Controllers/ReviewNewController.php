@@ -20,7 +20,7 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use getID3;
+
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -130,7 +130,7 @@ class ReviewNewController extends Controller
             $mimeType = $audioFile->getMimeType();
 
             // Get audio duration
-            $duration = $this->getAudioDuration($audioFile->getRealPath());
+            $duration = getAudioDuration($audioFile->getRealPath());
 
             // Transcribe the audio using existing method
             $transcribedText = transcribeAudio($audioFile->getRealPath());
@@ -363,16 +363,7 @@ class ReviewNewController extends Controller
 
 
 
-    private function getAudioDuration($filePath)
-    {
-        try {
-            $getID3 = new getID3();
-            $fileInfo = $getID3->analyze($filePath);
-            return $fileInfo['playtime_seconds'] ?? null;
-        } catch (\Exception $e) {
-            return null;
-        }
-    }
+    
 
   
 
@@ -964,7 +955,7 @@ class ReviewNewController extends Controller
         //     $voiceData = [
         //         'is_voice_review' => true,
         //         'voice_url' => $audioUrl,
-        //         'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
+        //         'voice_duration' => getAudioDuration($request->file('audio')->getRealPath()),
         //         'transcription_metadata' => [
         //             'audio_path' => $audioPath,
         //             'file_size' => $request->file('audio')->getSize(),
@@ -1169,7 +1160,7 @@ class ReviewNewController extends Controller
         //     $voiceData = [
         //         'is_voice_review' => true,
         //         'voice_url' => $audioUrl,
-        //         'voice_duration' => $this->getAudioDuration($request->file('audio')->getRealPath()),
+        //         'voice_duration' => getAudioDuration($request->file('audio')->getRealPath()),
         //         'transcription_metadata' => [
         //             'audio_path' => $audioPath,
         //             'file_size' => $request->file('audio')->getSize(),
@@ -1494,7 +1485,6 @@ class ReviewNewController extends Controller
 
    public function getQuestionAllUnauthorizedOverall(Request $request)
     {
-        $request->route()->setName('getQuestionAllUnauthorizedOverall');
         // $isUnauthorized = true, $isOverallSpecific = true (to enforce is_default=0)
         return $this->fetchAndFormatQuestions($request, true, true);
     }
@@ -1557,7 +1547,7 @@ class ReviewNewController extends Controller
      */
     public function getQuestionAllUnauthorized(Request $request)
     {
-        $request->route()->setName('getQuestionAllUnauthorized');
+    
         // $isUnauthorized = true, $isOverallSpecific = false (no is_default=0 constraint)
         return $this->fetchAndFormatQuestions($request, true, false);
     }
@@ -1616,7 +1606,7 @@ class ReviewNewController extends Controller
      */
    public function getQuestionAll(Request $request)
     {
-        $request->route()->setName('getQuestionAll');
+   
         // $isUnauthorized = false
         return $this->fetchAndFormatQuestions($request, false);
     }
@@ -3114,8 +3104,17 @@ class ReviewNewController extends Controller
             "user",
             "guest_user",
             "survey"
-        ])->find($reviewId)
-        ->withCalculatedRating();
+        ])->withCalculatedRating()
+        ->where("id", $reviewId)
+        ->first();
+
+        if (!$reviewValue) {
+            return response([
+                "success" => false,
+                "message" => "No Review Found",
+                "data" => null
+            ], 404);
+        }
 
 
         return response([

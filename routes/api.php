@@ -323,8 +323,9 @@ Route::middleware(['auth:api'])->group(function () {
     // Route::put('/v1.0/review-new/set-overall-question', [QuestionController::class, "setOverallQuestion"]);
     // Route::put('/review-new/update/active_state/questions', [QuestionController::class, "updateQuestionActiveState"]);
     // Route::get('/v1.0/review-new/get/questions', [QuestionController::class, "getQuestion"]);
-    // Route::get('/review-new/get/questions-all', [ReviewNewController::class, "getQuestionAll"]);
-    // Route::get('/review-new/get/questions-all-report', [ReviewNewController::class, "getQuestionAllReport"]);
+     Route::get('/review-new/get/questions-all', [ReviewNewController::class, 'getQuestionAll'])->name('getQuestionAll');
+
+     Route::get('/review-new/get/questions-all-report', [ReviewNewController::class, "getQuestionAllReport"]);
     // Route::get('/review-new/get/questions-all-report/guest', [ReviewNewController::class, "getQuestionAllReportGuest"]);
     // Route::get('/review-new/get/questions-all-report-by-user/{perPage}', [ReviewNewController::class, "getQuestionAllReportByUser"]);
     // Route::get('/review-new/get/questions-all-report-by-user-guest/{perPage}', [ReviewNewController::class, "getQuestionAllReportByUserGuest"]);
@@ -412,8 +413,12 @@ Route::get('/v1.0/business/{businessId}', [BusinessController::class, "getBusine
 // ============================================================================
 // ReviewNewController – Public/unauthorized question sets
 // ============================================================================
-Route::get('/review-new/get/questions-all/customer', [ReviewNewController::class, "getQuestionAllUnauthorized"]);
-Route::get('/review-new/get/questions-all-overall/customer', [ReviewNewController::class, "getQuestionAllUnauthorizedOverall"]);
+Route::get('/review-new/get/questions-all/customer', [ReviewNewController::class, 'getQuestionAllUnauthorized'])->name('getQuestionAllUnauthorized');
+
+Route::get('/review-new/get/questions-all-overall/customer', [ReviewNewController::class, 'getQuestionAllUnauthorizedOverall'])->name('getQuestionAllUnauthorizedOverall');
+
+
+
 Route::get('/review-new/get/questions-all-report/unauthorized', [ReviewNewController::class, "getQuestionAllReportUnauthorized"]);
 Route::get('/review-new/get/questions-all-report/guest/unauthorized', [ReviewNewController::class, "getQuestionAllReportGuestUnauthorized"]);
 
