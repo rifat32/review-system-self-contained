@@ -66,9 +66,6 @@ if (!function_exists('getTopMentionedStaff')) {
 
 
 
-
-
-
 // Staff Performance Analysis
 if (!function_exists('analyzeStaffPerformance')) {
     function analyzeStaffPerformance($text, $staff_id, $sentiment_score = null)
@@ -100,287 +97,433 @@ if (!function_exists('extractKeyPhrases')) {
         return App\Helpers\AIProcessor::extractKeyPhrases($text);
     }
 }
-
 // Generate Staff Suggestions
 if (!function_exists('generateStaffSuggestions')) {
-    return App\Helpers\AIProcessor::generateStaffSuggestions($weaknesses);
-
-   
+    function generateStaffSuggestions($weaknesses)
+    {
+        return App\Helpers\AIProcessor::generateStaffSuggestions($weaknesses);
+    }
 }
 
-
-
-
-
 if (!function_exists('getReviewFeed')) {
-    return App\Helpers\AIProcessor::getReviewFeed($businessId, $dateRange, $limit = 10);
+    function getReviewFeed($businessId, $dateRange, $limit = 10)
+    {
+        return App\Helpers\AIProcessor::getReviewFeed($businessId, $dateRange, $limit);
+    }
 }
 
 if (!function_exists('getStaffPerformanceSnapshot')) {
-    return App\Helpers\AIProcessor::getStaffPerformanceSnapshot($businessId, $dateRange);
+    function getStaffPerformanceSnapshot($businessId, $dateRange)
+    {
+        return App\Helpers\AIProcessor::getStaffPerformanceSnapshot($businessId, $dateRange);
+    }
 }
 
 if (!function_exists('extractSkillGapsFromSuggestions')) {
-    return App\Helpers\AIProcessor::extractSkillGapsFromSuggestions($suggestions);
+    function extractSkillGapsFromSuggestions($suggestions)
+    {
+        return App\Helpers\AIProcessor::extractSkillGapsFromSuggestions($suggestions);
+    }
 }
 
-
-
-
 if (!function_exists('generateAiSummary')) {
-    return App\Helpers\AIProcessor::generateAiSummary($reviews);
+    function generateAiSummary($reviews)
+    {
+        return App\Helpers\AIProcessor::generateAiSummary($reviews);
+    }
 }
 
 if (!function_exists('extractIssuesFromSuggestions')) {
-    return App\Helpers\AIProcessor::extractIssuesFromSuggestions($suggestions);
+    function extractIssuesFromSuggestions($suggestions)
+    {
+        return App\Helpers\AIProcessor::extractIssuesFromSuggestions($suggestions);
+    }
 }
-
 
 if (!function_exists('extractOpportunitiesFromSuggestions')) {
-    return App\Helpers\AIProcessor::extractOpportunitiesFromSuggestions($suggestions);
-   
+    function extractOpportunitiesFromSuggestions($suggestions)
+    {
+        return App\Helpers\AIProcessor::extractOpportunitiesFromSuggestions($suggestions);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 if (!function_exists('generatePredictions')) {
-    return App\Helpers\AIProcessor::generatePredictions($reviews);
-    
+    function generatePredictions($reviews)
+    {
+        return App\Helpers\AIProcessor::generatePredictions($reviews);
+    }
 }
-
 
 if (!function_exists('transcribeAudio')) {
-    return App\Helpers\AIProcessor::transcribeAudio($filePath);
-
+    function transcribeAudio($filePath)
+    {
+        return App\Helpers\AIProcessor::transcribeAudio($filePath);
+    }
 }
 
-
 if (!function_exists('getAiInsightsPanel')) {
-    return App\Helpers\AIProcessor::getAiInsightsPanel($businessId, $dateRange);
-    
+    function getAiInsightsPanel($businessId, $dateRange)
+    {
+        return App\Helpers\AIProcessor::getAiInsightsPanel($businessId, $dateRange);
+    }
 }
 
 if (!function_exists('getBranchComparisonData')) {
-    return App\Helpers\AIProcessor::getBranchComparisonData($branch, $startDate, $endDate);
-    
+    function getBranchComparisonData($branch, $startDate, $endDate)
+    {
+        return App\Helpers\AIProcessor::getBranchComparisonData($branch, $startDate, $endDate);
+    }
 }
-
-
 
 if (!function_exists('getBranchStaffPerformance')) {
-    return App\Helpers\AIProcessor::getBranchStaffPerformance($branchId, $businessId, $startDate, $endDate);
-    
+    function getBranchStaffPerformance($branchId, $businessId, $startDate, $endDate)
+    {
+        return App\Helpers\AIProcessor::getBranchStaffPerformance($branchId, $businessId, $startDate, $endDate);
+    }
 }
 
-
 if (!function_exists('extractBranchTopics')) {
-    return App\Helpers\AIProcessor::extractBranchTopics($reviews);
-    
+    function extractBranchTopics($reviews)
+    {
+        return App\Helpers\AIProcessor::extractBranchTopics($reviews);
+    }
 }
 
 if (!function_exists('generateBranchComparisonInsights')) {
-    return App\Helpers\AIProcessor::generateBranchComparisonInsights($branchesData, $allMetrics);
-  
+    function generateBranchComparisonInsights($branchesData, $allMetrics)
+    {
+        return App\Helpers\AIProcessor::generateBranchComparisonInsights($branchesData, $allMetrics);
+    }
 }
 
-
 if (!function_exists('generateComparisonHighlights')) {
-    return App\Helpers\AIProcessor::generateComparisonHighlights($branchesData);
-   
+    function generateComparisonHighlights($branchesData)
+    {
+        return App\Helpers\AIProcessor::generateComparisonHighlights($branchesData);
+    }
 }
 
 if (!function_exists('getSentimentTrendOverTime')) {
-    return App\Helpers\AIProcessor::getSentimentTrendOverTime($branches, $startDate, $endDate);
-    
+    function getSentimentTrendOverTime($branches, $startDate, $endDate)
+    {
+        return App\Helpers\AIProcessor::getSentimentTrendOverTime($branches, $startDate, $endDate);
+    }
 }
 
-
 if (!function_exists('getStaffComplaintsByBranch')) {
-    return App\Helpers\AIProcessor::getStaffComplaintsByBranch($branches, $startDate, $endDate);
-    
+    function getStaffComplaintsByBranch($branches, $startDate, $endDate)
+    {
+        return App\Helpers\AIProcessor::getStaffComplaintsByBranch($branches, $startDate, $endDate);
+    }
 }
 
 if (!function_exists('calculateBranchSummary')) {
-    return App\Helpers\AIProcessor::calculateBranchSummary($reviews);
-   
+    function calculateBranchSummary($reviews)
+    {
+        return App\Helpers\AIProcessor::calculateBranchSummary($reviews);
+    }
 }
-
-
-
 
 if (!function_exists('extractTopTopic')) {
-    return App\Helpers\AIProcessor::extractTopTopic($reviews);
-   
-}
-if (!function_exists('generateAiInsights')) {
-    return App\Helpers\AIProcessor::generateAiInsights($reviews);
-    
-}
-if (!function_exists('generateAiSummaryReport')) {
-    return App\Helpers\AIProcessor::generateAiSummaryReport($reviews, $sentimentBreakdown);
-    
-}
-if (!function_exists('extractKeyTrends')) {
-    return App\Helpers\AIProcessor::extractKeyTrends($reviews);
-   
-}
-if (!function_exists('findCommonIssues')) {
-    return App\Helpers\AIProcessor::findCommonIssues($reviews);
-   
-}
-if (!function_exists('findPeakReviewTimes')) {
-    return App\Helpers\AIProcessor::findPeakReviewTimes($reviews);
-   
-}
-if (!function_exists('generateBranchRecommendations')) {
-    return App\Helpers\AIProcessor::generateBranchRecommendations($reviews);
-    
+    function extractTopTopic($reviews)
+    {
+        return App\Helpers\AIProcessor::extractTopTopic($reviews);
+    }
 }
 
+if (!function_exists('generateAiInsights')) {
+    function generateAiInsights($reviews)
+    {
+        return App\Helpers\AIProcessor::generateAiInsights($reviews);
+    }
+}
+
+if (!function_exists('generateAiSummaryReport')) {
+    function generateAiSummaryReport($reviews, $sentimentBreakdown)
+    {
+        return App\Helpers\AIProcessor::generateAiSummaryReport($reviews, $sentimentBreakdown);
+    }
+}
+
+if (!function_exists('extractKeyTrends')) {
+    function extractKeyTrends($reviews)
+    {
+        return App\Helpers\AIProcessor::extractKeyTrends($reviews);
+    }
+}
+
+if (!function_exists('findCommonIssues')) {
+    function findCommonIssues($reviews)
+    {
+        return App\Helpers\AIProcessor::findCommonIssues($reviews);
+    }
+}
+
+if (!function_exists('findPeakReviewTimes')) {
+    function findPeakReviewTimes($reviews)
+    {
+        return App\Helpers\AIProcessor::findPeakReviewTimes($reviews);
+    }
+}
+
+if (!function_exists('generateBranchRecommendations')) {
+    function generateBranchRecommendations($reviews)
+    {
+        return App\Helpers\AIProcessor::generateBranchRecommendations($reviews);
+    }
+}
 
 if (!function_exists('getRecentReviews')) {
-    return App\Helpers\AIProcessor::getRecentReviews($reviews, $limit = 5);
-   
+    function getRecentReviews($reviews, $limit = 5)
+    {
+        return App\Helpers\AIProcessor::getRecentReviews($reviews, $limit);
+    }
 }
+
 if (!function_exists('getStaffPerformance')) {
-    return App\Helpers\AIProcessor::getStaffPerformance($branchId, $businessId, $startDate, $endDate, $limit = 5);
-   
+    function getStaffPerformance($branchId, $businessId, $startDate, $endDate, $limit = 5)
+    {
+        return App\Helpers\AIProcessor::getStaffPerformance($branchId, $businessId, $startDate, $endDate, $limit);
+    }
 }
 
 if (!function_exists('getStaffEvaluation')) {
-    return App\Helpers\AIProcessor::getStaffEvaluation($avgRating, $reviewCount);
-    /**
-     * Get staff evaluation label
-     */
-   
+    function getStaffEvaluation($avgRating, $reviewCount)
+    {
+        return App\Helpers\AIProcessor::getStaffEvaluation($avgRating, $reviewCount);
+    }
 }
-
-
 
 if (!function_exists('generateActionItem')) {
-    return App\Helpers\AIProcessor::generateActionItem($issue, $evidenceCount);
-    
+    function generateActionItem($issue, $evidenceCount)
+    {
+        return App\Helpers\AIProcessor::generateActionItem($issue, $evidenceCount);
+    }
 }
 
-
-
-
 if (!function_exists('calculateStaffMetricsFromReviewValue')) {
-    return App\Helpers\AIProcessor::calculateStaffMetricsFromReviewValue($reviews, $staffUser);
-    
+    function calculateStaffMetricsFromReviewValue($reviews, $staffUser)
+    {
+        return App\Helpers\AIProcessor::calculateStaffMetricsFromReviewValue($reviews, $staffUser);
+    }
 }
 
 if (!function_exists('extractTopicsFromReviews')) {
-    return App\Helpers\AIProcessor::extractTopicsFromReviews($reviews);
-   
-}
-if (!function_exists('calculatePerformanceByCategory')) {
-    return App\Helpers\AIProcessor::calculatePerformanceByCategory($reviews);
-    
-}
-if (!function_exists('getNotableReviews')) {
-    return App\Helpers\AIProcessor::getNotableReviews($reviews, $limit = 2);
-   
+    function extractTopicsFromReviews($reviews)
+    {
+        return App\Helpers\AIProcessor::extractTopicsFromReviews($reviews);
+    }
 }
 
+if (!function_exists('calculatePerformanceByCategory')) {
+    function calculatePerformanceByCategory($reviews)
+    {
+        return App\Helpers\AIProcessor::calculatePerformanceByCategory($reviews);
+    }
+}
+
+if (!function_exists('getNotableReviews')) {
+    function getNotableReviews($reviews, $limit = 2)
+    {
+        return App\Helpers\AIProcessor::getNotableReviews($reviews, $limit);
+    }
+}
 
 if (!function_exists('getSentimentGapMessage')) {
-    return App\Helpers\AIProcessor::getSentimentGapMessage($gap);
-    
+    function getSentimentGapMessage($gap)
+    {
+        return App\Helpers\AIProcessor::getSentimentGapMessage($gap);
+    }
 }
-
-
-
-
-
-
 
 if (!function_exists('getPreviousPeriodReviews')) {
-    return App\Helpers\AIProcessor::getPreviousPeriodReviews($businessId, $period);
-   
+    function getPreviousPeriodReviews($businessId, $period)
+    {
+        return App\Helpers\AIProcessor::getPreviousPeriodReviews($businessId, $period);
+    }
 }
-
-
 
 if (!function_exists('calculateOverallMetricsFromReviewValue')) {
-    return App\Helpers\AIProcessor::calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews);
-
-   
+    function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
+    {
+        return App\Helpers\AIProcessor::calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews);
+    }
 }
-
-
 
 if (!function_exists('calculateAverageSentiment')) {
-    return App\Helpers\AIProcessor::calculateAverageSentiment($reviews);
-    
+    function calculateAverageSentiment($reviews)
+    {
+        return App\Helpers\AIProcessor::calculateAverageSentiment($reviews);
+    }
 }
-
 
 if (!function_exists('extractStaffTopics')) {
-    return App\Helpers\AIProcessor::extractStaffTopics($staffReviews);
-    
+    function extractStaffTopics($staffReviews)
+    {
+        return App\Helpers\AIProcessor::extractStaffTopics($staffReviews);
+    }
 }
+
 if (!function_exists('getTopThreeStaff')) {
-    return App\Helpers\AIProcessor::getTopThreeStaff($businessId, $filters = []);
-   
+    function getTopThreeStaff($businessId, $filters = [])
+    {
+        return App\Helpers\AIProcessor::getTopThreeStaff($businessId, $filters);
+    }
 }
 
 if (!function_exists('calculatePerformanceOverviewFromReviewValue')) {
-    return App\Helpers\AIProcessor::calculatePerformanceOverviewFromReviewValue($reviews);
-    
+    function calculatePerformanceOverviewFromReviewValue($reviews)
+    {
+        return App\Helpers\AIProcessor::calculatePerformanceOverviewFromReviewValue($reviews);
+    }
 }
+
 if (!function_exists('getReviewSamples')) {
-    return App\Helpers\AIProcessor::getReviewSamples($reviews, $limit = 2);
-    
+    function getReviewSamples($reviews, $limit = 2)
+    {
+        return App\Helpers\AIProcessor::getReviewSamples($reviews, $limit);
+    }
 }
+
 if (!function_exists('getSubmissionsOverTime')) {
-    return App\Helpers\AIProcessor::getSubmissionsOverTime($reviews, $period);
-    
+    function getSubmissionsOverTime($reviews, $period)
+    {
+        return App\Helpers\AIProcessor::getSubmissionsOverTime($reviews, $period);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 if (!function_exists('getRecentSubmissions')) {
-    return App\Helpers\AIProcessor::getRecentSubmissions($reviews, $limit = 5);
-    
+    function getRecentSubmissions($reviews, $limit = 5)
+    {
+        return App\Helpers\AIProcessor::getRecentSubmissions($reviews, $limit);
+    }
 }
 
 if (!function_exists('getRatingGapMessage')) {
-    return App\Helpers\AIProcessor::getRatingGapMessage($gap);
-   
+    function getRatingGapMessage($gap)
+    {
+        return App\Helpers\AIProcessor::getRatingGapMessage($gap);
+    }
 }
 
 if (!function_exists('getRecommendedTraining')) {
-    return App\Helpers\AIProcessor::getRecommendedTraining($reviews);
-   
+    function getRecommendedTraining($reviews)
+    {
+        return App\Helpers\AIProcessor::getRecommendedTraining($reviews);
+    }
 }
 
 if (!function_exists('analyzeSkillGaps')) {
-    return App\Helpers\AIProcessor::analyzeSkillGaps($reviews);
-    
+    function analyzeSkillGaps($reviews)
+    {
+        return App\Helpers\AIProcessor::analyzeSkillGaps($reviews);
+    }
 }
+
 if (!function_exists('calculateCustomerTone')) {
-    return App\Helpers\AIProcessor::calculateCustomerTone($reviews);
-   
+    function calculateCustomerTone($reviews)
+    {
+        return App\Helpers\AIProcessor::calculateCustomerTone($reviews);
+    }
 }
+
 if (!function_exists('calculateSentimentDistribution')) {
-    return App\Helpers\AIProcessor::calculateSentimentDistribution($reviews);
-   
+    function calculateSentimentDistribution($reviews)
+    {
+        return App\Helpers\AIProcessor::calculateSentimentDistribution($reviews);
+    }
 }
+
 if (!function_exists('calculateComplimentRatio')) {
-    return App\Helpers\AIProcessor::calculateComplimentRatio($reviews);
-    
+    function calculateComplimentRatio($reviews)
+    {
+        return App\Helpers\AIProcessor::calculateComplimentRatio($reviews);
+    }
 }
-
-
 
 if (!function_exists('getAllStaffMetricsFromReviewValue')) {
-    return App\Helpers\AIProcessor::getAllStaffMetricsFromReviewValue($reviews);
-    
+    function getAllStaffMetricsFromReviewValue($reviews)
+    {
+        return App\Helpers\AIProcessor::getAllStaffMetricsFromReviewValue($reviews);
+    }
 }
 
-
-
 if (!function_exists('getAudioDuration')) {
-    return App\Helpers\AIProcessor::getAudioDuration($filePath);
+    function getAudioDuration($filePath)
+    {
+        return App\Helpers\AIProcessor::getAudioDuration($filePath);
+    }
 }
 
 

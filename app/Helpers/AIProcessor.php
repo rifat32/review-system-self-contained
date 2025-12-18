@@ -3104,6 +3104,8 @@ private static function isNegatedPattern($text, $pattern)
         }
         return $score >= 0.7 ? 'positive' : ($score >= 0.4 ? 'neutral' : 'negative');
     }
+
+    
    public static function getSentimentLabelByPercentage($percentage)
     {
         if ($percentage >= 70) {
@@ -3169,24 +3171,7 @@ private static function isNegatedPattern($text, $pattern)
         ];
     }
     
-    /**
-     * Batch process reviews for report generation
-     */
-    public static function processReviewsBatch($reviews)
-    {
-        $results = [];
-        
-        foreach ($reviews as $review) {
-            $text = $review->raw_text ?? $review->comment ?? '';
-            $staff_id = $review->staff_id ?? null;
-            
-            if (!empty($text)) {
-                $results[$review->id] = self::processReview($text, $staff_id);
-            }
-        }
-        
-        return $results;
-    }
+  
     
     /**
      * Calculate aggregated sentiment metrics for reports
