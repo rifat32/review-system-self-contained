@@ -145,6 +145,9 @@ class QuestionCategory extends Model
                 $request->filled('has_questions'),
                 fn($q) => $request->boolean('has_questions') ? $q->has('questions') : $q->doesntHave('questions')
             )->when(
+                $request->filled('exclude_parent'),
+                fn($q) => $request->boolean('exclude_parent') ? $q->whereNull('parent_question_category_id') : $q
+            )->when(
                 $request->filled('sort_by'),
                 function ($q) use ($request) {
                     $sortField = $request->sort_by;
