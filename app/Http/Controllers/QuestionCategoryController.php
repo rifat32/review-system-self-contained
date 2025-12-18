@@ -168,6 +168,13 @@ class QuestionCategoryController extends Controller
      *         example=1
      *      ),
      *      @OA\Parameter(
+     *         name="exclude_parent",
+     *         in="query",
+     *         description="Filter categories which does not have parent",
+     *         required=false,
+     *         example=1
+     *      ),
+     *      @OA\Parameter(
      *         name="has_questions",
      *         in="query",
      *         description="Filter categories with/without questions",
