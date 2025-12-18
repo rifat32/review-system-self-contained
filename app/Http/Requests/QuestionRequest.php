@@ -27,7 +27,8 @@ class QuestionRequest extends FormRequest
             'show_in_user'       => 'required|boolean',
             'type'               => ['nullable', 'string', Rule::in(array_values(Question::QUESTION_TYPES))],
             'is_overall'         => 'required|boolean',
-            'is_staff'           => 'required|boolean',
+           'question_category_id' => 'required|integer|exists:question_categories,id',
+           'question_sub_category_id' => 'required|integer|exists:question_categories,id',
         ];
     }
 
@@ -46,7 +47,6 @@ class QuestionRequest extends FormRequest
             'show_in_guest_user' => $this->boolean('show_in_guest_user'),
             'show_in_user'       => $this->boolean('show_in_user'),
             'is_overall'         => $this->boolean('is_overall', false),
-            'is_staff'           => $this->boolean('is_staff', false),
             'type'               => $this->filled('type') ? $this->type : 'star',
         ]);
     }

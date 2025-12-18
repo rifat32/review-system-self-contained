@@ -693,8 +693,8 @@ class QuestionController extends Controller
      *              @OA\Property(property="survey_id", type="integer", nullable=true, example=5),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
      *              @OA\Property(property="is_overall", type="boolean", example=false),
-     *              @OA\Property(property="is_staff", type="boolean", example=false),
-     *          ),
+  *              @OA\Property(property="question_category_id", type="integer", nullable=true, example=1, description=""),
+     *              @OA\Property(property="question_sub_category_id", type="integer", nullable=true, example=1, description="")
      *      ),
      *
      *      @OA\Response(response=200, description="Question updated successfully",
@@ -757,18 +757,7 @@ class QuestionController extends Controller
         // Update the question
         $question->update($data);
 
-        // Handle survey attachment if survey_id is provided
-        if ($request->filled('survey_id')) {
-            // Remove existing survey attachment
-            SurveyQuestion::where('question_id', $question->id)->delete();
-
-            // Add new survey attachment
-            SurveyQuestion::create([
-                'survey_id'    => $request->survey_id,
-                'question_id'  => $question->id,
-            ]);
-        }
-
+    
         $question->info = "Supported types: " . implode(", ", array_values(Question::QUESTION_TYPES));
 
         return response()->json([
