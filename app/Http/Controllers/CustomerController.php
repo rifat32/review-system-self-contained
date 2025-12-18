@@ -281,8 +281,6 @@ class CustomerController extends Controller
     {
 
 
-      
-
     // Fetch positive reviews separately
     $positive_reviews = ReviewNew::where('review_news.business_id', $business->id)
         ->where('review_news.rate', '>=', 4)

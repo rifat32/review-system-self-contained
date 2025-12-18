@@ -128,14 +128,14 @@ if (!function_exists('calculateDashboardMetrics')) {
     function calculateDashboardMetrics($businessId, $dateRange)
     {
         // Get current period reviews WITH calculated rating
-        $reviews = ReviewNew::globalFilters(1, $businessId)
+        $reviews = ReviewNew::globalFilters(0, $businessId)
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->withCalculatedRating()
             ->get();
 
         // Get previous period reviews WITH calculated rating
-        $previousReviews = ReviewNew::globalFilters(1, $businessId)
+        $previousReviews = ReviewNew::globalFilters(0, $businessId)
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [
                 $dateRange['start']->copy()->subDays(30),
@@ -546,7 +546,7 @@ if (!function_exists('getUserName')) {
 //         // Get reviews WITH calculated_rating in one query
 //         $reviews = ReviewNew::where('business_id', $businessId)
 //             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-//             ->globalFilters(1, $businessId)
+//             ->globalFilters(0, $businessId)
 //             ->withCalculatedRating()
 //             ->get();
 

@@ -253,7 +253,7 @@ class ReviewNewController extends Controller
         // Get rating breakdown using existing getAverage method logic
         $ratingBreakdown = extractRatingBreakdown(
             ReviewNew::withCalculatedRating()
-                ->globalFilters(1, $businessId)
+                ->globalFilters(0, $businessId)
                 ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
                 ->get()
         );
@@ -562,7 +562,7 @@ class ReviewNewController extends Controller
     // Get reviews with their values
     $reviews = ReviewNew::with(['value'])
         ->where("business_id", $businessId)
-        ->globalFilters(1, $businessId)
+        ->globalFilters(0, $businessId)
         ->whereBetween('created_at', [$start, $end])
         ->orderBy('order_no', 'asc')
        ->withCalculatedRating()
@@ -677,7 +677,7 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
             "rate" => $rate
         ])
-            ->globalFilters(1, $businessId)
+            ->globalFilters(0, $businessId)
             ->with("business", "value")
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
@@ -747,7 +747,7 @@ class ReviewNewController extends Controller
         $reviewValue = ReviewNew::with("value")->where([
             "business_id" => $businessId,
         ])
-            ->globalFilters(1, $businessId)
+            ->globalFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating()
             ->get();
@@ -831,7 +831,7 @@ class ReviewNewController extends Controller
     // Get reviews with their values
     $reviews = ReviewNew::with(['value'])
         ->where("business_id", $businessId)
-        ->globalFilters(1, $businessId)
+        ->globalFilters(0, $businessId)
         ->whereBetween('created_at', [$start, $end])
         ->orderBy('order_no', 'asc')
         ->withCalculatedRating()
@@ -1763,7 +1763,7 @@ class ReviewNewController extends Controller
                 "business_id" => $businessId,
                 $idColumnToFilter => $filterValue,
             ])
-            ->globalFilters(1, $businessId)
+            ->globalFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment")
             ->withCalculatedRating();
@@ -2496,7 +2496,7 @@ class ReviewNewController extends Controller
                 $primaryIdColumn => $filterValue,
                 $secondaryIdColumn => $secondaryFilterValue,
             ])
-            ->globalFilters(1, $businessId)
+            ->globalFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment")
             ->withCalculatedRating();
@@ -2799,7 +2799,7 @@ class ReviewNewController extends Controller
                 $q->where('is_private', 0)
                     ->orWhereNull('is_private');
             })
-            ->globalFilters(1, $businessId)
+            ->globalFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
            ->withCalculatedRating();
 
@@ -2999,6 +2999,8 @@ class ReviewNewController extends Controller
             "guest_user",
             "survey"
         ])
+ 
+        ->globalFilters(1, $businessId)
           
             ->where("business_id", $businessId)
             ->when($request->has('is_private'), function ($q) use ($request) {

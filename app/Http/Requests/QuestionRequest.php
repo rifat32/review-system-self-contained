@@ -27,8 +27,8 @@ class QuestionRequest extends FormRequest
             'show_in_user'       => 'required|boolean',
             'type'               => ['nullable', 'string', Rule::in(array_values(Question::QUESTION_TYPES))],
             'is_overall'         => 'required|boolean',
-           'question_category_id' => 'required|integer|exists:question_categories,id',
-           'question_sub_category_id' => 'required|integer|exists:question_categories,id',
+           'question_category_id' => 'nullable|integer|exists:question_categories,id',
+           'question_sub_category_id' => 'nullable|integer|exists:question_categories,id',
         ];
     }
 

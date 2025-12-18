@@ -529,7 +529,7 @@ if (!function_exists('getAudioDuration')) {
 //         // Get reviews WITH calculated_rating in one query
 //         $reviews = ReviewNew::where('business_id', $businessId)
 //             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-//             ->globalFilters(1, $businessId)
+//             ->globalFilters(0, $businessId)
 //             ->withCalculatedRating()
 //             ->get();
 

@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use getID3;
-use Carbon;
-
+use Carbon\Carbon;
 class AIProcessor
 {
 
@@ -48,7 +47,7 @@ class AIProcessor
         // Get staff reviews WITH calculated rating
         $staffReviews = ReviewNew::with('staff')
             ->where('business_id', $businessId)
-            ->globalFilters(1, $businessId)
+            ->globalFilters(0, $businessId)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->withCalculatedRating()
@@ -228,7 +227,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->whereNotNull('ai_suggestions')
-            ->globalFilters(1, $businessId)
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating()
             ->get();
 
@@ -254,15 +253,17 @@ public static function extractSkillGapsFromSuggestions($suggestions)
         // Get reviews with calculated rating in one query
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branch->id)
-            ->globalFilters(1, $businessId)
+            ->globalFilters(0, $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->withCalculatedRating()
             ->get();
 
+           
         $totalReviews = $reviews->count();
 
         // Average rating from calculated_rating
         $averageRating = $reviews->avg('calculated_rating') ?? 0;
+        
 
         // AI Sentiment Score
         $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
@@ -277,6 +278,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
 
         // Staff performance metrics
         $staffPerformance = self::getBranchStaffPerformance($branch->id, $businessId, $startDate, $endDate);
+    
 
         // Top topics
         $topTopics = self::extractBranchTopics($reviews);
@@ -305,41 +307,51 @@ public static function extractSkillGapsFromSuggestions($suggestions)
     /**
      * Get branch staff performance
      */
-  public static  function getBranchStaffPerformance($branchId, $businessId, $startDate, $endDate)
-    {
-        $staffReviews = ReviewNew::where('business_id', $businessId)
-            ->where('branch_id', $branchId)
-            ->globalFilters(1, $businessId, 1)
-            ->whereNotNull('staff_id')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->withCalculatedRating()
-            ->get();
+public static function getBranchStaffPerformance($branchId, $businessId, $startDate, $endDate)
+{
+    // First get the reviews with calculated rating
+    $staffReviews = ReviewNew::where('business_id', $businessId)
+        ->where('branch_id', $branchId)
+        ->globalFilters(0, $businessId, 1)
+        ->whereNotNull('staff_id')
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->withCalculatedRating()
+        ->get();
 
-        $staffPerformance = [];
+    // Group reviews by staff_id
+    $groupedReviews = $staffReviews->groupBy('staff_id');
+    
+    $staffPerformance = [];
 
-        foreach ($staffReviews as $staffId => $reviews) {
-            $staff = User::find($staffId);
-            if (!$staff) continue;
+    foreach ($groupedReviews as $staffId => $reviews) {
+        $staff = User::find($staffId);
+        if (!$staff) continue;
 
-            $avgRating = $reviews->avg('calculated_rating') ?? 0;
+        // Calculate average rating from the calculated_rating field in the collection
+        $avgRating = $reviews->avg('calculated_rating') ?? 0;
+        
+        $totalReviews = $reviews->count();
+        $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
 
-            $staffPerformance[] = [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'avg_rating' => round($avgRating, 1),
-                'reviews_count' => $reviews->count(),
-                'positive_percentage' => round(($reviews->where('sentiment_score', '>=', 0.7)->count() / $reviews->count()) * 100),
-                'last_review_date' => $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans()
-            ];
-        }
-
-        // Sort by average rating descending
-        usort($staffPerformance, function ($a, $b) {
-            return $b['avg_rating'] <=> $a['avg_rating'];
-        });
-
-        return array_slice($staffPerformance, 0, 3);
+        $staffPerformance[] = [
+            'staff_id' => $staffId,
+            'staff_name' => $staff->name,
+            'avg_rating' => round($avgRating, 1),
+            'reviews_count' => $totalReviews,
+            'positive_percentage' => $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0,
+            'last_review_date' => $reviews->isNotEmpty() 
+                ? $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans() 
+                : 'No reviews'
+        ];
     }
+
+    // Sort by average rating descending
+    usort($staffPerformance, function ($a, $b) {
+        return $b['avg_rating'] <=> $a['avg_rating'];
+    });
+
+    return array_slice($staffPerformance, 0, 3);
+}
 
   public static  function extractBranchTopics($reviews)
     {
@@ -547,7 +559,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
 
                 $reviews = ReviewNew::where('business_id', $branch->business_id)
                     ->where('branch_id', $branch->id)
-                    ->globalFilters(1, $branch->business_id)
+                    ->globalFilters(0, $branch->business_id)
                     ->whereBetween('created_at', [$monthStart, $monthEnd])
                     ->withCalculatedRating()
                     ->get();
@@ -582,7 +594,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
         foreach ($branches as $branch) {
             $reviews = ReviewNew::where('business_id', $branch->business_id)
                 ->where('branch_id', $branch->id)
-                ->globalFilters(1, $branch->business_id, 1)
+                ->globalFilters(0, $branch->business_id, 1)
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->withCalculatedRating()
                 ->get();
@@ -1119,7 +1131,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
         // Get reviews with staff assigned AND calculated rating in one query
         $staffReviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branchId)
-            ->globalFilters(1, $businessId, 1)
+            ->globalFilters(0, $businessId, 1)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->withCalculatedRating()
@@ -1667,6 +1679,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
             '1y' => Carbon::now()->subYear(),
             default => Carbon::now()->subDays(30) // 30d
         };
+        
 
         $groupFormat = match ($period) {
             '7d' => 'd-m-Y', // Daily for 7 days
@@ -2006,7 +2019,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->orderBy('created_at', 'desc')
-            ->globalFilters(1, $businessId)
+            ->globalFilters(0, $businessId)
             ->limit($limit)
             ->withCalculatedRating()
             ->get();

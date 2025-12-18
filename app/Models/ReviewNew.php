@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class ReviewNew extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'survey_id',
         'description',
@@ -79,7 +80,6 @@ class ReviewNew extends Model
         return str_starts_with($value, 'http') ? $value : asset('storage/' . $value);
     }
 
-
     public function value()
     {
         return $this->hasMany(ReviewValueNew::class, 'review_id', 'id');
@@ -118,7 +118,6 @@ class ReviewNew extends Model
 
     public function scopeGlobalFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
-
         return $query->when(request()->has('staff_id'), function ($q) {
             $q->where('staff_id', request()->input('staff_id'));
         })
@@ -153,10 +152,8 @@ class ReviewNew extends Model
         $business = Business::find($businessId);
         $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
 
-
-
         return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
-    $subQuery->select(DB::raw(1))
+      $subQuery->select(DB::raw(1))
         ->from('review_value_news as rvn')
         ->join('questions as q', 'rvn.question_id', '=', 'q.id')
         ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
@@ -176,4 +173,11 @@ class ReviewNew extends Model
         ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
 });
     }
+
+
+
+
+
+
+
 }
