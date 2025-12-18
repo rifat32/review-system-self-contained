@@ -57,8 +57,7 @@ class Question extends Model
         'is_active' => 'boolean',
         'show_in_guest_user' => 'boolean',
         'show_in_user' => 'boolean',
-        'is_overall' => 'boolean',
-        'is_staff' => 'boolean',
+        'is_overall' => 'boolean'
     ];
 
 
@@ -74,7 +73,9 @@ class Question extends Model
         "type",
         "order_no",
         "is_overall",
-        "is_staff"
+
+        'question_category_id',
+        'question_sub_category_id',
     ];
 
     // 
@@ -89,6 +90,14 @@ class Question extends Model
     // public function tags() {
     //     return $this->hasMany(StarTagQuestion::class,'question_id','id');
     // }
+
+    public function question_category() {
+        return $this->belongsTo(QuestionCategory::class,'question_category_id','id');
+    }
+
+    public function question_sub_category() {
+        return $this->belongsTo(QuestionCategory::class,'question_sub_category_id','id');
+    }
 
     protected static function boot()
     {
@@ -152,8 +161,18 @@ class Question extends Model
             $query->where('is_active', $request->boolean('is_active'));
         }
 
+
+        
         if ($request->has('is_staff')) {
-            $query->where('is_staff', $request->boolean('is_staff'));
+            $query
+            ->whereHas("question_category", function ($q) {
+                $q->where([
+                     'question_categories.title' => 'Staff',
+                     'question_categories.is_active' => 1,
+                     'question_categories.is_default' => 1,
+                     'question_categories.business_id' => null,
+                ]);
+            });
         }
 
         if ($user->hasRole('superadmin')) {

@@ -2,11 +2,7 @@
 
 // AI Moderation
 
-use App\Models\ReviewNew;
-use App\Models\ReviewValueNew;
-use App\Models\User;
-use Carbon\Carbon;
-use getID3;
+
 
 if (!function_exists('aiModeration')) {
     function aiModeration($text)

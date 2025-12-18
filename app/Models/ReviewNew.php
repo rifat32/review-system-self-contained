@@ -156,16 +156,24 @@ class ReviewNew extends Model
 
 
         return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
-            $subQuery->select(DB::raw(1))
-                ->from('review_value_news as rvn')
-                ->join('questions as q', 'rvn.question_id', '=', 'q.id')
-                ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
-                    $q->where('q.is_staff', 1);
-                })
-                ->join('stars as s', 'rvn.star_id', '=', 's.id')
-                ->whereColumn('rvn.review_id', 'review_news.id')
-                ->groupBy('rvn.review_id')
-                ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
-        });
+    $subQuery->select(DB::raw(1))
+        ->from('review_value_news as rvn')
+        ->join('questions as q', 'rvn.question_id', '=', 'q.id')
+        ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
+            $q->whereExists(function ($subQuery) {
+                $subQuery->select(DB::raw(1))
+                    ->from('question_categories as qc')
+                    ->whereColumn('qc.id', 'q.question_category_id')
+                    ->where('qc.title', 'Staff')
+                    ->where('qc.is_active', 1)
+                    ->where('qc.is_default', 1)
+                    ->whereNull('qc.business_id');
+            });
+        })
+        ->join('stars as s', 'rvn.star_id', '=', 's.id')
+        ->whereColumn('rvn.review_id', 'review_news.id')
+        ->groupBy('rvn.review_id')
+        ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
+});
     }
 }
