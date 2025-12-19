@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ReviewNew;
 use App\Helpers\AIProcessor;
+use App\Helpers\OpenAIProcessor;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -14,7 +15,7 @@ class ProcessAIReviews extends Command
      *
      * @var string
      */
-    protected $signature = 'app:process-a-i-reviews';
+    protected $signature = 'app:process-a-i-reviews {--use-openai : Use OpenAI for processing}';
 
     /**
      * The console command description.
@@ -28,11 +29,13 @@ class ProcessAIReviews extends Command
      */
     public function handle()
     {
-        $this->info('Starting AI review processing...');
+        $useOpenAI = $this->option('use-openai');
+        
+        $this->info('Starting AI review processing...' . ($useOpenAI ? ' (Using OpenAI)' : ' (Using Fallback)'));
         
         $reviews = ReviewNew::where('is_ai_processed', 0)
             ->whereNotNull('raw_text')
-            ->take(50) // Process in batches
+            ->take($useOpenAI ? 20 : 50) // Smaller batch for OpenAI due to API limits
             ->get();
 
         if ($reviews->isEmpty()) {
@@ -42,6 +45,8 @@ class ProcessAIReviews extends Command
 
         $processedCount = 0;
         $failedCount = 0;
+        $openAICount = 0;
+        $fallbackCount = 0;
 
         foreach ($reviews as $review) {
             try {
@@ -53,10 +58,18 @@ class ProcessAIReviews extends Command
                     continue;
                 }
 
-                // ✅ SINGLE CALL using processReview method
-                $aiResults = AIProcessor::processReview($raw_text, $review->staff_id);
+                if ($useOpenAI) {
+                    // Build OpenAI payload
+                    $payload = self::buildOpenAIPayload($review);
+                    $aiResults = OpenAIProcessor::processReview($raw_text, $review->staff_id, $payload);
+                    $openAICount++;
+                } else {
+                    // Use fallback
+                    $aiResults = OpenAIProcessor::processReview($raw_text, $review->staff_id);
+                    $fallbackCount++;
+                }
                 
-                // Store all results in the review
+                // Store all results
                 $review->moderation_results = $aiResults['moderation'];
                 $review->sentiment_score = $aiResults['sentiment'];
                 $review->topics = $aiResults['topics'];
@@ -64,20 +77,26 @@ class ProcessAIReviews extends Command
                 $review->staff_suggestions = $aiResults['staff_suggestions'];
                 $review->emotion = $aiResults['emotion'];
                 $review->key_phrases = $aiResults['key_phrases'];
+                $review->sentiment_label = $aiResults['sentiment_label'];
                 
-                // Additional fields for report compatibility
-                 $review->sentiment_label = $aiResults['sentiment_label'];
+                // Store OpenAI results if available
+                if (isset($aiResults['openai_result'])) {
+                    $review->openai_results = $aiResults['openai_result'];
+                    $review->ai_provider = 'openai';
+                } else {
+                    $review->ai_provider = 'fallback';
+                }
+                
                 $review->is_ai_processed = 1;
+                $review->processed_at = now();
                 $review->save();
 
                 $processedCount++;
                 
-                // Log successful processing
                 Log::info("AI processing completed for review ID: {$review->id}", [
+                    'provider' => $review->ai_provider,
                     'sentiment' => $aiResults['sentiment'],
-                    // 'sentiment_label' => $aiResults['sentiment_label'],
-                    'topics' => count($aiResults['topics']),
-                    'staff_suggestions' => count($aiResults['staff_suggestions'])
+                    'sentiment_label' => $aiResults['sentiment_label']
                 ]);
 
             } catch (\Exception $e) {
@@ -92,14 +111,66 @@ class ProcessAIReviews extends Command
                 $review->save();
             }
             
-            // Small delay to avoid rate limiting
-            usleep(100000); // 100ms
+            // Delay to avoid rate limiting (longer for OpenAI)
+            usleep($useOpenAI ? 200000 : 100000); // 200ms for OpenAI, 100ms for fallback
         }
 
-        $this->info("Processing complete. Success: {$processedCount}, Failed: {$failedCount}");
+        $this->info("Processing complete.");
+        $this->info("Total processed: {$processedCount}");
+        $this->info("OpenAI processed: {$openAICount}");
+        $this->info("Fallback processed: {$fallbackCount}");
+        $this->info("Failed: {$failedCount}");
         
         if ($failedCount > 0) {
             $this->error("{$failedCount} reviews failed to process. Check logs for details.");
         }
+    }
+    
+    /**
+     * Build OpenAI payload from review
+     */
+    private static function buildOpenAIPayload($review)
+    {
+        $defaultBusinessAISettings = [
+            'staff_intelligence' => true,
+            'ignore_abusive_reviews_for_staff' => true,
+            'min_reviews_for_staff_score' => 3,
+            'confidence_threshold' => 0.7
+        ];
+        
+        $defaultReviewMetadata = [
+            'source' => 'platform',
+            'business_type' => 'hotel',
+            'branch_id' => 'BR-101',
+            'submitted_at' => now()->toIso8601String()
+        ];
+        
+        $defaultRatings = [
+            'overall' => $review->rating ?? 3,
+            'questions' => []
+        ];
+        
+        $staffContext = [
+            'staff_selected' => !empty($review->staff_id),
+            'staff_id' => $review->staff_id ?? '',
+            'staff_name' => $review->staff_name ?? ''
+        ];
+        
+        $serviceUnit = [
+            'unit_type' => 'Room',
+            'unit_id' => $review->room_number ?? ''
+        ];
+        
+        return [
+            'business_ai_settings' => $defaultBusinessAISettings,
+            'review_metadata' => $defaultReviewMetadata,
+            'review_content' => [
+                'text' => $review->raw_text,
+                'voice_review' => false
+            ],
+            'ratings' => $defaultRatings,
+            'staff_context' => $staffContext,
+            'service_unit' => $serviceUnit
+        ];
     }
 }
