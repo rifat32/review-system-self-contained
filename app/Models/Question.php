@@ -53,15 +53,7 @@ class Question extends Model
      * )
      */
     use HasFactory;
-    protected $casts = [
-        'is_active' => 'boolean',
-        'show_in_guest_user' => 'boolean',
-        'show_in_user' => 'boolean',
-        'is_overall' => 'boolean'
-    ];
-
-
-    protected $fillable = [
+       protected $fillable = [
         "question",
         "business_id",
         "question_category_id",
@@ -77,6 +69,15 @@ class Question extends Model
         'question_category_id',
         'question_sub_category_id',
     ];
+    protected $casts = [
+        'is_active' => 'boolean',
+        'show_in_guest_user' => 'boolean',
+        'show_in_user' => 'boolean',
+        'is_overall' => 'boolean'
+    ];
+
+
+ 
 
     // 
     const QUESTION_TYPES = [

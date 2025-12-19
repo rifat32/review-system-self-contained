@@ -44,9 +44,14 @@ class ReviewNew extends Model
         'transcription_metadata',
         'is_private',
         "branch_id",
-        "is_ai_processed"
-
+        "is_ai_processed",
+        "business_area_id",
+        "ai_confidence"
     ];
+
+
+
+
     protected $casts = [
         'key_phrases' => 'array',
         'topics' => 'array',

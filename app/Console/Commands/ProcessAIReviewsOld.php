@@ -7,7 +7,7 @@ use App\Helpers\AIProcessor;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class ProcessAIReviews extends Command
+class ProcessAIReviewsOld extends Command
 {
     /**
      * The name and signature of the console command.

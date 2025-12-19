@@ -3513,18 +3513,18 @@ public static function getSubmissionsOverTime($reviews, $period)
 
 
 
-{
-  "model": "gpt-4o-mini",
-  "temperature": 0.2,
-  "max_tokens": 900,
-  "messages": [
-    {
-      "role": "system",
-      "content": "You are an AI Experience Intelligence Engine. Analyze reviews fairly and return ONLY valid JSON exactly matching this schema: { \"language\": {\"detected\": \"\", \"translated_text\": \"\"}, \"sentiment\": {\"label\": \"\", \"score\": 0.0}, \"emotion\": {\"primary\": \"\", \"intensity\": \"\"}, \"moderation\": {\"is_abusive\": false, \"safe_for_public_display\": true}, \"themes\": [], \"category_analysis\": [], \"staff_intelligence\": {\"staff_id\": \"\", \"staff_name\": \"\", \"mentioned_explicitly\": false, \"sentiment_towards_staff\": \"\", \"soft_skill_scores\": {}, \"training_recommendations\": [], \"risk_level\": \"\"}, \"service_unit_intelligence\": {\"unit_type\": \"\", \"unit_id\": \"\", \"issues_detected\": [], \"maintenance_required\": false}, \"business_insights\": {\"root_cause\": \"\", \"repeat_issue_likelihood\": \"\"}, \"recommendations\": {\"business_actions\": [], \"staff_actions\": []}, \"alerts\": {\"triggered\": false}, \"explainability\": {\"decision_basis\": [], \"confidence_score\": 0.0}, \"summary\": {\"one_line\": \"\", \"manager_summary\": \"\"} } Do NOT add extra fields. Do not shorten or summarize."
-    },
-    {
-      "role": "user",
-      "content": "{ \"business_ai_settings\": { \"staff_intelligence\": true, \"ignore_abusive_reviews_for_staff\": true, \"min_reviews_for_staff_score\": 3, \"confidence_threshold\": 0.7 }, \"review_metadata\": { \"source\": \"platform\", \"business_type\": \"hotel\", \"branch_id\": \"BR-101\", \"submitted_at\": \"2025-11-01T10:15:00Z\" }, \"review_content\": { \"text\": \"Ateeq served us very badly today. He was rude and ignored our requests. The room 305 was clean but service was terrible.\", \"voice_review\": false }, \"ratings\": { \"overall\": 2, \"questions\": [ {\"question_id\": \"Q1\", \"question_text\": \"Staff behavior\", \"main_category\": \"Staff\", \"sub_category\": \"Politeness\", \"rating\": 2}, {\"question_id\": \"Q2\", \"question_text\": \"Room cleanliness\", \"main_category\": \"Service\", \"sub_category\": \"Cleanliness\", \"rating\": 4} ] }, \"staff_context\": { \"staff_selected\": true, \"staff_id\": \"ST-2001\", \"staff_name\": \"Ateeq\" }, \"service_unit\": { \"unit_type\": \"Room\", \"unit_id\": \"305\" } }"
-    }
-  ]
-}
+// {
+//   "model": "gpt-4o-mini",
+//   "temperature": 0.2,
+//   "max_tokens": 900,
+//   "messages": [
+//     {
+//       "role": "system",
+//       "content": "You are an AI Experience Intelligence Engine. Analyze reviews fairly and return ONLY valid JSON exactly matching this schema: { \"language\": {\"detected\": \"\", \"translated_text\": \"\"}, \"sentiment\": {\"label\": \"\", \"score\": 0.0}, \"emotion\": {\"primary\": \"\", \"intensity\": \"\"}, \"moderation\": {\"is_abusive\": false, \"safe_for_public_display\": true}, \"themes\": [], \"category_analysis\": [], \"staff_intelligence\": {\"staff_id\": \"\", \"staff_name\": \"\", \"mentioned_explicitly\": false, \"sentiment_towards_staff\": \"\", \"soft_skill_scores\": {}, \"training_recommendations\": [], \"risk_level\": \"\"}, \"service_unit_intelligence\": {\"unit_type\": \"\", \"unit_id\": \"\", \"issues_detected\": [], \"maintenance_required\": false}, \"business_insights\": {\"root_cause\": \"\", \"repeat_issue_likelihood\": \"\"}, \"recommendations\": {\"business_actions\": [], \"staff_actions\": []}, \"alerts\": {\"triggered\": false}, \"explainability\": {\"decision_basis\": [], \"confidence_score\": 0.0}, \"summary\": {\"one_line\": \"\", \"manager_summary\": \"\"} } Do NOT add extra fields. Do not shorten or summarize."
+//     },
+//     {
+//       "role": "user",
+//       "content": "{ \"business_ai_settings\": { \"staff_intelligence\": true, \"ignore_abusive_reviews_for_staff\": true, \"min_reviews_for_staff_score\": 3, \"confidence_threshold\": 0.7 }, \"review_metadata\": { \"source\": \"platform\", \"business_type\": \"hotel\", \"branch_id\": \"BR-101\", \"submitted_at\": \"2025-11-01T10:15:00Z\" }, \"review_content\": { \"text\": \"Ateeq served us very badly today. He was rude and ignored our requests. The room 305 was clean but service was terrible.\", \"voice_review\": false }, \"ratings\": { \"overall\": 2, \"questions\": [ {\"question_id\": \"Q1\", \"question_text\": \"Staff behavior\", \"main_category\": \"Staff\", \"sub_category\": \"Politeness\", \"rating\": 2}, {\"question_id\": \"Q2\", \"question_text\": \"Room cleanliness\", \"main_category\": \"Service\", \"sub_category\": \"Cleanliness\", \"rating\": 4} ] }, \"staff_context\": { \"staff_selected\": true, \"staff_id\": \"ST-2001\", \"staff_name\": \"Ateeq\" }, \"service_unit\": { \"unit_type\": \"Room\", \"unit_id\": \"305\" } }"
+//     }
+//   ]
+// }
