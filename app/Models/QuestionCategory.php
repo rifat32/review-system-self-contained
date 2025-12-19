@@ -127,7 +127,8 @@ class QuestionCategory extends Model
                 fn($q) => $q->where('is_active', $request->boolean('is_active'))
             )->when(
                 $request->filled('parent_id'),
-                fn($q) => $q->where('parent_question_category_id', $request->parent_id)
+                fn($q) => $q->where('parent_question_category_id', $request->parent_id),
+                fn($q) => $q->whereNull('parent_question_category_id')
             )->when(
                 $request->filled('created_by'),
                 fn($q) => $q->where('created_by', $request->created_by)
