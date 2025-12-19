@@ -239,6 +239,8 @@ class ReportController extends Controller
             ->with(['staff', 'user', 'guest_user', 'survey'])
             ->withCalculatedRating();
 
+       
+
         $reviews = $reviewsQuery->get();
 
 
@@ -246,17 +248,28 @@ class ReportController extends Controller
         // Calculate summary metrics
         $summary = calculateBranchSummary($reviews);
 
+            
+
         // Get AI insights
         $aiInsights = generateAiInsights($reviews);
+
+       
 
         // Get recommendations
         $recommendations = generateBranchRecommendations($reviews, $branchId);
 
+          
+
         // Get recent reviews (last 5)
         $recentReviews = getRecentReviews($reviews);
 
+
+       
+
         // Get staff performance (top 5)
         $staffPerformance = getStaffPerformance($branchId, $businessId, $startDate, $endDate);
+
+     
 
         $data = [
             'branch' => [
@@ -1997,8 +2010,11 @@ class ReportController extends Controller
         // Calculate performance overview using ReviewValueNew
         $performanceOverview = calculatePerformanceOverviewFromReviewValue( $reviews);
 
-       
+      
+
         $submissionsOverTime = getSubmissionsOverTime((clone $reviewsQuery), $filters['period']);
+
+        
         $recentSubmissions = getRecentSubmissions($reviews);
 
         // NEW: Get top three staff
