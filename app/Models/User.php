@@ -32,6 +32,7 @@ class User extends Authenticatable
         "job_title",
         "join_date",
         "skills",
+        "google_id",
     ];
 
     /**
