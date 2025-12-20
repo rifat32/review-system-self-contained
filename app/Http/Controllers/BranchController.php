@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\BranchRequest;
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\ReviewNew;
 use Illuminate\Http\Request;
 
 class BranchController extends Controller
@@ -19,6 +20,28 @@ class BranchController extends Controller
      *      },
      *      summary="Get all branches for the authenticated user's businesses",
      *      description="Retrieve a list of all branches belonging to businesses owned by the authenticated user.",
+     *
+     *      @OA\Parameter(
+     *          name="page",
+     *          in="query",
+     *          description="Page number for pagination",
+     *          required=false,
+     *          @OA\Schema(type="integer", example=1)
+     *      ),
+     *      @OA\Parameter(
+     *          name="per_page",
+     *          in="query",
+     *          description="Number of items per page",
+     *          required=false,
+     *          @OA\Schema(type="integer", example=10)
+     *      ),
+     *      @OA\Parameter(
+     *          name="search_key",
+     *          in="query",
+     *          description="Search key to filter branches by name or branch code",
+     *          required=false,
+     *          @OA\Schema(type="string", example="Main")
+     *      ),
      *
      *      @OA\Response(
      *          response=200,
@@ -44,6 +67,13 @@ class BranchController extends Controller
      *                      @OA\Property(property="created_at", type="string", format="date-time"),
      *                      @OA\Property(property="updated_at", type="string", format="date-time")
      *                  )
+     *              ),
+     *              @OA\Property(
+     *                  property="summary",
+     *                  type="object",
+     *                  @OA\Property(property="total_branches", type="integer", example=5),
+     *                  @OA\Property(property="avg_rating", type="number", format="float", example=4.2),
+     *                  @OA\Property(property="overall_sentiment", type="number", format="float", example=0.75)
      *              )
      *          )
      *      ),
@@ -57,17 +87,38 @@ class BranchController extends Controller
      *      )
      * )
      */
+
     public function getBranches(Request $request)
     {
         $user = $request->user();
         $businessIds = Business::where('OwnerID', $user->id)->pluck('id');
 
-        $branches = Branch::whereIn('business_id', $businessIds)->get();
+        // BRANCH QUERY
+        $query = Branch::whereIn('business_id', $businessIds)
+            ->filters();
 
+        // GET BRANCHES WITH PAGINATED DATA
+        $branches = retrieve_data($query);
+
+        // GET SUMMARY DATA
+        $branchIds = Branch::whereIn('business_id', $businessIds)->pluck('id');
+        $totalBranches = $branchIds->count();
+        $avgRating = ReviewNew::whereIn('branch_id', $branchIds)
+            ->scopeWithCalculatedRating()
+            ->avg('calculated_rating') ?? 0;
+        $overallSentiment = ReviewNew::whereIn('branch_id', $branchIds)->avg('sentiment_score') ?? 0;
+
+        // SEND RESPONSE
         return response()->json([
             'success' => true,
             'message' => 'Branches retrieved successfully',
-            'data' => $branches
+            'meta' => $branches['meta'],
+            'data' => $branches['data'],
+            'summary' => [
+                'total_branches' => $totalBranches,
+                'avg_rating' => round($avgRating, 2),
+                'overall_sentiment' => round($overallSentiment, 2),
+            ],
         ]);
     }
 

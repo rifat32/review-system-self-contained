@@ -269,7 +269,9 @@ class QuestionController extends Controller
         $user = $request->user();
 
         $question = Question::with([
-            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no')
+            'question_category',
+            'question_sub_category',
+            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no'),
         ])->find($id);
 
         if (!$question) {
