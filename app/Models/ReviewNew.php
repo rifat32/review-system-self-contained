@@ -11,6 +11,7 @@ class ReviewNew extends Model
     use HasFactory;
 
     protected $fillable = [
+    
         'survey_id',
         'description',
         'business_id',
@@ -19,23 +20,14 @@ class ReviewNew extends Model
         'comment',
         'guest_id',
         'raw_text',
-        'emotion',
-        'key_phrases',
         "ip_address",
         "is_overall",
         'staff_id',
         'order_no',
-        'sentiment_score',
-        'topics',
-        'moderation_results',
-        'ai_suggestions',
-        'staff_suggestions',
         "status",
         'source',
-        'language',
         'responded_at',
         'review_type',
-        'sentiment',
         'topic_id',
         'reply_content',
         'is_voice_review',
@@ -44,9 +36,28 @@ class ReviewNew extends Model
         'transcription_metadata',
         'is_private',
         "branch_id",
+
         "is_ai_processed",
+        'sentiment_score',
+        'sentiment',
+        'emotion',
+        'key_phrases',
+        'topics',
+        'moderation_results',
+        'ai_suggestions',
+        'staff_suggestions',
+        'language',
+
+
         "business_area_id",
-        "ai_confidence"
+        "ai_confidence",
+        "sentiment_label",
+        'openai_raw_response',
+        "is_abusive",
+        "summary"
+
+
+ 
     ];
 
 

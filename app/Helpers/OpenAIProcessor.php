@@ -410,8 +410,9 @@ PROMPT;
 
 
 
-            // Update the review
-             $review->ai_confidence = $dbData['ai_confidence'];
+
+       // Update the review
+        $review->fill($dbData);
         $review->save();
 
             Log::info('Review analysis completed', [
@@ -440,7 +441,8 @@ PROMPT;
             $dbData = self::convertForDatabase($fallback, $review);
                
 
-        $review->ai_confidence = $dbData['ai_confidence'];
+       // Update the review
+        $review->fill($dbData);
         $review->save();
 
 
@@ -494,7 +496,7 @@ private static function convertForDatabase(array $aiResult, ReviewNew $review): 
     
     return [
         'sentiment_score' => $sentimentNormalized,
-        'sentiment' => $sentimentNormalized,
+        'sentiment' => $aiResult['sentiment'],
         'sentiment_label' => $sentimentLabel, // Use OpenAI's label directly
         'emotion' => $emotion,
         'key_phrases' => json_encode(array_slice($keyPhrases, 0, 5)),
