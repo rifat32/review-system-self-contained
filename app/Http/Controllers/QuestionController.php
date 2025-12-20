@@ -596,9 +596,11 @@ class QuestionController extends Controller
      *      @OA\RequestBody(
      *          required=true,
      *          @OA\JsonContent(
-     *              required={"question"},
+     *              required={"question", "question_category_id", "show_in_guest_user", "show_in_user", "is_overall"},
      *              @OA\Property(property="question", type="string", example="How was your experience?"),
      *              @OA\Property(property="business_id", type="integer", nullable=true, example=1, description="Required for non-superadmin"),
+     *              @OA\Property(property="question_category_id", type="integer", example=1, description="Question category ID"),
+     *              @OA\Property(property="question_sub_category_id", type="integer", nullable=true, example=2, description="Question sub-category ID"),
      *              @OA\Property(property="show_in_guest_user", type="boolean", example=true),
      *              @OA\Property(property="show_in_user", type="boolean", example=true),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
@@ -615,29 +617,39 @@ class QuestionController extends Controller
      *      @OA\Response(response=401, description="Unauthenticated")
      * )
      */
+
     public function createQuestion(QuestionRequest $request): JsonResponse
     {
         $user = $request->user();
-        $business = $request->user()->business;
-
-        if (!$business) {
-            return response()->json([
-                "success" => false,
-                "message" => "No business associated with your account"
-            ], 403);
-        }
-
         $data = $request->validated();
-
-        if (!isset($data['business_id'])) {
-            $data['business_id'] = null;
-        }
-
 
         // Handle superadmin: create default question
         if ($user->hasRole('superadmin')) {
             $data['is_default'] = true;
             $data['business_id'] = null;
+        } else {
+            // Non-superadmin must provide business_id
+            if (!isset($data['business_id'])) {
+                // Try to get from user's primary business
+                $business = $user->business;
+                if (!$business) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "No business associated with your account. Please provide business_id."
+                    ], 403);
+                }
+                $data['business_id'] = $business->id;
+            } else {
+                // Verify user owns the business
+                $businessId = $user->business->id;
+                if ($data['business_id'] != $businessId) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "You do not have permission to create questions for this business."
+                    ], 403);
+                }
+            }
+            $data['is_default'] = false;
         }
 
         $question = Question::create($data);
@@ -650,7 +662,8 @@ class QuestionController extends Controller
             ]);
         }
 
-        $question->info = "Supported types: " . implode(", ", array_values(Question::QUESTION_TYPES));
+        // Load relationships for complete response
+        $question->load(['question_category', 'question_sub_category', 'surveys']);
 
         return response()->json([
             'success' => true,
@@ -662,51 +675,56 @@ class QuestionController extends Controller
     // ##################################################
     // This method is to update question
     // ##################################################
-    /**
-     * Update an existing review question
-     *
-     * @OA\Patch(
-     *      path="/v1.0/questions/{id}",
-     *      operationId="updatedQuestion",
-     *      tags={"question_management"},
-     *      security={{"bearerAuth":{}}},
-     *      summary="Update an existing review question",
-     *      description="Updates a review question. Superadmin can update default questions. Regular users can only update questions for their own business.",
-     *
-     *      @OA\Parameter(
-     *          name="id",
-     *          in="path",
-     *          required=true,
-     *          description="Question ID",
-     *          example=1
-     *      ),
-     *
-     *      @OA\RequestBody(
-     *          required=true,
-     *          @OA\JsonContent(
-     *              @OA\Property(property="question", type="string", example="How was your experience?"),
-     *              @OA\Property(property="business_id", type="integer", nullable=true, example=1, description="Required for non-superadmin"),
-     *              @OA\Property(property="is_active", type="boolean", example=true),
-     *              @OA\Property(property="show_in_guest_user", type="boolean", example=true),
-     *              @OA\Property(property="show_in_user", type="boolean", example=true),
-     *              @OA\Property(property="survey_name", type="string", nullable=true, example="Post-Service Survey"),
-     *              @OA\Property(property="survey_id", type="integer", nullable=true, example=5),
-     *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
-     *              @OA\Property(property="is_overall", type="boolean", example=false),
-  *              @OA\Property(property="question_category_id", type="integer", nullable=true, example=1, description=""),
-     *              @OA\Property(property="question_sub_category_id", type="integer", nullable=true, example=1, description="")
-     *      ),
-     *
-     *      @OA\Response(response=200, description="Question updated successfully",
-     *          @OA\JsonContent(ref="#/components/schemas/Question")
-     *      ),
-     *      @OA\Response(response=400, description="Bad request / Business not owned / Questions disabled"),
-     *      @OA\Response(response=404, description="Question not found"),
-     *      @OA\Response(response=422, description="Validation error"),
-     *      @OA\Response(response=403, description="Forbidden"),
-     *      @OA\Response(response=401, description="Unauthenticated")
-     * )
-     */
+
+   /**
+ * Update an existing review question
+ *
+ * @OA\Patch(
+ *      path="/v1.0/questions/{id}",
+ *      operationId="updatedQuestion",
+ *      tags={"question_management"},
+ *      security={{"bearerAuth":{}}},
+ *      summary="Update an existing review question",
+ *      description="Updates a review question. Superadmin can update default questions. Regular users can only update questions for their own business.",
+ *
+ *      @OA\Parameter(
+ *          name="id",
+ *          in="path",
+ *          required=true,
+ *          description="Question ID",
+ *          example=1
+ *      ),
+ *
+ *      @OA\RequestBody(
+ *          required=true,
+ *          @OA\JsonContent(
+ *              @OA\Property(property="question", type="string", example="How was your experience?"),
+ *              @OA\Property(property="business_id", type="integer", nullable=true, example=1, description="Required for non-superadmin"),
+ *              @OA\Property(property="is_active", type="boolean", example=true),
+ *              @OA\Property(property="show_in_guest_user", type="boolean", example=true),
+ *              @OA\Property(property="show_in_user", type="boolean", example=true),
+ *              @OA\Property(property="survey_name", type="string", nullable=true, example="Post-Service Survey"),
+ *              @OA\Property(property="survey_id", type="integer", nullable=true, example=5),
+ *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
+ *              @OA\Property(property="is_overall", type="boolean", example=false),
+ *              @OA\Property(property="question_category_id", type="integer", nullable=true, example=1),
+ *              @OA\Property(property="question_sub_category_id", type="integer", nullable=true, example=1)
+ *          )
+ *      ),
+ *
+ *      @OA\Response(
+ *          response=200,
+ *          description="Question updated successfully",
+ *          @OA\JsonContent(ref="#/components/schemas/Question")
+ *      ),
+ *      @OA\Response(response=400, description="Bad request / Business not owned / Questions disabled"),
+ *      @OA\Response(response=404, description="Question not found"),
+ *      @OA\Response(response=422, description="Validation error"),
+ *      @OA\Response(response=403, description="Forbidden"),
+ *      @OA\Response(response=401, description="Unauthenticated")
+ * )
+ */
+
     public function updatedQuestion(int $id, QuestionRequest $request): JsonResponse
     {
         $user = $request->user();
