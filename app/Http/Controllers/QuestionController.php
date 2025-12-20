@@ -190,7 +190,11 @@ class QuestionController extends Controller
     {
         $user = $request->user();
 
-        $query = Question::with(['surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no')]);
+        $query = Question::with([
+            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no'),
+            'question_category' => fn($q) => $q->select('id', 'question'),
+            'question_sub_category' => fn($q) => $q->select('id', 'question'),
+        ]);
 
         if ($user->hasRole('superadmin')) {
             // Superadmin sees ALL questions
@@ -269,7 +273,9 @@ class QuestionController extends Controller
         $user = $request->user();
 
         $question = Question::with([
-            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no')
+            'question_category',
+            'question_sub_category',
+            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no'),
         ])->find($id);
 
         if (!$question) {
@@ -596,9 +602,11 @@ class QuestionController extends Controller
      *      @OA\RequestBody(
      *          required=true,
      *          @OA\JsonContent(
-     *              required={"question"},
+     *              required={"question", "question_category_id", "show_in_guest_user", "show_in_user", "is_overall"},
      *              @OA\Property(property="question", type="string", example="How was your experience?"),
      *              @OA\Property(property="business_id", type="integer", nullable=true, example=1, description="Required for non-superadmin"),
+     *              @OA\Property(property="question_category_id", type="integer", example=1, description="Question category ID"),
+     *              @OA\Property(property="question_sub_category_id", type="integer", nullable=true, example=2, description="Question sub-category ID"),
      *              @OA\Property(property="show_in_guest_user", type="boolean", example=true),
      *              @OA\Property(property="show_in_user", type="boolean", example=true),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
@@ -615,29 +623,39 @@ class QuestionController extends Controller
      *      @OA\Response(response=401, description="Unauthenticated")
      * )
      */
+
     public function createQuestion(QuestionRequest $request): JsonResponse
     {
         $user = $request->user();
-        $business = $request->user()->business;
-
-        if (!$business) {
-            return response()->json([
-                "success" => false,
-                "message" => "No business associated with your account"
-            ], 403);
-        }
-
         $data = $request->validated();
-
-        if (!isset($data['business_id'])) {
-            $data['business_id'] = null;
-        }
-
 
         // Handle superadmin: create default question
         if ($user->hasRole('superadmin')) {
             $data['is_default'] = true;
             $data['business_id'] = null;
+        } else {
+            // Non-superadmin must provide business_id
+            if (!isset($data['business_id'])) {
+                // Try to get from user's primary business
+                $business = $user->business;
+                if (!$business) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "No business associated with your account. Please provide business_id."
+                    ], 403);
+                }
+                $data['business_id'] = $business->id;
+            } else {
+                // Verify user owns the business
+                $businessId = $user->business->id;
+                if ($data['business_id'] != $businessId) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "You do not have permission to create questions for this business."
+                    ], 403);
+                }
+            }
+            $data['is_default'] = false;
         }
 
         $question = Question::create($data);
@@ -650,7 +668,8 @@ class QuestionController extends Controller
             ]);
         }
 
-        $question->info = "Supported types: " . implode(", ", array_values(Question::QUESTION_TYPES));
+        // Load relationships for complete response
+        $question->load(['question_category', 'question_sub_category', 'surveys']);
 
         return response()->json([
             'success' => true,
@@ -662,6 +681,7 @@ class QuestionController extends Controller
     // ##################################################
     // This method is to update question
     // ##################################################
+
     /**
      * Update an existing review question
      *
@@ -693,11 +713,14 @@ class QuestionController extends Controller
      *              @OA\Property(property="survey_id", type="integer", nullable=true, example=5),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
      *              @OA\Property(property="is_overall", type="boolean", example=false),
-  *              @OA\Property(property="question_category_id", type="integer", nullable=true, example=1, description=""),
-     *              @OA\Property(property="question_sub_category_id", type="integer", nullable=true, example=1, description="")
+     *              @OA\Property(property="question_category_id", type="integer", nullable=true, example=1),
+     *              @OA\Property(property="question_sub_category_id", type="integer", nullable=true, example=1)
+     *          )
      *      ),
      *
-     *      @OA\Response(response=200, description="Question updated successfully",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Question updated successfully",
      *          @OA\JsonContent(ref="#/components/schemas/Question")
      *      ),
      *      @OA\Response(response=400, description="Bad request / Business not owned / Questions disabled"),
@@ -707,6 +730,7 @@ class QuestionController extends Controller
      *      @OA\Response(response=401, description="Unauthenticated")
      * )
      */
+
     public function updatedQuestion(int $id, QuestionRequest $request): JsonResponse
     {
         $user = $request->user();
@@ -757,7 +781,7 @@ class QuestionController extends Controller
         // Update the question
         $question->update($data);
 
-    
+
         $question->info = "Supported types: " . implode(", ", array_values(Question::QUESTION_TYPES));
 
         return response()->json([
@@ -1338,7 +1362,7 @@ class QuestionController extends Controller
         return response($data, 200);
     }
 
-   
+
 
 
      // ##################################################

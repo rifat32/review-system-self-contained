@@ -39,4 +39,18 @@ class Branch extends Model
     {
         return $this->belongsTo(User::class, 'manager_id');
     }
+
+    public function scopeFilters($query)
+    {
+        // Apply search filter
+        if ($request->has('search_key') && !empty(request()->search_key)) {
+            $searchKey = request()->search_key;
+            $query->where(function ($q) use ($searchKey) {
+                $q->where('name', 'like', '%' . $searchKey . '%')
+                    ->orWhere('branch_code', 'like', '%' . $searchKey . '%');
+            });
+        }
+
+        return $query;
+    }
 }
