@@ -392,6 +392,8 @@ Route::middleware(['auth:api'])->group(function () {
     // ReviewNewController – Review by id (protected)
     // ============================================================================
     Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
+
+    Route::put('/reviews/{reviewId}/reply', [ReviewNewController::class, 'updateReviewReply']);
 });
 
 // ============================================================================
