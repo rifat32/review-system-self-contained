@@ -9,21 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::table('businesses', function (Blueprint $table) {
-            // Add foreign key
-            $table->foreign('OwnerID')->references('id')->on('users')->onDelete('cascade');
-        });
-    }
+    // public function up(): void
+    // {
+    //     Schema::table('businesses', function (Blueprint $table) {
+    //         // Add foreign key
+    //         $table->foreign('OwnerID')->references('id')->on('users')->onDelete('cascade');
+    //     });
+    // }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('businesses', function (Blueprint $table) {
-            $table->dropForeign(['OwnerID']);
-        });
-    }
+    // /**
+    //  * Reverse the migrations.
+    //  */
+    // public function down(): void
+    // {
+    //     Schema::table('businesses', function (Blueprint $table) {
+    //         $table->dropForeign(['OwnerID']);
+    //     });
+    // }
 };

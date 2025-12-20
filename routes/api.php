@@ -11,6 +11,8 @@ use App\Http\Controllers\DashboardManagementController;
 use App\Http\Controllers\EmailTemplateController;
 use App\Http\Controllers\EmailTemplateWrapperController;
 use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\GoogleBusinessController;
+use App\Http\Controllers\GoogleOAuthProviderController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ReportController;
@@ -68,6 +70,36 @@ Route::post('/owner/user/registration', [OwnerController::class, "createUser2"])
 // AuthController – Auxiliary public auth helpers
 // ============================================================================
 Route::post('/v1.0/auth/check-user-email', [AuthController::class, "checkUserEmail"]);
+
+// ============================================================================
+// GoogleOAuthProviderController – Google OAuth User Login (Public)
+// ============================================================================
+Route::get('/auth/google/redirect', [GoogleOAuthProviderController::class, 'redirectToGoogleAuth']);
+Route::get('/auth/google/callback', [GoogleOAuthProviderController::class, 'handleGoogleCallback']);
+
+// ============================================================================
+// GoogleBusinessController – Google Business Profile OAuth (Public)
+// ============================================================================
+Route::get('/google/business/redirect', [GoogleBusinessController::class, 'redirectToGoogle']);
+Route::get('/google/business/callback', [GoogleBusinessController::class, 'handleCallback']);
+
+// ============================================================================
+// GoogleBusinessController – Testing Routes (Remove auth for testing)
+// ============================================================================
+Route::prefix('google/business')->group(function () {
+    // Account Management (Public for testing)
+    Route::get('/accounts', [GoogleBusinessController::class, 'getAccounts']);
+    Route::delete('/accounts/{id}', [GoogleBusinessController::class, 'disconnectAccount']);
+    
+    // Location Management (Public for testing)
+    Route::get('/accounts/{accountId}/locations', [GoogleBusinessController::class, 'getLocations']);
+    Route::patch('/locations/{id}/toggle-sync', [GoogleBusinessController::class, 'toggleLocationSync']);
+    
+    // Review Management (Public for testing)
+    Route::get('/locations/{locationId}/reviews', [GoogleBusinessController::class, 'getReviews']);
+    Route::post('/locations/{locationId}/sync', [GoogleBusinessController::class, 'syncReviews']);
+    Route::post('/reviews/{reviewId}/reply', [GoogleBusinessController::class, 'replyToReview']);
+});
 
 // ============================================================================
 // Protected Routes (auth:api)
@@ -392,6 +424,8 @@ Route::middleware(['auth:api'])->group(function () {
     // ReviewNewController – Review by id (protected)
     // ============================================================================
     Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
+
+
 });
 
 // ============================================================================
