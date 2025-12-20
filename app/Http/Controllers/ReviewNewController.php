@@ -27,6 +27,62 @@ use Illuminate\Validation\ValidationException;
 class ReviewNewController extends Controller
 {
 
+    /**
+ * @OA\Put(
+ *      path="/v1.0/reviews/{reviewId}/reply",
+ *      operationId="updateReviewReply",
+ *      tags={"review_management"},
+ *      security={{"bearerAuth": {}}},
+ *      summary="Update reply content for a review",
+ *      description="Allows business owner to update the reply content of a review.",
+ *      @OA\Parameter(
+ *          name="reviewId",
+ *          in="path",
+ *          required=true,
+ *          description="Review ID",
+ *          example="1"
+ *      ),
+ *      @OA\RequestBody(
+ *          required=true,
+ *          @OA\JsonContent(
+ *              required={"reply_content"},
+ *              @OA\Property(property="reply_content", type="string", example="Thank you for your feedback.")
+ *          )
+ *      ),
+ *      @OA\Response(
+ *          response=200,
+ *          description="Reply updated successfully"
+ *      )
+ * )
+ */
+public function updateReviewReply($reviewId, Request $request)
+{
+    $request->validate([
+        'reply_content' => 'required|string'
+    ]);
+
+    $review = ReviewNew::find($reviewId);
+    
+    if (!$review) {
+        return response()->json(['message' => 'Review not found'], 404);
+    }
+
+    // Check if user is the business owner
+    $business = Business::find($review->business_id);
+    if ($business->OwnerID != $request->user()->id) {
+        return response()->json(['message' => 'Unauthorized'], 403);
+    }
+
+    $review->update([
+        'reply_content' => $request->reply_content,
+        'responded_at' => now()
+    ]);
+
+    return response()->json([
+        'message' => 'Reply updated successfully',
+        'reply_content' => $review->reply_content
+    ], 200);
+}
 
     // ##################################################
 // Transcribe Voice File to Text
