@@ -414,8 +414,7 @@ PROMPT;
                 $staffInfo = [
                     'staff_id' => $review->staff_id,
                     'staff_name' => trim($staff->first_Name . ' ' . $staff->last_Name),
-                    'job_title' => $staff->job_title ?? '',
-                    'department' => $staff->skills ?? ''
+                    'job_title' => $staff->job_title ?? ''
                 ];
             }
         }

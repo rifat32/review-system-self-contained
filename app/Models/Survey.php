@@ -42,7 +42,7 @@ class Survey extends Model
         return $this->hasMany(ReviewNew::class, 'survey_id', 'id');
     }
      // Business Services (NEW RELATIONSHIP)
-    public function business_services(): BelongsToMany
+    public function business_services()
     {
         return $this->belongsToMany(
             BusinessService::class,

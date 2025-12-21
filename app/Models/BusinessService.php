@@ -30,6 +30,12 @@ class BusinessService extends Model
         return $this->belongsTo(Business::class, 'business_id');
     }
 
+
+    public function business_areas()
+    {
+        return $this->hasMany(BusinessArea::class, 'business_service_id', 'id');
+    }
+
      /**
      * Surveys associated with this business service (NEW RELATIONSHIP)
      */

@@ -467,3 +467,4 @@ Route::put('/v1.0/client/reviews/update-guest-email/{ids}', [ReviewNewController
 // QuestionController – Client business questions (public client)
 // ============================================================================
 Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
+ Route::get('/v1.0/client/surveys/{id}', [SurveyController::class, "getSurveyByIdClient"]);

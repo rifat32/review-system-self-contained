@@ -97,7 +97,7 @@ class SurveyController extends Controller
 
                   // Sync business services if provided
      
-                $survey->businessServices()->sync($insertable_data["business_service_ids"]);
+                $survey->business_services()->sync($insertable_data["business_service_ids"]);
             
 
 
@@ -196,7 +196,7 @@ class SurveyController extends Controller
                 $survey->save();
 
                 $survey->questions()->sync($request_data["survey_questions"]);
-                $survey->businessServices()->sync($request_data["business_service_ids"]);
+                $survey->business_services()->sync($request_data["business_service_ids"]);
 
                 return response($survey, 201);
             });
@@ -301,7 +301,139 @@ class SurveyController extends Controller
         }
     }
 
+/**
+     * @OA\Get(
+     *   path="/v1.0/client/surveys/{id}",
+     *   operationId="getSurveyByIdClient",
+     *   tags={"survey_management"},
+     *   security={{"bearerAuth":{}}},
+     *   summary="Get surveys (filters + pagination + sorting)",
+     *   description="Returns surveys for a business. Supports search, date range, active status, pagination, and sorting.",
+     *
+     *   @OA\Parameter(
+     *     name="id",
+     *     in="path",
+     *     required=true,
+     *     description=" ID",
+     *     @OA\Schema(type="integer", example=6)
+     *   ),
+     *
+    
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Successful operation",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="surveys retrieved successfully"),
+     *
+     *       @OA\Property(
+     *         property="meta",
+     *         type="object",
+     *         description="Pagination metadata",
+     *         @OA\Property(property="current_page", type="integer", example=1),
+     *         @OA\Property(property="per_page", type="integer", example=10),
+     *         @OA\Property(property="total", type="integer", example=57),
+     *         @OA\Property(property="last_page", type="integer", example=6)
+     *       ),
+     *
+     *       @OA\Property(
+     *         property="data",
+     *         type="array",
+     *         description="List of surveys",
+     *         @OA\Items(
+     *           type="object",
+     *           @OA\Property(property="id", type="integer", example=1),
+     *           @OA\Property(property="business_id", type="integer", example=6),
+     *           @OA\Property(property="name", type="string", example="Customer Feedback"),
+     *           @OA\Property(property="is_active", type="boolean", example=true),
+     *           @OA\Property(property="created_at", type="string", format="date-time", example="2025-12-09T10:20:30Z"),
+     *           @OA\Property(property="updated_at", type="string", format="date-time", example="2025-12-09T10:20:30Z")
+     *         )
+     *       )
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=401,
+     *     description="Unauthenticated",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Unauthenticated")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=403,
+     *     description="Forbidden",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Forbidden")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=404,
+     *     description="Not found",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Not found")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=422,
+     *     description="Unprocessable Content",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Validation error")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=400,
+     *     description="Bad Request",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Bad Request")
+     *     )
+     *   )
+     * )
+     */
 
+
+
+    public function getSurveyByIdClient($id, Request $request)
+    {
+        try {
+
+          
+
+            // GET ALL SURVEYS WHICH BELONGS
+            $survey =  Survey::with('questions',"business_services.business_areas")
+                ->withCount([
+                    "reviews"
+                ])
+                ->where([
+                    "id" => $id
+                ])->first();
+
+
+
+
+
+            return response()->json([
+                "success" => true,
+                "message" => "survey retrieved successfully",
+                "data" => $survey
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                "message" => "some thing went wrong",
+                "original_message" => $e->getMessage()
+            ], 404);
+        }
+    }
 
 
     /**
@@ -482,7 +614,7 @@ class SurveyController extends Controller
             }
 
             // GET ALL SURVEYS WHICH BELONGS
-            $query =  Survey::with('questions')
+            $query =  Survey::with('questions',"business_services.business_areas")
                 ->withCount([
                     "reviews"
                 ])
