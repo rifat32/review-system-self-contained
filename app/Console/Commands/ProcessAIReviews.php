@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\ReviewNew;
 use App\Helpers\OpenAIProcessor;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class ProcessAIReviews extends Command
 {
@@ -17,87 +16,140 @@ class ProcessAIReviews extends Command
     
     protected $description = 'Process reviews with OpenAI AI analysis';
 
+    private $logHandle;
+
     public function handle()
     {
-        $this->info('🚀 Starting OpenAI Review Processing...');
+        // Open log file for this processing session
+        $logFile = storage_path('logs/ai_processing.log');
+        $this->logHandle = fopen($logFile, 'a');
         
-        if ($this->option('review-id')) {
-            $this->processSingleReview();
-        } else {
-            $this->processBatch();
+        $this->fileWrite("\n" . str_repeat("=", 80) . "\n");
+        $this->fileWrite("AI Review Processing started at " . now() . "\n");
+        $this->fileWrite(str_repeat("=", 80) . "\n");
+        
+        $this->fileWrite('🚀 Starting OpenAI Review Processing...');
+        
+        try {
+            if ($this->option('review-id')) {
+                $this->processSingleReview();
+            } else {
+                $this->processBatch();
+            }
+            
+            $this->fileWrite("Processing completed successfully at " . now() . "\n");
+            $this->fileWrite(str_repeat("=", 80) . "\n\n");
+            
+        } catch (\Exception $e) {
+            $errorMessage = "❌ Processing failed: " . $e->getMessage();
+            $this->fileWrite("ERROR: " . $errorMessage . "\n");
+            $this->fileWrite(str_repeat("=", 80) . "\n\n");
+        } finally {
+            fclose($this->logHandle);
         }
     }
     
     protected function processSingleReview()
     {
         $reviewId = $this->option('review-id');
+        $this->fileWrite("Processing single review ID: {$reviewId}\n");
+        
         $review = ReviewNew::find($reviewId);
         
         if (!$review) {
-            $this->error("❌ Review ID {$reviewId} not found.");
+            $errorMessage = "Review ID {$reviewId} not found.";
+            $this->fileWrite("ERROR: " . $errorMessage . "\n");
             return;
         }
         
-        $this->info("📋 Processing Review #{$review->id}");
-        $this->info("   Business: {$review->business_id}");
-        $this->info("   Staff: " . ($review->staff_id ? "Yes (ID: {$review->staff_id})" : "No"));
-        $this->info("   Text: " . substr($review->raw_text ?? $review->comment ?? '', 0, 100) . "...");
-        $this->info("   Already Processed: " . ($review->is_ai_processed ? 'Yes' : 'No'));
+        $logMessage = "Processing Review #{$review->id}, Business: {$review->business_id}, ";
+        $logMessage .= "Staff: " . ($review->staff_id ? "Yes (ID: {$review->staff_id})" : "No") . ", ";
+        $logMessage .= "Already Processed: " . ($review->is_ai_processed ? 'Yes' : 'No');
+        $this->fileWrite($logMessage . "\n");
+        
+        $this->fileWrite("📋 Processing Review #{$review->id}\n");
+        $this->fileWrite("   Business: {$review->business_id}\n");
+        $this->fileWrite("   Staff: " . ($review->staff_id ? "Yes (ID: {$review->staff_id})" : "No") . "\n");
+        $this->fileWrite("   Text: " . substr($review->raw_text ?? $review->comment ?? '', 0, 100) . "...\n");
+        $this->fileWrite("   Already Processed: " . ($review->is_ai_processed ? 'Yes' : 'No') . "\n");
         
         try {
             if ($this->option('test')) {
+                $this->fileWrite("TEST MODE: Analyzing review without saving\n");
                 $payload = OpenAIProcessor::createPayloadFromReview($review);
                 $result = OpenAIProcessor::processReviewWithOpenAI($payload);
                 
-                $this->info("\n✅ OpenAI Analysis Results:");
-                $this->info("   Sentiment: " . ($result['sentiment']['label'] ?? 'N/A'));
-                $this->info("   Emotion: " . ($result['emotion']['primary'] ?? 'N/A'));
-                $this->info("   Language: " . ($result['language']['detected'] ?? 'N/A'));
-                $this->info("   Themes: " . count($result['themes'] ?? []));
-                $this->info("   Confidence: " . round(($result['explainability']['confidence_score'] ?? 0) * 100) . "%");
-                $this->info("   Summary: " . ($result['summary']['one_line'] ?? ''));
+                $this->fileWrite("\n✅ OpenAI Analysis Results:\n");
+                $this->fileWrite("   Sentiment: " . ($result['sentiment']['label'] ?? 'N/A') . "\n");
+                $this->fileWrite("   Emotion: " . ($result['emotion']['primary'] ?? 'N/A') . "\n");
+                $this->fileWrite("   Language: " . ($result['language']['detected'] ?? 'N/A') . "\n");
+                $this->fileWrite("   Themes: " . count($result['themes'] ?? []) . "\n");
+                $this->fileWrite("   Confidence: " . round(($result['explainability']['confidence_score'] ?? 0) * 100) . "%\n");
+                $this->fileWrite("   Summary: " . ($result['summary']['one_line'] ?? '') . "\n");
+                
+                // Log results
+                $this->fileWrite("Test Analysis Results:\n");
+                $this->fileWrite("  Sentiment: " . ($result['sentiment']['label'] ?? 'N/A') . "\n");
+                $this->fileWrite("  Emotion: " . ($result['emotion']['primary'] ?? 'N/A') . "\n");
+                $this->fileWrite("  Language: " . ($result['language']['detected'] ?? 'N/A') . "\n");
+                $this->fileWrite("  Themes Count: " . count($result['themes'] ?? []) . "\n");
+                $this->fileWrite("  Confidence: " . round(($result['explainability']['confidence_score'] ?? 0) * 100) . "%\n");
                 
                 if (isset($result['_metadata']['tokens_used'])) {
-                    $this->info("   Tokens Used: " . $result['_metadata']['tokens_used']);
+                    $tokens = $result['_metadata']['tokens_used'];
+                    $this->fileWrite("   Tokens Used: " . $tokens . "\n");
+                    $this->fileWrite("  Tokens Used: " . $tokens . "\n");
                 }
                 
             } else {
-                // Use force flag for single review processing
+                $this->fileWrite("PRODUCTION MODE: Processing and saving results\n");
                 $forceReprocess = $this->option('force');
+                
+                if ($forceReprocess) {
+                    $this->fileWrite("Force reprocessing enabled\n");
+                }
+                
                 $result = OpenAIProcessor::analyzeReview($review, $forceReprocess);
                 
                 if ($result['status'] === 'already_processed' && !$forceReprocess) {
-                    $this->warn("\n⚠️  Review already processed!");
-                    $this->info("   Sentiment: " . ($result['sentiment_label'] ?? 'N/A'));
-                    $this->info("   AI Confidence j: " . round(($result['ai_confidence'] ?? 0) * 100) . "%");
-                    $this->info("   Status: " . ($result['is_abusive'] ? '⚠️ Flagged' : '✅ Active'));
-                    $this->info("   Use --force flag to reprocess.");
+                    $logMessage = "Review #{$review->id} already processed. Skipping.\n";
+                    $this->fileWrite($logMessage);
+                    
+                    $this->fileWrite("\n⚠️  Review already processed!\n");
+                    $this->fileWrite("   Sentiment: " . ($result['sentiment_label'] ?? 'N/A') . "\n");
+                    $this->fileWrite("   AI Confidence: " . round(($result['ai_confidence'] ?? 0) * 100) . "%\n");
+                    $this->fileWrite("   Status: " . ($result['is_abusive'] ? '⚠️ Flagged' : '✅ Active') . "\n");
+                    $this->fileWrite("   Use --force flag to reprocess.\n");
                     return;
                 }
                 
                 // Refresh the review from database
                 $review->refresh();
                 
-                $this->info("\n✅ Review Processed Successfully:");
-                $this->info("   Sentiment: " . ($review->sentiment_label ?? 'N/A'));
-                $this->info("   Emotion: " . ($review->emotion ?? 'N/A'));
-                $this->info("   Key Phrases: " . substr($review->key_phrases ?? '[]', 0, 100));
-                $this->info("   AI Confidence k: " . round(($review->ai_confidence ?? 0) * 100) . "%");
-$this->info(json_encode($result));
+                $this->fileWrite("\n✅ Review Processed Successfully:\n");
+                $this->fileWrite("   Sentiment: " . ($review->sentiment_label ?? 'N/A') . "\n");
+                $this->fileWrite("   Emotion: " . ($review->emotion ?? 'N/A') . "\n");
+                $this->fileWrite("   Key Phrases: " . substr($review->key_phrases ?? '[]', 0, 100) . "\n");
+                $this->fileWrite("   AI Confidence: " . round(($review->ai_confidence ?? 0) * 100) . "%\n");
+                $this->fileWrite("   Status: " . ($review->is_abusive ? '⚠️ Flagged' : '✅ Active') . "\n");
                 
-                $this->info("   Status: " . ($review->is_abusive ? '⚠️ Flagged' : '✅ Active'));
+                // Log detailed results
+                $this->fileWrite("Review #{$review->id} processed successfully\n");
+                $this->fileWrite("  Sentiment: " . ($review->sentiment_label ?? 'N/A') . "\n");
+                $this->fileWrite("  Emotion: " . ($review->emotion ?? 'N/A') . "\n");
+                $this->fileWrite("  AI Confidence: " . round(($review->ai_confidence ?? 0) * 100) . "%\n");
+                $this->fileWrite("  Is Abusive: " . ($review->is_abusive ? 'Yes' : 'No') . "\n");
+                $this->fileWrite("  Status: " . ($result['message'] ?? 'completed') . "\n");
                 
                 if (isset($result['message'])) {
-                    $this->info("   Status: " . $result['message']);
+                    $this->fileWrite("   Status: " . $result['message'] . "\n");
                 }
             }
             
         } catch (\Exception $e) {
-            $this->error("❌ Processing failed: " . $e->getMessage());
-            Log::error('Single review processing failed', [
-                'review_id' => $reviewId,
-                'error' => $e->getMessage()
-            ]);
+            $errorMessage = "Processing failed for review #{$review->id}: " . $e->getMessage();
+            $this->fileWrite("ERROR: " . $errorMessage . "\n");
+            $this->fileWrite("Stack trace: " . $e->getTraceAsString() . "\n");
         }
     }
     
@@ -114,60 +166,79 @@ $this->info(json_encode($result));
                         ->get();
         
         if ($reviews->isEmpty()) {
-            $this->info("✅ No reviews to process.");
+            $logMessage = "No reviews to process.\n";
+            $this->fileWrite($logMessage);
             return;
         }
         
-        $this->info("📊 Found {$reviews->count()} reviews to process");
+        $logMessage = "Found {$reviews->count()} reviews to process";
         if ($this->option('force')) {
-            $this->info("⚠️  Force mode: Will reprocess already processed reviews");
+            $logMessage .= " (force mode: reprocess already processed)";
         }
+        $logMessage .= "\n";
+        $this->fileWrite($logMessage);
         
-        $progressBar = $this->output->createProgressBar($reviews->count());
-        $progressBar->start();
+        $this->fileWrite("📊 Found {$reviews->count()} reviews to process\n");
+        if ($this->option('force')) {
+            $this->fileWrite("⚠️  Force mode: Will reprocess already processed reviews\n");
+        }
         
         $successCount = 0;
         $failedCount = 0;
         $totalTokens = 0;
         $alreadyProcessed = 0;
         
-        foreach ($reviews as $review) {
+        $this->fileWrite("Starting batch processing of " . $reviews->count() . " reviews\n");
+        
+        foreach ($reviews as $index => $review) {
+            $this->fileWrite("Processing review " . ($index + 1) . " of " . $reviews->count() . " (ID: {$review->id})\n");
+            
             try {
                 if ($this->option('test')) {
                     // Test mode
+                    $this->fileWrite("Testing review #{$review->id}\n");
                     $payload = OpenAIProcessor::createPayloadFromReview($review);
                     $result = OpenAIProcessor::processReviewWithOpenAI($payload);
                     $tokens = $result['_metadata']['tokens_used'] ?? 0;
                     $totalTokens += $tokens;
                     
-                    $this->info("\nReview #{$review->id}: " . 
-                               ($result['sentiment']['label'] ?? 'unknown') . 
-                               " sentiment, " . ($result['themes'][0]['topic'] ?? 'no themes'));
-                } else {
-                    // Production mode - always force for batch when --force flag is used
-                    $forceReprocess = $this->option('force');
-                    $result = OpenAIProcessor::analyzeReview($review, $forceReprocess);
+                    $logMessage = "Review #{$review->id}: " . 
+                                 ($result['sentiment']['label'] ?? 'unknown') . 
+                                 " sentiment, " . ($result['themes'][0]['topic'] ?? 'no themes') .
+                                 " (Tokens: {$tokens})\n";
+                    $this->fileWrite($logMessage);
                     
-                    if ($result['status'] === 'already_processed') {
+                } else {
+                    // Production mode
+                    $forceReprocess = $this->option('force');
+                    
+                    if ($review->is_ai_processed && !$forceReprocess) {
                         $alreadyProcessed++;
+                        $this->fileWrite("Review #{$review->id} already processed, skipping\n");
                     } else {
-                        $successCount++;
+                        $result = OpenAIProcessor::analyzeReview($review, $forceReprocess);
+                        
+                        if ($result['status'] === 'already_processed') {
+                            $alreadyProcessed++;
+                            $this->fileWrite("Review #{$review->id} already processed (via API), skipping\n");
+                        } else {
+                            $successCount++;
+                            $this->fileWrite("Review #{$review->id} processed successfully\n");
+                            $this->fileWrite("  Sentiment: " . ($review->sentiment_label ?? 'N/A') . "\n");
+                            $this->fileWrite("  AI Confidence: " . round(($review->ai_confidence ?? 0) * 100) . "%\n");
+                        }
                     }
                 }
                 
             } catch (\Exception $e) {
                 $failedCount++;
-                Log::error('Review processing failed', [
-                    'review_id' => $review->id,
-                    'error' => $e->getMessage()
-                ]);
+                $errorMessage = "Review #{$review->id} failed: " . $e->getMessage();
+                $this->fileWrite("ERROR: " . $errorMessage . "\n");
                 
                 if (!$this->option('test')) {
                     $review->update(['is_ai_processed' => 1]);
                 }
             }
-            
-            $progressBar->advance();
             
             // Rate limiting delay
             if (!$this->option('test')) {
@@ -175,26 +246,43 @@ $this->info(json_encode($result));
             }
         }
         
-        $progressBar->finish();
-        
-        $this->newLine(2);
-        $this->info("📈 Processing Complete:");
-
-        $this->info("   ✅ Successfully processed: {$successCount}");
+        $this->fileWrite("📈 Processing Complete:\n");
+        $this->fileWrite("   ✅ Successfully processed: {$successCount}\n");
         
         if ($alreadyProcessed > 0) {
-            $this->info("   ⏭️  Already processed (skipped): {$alreadyProcessed}");
+            $this->fileWrite("   ⏭️  Already processed (skipped): {$alreadyProcessed}\n");
         }
         
-        $this->info("   ❌ Failed: {$failedCount}");
+        $this->fileWrite("   ❌ Failed: {$failedCount}\n");
         
         if ($this->option('test')) {
-            $this->info("   ⚡ Estimated tokens used: {$totalTokens}");
-            $this->info("   💰 Estimated cost: $" . number_format($totalTokens * 0.00015 / 1000, 4));
+            $this->fileWrite("   ⚡ Estimated tokens used: {$totalTokens}\n");
+            $this->fileWrite("   💰 Estimated cost: $" . number_format($totalTokens * 0.00015 / 1000, 4) . "\n");
         }
         
         if ($failedCount > 0) {
-            $this->error("   ⚠️ Check logs for failed reviews");
+            $this->fileWrite("   ⚠️ Check logs for failed reviews\n");
+        }
+        
+        // Log summary
+        $this->fileWrite("\nBatch Processing Summary:\n");
+        $this->fileWrite("  Successfully processed: {$successCount}\n");
+        $this->fileWrite("  Already processed (skipped): {$alreadyProcessed}\n");
+        $this->fileWrite("  Failed: {$failedCount}\n");
+        
+        if ($this->option('test')) {
+            $this->fileWrite("  Estimated tokens used: {$totalTokens}\n");
+            $this->fileWrite("  Estimated cost: $" . number_format($totalTokens * 0.00015 / 1000, 4) . "\n");
+        }
+    }
+    
+    /**
+     * File-based logging helper method
+     */
+    private function fileWrite($message)
+    {
+        if ($this->logHandle) {
+            fwrite($this->logHandle, $message);
         }
     }
 }

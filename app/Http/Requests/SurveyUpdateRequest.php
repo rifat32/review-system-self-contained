@@ -30,6 +30,8 @@ class SurveyUpdateRequest extends FormRequest
             'show_in_user' => 'required|boolean',
             "survey_questions" => "array",
             "survey_questions.*" => "numeric|exists:questions,id",
+        'business_service_ids' => 'array', // Add this
+        'business_service_ids.*' => 'integer|exists:business_services,id', // Add this
 
         ];
     }

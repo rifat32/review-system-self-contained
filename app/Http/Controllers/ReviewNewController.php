@@ -1034,10 +1034,8 @@ public function updateReviewReply($reviewId, Request $request)
         // }
 
 
-
-
-
         $reviewData = [
+
             'survey_id' => $request->survey_id,
             'description' => $request->description,
             'business_id' => $businessId,
@@ -1051,6 +1049,9 @@ public function updateReviewReply($reviewId, Request $request)
             "branch_id" => $request->branch_id ?? null,
             "is_voice_review" => $request->is_voice_review ?? false,
             "is_ai_processed" => 0,
+
+        "business_area_id" => $request->business_area_id ?? null,
+        "business_service_id" => $request->business_service_id ?? null,
 
         ];
 
@@ -1241,7 +1242,9 @@ public function updateReviewReply($reviewId, Request $request)
             "staff_id" => $request->staff_id ?? null,
             "branch_id" => $request->branch_id ?? null,
             "is_voice_review" => $request->is_voice_review  ? true : false,
-            "is_ai_processed" => 0
+            "is_ai_processed" => 0,
+            "business_area_id" => $request->business_area_id ?? null,
+            "business_service_id" => $request->business_service_id ?? null,
         ];
 
         // Add voice data if present

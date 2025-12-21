@@ -18,6 +18,7 @@ use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessServiceController;
 use App\Http\Controllers\BusinessAreaController;
 use App\Http\Controllers\LeafletController;
+use App\Http\Controllers\OpenAITokenReportController;
 use App\Http\Controllers\QuestionCategoryController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\ReviewNewController;
@@ -155,7 +156,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/question-categories/{business_id}', [QuestionCategoryController::class, 'getAllQuestionCategories']);
     Route::get('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'getQuestionCategoryById']);
     Route::patch('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'updateQuestionCategory']);
-    Route::patch('/v1.0/question-categories/toggle', [QuestionCategoryController::class, 'toggleQuestionCategory']);
+    Route::patch('/v1.0/question-categories-toggle', [QuestionCategoryController::class, 'toggleQuestionCategory']);
     Route::delete('/v1.0/question-categories/{ids}', [QuestionCategoryController::class, 'deleteQuestionCategories']);
 
     // #################
@@ -394,6 +395,10 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
 
     Route::put('/reviews/{reviewId}/reply', [ReviewNewController::class, 'updateReviewReply']);
+
+    Route::get('/openai-tokens/report', [OpenAITokenReportController::class, 'getTokenUsageReport']);
+
+    Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboardData']);
 });
 
 // ============================================================================
@@ -447,7 +452,7 @@ Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController:
 // ============================================================================
 // ReviewNewController – Overall business dashboard (public)
 // ============================================================================
-Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboardData']);
+
 Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updatedReviewSettings']);
 
 // ============================================================================

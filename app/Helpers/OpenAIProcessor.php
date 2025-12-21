@@ -6,6 +6,7 @@ use App\Models\ReviewNew;
 use App\Models\User;
 use App\Models\BusinessArea;
 use App\Models\BusinessService;
+use App\Models\OpenAITokenUsage;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -66,6 +67,9 @@ class OpenAIProcessor
      */
     // In processReviewWithOpenAI method, update caching:
 
+    /**
+     * Process review with OpenAI and track token usage
+     */
     public static function processReviewWithOpenAI(array $payload): array
     {
         $apiKey = config('services.openai.api_key');
@@ -131,11 +135,40 @@ class OpenAIProcessor
                 throw new \Exception('Invalid JSON from OpenAI: ' . json_last_error_msg());
             }
 
-            // Add metadata
+            // Extract token usage from response
+            $usage = $data['usage'] ?? [];
+            $promptTokens = $usage['prompt_tokens'] ?? 0;
+            $completionTokens = $usage['completion_tokens'] ?? 0;
+            $totalTokens = $usage['total_tokens'] ?? 0;
+
+            // Track token usage BEFORE adding to metadata
+            self::trackTokenUsage(
+                businessId: $payload['business_id'] ?? null,
+                reviewId: $payload['review_id'] ?? null,
+                branchId: $payload['metadata']['branch_id'] ?? null,
+                model: $model,
+                promptTokens: $promptTokens,
+                completionTokens: $completionTokens,
+                totalTokens: $totalTokens,
+                metadata: [
+                    'cache_key' => $cacheKey,
+                    'cache_hit' => false,
+                    'review_text_length' => strlen($payload['review_text'] ?? ''),
+                    'has_staff' => !empty($payload['staff_info']),
+                    'rating' => $payload['rating'] ?? 0,
+                    'source' => $payload['metadata']['source'] ?? 'platform'
+                ]
+            );
+
+            // Add metadata to result
             $result['_metadata'] = [
                 'model' => $model,
-                'tokens_used' => $data['usage']['total_tokens'] ?? 0,
-                'processing_time' => now()->toISOString()
+                'tokens_used' => $totalTokens,
+                'prompt_tokens' => $promptTokens,
+                'completion_tokens' => $completionTokens,
+                'processing_time' => now()->toISOString(),
+                'business_id' => $payload['business_id'] ?? null,
+                'review_id' => $payload['review_id'] ?? null
             ];
 
             // Only cache successful (non-fallback) results
@@ -157,6 +190,69 @@ class OpenAIProcessor
             return $fallback;
         }
     }
+
+      /**
+     * Track token usage in database
+     */
+ /**
+ * Track token usage in database
+ */
+private static function trackTokenUsage(
+    ?int $businessId,
+    ?int $reviewId,
+    ?int $branchId,
+    string $model,
+    int $promptTokens,
+    int $completionTokens,
+    int $totalTokens,
+    array $metadata = []
+): OpenAITokenUsage {
+    try {
+        // Use your existing calculateCost method or adjust as needed
+        $estimatedCost = self::calculateEstimatedCost($model, $promptTokens, $completionTokens);
+
+        return OpenAITokenUsage::create([
+            'business_id' => $businessId,
+            'review_id' => $reviewId,
+            'branch_id' => $branchId,
+            'model' => $model,
+            'prompt_tokens' => $promptTokens,
+            'completion_tokens' => $completionTokens,
+            'total_tokens' => $totalTokens,
+            'estimated_cost' => $estimatedCost,
+            'metadata' => $metadata,
+            'created_at' => now()
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Failed to track token usage', [
+            'error' => $e->getMessage(),
+            'business_id' => $businessId,
+            'review_id' => $reviewId
+        ]);
+        
+        // Return a dummy instance to avoid breaking the flow
+        return new OpenAITokenUsage();
+    }
+}
+
+/**
+ * Calculate estimated cost (if not already in your model)
+ */
+private static function calculateEstimatedCost(string $model, int $promptTokens, int $completionTokens): float
+{
+    $pricing = [
+        'gpt-4o-mini' => ['input' => 0.00015, 'output' => 0.0006],
+        'gpt-4o' => ['input' => 0.0025, 'output' => 0.010],
+        'gpt-3.5-turbo' => ['input' => 0.0005, 'output' => 0.0015],
+    ];
+
+    $modelPricing = $pricing[$model] ?? $pricing['gpt-4o-mini'];
+    
+    $inputCost = ($promptTokens / 1000) * $modelPricing['input'];
+    $outputCost = ($completionTokens / 1000) * $modelPricing['output'];
+    
+    return $inputCost + $outputCost;
+}
 
     /**
      * Get system prompt for OpenAI
@@ -411,9 +507,9 @@ PROMPT;
 
 
 
-       // Update the review
-        $review->fill($dbData);
-        $review->save();
+            // Update the review
+            $review->fill($dbData);
+            $review->save();
 
             Log::info('Review analysis completed', [
                 'review_id' => $review->id,
@@ -426,7 +522,7 @@ PROMPT;
                 'status' => 'success',
                 'message' => 'Analysis completed successfully',
                 "dbDataaaaaaaaaaaaaaaaaa" => $dbData
-                
+
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to analyze review', [
@@ -439,11 +535,11 @@ PROMPT;
             $payload = self::createPayloadFromReview($review);
             $fallback = self::getFallbackAnalysis($payload);
             $dbData = self::convertForDatabase($fallback, $review);
-               
 
-       // Update the review
-        $review->fill($dbData);
-        $review->save();
+
+            // Update the review
+            $review->fill($dbData);
+            $review->save();
 
 
             return array_merge($dbData, [
@@ -453,81 +549,81 @@ PROMPT;
             ]);
         }
     }
-    
-  // In OpenAIProcessor class, update the convertForDatabase method:
 
-private static function convertForDatabase(array $aiResult, ReviewNew $review): array
-{
-    // Get sentiment data
-    $sentimentScore = $aiResult['sentiment']['score'] ?? 0.0;
-    $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
-    
-    // Convert score from -1..1 to 0..1
-    $sentimentNormalized = ($sentimentScore + 1) / 2;
-    
-    // Get confidence - check multiple possible locations
-    $confidence = 0.0;
-    if (isset($aiResult['explainability']['confidence_score'])) {
-        $confidence = $aiResult['explainability']['confidence_score'];
-    } elseif (isset($aiResult['confidence_score'])) {
-        $confidence = $aiResult['confidence_score'];
-    } elseif (isset($aiResult['_metadata']['confidence'])) {
-        $confidence = $aiResult['_metadata']['confidence'];
-    } else {
-        // Default confidence based on whether we have a proper response
-        $confidence = isset($aiResult['_fallback']) ? 0.0 : 0.8; // Default to 80% for OpenAI responses
-    }
-    
-    // Get emotion
-    $emotion = $aiResult['emotion']['primary'] ?? 'neutral';
-    
-    // Extract key phrases
-    $keyPhrases = [];
-    foreach ($aiResult['themes'] ?? [] as $theme) {
-        if (!empty($theme['topic'])) {
-            $keyPhrases[] = $theme['topic'];
+    // In OpenAIProcessor class, update the convertForDatabase method:
+
+    private static function convertForDatabase(array $aiResult, ReviewNew $review): array
+    {
+        // Get sentiment data
+        $sentimentScore = $aiResult['sentiment']['score'] ?? 0.0;
+        $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
+
+        // Convert score from -1..1 to 0..1
+        $sentimentNormalized = ($sentimentScore + 1) / 2;
+
+        // Get confidence - check multiple possible locations
+        $confidence = 0.0;
+        if (isset($aiResult['explainability']['confidence_score'])) {
+            $confidence = $aiResult['explainability']['confidence_score'];
+        } elseif (isset($aiResult['confidence_score'])) {
+            $confidence = $aiResult['confidence_score'];
+        } elseif (isset($aiResult['_metadata']['confidence'])) {
+            $confidence = $aiResult['_metadata']['confidence'];
+        } else {
+            // Default confidence based on whether we have a proper response
+            $confidence = isset($aiResult['_fallback']) ? 0.0 : 0.8; // Default to 80% for OpenAI responses
         }
+
+        // Get emotion
+        $emotion = $aiResult['emotion']['primary'] ?? 'neutral';
+
+        // Extract key phrases
+        $keyPhrases = [];
+        foreach ($aiResult['themes'] ?? [] as $theme) {
+            if (!empty($theme['topic'])) {
+                $keyPhrases[] = $theme['topic'];
+            }
+        }
+
+        // Extract topics
+        $topics = array_map(function ($theme) {
+            return $theme['topic'] ?? '';
+        }, $aiResult['themes'] ?? []);
+
+        return [
+            'sentiment_score' => $sentimentNormalized,
+            'sentiment' => $aiResult['sentiment'],
+            'sentiment_label' => $sentimentLabel, // Use OpenAI's label directly
+            'emotion' => $emotion,
+            'key_phrases' => json_encode(array_slice($keyPhrases, 0, 5)),
+            'topics' => json_encode(array_slice($topics, 0, 5)),
+            'moderation_results' => json_encode($aiResult['moderation'] ?? []),
+            'ai_suggestions' => json_encode($aiResult['recommendations'] ?? []),
+            'staff_suggestions' => json_encode($aiResult['staff_intelligence']['training_recommendations'] ?? []),
+            'language' => $aiResult['language']['detected'] ?? 'en',
+            'openai_raw_response' => json_encode($aiResult),
+            'is_ai_processed' => true,
+            'is_abusive' => $aiResult['moderation']['is_abusive'] ?? false,
+            'ai_confidence' => $confidence,
+            'summary' => $aiResult['summary']['one_line'] ?? ''
+        ];
     }
-    
-    // Extract topics
-    $topics = array_map(function($theme) {
-        return $theme['topic'] ?? '';
-    }, $aiResult['themes'] ?? []);
-    
-    return [
-        'sentiment_score' => $sentimentNormalized,
-        'sentiment' => $aiResult['sentiment'],
-        'sentiment_label' => $sentimentLabel, // Use OpenAI's label directly
-        'emotion' => $emotion,
-        'key_phrases' => json_encode(array_slice($keyPhrases, 0, 5)),
-        'topics' => json_encode(array_slice($topics, 0, 5)),
-        'moderation_results' => json_encode($aiResult['moderation'] ?? []),
-        'ai_suggestions' => json_encode($aiResult['recommendations'] ?? []),
-        'staff_suggestions' => json_encode($aiResult['staff_intelligence']['training_recommendations'] ?? []),
-        'language' => $aiResult['language']['detected'] ?? 'en',
-        'openai_raw_response' => json_encode($aiResult),
-        'is_ai_processed' => true,
-        'is_abusive' => $aiResult['moderation']['is_abusive'] ?? false,
-        'ai_confidence' => $confidence,
-        'summary' => $aiResult['summary']['one_line'] ?? ''
-    ];
-}
-    
+
     /**
      * Get sentiment label from score - CORRECTED VERSION
      */
     public static function getSentimentLabel(?float $score): string
     {
         if ($score === null) return 'neutral';
-        
+
         // Ensure score is between 0 and 1
         $score = max(0, min(1, $score));
-        
+
         // Debug: Check what score we're getting
         if (app()->environment('local')) {
             Log::debug('getSentimentLabel called', ['score' => $score]);
         }
-        
+
         if ($score >= 0.8) return 'very_positive';
         if ($score >= 0.6) return 'positive';
         if ($score >= 0.4) return 'neutral';
@@ -538,21 +634,75 @@ private static function convertForDatabase(array $aiResult, ReviewNew $review): 
     /**
      * Fallback analysis when OpenAI fails - ensure 0 confidence
      */
-private static function getFallbackAnalysis(array $payload): array
-{
-    // ... [existing fallback logic] ...
-    
-    return [
-        // ... [other fields] ...
-        'explainability' => [
-            'decision_basis' => ['Fallback analysis'],
-            'confidence_score' => 0.0, // Always 0 for fallback
-            'key_factors' => []
-        ],
-        // ... [other fields] ...
-        '_fallback' => true
-    ];
-}
+  private static function getFallbackAnalysis(array $payload): array
+    {
+        $text = $payload['review_text'] ?? '';
+        $rating = $payload['rating'] ?? 0;
+
+        // Simple sentiment analysis based on rating
+        if ($rating >= 4) {
+            $sentiment = 'positive';
+            $sentimentScore = 0.8;
+        } elseif ($rating >= 3) {
+            $sentiment = 'neutral';
+            $sentimentScore = 0.0;
+        } else {
+            $sentiment = 'negative';
+            $sentimentScore = -0.8;
+        }
+
+        return [
+            'language' => [
+                'detected' => 'en',
+                'translated_text' => $text
+            ],
+            'sentiment' => [
+                'label' => $sentiment,
+                'score' => $sentimentScore
+            ],
+            'emotion' => [
+                'primary' => 'neutral',
+                'intensity' => 'low'
+            ],
+            'moderation' => [
+                'is_abusive' => false,
+                'safe_for_public_display' => true,
+                'issues_found' => [],
+                'severity' => 'low'
+            ],
+            'themes' => [],
+            'category_analysis' => [],
+            'staff_intelligence' => null,
+            'service_unit_intelligence' => null,
+            'business_insights' => [
+                'root_cause' => 'Unable to analyze',
+                'repeat_issue_likelihood' => 'low',
+                'impact_level' => 'low'
+            ],
+            'recommendations' => [
+                'business_actions' => [],
+                'staff_actions' => [],
+                'immediate_actions' => []
+            ],
+            'alerts' => [
+                'triggered' => false,
+                'type' => 'info',
+                'priority' => 'low',
+                'message' => 'Fallback analysis used'
+            ],
+            'explainability' => [
+                'decision_basis' => ['Fallback rating-based analysis'],
+                'confidence_score' => 0.0, // Always 0 for fallback
+                'key_factors' => ['rating']
+            ],
+            'summary' => [
+                'one_line' => 'Analysis unavailable',
+                'manager_summary' => 'Could not perform AI analysis. Using fallback.',
+                'customer_sentiment_summary' => 'Based on rating only'
+            ],
+            '_fallback' => true
+        ];
+    }
 
 
 

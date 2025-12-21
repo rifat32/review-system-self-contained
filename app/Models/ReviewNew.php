@@ -50,6 +50,7 @@ class ReviewNew extends Model
 
 
         "business_area_id",
+        "business_service_id",
         "ai_confidence",
         "sentiment_label",
         'openai_raw_response',

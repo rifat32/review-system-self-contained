@@ -8,13 +8,14 @@ use App\Http\Controllers\TestController;
 
 use App\Models\EmailTemplate;
 use App\Models\EmailTemplateWrapper;
+use App\Models\Review;
 use App\Models\ReviewNew;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Artisan;
 
 
 /*
@@ -31,6 +32,17 @@ use Illuminate\Support\Facades\Hash;
 // Welcome Route
 Route::get('/', function () {
     return view('welcome');
+});
+
+
+Route::get('/generate-ai', function () {
+    ReviewNew::whereNotNull("raw_text")->update(['is_ai_processed' => 0]);
+
+    if(request()->boolean("generate")) {
+Artisan::call('reviews:process');
+    }
+
+    
 });
 
 Route::get('/reviews', function () {

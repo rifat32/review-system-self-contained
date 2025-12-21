@@ -192,8 +192,8 @@ class QuestionController extends Controller
 
         $query = Question::with([
             'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no'),
-            'question_category' => fn($q) => $q->select('id', 'question'),
-            'question_sub_category' => fn($q) => $q->select('id', 'question'),
+            'question_category' => fn($q) => $q->select('question_categories.id', 'question_categories.title'),
+            'question_sub_category' => fn($q) => $q->select('question_categories.id', 'question_categories.title'),
         ]);
 
         if ($user->hasRole('superadmin')) {
@@ -273,7 +273,7 @@ class QuestionController extends Controller
         $user = $request->user();
 
         $question = Question::with([
-            'question_category',
+            'question_category.children',
             'question_sub_category',
             'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no'),
         ])->find($id);
@@ -588,6 +588,7 @@ class QuestionController extends Controller
     // ##################################################
     // This method is to store question
     // ##################################################
+
     /**
      * Store a new review question
      *
@@ -948,7 +949,7 @@ class QuestionController extends Controller
         }
 
         // Non-default questions: must belong to user's business
-        if (!$question->is_default && $question->business_id) {
+        if (!$question->is_default && $question->business_id != $request->user()->business_id) {
             return response()->json(
                 [
                     'success' => false,

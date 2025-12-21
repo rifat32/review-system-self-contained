@@ -43,7 +43,7 @@ class Branch extends Model
     public function scopeFilters($query)
     {
         // Apply search filter
-        if ($request->has('search_key') && !empty(request()->search_key)) {
+        if (request()->has('search_key') && !empty(request()->search_key)) {
             $searchKey = request()->search_key;
             $query->where(function ($q) use ($searchKey) {
                 $q->where('name', 'like', '%' . $searchKey . '%')

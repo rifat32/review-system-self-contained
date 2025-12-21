@@ -38,6 +38,19 @@ class Survey extends Model
         return $this->belongsToMany(Question::class, 'survey_questions', 'survey_id', 'question_id');
     }
 
+    public function reviews() {
+        return $this->hasMany(ReviewNew::class, 'survey_id', 'id');
+    }
+     // Business Services (NEW RELATIONSHIP)
+    public function business_services(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            BusinessService::class,
+            'business_service_surveys',
+            'survey_id',
+            'business_service_id'
+        )->withTimestamps();
+    }
 
     // FILTER SCOPE
     public function scopeFilter(Builder $query)

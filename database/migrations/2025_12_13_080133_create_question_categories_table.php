@@ -48,26 +48,8 @@ return new class extends Migration
             'updated_at' => now(),
         ]);
 
-        // Add question_category_id to questions table
-        Schema::table('questions', function (Blueprint $table) {
-            $table->unsignedBigInteger('question_category_id')->nullable()->after('business_id');
-            $table->foreign('question_category_id')->references('id')->on('question_categories')->onDelete('set null');
-            $table->index('question_category_id');
-        });
+       
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        // Remove question_category_id from questions table
-        Schema::table('questions', function (Blueprint $table) {
-            $table->dropForeign(['question_category_id']);
-            $table->dropIndex(['question_category_id']);
-            $table->dropColumn('question_category_id');
-        });
-
-        Schema::dropIfExists('question_categories');
-    }
+  
 };

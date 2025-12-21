@@ -6,6 +6,7 @@ use App\Http\Requests\BranchRequest;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\ReviewNew;
+use Exception;
 use Illuminate\Http\Request;
 
 class BranchController extends Controller
@@ -103,9 +104,13 @@ class BranchController extends Controller
         // GET SUMMARY DATA
         $branchIds = Branch::whereIn('business_id', $businessIds)->pluck('id');
         $totalBranches = $branchIds->count();
+        
         $avgRating = ReviewNew::whereIn('branch_id', $branchIds)
-            ->scopeWithCalculatedRating()
+            ->withCalculatedRating()
+           ->get()
             ->avg('calculated_rating') ?? 0;
+
+   
         $overallSentiment = ReviewNew::whereIn('branch_id', $branchIds)->avg('sentiment_score') ?? 0;
 
         // SEND RESPONSE

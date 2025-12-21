@@ -22,6 +22,7 @@
         "laravel/tinker": "^2.7",
         "lcobucci/jwt": "^5.0",
         "maatwebsite/excel": "^3.1",
+        "paragonie/sodium_compat_ext_sodium": "^1.0",
         "spatie/laravel-ignition": "^2.0",
         "spatie/laravel-permission": "^6.0"
     },

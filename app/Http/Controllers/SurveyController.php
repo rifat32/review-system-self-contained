@@ -95,6 +95,11 @@ class SurveyController extends Controller
 
                 $survey->questions()->sync($insertable_data["survey_questions"]);
 
+                  // Sync business services if provided
+     
+                $survey->businessServices()->sync($insertable_data["business_service_ids"]);
+            
+
 
 
                 return response($survey, 201);
@@ -191,6 +196,7 @@ class SurveyController extends Controller
                 $survey->save();
 
                 $survey->questions()->sync($request_data["survey_questions"]);
+                $survey->businessServices()->sync($request_data["business_service_ids"]);
 
                 return response($survey, 201);
             });
@@ -477,6 +483,9 @@ class SurveyController extends Controller
 
             // GET ALL SURVEYS WHICH BELONGS
             $query =  Survey::with('questions')
+                ->withCount([
+                    "reviews"
+                ])
                 ->where([
                     "business_id" => $business_id
                 ])->filter();

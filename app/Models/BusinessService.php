@@ -30,6 +30,19 @@ class BusinessService extends Model
         return $this->belongsTo(Business::class, 'business_id');
     }
 
+     /**
+     * Surveys associated with this business service (NEW RELATIONSHIP)
+     */
+    public function surveys(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Survey::class,
+            'business_service_surveys',
+            'business_service_id',
+            'survey_id'
+        )->withTimestamps();
+    }
+
     /**
      * Scope to filter active services.
      */
