@@ -53,7 +53,7 @@ class Question extends Model
      * )
      */
     use HasFactory;
-       protected $fillable = [
+    protected $fillable = [
         "question",
         "business_id",
         "question_category_id",
@@ -66,7 +66,6 @@ class Question extends Model
         "order_no",
         "is_overall",
 
-        'question_category_id',
         'question_sub_category_id',
     ];
     protected $casts = [
@@ -77,9 +76,9 @@ class Question extends Model
     ];
 
 
- 
 
-    // 
+
+    //
     const QUESTION_TYPES = [
         'STAR'   => 'star',
         'EMOJI'  => 'emoji',
@@ -92,12 +91,14 @@ class Question extends Model
     //     return $this->hasMany(StarTagQuestion::class,'question_id','id');
     // }
 
-    public function question_category() {
-        return $this->belongsTo(QuestionCategory::class,'question_category_id','id');
+    public function question_category()
+    {
+        return $this->belongsTo(QuestionCategory::class, 'question_category_id', 'id');
     }
 
-    public function question_sub_category() {
-        return $this->belongsTo(QuestionCategory::class,'question_sub_category_id','id');
+    public function question_sub_category()
+    {
+        return $this->belongsTo(QuestionCategory::class, 'question_sub_category_id', 'id');
     }
 
     protected static function boot()
@@ -163,17 +164,17 @@ class Question extends Model
         }
 
 
-        
+
         if ($request->has('is_staff')) {
             $query
-            ->whereHas("question_category", function ($q) {
-                $q->where([
-                     'question_categories.title' => 'Staff',
-                     'question_categories.is_active' => 1,
-                     'question_categories.is_default' => 1,
-                     'question_categories.business_id' => null,
-                ]);
-            });
+                ->whereHas("question_category", function ($q) {
+                    $q->where([
+                        'question_categories.title' => 'Staff',
+                        'question_categories.is_active' => 1,
+                        'question_categories.is_default' => 1,
+                        'question_categories.business_id' => null,
+                    ]);
+                });
         }
 
         if ($user->hasRole('superadmin')) {
