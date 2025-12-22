@@ -53,7 +53,7 @@ class Question extends Model
      * )
      */
     use HasFactory;
-       protected $fillable = [
+    protected $fillable = [
         "question",
         "business_id",
         "is_default",
@@ -73,9 +73,9 @@ class Question extends Model
     ];
 
 
- 
 
-    // 
+
+    //
     const QUESTION_TYPES = [
         'STAR'   => 'star',
         'EMOJI'  => 'emoji',
@@ -156,17 +156,17 @@ class Question extends Model
         }
 
 
-        
+
         if ($request->has('is_staff')) {
             $query
-            ->whereHas("question_category", function ($q) {
-                $q->where([
-                     'question_categories.title' => 'Staff',
-                     'question_categories.is_active' => 1,
-                     'question_categories.is_default' => 1,
-                     'question_categories.business_id' => null,
-                ]);
-            });
+                ->whereHas("question_category", function ($q) {
+                    $q->where([
+                        'question_categories.title' => 'Staff',
+                        'question_categories.is_active' => 1,
+                        'question_categories.is_default' => 1,
+                        'question_categories.business_id' => null,
+                    ]);
+                });
         }
 
         if ($user->hasRole('superadmin')) {

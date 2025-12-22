@@ -101,7 +101,7 @@ class BusinessAreaController extends Controller
                 $businessArea = BusinessArea::create($payload_data);
 
                 // Load relationships for response
-                $businessArea->load('business', 'businessService');
+                $businessArea->load('business_service');
 
                 // Return success response
                 return response()->json([
@@ -159,6 +159,20 @@ class BusinessAreaController extends Controller
      *         example=1
      *      ),
      *      @OA\Parameter(
+     *         name="order_by",
+     *         in="query",
+     *         description="Order by column name",
+     *         required=false,
+     *         example="area_name"
+     *      ),
+     *      @OA\Parameter(
+     *         name="sort_order",
+     *         in="query",
+     *         description="Sort order (asc or desc)",
+     *         required=false,
+     *         example="desc"
+     *      ),
+     *      @OA\Parameter(
      *         name="search_key",
      *         in="query",
      *         description="Search in area name",
@@ -205,7 +219,7 @@ class BusinessAreaController extends Controller
         try {
             $user = $request->user();
 
-            $query = BusinessArea::with('business', 'businessService');
+            $query = BusinessArea::with('business_service');
 
             // Regular users see only their business areas
             $business = $user->business()->first();
@@ -297,7 +311,7 @@ class BusinessAreaController extends Controller
             $business = $user->business()->first();
             $businessId = $business ? $business->id : null;
 
-            $businessArea = BusinessArea::with('business', 'businessService')->find($id);
+            $businessArea = BusinessArea::with('business_service')->find($id);
 
             if (!$businessArea) {
                 return response()->json([
@@ -430,7 +444,7 @@ class BusinessAreaController extends Controller
                 $businessArea->update($payload_data);
 
                 // Load relationships for response
-                $businessArea->load('business', 'businessService');
+                $businessArea->load('business', 'business_service');
 
                 return response()->json([
                     "success" => true,
@@ -661,7 +675,7 @@ class BusinessAreaController extends Controller
                 $businessArea->update(['is_active' => !$businessArea->is_active]);
 
                 // Load relationships for response
-                $businessArea->load('business', 'businessService');
+                $businessArea->load('business', 'business_service');
 
                 return response()->json([
                     "success" => true,

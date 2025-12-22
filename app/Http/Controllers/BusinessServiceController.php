@@ -86,7 +86,7 @@ class BusinessServiceController extends Controller
                 $businessService = BusinessService::create($payload_data);
 
                 // Load relationships for response
-                $businessService->load('business');
+                $businessService->load('business_areas');
 
                 // Return success response
                 return response()->json([
@@ -137,6 +137,20 @@ class BusinessServiceController extends Controller
      *         example=1
      *      ),
      *      @OA\Parameter(
+     *         name="order_by",
+     *         in="query",
+     *         description="Order by column name",
+     *         required=false,
+     *         example="area_name"
+     *      ),
+     *      @OA\Parameter(
+     *         name="sort_order",
+     *         in="query",
+     *         description="Sort order (asc or desc)",
+     *         required=false,
+     *         example="desc"
+     *      ),
+     *      @OA\Parameter(
      *         name="search_key",
      *         in="query",
      *         description="Search in name and description",
@@ -183,7 +197,7 @@ class BusinessServiceController extends Controller
         try {
             $user = $request->user();
 
-            $query = BusinessService::with('business');
+            $query = BusinessService::with('business_areas');
             $business = $user->business()->first();
 
             if (!$business) {
@@ -281,7 +295,7 @@ class BusinessServiceController extends Controller
             $business = $user->business()->first();
             $businessId = $business ? $business->id : null;
 
-            $businessService = BusinessService::with('business')->find($id);
+            $businessService = BusinessService::with('business_areas')->find($id);
 
             if (!$businessService) {
                 return response()->json([
@@ -404,7 +418,7 @@ class BusinessServiceController extends Controller
                 $businessService->update($payload_data);
 
                 // Load relationships for response
-                $businessService->load('business');
+                $businessService->load('business_areas');
 
                 return response()->json([
                     "success" => true,

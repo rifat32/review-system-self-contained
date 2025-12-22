@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class BusinessService extends Model
 {
@@ -46,7 +47,7 @@ class BusinessService extends Model
         return $this->hasMany(BusinessArea::class, 'business_service_id', 'id');
     }
 
-     /**
+    /**
      * Surveys associated with this business service (NEW RELATIONSHIP)
      */
     public function surveys(): BelongsToMany
