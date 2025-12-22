@@ -189,9 +189,9 @@ class QuestionCategoryController extends Controller
      *         example="title"
      *      ),
      *      @OA\Parameter(
-     *         name="sort_direction",
+     *         name="sort_order",
      *         in="query",
-     *         description="Sort direction (asc, desc)",
+     *         description="Sort order (asc, desc)",
      *         required=false,
      *         example="asc"
      *      ),

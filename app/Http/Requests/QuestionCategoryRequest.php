@@ -25,7 +25,7 @@ class QuestionCategoryRequest extends FormRequest
     public function rules()
     {
         $rules = [
-            'title' => 'required|string|max:255',
+            'title' => 'required|string|max:255 |unique:question_categories,title,' . $this->route('id'),
             'description' => 'nullable|string|max:1000',
             'parent_question_category_id' => 'nullable|integer|exists:question_categories,id',
         ];
@@ -74,6 +74,7 @@ class QuestionCategoryRequest extends FormRequest
             'title.required' => 'The category title is required.',
             'title.string' => 'The title must be a string.',
             'title.max' => 'The title may not be greater than 255 characters.',
+            'title.unique' => 'The category title has already been taken.',
             'description.string' => 'The description must be a string.',
             'description.max' => 'The description may not be greater than 1000 characters.',
             'parent_question_category_id.integer' => 'The parent category ID must be an integer.',
