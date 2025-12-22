@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Branch;
 use App\Models\Business;
 use App\Models\BusinessDay;
 use App\Models\Question;
@@ -67,7 +68,11 @@ class BusinessService
     {
         $business = $this->createBusiness($user, $payloadData);
 
+        // CREATE BUSINESS SCHEDULE
         $this->createBusinessSchedule($business, $payloadData['times']);
+
+        // CREATE DEFAULT BRANCH
+        $this->createDefaultBranch($business);
 
 
 
@@ -173,6 +178,39 @@ class BusinessService
 
             if (!empty($questionsData)) {
                 Question::insert($questionsData);
+            }
+        });
+    }
+    /**
+     * Create default questions for business
+     */
+    public function createDefaultBranch(Business $business): void
+    {
+        DB::transaction(function () use ($business) {
+
+            // Create Main Branch
+            $branchData = [
+                'business_id' => $business->id,
+                'name' => $business->Name,
+                'address' => $business->Address,
+                'street' => null,
+                'door_no' => null,
+                'city' => $business->city ?? null,
+                'country' => $business->country ?? null,
+                'postcode' => $business->PostCode ?? null,
+                'phone' => $business->PhoneNumber ?? null,
+                'email' => $business->EmailAddress ?? null,
+                'is_active' => true,
+                'is_geo_enabled' => true,
+                'branch_code' => 'MAIN_BRANCH',
+                'lat' => $business->latitude ?? null,
+                'long' => $business->longitude ?? null,
+                'manager_id' => null,
+            ];
+
+            // Insert branch data
+            if (!empty($branchData)) {
+                Branch::insert($branchData);
             }
         });
     }
