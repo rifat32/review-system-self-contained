@@ -87,7 +87,7 @@ class ReviewNew extends Model
     /**
      * Relationship with business_services (many-to-many through pivot)
      */
-    
+
     public function review_business_services()
     {
         return $this->hasMany(ReviewBusinessService::class, 'review_id', 'id');
@@ -196,7 +196,7 @@ class ReviewNew extends Model
             ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
                 $q->whereExists(function ($subQuery) {
                     $subQuery->select(DB::raw(1))
-                        ->from('question_question_sub_categories as qqsc')
+                        ->from('q_q_sub_categories as qqsc')
                         ->join('question_categories as qc_sub', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
                         ->join('question_categories as qc_parent', 'qc_sub.parent_id', '=', 'qc_parent.id')
                         ->whereColumn('qqsc.question_id', 'q.id')

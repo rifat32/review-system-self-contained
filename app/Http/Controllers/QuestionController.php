@@ -192,8 +192,8 @@ class QuestionController extends Controller
 
         $query = Question::with([
             'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no'),
-            'question_category' => fn($q) => $q->select('question_categories.id', 'question_categories.title'),
-            'question_sub_category' => fn($q) => $q->select('question_categories.id', 'question_categories.title'),
+          
+            'question_sub_categories' => fn($q) => $q->select('question_categories.id', 'question_categories.title'),
         ]);
 
         if ($user->hasRole('superadmin')) {
@@ -273,8 +273,8 @@ class QuestionController extends Controller
         $user = $request->user();
 
         $question = Question::with([
-            'question_category.children',
-            'question_sub_category',
+            'question_sub_categories.parent',
+
             'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no'),
         ])->find($id);
 

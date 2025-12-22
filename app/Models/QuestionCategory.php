@@ -65,7 +65,7 @@ class QuestionCategory extends Model
     {
         return $this->belongsToMany(
             Question::class,
-            'question_question_sub_categories',
+            'q_q_sub_categories',
             'question_sub_category_id',
             'question_id'
         );
