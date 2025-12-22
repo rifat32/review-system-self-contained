@@ -43,6 +43,20 @@ class BranchController extends Controller
      *          required=false,
      *          @OA\Schema(type="string", example="Main")
      *      ),
+     *      @OA\Parameter(
+     *          name="sort_by",
+     *          in="query",
+     *          description="Field to sort branches by",
+     *          required=false,
+     *          @OA\Schema(type="string", example="created_at", enum={"name", "created_at", "updated_at"})
+     *      ),
+     *      @OA\Parameter(
+     *          name="sort_order",
+     *          in="query",
+     *          description="Sort order (asc or desc)",
+     *          required=false,
+     *          @OA\Schema(type="string", example="desc", enum={"asc", "desc"})
+     *      ),
      *
      *      @OA\Response(
      *          response=200,
@@ -98,19 +112,25 @@ class BranchController extends Controller
         $query = Branch::whereIn('business_id', $businessIds)
             ->filters();
 
+        // Apply sorting
+        if ($request->has('sort_by')) {
+            $sortOrder = $request->sort_order ?? 'asc';
+            $query->orderBy($request->sort_by, $sortOrder);
+        }
+
         // GET BRANCHES WITH PAGINATED DATA
         $branches = retrieve_data($query);
 
         // GET SUMMARY DATA
         $branchIds = Branch::whereIn('business_id', $businessIds)->pluck('id');
         $totalBranches = $branchIds->count();
-        
+
         $avgRating = ReviewNew::whereIn('branch_id', $branchIds)
             ->withCalculatedRating()
-           ->get()
+            ->get()
             ->avg('calculated_rating') ?? 0;
 
-   
+
         $overallSentiment = ReviewNew::whereIn('branch_id', $branchIds)->avg('sentiment_score') ?? 0;
 
         // SEND RESPONSE
