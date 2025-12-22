@@ -29,6 +29,7 @@ use App\Http\Controllers\StarTagQuestionController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SuperAdminReportController;
 use App\Http\Controllers\SurveyController;
+use App\Http\Controllers\SurveyQuestionController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -247,6 +248,11 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/surveys/{business_id}', [SurveyController::class, "getAllSurveys"]);
     Route::patch('/v1.0/surveys/{id}/toggle-active', [SurveyController::class, "toggleSurveyActive"]);
     Route::delete('/v1.0/surveys/{id}', [SurveyController::class, "deleteSurveyById"]);
+
+    // ============================================================================
+    // SurveyQuestionController – Display order (protected)
+    // ============================================================================
+    Route::patch('/v1.0/survey-questions/display-order', [SurveyQuestionController::class, 'surveyQuestionDisplayOrder']);
 
     // ============================================================================
     // RolesController – Roles/permissions (protected)
