@@ -22,13 +22,12 @@ class QuestionRequest extends FormRequest
         return [
             'question'           => 'required|string|max:255',
             'business_id'        => ['nullable', 'integer', new ValidBusiness()],
-            'question_category_id' => ['required', 'integer', new ValidQuestionCategory()],
             'show_in_guest_user' => 'required|boolean',
             'show_in_user'       => 'required|boolean',
             'type'               => ['nullable', 'string', Rule::in(array_values(Question::QUESTION_TYPES))],
             'is_overall'         => 'required|boolean',
-           'question_category_id' => 'nullable|integer|exists:question_categories,id',
-           'question_sub_category_id' => 'nullable|integer|exists:question_categories,id',
+            'question_sub_category_ids' => 'nullable|array', // Change to array
+            'question_sub_category_ids.*' => 'integer|exists:question_sub_categories,id',
         ];
     }
 

@@ -63,7 +63,12 @@ class QuestionCategory extends Model
      */
     public function questions(): HasMany
     {
-        return $this->hasMany(Question::class, 'question_category_id');
+        return $this->belongsToMany(
+            Question::class,
+            'question_question_sub_categories',
+            'question_sub_category_id',
+            'question_id'
+        );
     }
 
 

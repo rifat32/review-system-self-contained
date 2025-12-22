@@ -32,7 +32,7 @@ class BusinessArea extends Model
     /**
      * Get the business service that this area belongs to.
      */
-    public function businessService(): BelongsTo
+    public function business_service(): BelongsTo
     {
         return $this->belongsTo(BusinessService::class, 'business_service_id');
     }

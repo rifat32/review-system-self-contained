@@ -22,7 +22,7 @@ class Question extends Model
      * @OA\Property(property="id", type="integer", example=5)
      * @OA\Property(property="question", type="string", example="How was your experience?")
      * @OA\Property(property="business_id", type="integer", nullable=true, example=3)
-     * @OA\Property(property="question_category_id", type="integer", nullable=true, example=1)
+
      * @OA\Property(property="is_active", type="boolean", example=true)
      * @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star")
      * @OA\Property(property="is_default", type="boolean", example=false)
@@ -56,7 +56,6 @@ class Question extends Model
        protected $fillable = [
         "question",
         "business_id",
-        "question_category_id",
         "is_default",
         "is_active",
         "show_in_guest_user",
@@ -65,9 +64,6 @@ class Question extends Model
         "type",
         "order_no",
         "is_overall",
-
-        'question_category_id',
-        'question_sub_category_id',
     ];
     protected $casts = [
         'is_active' => 'boolean',
@@ -92,12 +88,16 @@ class Question extends Model
     //     return $this->hasMany(StarTagQuestion::class,'question_id','id');
     // }
 
-    public function question_category() {
-        return $this->belongsTo(QuestionCategory::class,'question_category_id','id');
-    }
 
-    public function question_sub_category() {
-        return $this->belongsTo(QuestionCategory::class,'question_sub_category_id','id');
+   // Change from belongsTo to belongsToMany
+    public function question_sub_categories()
+    {
+        return $this->belongsToMany(
+            QuestionQuestionSubCategory::class,
+            'question_question_sub_categories',
+            'question_id',
+            'question_sub_category_id'
+        );
     }
 
     protected static function boot()
@@ -128,13 +128,6 @@ class Question extends Model
         return $this->belongsToMany(Survey::class, 'survey_questions', 'question_id', 'survey_id');
     }
 
-    /**
-     * Get the question category.
-     */
-    public function questionCategory()
-    {
-        return $this->belongsTo(QuestionCategory::class, 'question_category_id');
-    }
 
 
 

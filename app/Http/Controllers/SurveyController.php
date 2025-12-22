@@ -401,14 +401,9 @@ class SurveyController extends Controller
      * )
      */
 
-
-
     public function getSurveyByIdClient($id, Request $request)
     {
         try {
-
-          
-
             // GET ALL SURVEYS WHICH BELONGS
             $survey =  Survey::with('questions',"business_services.business_areas")
                 ->withCount([
@@ -417,10 +412,6 @@ class SurveyController extends Controller
                 ->where([
                     "id" => $id
                 ])->first();
-
-
-
-
 
             return response()->json([
                 "success" => true,
@@ -614,13 +605,14 @@ class SurveyController extends Controller
             }
 
             // GET ALL SURVEYS WHICH BELONGS
-            $query =  Survey::with('questions',"business_services.business_areas")
+            $query = Survey::with('questions',"business_services.business_areas")
                 ->withCount([
-                    "reviews"
+                    "reviews",
                 ])
                 ->where([
-                    "business_id" => $business_id
-                ])->filter();
+                    "business_id" => $business_id,
+                ])
+                ->filter();
 
 
             $surveys = retrieve_data($query, 'order_no');

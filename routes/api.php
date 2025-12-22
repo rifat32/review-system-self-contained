@@ -394,7 +394,7 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
 
-    Route::put('/reviews/{reviewId}/reply', [ReviewNewController::class, 'updateReviewReply']);
+    Route::put('/v1.0/reviews/{reviewId}/reply', [ReviewNewController::class, 'updateReviewReply']);
 
     Route::get('/openai-tokens/report', [OpenAITokenReportController::class, 'getTokenUsageReport']);
 

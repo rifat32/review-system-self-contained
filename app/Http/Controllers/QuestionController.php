@@ -603,11 +603,10 @@ class QuestionController extends Controller
      *      @OA\RequestBody(
      *          required=true,
      *          @OA\JsonContent(
-     *              required={"question", "question_category_id", "show_in_guest_user", "show_in_user", "is_overall"},
+     *              required={"question", "show_in_user", "is_overall"},
      *              @OA\Property(property="question", type="string", example="How was your experience?"),
      *              @OA\Property(property="business_id", type="integer", nullable=true, example=1, description="Required for non-superadmin"),
-     *              @OA\Property(property="question_category_id", type="integer", example=1, description="Question category ID"),
-     *              @OA\Property(property="question_sub_category_id", type="integer", nullable=true, example=2, description="Question sub-category ID"),
+  *              @OA\Property(property="question_sub_category_ids", type="array", @OA\Items(type="integer"), nullable=true, example="[2, 3]", description="Array of question sub-category IDs"),
      *              @OA\Property(property="show_in_guest_user", type="boolean", example=true),
      *              @OA\Property(property="show_in_user", type="boolean", example=true),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
@@ -714,8 +713,7 @@ class QuestionController extends Controller
      *              @OA\Property(property="survey_id", type="integer", nullable=true, example=5),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
      *              @OA\Property(property="is_overall", type="boolean", example=false),
-     *              @OA\Property(property="question_category_id", type="integer", nullable=true, example=1),
-     *              @OA\Property(property="question_sub_category_id", type="integer", nullable=true, example=1)
+   *              @OA\Property(property="question_sub_category_ids", type="array", @OA\Items(type="integer"), nullable=true, example="[2, 3]", description="Array of question sub-category IDs"),
      *          )
      *      ),
      *

@@ -191,75 +191,76 @@ class OpenAIProcessor
         }
     }
 
-      /**
+    /**
      * Track token usage in database
      */
- /**
- * Track token usage in database
- */
-private static function trackTokenUsage(
-    ?int $businessId,
-    ?int $reviewId,
-    ?int $branchId,
-    string $model,
-    int $promptTokens,
-    int $completionTokens,
-    int $totalTokens,
-    array $metadata = []
-): OpenAITokenUsage {
-    try {
-        // Use your existing calculateCost method or adjust as needed
-        $estimatedCost = self::calculateEstimatedCost($model, $promptTokens, $completionTokens);
+    /**
+     * Track token usage in database
+     */
+    private static function trackTokenUsage(
+        ?int $businessId,
+        ?int $reviewId,
+        ?int $branchId,
+        string $model,
+        int $promptTokens,
+        int $completionTokens,
+        int $totalTokens,
+        array $metadata = []
+    ): OpenAITokenUsage {
+        try {
+            // Use your existing calculateCost method or adjust as needed
+            $estimatedCost = self::calculateEstimatedCost($model, $promptTokens, $completionTokens);
 
-        return OpenAITokenUsage::create([
-            'business_id' => $businessId,
-            'review_id' => $reviewId,
-            'branch_id' => $branchId,
-            'model' => $model,
-            'prompt_tokens' => $promptTokens,
-            'completion_tokens' => $completionTokens,
-            'total_tokens' => $totalTokens,
-            'estimated_cost' => $estimatedCost,
-            'metadata' => $metadata,
-            'created_at' => now()
-        ]);
-    } catch (\Exception $e) {
-        \Log::error('Failed to track token usage', [
-            'error' => $e->getMessage(),
-            'business_id' => $businessId,
-            'review_id' => $reviewId
-        ]);
-        
-        // Return a dummy instance to avoid breaking the flow
-        return new OpenAITokenUsage();
+            return OpenAITokenUsage::create([
+                'business_id' => $businessId,
+                'review_id' => $reviewId,
+                'branch_id' => $branchId,
+                'model' => $model,
+                'prompt_tokens' => $promptTokens,
+                'completion_tokens' => $completionTokens,
+                'total_tokens' => $totalTokens,
+                'estimated_cost' => $estimatedCost,
+                'metadata' => $metadata,
+                'created_at' => now()
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to track token usage', [
+                'error' => $e->getMessage(),
+                'business_id' => $businessId,
+                'review_id' => $reviewId
+            ]);
+
+            // Return a dummy instance to avoid breaking the flow
+            return new OpenAITokenUsage();
+        }
     }
-}
 
-/**
- * Calculate estimated cost (if not already in your model)
- */
-private static function calculateEstimatedCost(string $model, int $promptTokens, int $completionTokens): float
-{
-    $pricing = [
-        'gpt-4o-mini' => ['input' => 0.00015, 'output' => 0.0006],
-        'gpt-4o' => ['input' => 0.0025, 'output' => 0.010],
-        'gpt-3.5-turbo' => ['input' => 0.0005, 'output' => 0.0015],
-    ];
+    /**
+     * Calculate estimated cost (if not already in your model)
+     */
+    private static function calculateEstimatedCost(string $model, int $promptTokens, int $completionTokens): float
+    {
+        $pricing = [
+            'gpt-4o-mini' => ['input' => 0.00015, 'output' => 0.0006],
+            'gpt-4o' => ['input' => 0.0025, 'output' => 0.010],
+            'gpt-3.5-turbo' => ['input' => 0.0005, 'output' => 0.0015],
+        ];
 
-    $modelPricing = $pricing[$model] ?? $pricing['gpt-4o-mini'];
-    
-    $inputCost = ($promptTokens / 1000) * $modelPricing['input'];
-    $outputCost = ($completionTokens / 1000) * $modelPricing['output'];
-    
-    return $inputCost + $outputCost;
-}
+        $modelPricing = $pricing[$model] ?? $pricing['gpt-4o-mini'];
+
+        $inputCost = ($promptTokens / 1000) * $modelPricing['input'];
+        $outputCost = ($completionTokens / 1000) * $modelPricing['output'];
+
+        return $inputCost + $outputCost;
+    }
 
     /**
      * Get system prompt for OpenAI
      */
-    private static function getSystemPrompt(): string
-    {
-        return <<<PROMPT
+
+private static function getSystemPrompt(): string
+{
+    return <<<PROMPT
 You are an AI Experience Intelligence Engine. Analyze customer reviews and return ONLY valid JSON in this exact structure:
 
 {
@@ -285,7 +286,18 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
     {
       "topic": "topic name",
       "type": "complaint|praise|suggestion",
-      "confidence": 0.0 to 1.0
+      "confidence": 0.0 to 1.0,
+      "related_services": [1, 2, 3] // Array of business service IDs this theme relates to
+    }
+  ],
+  "service_analysis": [
+    {
+      "business_service_id": "service id",
+      "business_area_id": "area id",
+      "sentiment": "negative|neutral|positive",
+      "performance_score": 1-10,
+      "key_issues": ["issue1", "issue2"],
+      "strengths": ["strength1", "strength2"]
     }
   ],
   "category_analysis": [
@@ -293,7 +305,8 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
       "main_category": "Staff|Service|Food|Ambiance|Cleanliness|Price|Location|Others",
       "sub_category": "specific aspect",
       "sentiment": "negative|neutral|positive",
-      "severity": "low|medium|high"
+      "severity": "low|medium|high",
+      "related_services": [1, 2, 3] // Array of related business service IDs
     }
   ],
   "staff_intelligence": {
@@ -310,28 +323,29 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
     "training_recommendations": ["list", "of", "trainings"],
     "risk_level": "low|medium|high"
   },
-  "service_unit_intelligence": {
-    "unit_type": "service unit type",
-    "unit_id": "unit id",
-    "issues_detected": [],
-    "maintenance_required": true|false,
-    "performance_score": 1-10
-  },
   "business_insights": {
     "root_cause": "main issue identified",
     "repeat_issue_likelihood": "low|medium|high",
-    "impact_level": "low|medium|high"
+    "impact_level": "low|medium|high",
+    "affected_services": [1, 2, 3] // Array of affected business service IDs
   },
   "recommendations": {
     "business_actions": ["action items"],
     "staff_actions": ["action items"],
-    "immediate_actions": ["urgent actions if needed"]
+    "immediate_actions": ["urgent actions if needed"],
+    "service_specific_recommendations": [
+      {
+        "business_service_id": 1,
+        "recommendations": ["specific actions"]
+      }
+    ]
   },
   "alerts": {
     "triggered": true|false,
     "type": "critical|warning|info",
     "priority": "high|medium|low",
-    "message": "alert message"
+    "message": "alert message",
+    "affected_services": [1, 2, 3] // Array of affected business service IDs
   },
   "explainability": {
     "decision_basis": ["key factors"],
@@ -359,16 +373,21 @@ ANALYSIS GUIDELINES:
    - Fearful words = fear
 4. MODERATION: Mark as abusive for hate speech, threats, extreme profanity
 5. THEMES: Extract 2-5 key topics mentioned
-6. CATEGORY ANALYSIS: Map to business categories
-7. STAFF INTELLIGENCE: Analyze staff performance if mentioned
-8. RECOMMENDATIONS: Provide actionable, specific recommendations
-9. ALERTS: Trigger for safety, legal, or critical issues
-10. CONFIDENCE: Based on clarity and detail of review
+6. SERVICE_ANALYSIS: Analyze each mentioned business service separately
+7. CATEGORY ANALYSIS: Map to business categories
+8. STAFF INTELLIGENCE: Analyze staff performance if mentioned
+9. RECOMMENDATIONS: Provide actionable, specific recommendations for each service
+10. ALERTS: Trigger for safety, legal, or critical issues
+11. MULTIPLE SERVICES: If review mentions multiple services, analyze each one and their relationships
+12. CONFIDENCE: Based on clarity and detail of review
 
 Be accurate, fair, and business-focused. Return ONLY the JSON object.
 PROMPT;
-    }
+}
 
+    /**
+     * Create user message for OpenAI
+     */
     /**
      * Create user message for OpenAI
      */
@@ -377,7 +396,7 @@ PROMPT;
         $text = $payload['review_text'] ?? '';
         $rating = $payload['rating'] ?? 0;
         $staffInfo = $payload['staff_info'] ?? null;
-        $serviceInfo = $payload['service_info'] ?? null;
+        $businessServices = $payload['business_services'] ?? []; // Changed from serviceInfo
 
         $message = "REVIEW TO ANALYZE:\n";
         $message .= "Text: \"{$text}\"\n";
@@ -387,18 +406,29 @@ PROMPT;
             $message .= "Staff Mentioned: " . ($staffInfo['staff_name'] ?? 'Unknown') . " (ID: " . ($staffInfo['staff_id'] ?? '') . ")\n";
         }
 
-        if ($serviceInfo) {
-            $message .= "Service Area: " . ($serviceInfo['area_name'] ?? '') . "\n";
-            if (!empty($serviceInfo['service_name'])) {
-                $message .= "Service Type: " . $serviceInfo['service_name'] . "\n";
+        // Add information about multiple business services
+        if (!empty($businessServices)) {
+            $message .= "\nBUSINESS SERVICES MENTIONED:\n";
+            foreach ($businessServices as $index => $service) {
+                $message .= sprintf(
+                    "%d. %s (Service ID: %d) - Area: %s (Area ID: %d)\n",
+                    $index + 1,
+                    $service['business_service_name'] ?? 'Unknown',
+                    $service['business_service_id'] ?? 0,
+                    $service['business_area_name'] ?? 'Unknown',
+                    $service['business_area_id'] ?? 0
+                );
             }
         }
 
-        $message .= "\nPlease analyze this review comprehensively.";
+        $message .= "\nPlease analyze this review comprehensively, considering all mentioned business services.";
 
         return $message;
     }
 
+    /**
+     * Create payload from ReviewNew model
+     */
     /**
      * Create payload from ReviewNew model
      */
@@ -419,30 +449,24 @@ PROMPT;
             }
         }
 
-        // Get service/area info
-        $serviceInfo = null;
-        if ($review->business_area_id) {
-            $area = BusinessArea::find($review->business_area_id);
-            if ($area) {
-                $serviceInfo = [
-                    'area_name' => $area->area_name,
-                    'area_id' => $area->id
-                ];
+        // Get business services with their areas
+        $business_services = [];
 
-                if ($area->business_service_id) {
-                    $service = BusinessService::find($area->business_service_id);
-                    if ($service) {
-                        $serviceInfo['service_name'] = $service->name;
-                    }
-                }
-            }
+        foreach ($review->review_business_services as $review_business_service) {
+            $business_services[] = [
+                'business_service_id' => $review_business_service->business_service_id,
+                'business_service_name' => $review_business_service->business_service->name ?? 'Unknown Service',
+                'business_area_id' => $review_business_service->business_area_id ?? null,
+                'business_area_name' => $review_business_service->business_area->area_name ?? 'Unknown Area',
+            ];
         }
+
 
         return [
             'review_text' => $text,
             'rating' => $review->rate ?? 0,
             'staff_info' => $staffInfo,
-            'service_info' => $serviceInfo,
+            'business_services' => $business_services, // Changed from service_info to business_services (array)
             'review_id' => $review->id,
             'business_id' => $review->business_id,
             'metadata' => [
@@ -551,62 +575,66 @@ PROMPT;
 
     // In OpenAIProcessor class, update the convertForDatabase method:
 
-    private static function convertForDatabase(array $aiResult, ReviewNew $review): array
-    {
-        // Get sentiment data
-        $sentimentScore = $aiResult['sentiment']['score'] ?? 0.0;
-        $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
+   private static function convertForDatabase(array $aiResult, ReviewNew $review): array
+{
+    // Get sentiment data
+    $sentimentScore = $aiResult['sentiment']['score'] ?? 0.0;
+    $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
 
-        // Convert score from -1..1 to 0..1
-        $sentimentNormalized = ($sentimentScore + 1) / 2;
+    // Convert score from -1..1 to 0..1
+    $sentimentNormalized = ($sentimentScore + 1) / 2;
 
-        // Get confidence - check multiple possible locations
-        $confidence = 0.0;
-        if (isset($aiResult['explainability']['confidence_score'])) {
-            $confidence = $aiResult['explainability']['confidence_score'];
-        } elseif (isset($aiResult['confidence_score'])) {
-            $confidence = $aiResult['confidence_score'];
-        } elseif (isset($aiResult['_metadata']['confidence'])) {
-            $confidence = $aiResult['_metadata']['confidence'];
-        } else {
-            // Default confidence based on whether we have a proper response
-            $confidence = isset($aiResult['_fallback']) ? 0.0 : 0.8; // Default to 80% for OpenAI responses
-        }
-
-        // Get emotion
-        $emotion = $aiResult['emotion']['primary'] ?? 'neutral';
-
-        // Extract key phrases
-        $keyPhrases = [];
-        foreach ($aiResult['themes'] ?? [] as $theme) {
-            if (!empty($theme['topic'])) {
-                $keyPhrases[] = $theme['topic'];
-            }
-        }
-
-        // Extract topics
-        $topics = array_map(function ($theme) {
-            return $theme['topic'] ?? '';
-        }, $aiResult['themes'] ?? []);
-
-        return [
-            'sentiment_score' => $sentimentNormalized,
-            'sentiment' => $aiResult['sentiment'],
-            'sentiment_label' => $sentimentLabel, // Use OpenAI's label directly
-            'emotion' => $emotion,
-            'key_phrases' => json_encode(array_slice($keyPhrases, 0, 5)),
-            'topics' => json_encode(array_slice($topics, 0, 5)),
-            'moderation_results' => json_encode($aiResult['moderation'] ?? []),
-            'ai_suggestions' => json_encode($aiResult['recommendations'] ?? []),
-            'staff_suggestions' => json_encode($aiResult['staff_intelligence']['training_recommendations'] ?? []),
-            'language' => $aiResult['language']['detected'] ?? 'en',
-            'openai_raw_response' => json_encode($aiResult),
-            'is_ai_processed' => true,
-            'is_abusive' => $aiResult['moderation']['is_abusive'] ?? false,
-            'ai_confidence' => $confidence,
-            'summary' => $aiResult['summary']['one_line'] ?? ''
-        ];
+    // Get confidence - check multiple possible locations
+    $confidence = 0.0;
+    if (isset($aiResult['explainability']['confidence_score'])) {
+        $confidence = $aiResult['explainability']['confidence_score'];
+    } elseif (isset($aiResult['confidence_score'])) {
+        $confidence = $aiResult['confidence_score'];
+    } elseif (isset($aiResult['_metadata']['confidence'])) {
+        $confidence = $aiResult['_metadata']['confidence'];
+    } else {
+        // Default confidence based on whether we have a proper response
+        $confidence = isset($aiResult['_fallback']) ? 0.0 : 0.8; // Default to 80% for OpenAI responses
     }
+
+    // Get emotion
+    $emotion = $aiResult['emotion']['primary'] ?? 'neutral';
+
+    // Extract key phrases
+    $keyPhrases = [];
+    foreach ($aiResult['themes'] ?? [] as $theme) {
+        if (!empty($theme['topic'])) {
+            $keyPhrases[] = $theme['topic'];
+        }
+    }
+
+    // Extract topics
+    $topics = array_map(function ($theme) {
+        return $theme['topic'] ?? '';
+    }, $aiResult['themes'] ?? []);
+
+    // Extract service analysis
+    $serviceAnalysis = $aiResult['service_analysis'] ?? [];
+
+    return [
+        'sentiment_score' => $sentimentNormalized,
+        'sentiment' => $aiResult['sentiment'],
+        'sentiment_label' => $sentimentLabel, // Use OpenAI's label directly
+        'emotion' => $emotion,
+        'key_phrases' => json_encode(array_slice($keyPhrases, 0, 5)),
+        'topics' => json_encode(array_slice($topics, 0, 5)),
+        'moderation_results' => json_encode($aiResult['moderation'] ?? []),
+        'ai_suggestions' => json_encode($aiResult['recommendations'] ?? []),
+        'staff_suggestions' => json_encode($aiResult['staff_intelligence']['training_recommendations'] ?? []),
+        'language' => $aiResult['language']['detected'] ?? 'en',
+        'openai_raw_response' => json_encode($aiResult),
+        'is_ai_processed' => true,
+        'is_abusive' => $aiResult['moderation']['is_abusive'] ?? false,
+        'ai_confidence' => $confidence,
+        'summary' => $aiResult['summary']['one_line'] ?? '',
+        'service_analysis' => !empty($serviceAnalysis) ? json_encode($serviceAnalysis) : null // NEW: Store service analysis
+    ];
+}
 
     /**
      * Get sentiment label from score - CORRECTED VERSION
@@ -633,7 +661,7 @@ PROMPT;
     /**
      * Fallback analysis when OpenAI fails - ensure 0 confidence
      */
-  private static function getFallbackAnalysis(array $payload): array
+    private static function getFallbackAnalysis(array $payload): array
     {
         $text = $payload['review_text'] ?? '';
         $rating = $payload['rating'] ?? 0;

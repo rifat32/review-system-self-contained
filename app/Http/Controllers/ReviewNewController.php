@@ -993,6 +993,9 @@ public function updateReviewReply($reviewId, Request $request)
             'values.*.question_id' => 'required|integer',
             'values.*.tag_id' => 'nullable|integer',
             'values.*.star_id' => 'nullable|integer',
+            'business_services' => 'nullable|array',
+        'business_services.*.business_service_id' => 'required|exists:business_services,id',
+        'business_services.*.business_area_id' => 'required|exists:business_areas,id',
             // 'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
             "is_voice_review" => 'required|boolean',
         ]);
@@ -1063,8 +1066,19 @@ public function updateReviewReply($reviewId, Request $request)
             ->pluck('star_id')
             ->filter()
             ->avg();
+
         $review = ReviewNew::create($reviewData);
         storeReviewValues($review, $request->values, $business);
+
+        $businessServicesData = [];
+        foreach ($request->business_services as $service) {
+            $businessServicesData[$service['business_service_id']] = [
+                'business_area_id' => $service['business_area_id']
+            ];
+        }
+        
+        $review->businessServices()->sync($businessServicesData);
+    
 
         $responseData = [
             "success" => true,
@@ -1091,55 +1105,64 @@ public function updateReviewReply($reviewId, Request $request)
 // Updated storeReviewByGuest method with audio support
 // ##################################################
 
-    /**
-     * @OA\Post(
-     *      path="/review-new-guest/{businessId}",
-     *      operationId="storeReviewByGuest",
-     *      tags={"review"},
-     *      @OA\Parameter(
-     *          name="businessId",
-     *          in="path",
-     *          required=true,
-     *          example="1"
-     *      ),
-     *      security={{"bearerAuth": {}}},
-     *      summary="Store review by guest user with optional audio",
-     *      description="Store guest review with optional audio transcription and AI analysis",
-     *      @OA\RequestBody(
-     *          required=true,
-     *          @OA\MediaType(
-     *              mediaType="multipart/form-data",
-     *              @OA\Schema(
-     *                  required={"guest_full_name","guest_phone","description","rate","comment","values"},
-     *                  @OA\Property(property="guest_full_name", type="string", example="Rifat"),
-     *                  @OA\Property(property="guest_phone", type="string", example="0177"),
-     *                  @OA\Property(property="description", type="string", example="Test"),
-     *                  @OA\Property(property="rate", type="string", example="2.5"),
-     *                  @OA\Property(property="comment", type="string", example="Not good"),
-     *                  @OA\Property(property="is_overall", type="boolean", example=true),
-     *                  @OA\Property(property="latitude", type="number", example="23.8103"),
-     *                  @OA\Property(property="longitude", type="number", example="90.4125"),
-     *                  @OA\Property(property="staff_id", type="number", example="1"),
-     *                 @OA\Property(property="branch_id", type="number", example="1"),
-     *                  @OA\Property(property="audio", type="string", format="binary", description="Optional audio file"),
-     *                  @OA\Property(
-     *                      property="values",
-     *                      type="array",
-     *                      @OA\Items(
-     *                          @OA\Property(property="question_id", type="integer", example=1),
-     *                          @OA\Property(property="tag_id", type="integer", example=2),
-     *                          @OA\Property(property="star_id", type="integer", example=4)
-     *                      )
-     *                  )
-     *              )
-     *          )
-     *      ),
-     *      @OA\Response(response=201, description="Created successfully"),
-     *      @OA\Response(response=400, description="Bad Request"),
-     *      @OA\Response(response=401, description="Unauthenticated"),
-     *      @OA\Response(response=422, description="Unprocessable Content")
-     * )
-     */
+  /**
+ * @OA\Post(
+ *      path="/review-new-guest/{businessId}",
+ *      operationId="storeReviewByGuest",
+ *      tags={"review"},
+ *      @OA\Parameter(
+ *          name="businessId",
+ *          in="path",
+ *          required=true,
+ *          example="1"
+ *      ),
+ *      security={{"bearerAuth": {}}},
+ *      summary="Store review by guest user with optional audio",
+ *      description="Store guest review with optional audio transcription and AI analysis",
+ *      @OA\RequestBody(
+ *          required=true,
+ *          @OA\MediaType(
+ *              mediaType="multipart/form-data",
+ *              @OA\Schema(
+ *                  required={"guest_full_name","guest_phone","description","rate","comment","values"},
+ *                  @OA\Property(property="guest_full_name", type="string", example="Rifat"),
+ *                  @OA\Property(property="guest_phone", type="string", example="0177"),
+ *                  @OA\Property(property="description", type="string", example="Test"),
+ *                  @OA\Property(property="rate", type="string", example="2.5"),
+ *                  @OA\Property(property="comment", type="string", example="Not good"),
+ *                  @OA\Property(property="is_overall", type="boolean", example=true),
+ *                  @OA\Property(property="latitude", type="number", example="23.8103"),
+ *                  @OA\Property(property="longitude", type="number", example="90.4125"),
+ *                  @OA\Property(property="staff_id", type="number", example="1"),
+ *                  @OA\Property(property="branch_id", type="number", example="1"),
+ *                  @OA\Property(
+ *                      property="business_services",
+ *                      type="array",
+ *                      @OA\Items(
+ *                          @OA\Property(property="business_service_id", type="integer", example=1),
+ *                          @OA\Property(property="business_area_id", type="integer", example=1)
+ *                      ),
+ *                      description="Array of business services with their area IDs"
+ *                  ),
+ *                  @OA\Property(property="audio", type="string", format="binary", description="Optional audio file"),
+ *                  @OA\Property(
+ *                      property="values",
+ *                      type="array",
+ *                      @OA\Items(
+ *                          @OA\Property(property="question_id", type="integer", example=1),
+ *                          @OA\Property(property="tag_id", type="integer", example=2),
+ *                          @OA\Property(property="star_id", type="integer", example=4)
+ *                      )
+ *                  )
+ *              )
+ *          )
+ *      ),
+ *      @OA\Response(response=201, description="Created successfully"),
+ *      @OA\Response(response=400, description="Bad Request"),
+ *      @OA\Response(response=401, description="Unauthenticated"),
+ *      @OA\Response(response=422, description="Unprocessable Content")
+ * )
+ */
     public function storeReviewByGuest($businessId, Request $request)
     {
         $request->validate([
@@ -1157,6 +1180,9 @@ public function updateReviewReply($reviewId, Request $request)
             'values.*.question_id' => 'required|integer',
             'values.*.tag_id' => 'nullable|integer',
             'values.*.star_id' => 'nullable|integer',
+            'business_services' => 'present|array',
+        'business_services.*.business_service_id' => 'required|exists:business_services,id',
+        'business_services.*.business_area_id' => 'required|exists:business_areas,id',
             'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
             "is_voice_review" => 'required|boolean',
         ]);
@@ -1197,6 +1223,8 @@ public function updateReviewReply($reviewId, Request $request)
                 }
             }
         }
+
+
 
         $guest = GuestUser::create([
             'full_name' => $request->guest_full_name ?? 'anonymous',
@@ -1247,6 +1275,9 @@ public function updateReviewReply($reviewId, Request $request)
             "business_service_id" => $request->business_service_id ?? null,
         ];
 
+
+        
+
         // Add voice data if present
         // if ($voiceData) {
         //     $reviewData = array_merge($reviewData, $voiceData);
@@ -1254,6 +1285,17 @@ public function updateReviewReply($reviewId, Request $request)
 
         $review = ReviewNew::create($reviewData);
         storeReviewValues($review, $request->values, $business);
+
+         // Attach business services with their respective business_area_id
+
+        $businessServicesData = [];
+        foreach ($request->business_services as $service) {
+            $businessServicesData[$service['business_service_id']] = [
+                'business_area_id' => $service['business_area_id']
+            ];
+        }
+        $review->businessServices()->sync($businessServicesData);
+    
 
         $averageRating = collect($request->values)
             ->pluck('star_id')

@@ -186,7 +186,7 @@ class DashboardTestSeeder extends Seeder
             ['name' => 'Location', 'color' => '#6366f1'],
             ['name' => 'Menu Variety', 'color' => '#14b8a6'],
             ['name' => 'Drink Quality', 'color' => '#f97316'],
-            ['name' => 'Waiting Time', 'color' => '#8b5cf6'],
+            ['name' => 'Waiting Time', 'color' => '#8b5cf6']
         ];
 
         $tagModels = [];

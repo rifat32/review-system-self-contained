@@ -30,6 +30,16 @@ class BusinessService extends Model
         return $this->belongsTo(Business::class, 'business_id');
     }
 
+  public function reviews(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ReviewNew::class,
+            'review_business_services',
+            'business_service_id',
+            'review_id'
+        )->withPivot('business_area_id')
+         ->withTimestamps();
+    }
 
     public function business_areas()
     {
