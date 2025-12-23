@@ -97,10 +97,10 @@ class UserController extends Controller
             });
         }
 
-        // 
+        //
         $data = retrieve_data($userQuery);
 
-        // 
+        //
         return response()->json([
             "success" => true,
             "message" => "Customer Report",
@@ -194,10 +194,10 @@ class UserController extends Controller
             });
         }
 
-        // 
+        //
         $data = retrieve_data($userQuery);
 
-        // 
+        //
         return response()->json([
             "success" => true,
             "message" => "Owner Report",
@@ -400,6 +400,22 @@ class UserController extends Controller
      *          example="john",
      *          @OA\Schema(type="string")
      *      ),
+     *      @OA\Parameter(
+     *          name="order_by",
+     *          in="query",
+     *          description="Field to order the users by, e.g., 'name', 'email', etc.",
+     *          required=false,
+     *          example="name",
+     *          @OA\Schema(type="string")
+     *      ),
+     *      @OA\Parameter(
+     *          name="sort_order",
+     *          in="query",
+     *          description="Sort order for the users, e.g., 'asc' or 'desc'.",
+     *          required=false,
+     *          example="desc",
+     *          @OA\Schema(type="string")
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Users retrieved successfully",
@@ -471,7 +487,7 @@ class UserController extends Controller
         // ]);
 
         // Get the authenticated user's business ID
-        $business_id = $request->user()->business()->id;
+        $business_id = $request->user()->business->id;
 
         if (!$business_id) {
             return response()->json([
@@ -481,13 +497,13 @@ class UserController extends Controller
         }
 
         // Build query for users in the same business
-        $userQuery = User::where('business_id', $business_id);
+        $userQuery = User::with('roles')->where('business_id', $business_id);
 
         // Filter by role - if no role specified, show only staff and manager roles
         if (request()->filled('role')) {
-            $userQuery->where('role', request()->role);
+            $userQuery->whereHas('roles', fn($r) => $r->where('name', $request->role));
         } else {
-            $userQuery->whereIn('role', ['branch_manager', 'business_staff']);
+            $userQuery->whereHas('roles', fn($r) => $r->whereIn('name', ['branch_manager', 'business_staff']));
         }
 
         // Search functionality

@@ -407,59 +407,87 @@ class BusinessAreaController extends Controller
     {
         try {
             return DB::transaction(function () use ($request, $id) {
-                // Check authorization
+
+                // GET AUTHENTICATED USER
                 $user = $request->user();
+
+                // GET USER BUSINESS (IF USER HAS NO BUSINESS, BLOCK)
                 $business = $user->business;
-                $businessId = $business ? $business->id : null;
-                $businessArea = BusinessArea::find($id);
-
-                if (!$businessArea) {
+                if (!$business) {
                     return response()->json([
                         "success" => false,
-                        "message" => "Business area not found"
-                    ], 404);
-                }
-
-                if ($businessArea->business_id !== $businessId) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "The selected business area does not belong to your business"
+                        "message" => "USER HAS NO BUSINESS"
                     ], 403);
                 }
 
+                // GET BUSINESS ID
+                $businessId = $business->id;
+
+                // FIND BUSINESS AREA ONLY INSIDE USER BUSINESS (PREVENTS ID ENUMERATION)
+                $businessArea = BusinessArea::where('id', $id)
+                    ->where('business_id', $businessId)
+                    ->first();
+
+                // RETURN 404 IF NOT FOUND
+                if (!$businessArea) {
+                    return response()->json([
+                        "success" => false,
+                        "message" => "BUSINESS AREA NOT FOUND"
+                    ], 404);
+                }
+
+                // GET VALIDATED PAYLOAD
                 $payload_data = $request->validated();
 
-                // If business_service_id is provided, check it belongs to the business
-                if (isset($payload_data['business_service_id'])) {
+                // PREVENT CLIENT FROM CHANGING OWNERSHIP
+                unset($payload_data['business_id']);
+
+                // IF BUSINESS_SERVICE_ID PROVIDED, CHECK IT EXISTS AND BELONGS TO SAME BUSINESS
+                if (array_key_exists('business_service_id', $payload_data) && $payload_data['business_service_id'] !== null) {
+
+                    // FIND BUSINESS SERVICE
                     $businessService = BusinessService::find($payload_data['business_service_id']);
-                    if (!$businessService->business_id !== $businessArea->business_id) {
+
+                    // RETURN 404 IF BUSINESS SERVICE NOT FOUND
+                    if (!$businessService) {
                         return response()->json([
                             "success" => false,
-                            "message" => "The selected business area does not belong to the business service"
+                            "message" => "BUSINESS SERVICE NOT FOUND"
+                        ], 404);
+                    }
+
+                    // ENSURE BUSINESS SERVICE BELONGS TO AUTH USER BUSINESS
+                    if ($businessService->business_id !== $businessId) {
+                        return response()->json([
+                            "success" => false,
+                            "message" => "THE SELECTED BUSINESS SERVICE DOES NOT BELONG TO YOUR BUSINESS"
                         ], 403);
                     }
                 }
 
-                // Update the business area
+                // UPDATE BUSINESS AREA
                 $businessArea->update($payload_data);
 
-                // Load relationships for response
+                // LOAD RELATIONSHIP FOR RESPONSE
                 $businessArea->load('business_service');
 
+                // RETURN SUCCESS RESPONSE
                 return response()->json([
                     "success" => true,
-                    "message" => "Business area updated successfully",
+                    "message" => "BUSINESS AREA UPDATED SUCCESSFULLY",
                     "data" => $businessArea
                 ], 200);
             });
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
+            // RETURN SERVER ERROR RESPONSE
             return response()->json([
                 "success" => false,
-                "message" => "Something went wrong",
+                "message" => "SOMETHING WENT WRONG",
                 "original_message" => $e->getMessage()
             ], 500);
         }
     }
+
 
     /**
      * @OA\Delete(
