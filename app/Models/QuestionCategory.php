@@ -61,7 +61,7 @@ class QuestionCategory extends Model
     /**
      * Get all questions belonging to this category.
      */
-    public function questions(): HasMany
+    public function questions()
     {
         return $this->belongsToMany(
             Question::class,

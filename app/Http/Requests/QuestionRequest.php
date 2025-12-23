@@ -27,7 +27,7 @@ class QuestionRequest extends FormRequest
             'type'               => ['nullable', 'string', Rule::in(array_values(Question::QUESTION_TYPES))],
             'is_overall'         => 'required|boolean',
             'question_sub_category_ids' => 'nullable|array', // Change to array
-            'question_sub_category_ids.*' => 'integer|exists:question_sub_categories,id',
+            'question_sub_category_ids.*' => 'integer|exists:question_categories,id',
         ];
     }
 

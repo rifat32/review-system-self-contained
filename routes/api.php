@@ -29,6 +29,7 @@ use App\Http\Controllers\StarTagQuestionController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SuperAdminReportController;
 use App\Http\Controllers\SurveyController;
+use App\Http\Controllers\SurveyQuestionController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -165,9 +166,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/v1.0/business-services', [BusinessServiceController::class, 'createBusinessService']);
     Route::get('/v1.0/business-services', [BusinessServiceController::class, 'getAllBusinessServices']);
     Route::get('/v1.0/business-services/{id}', [BusinessServiceController::class, 'businessServiceById']);
+    Route::patch('/v1.0/business-services/toggle', [BusinessServiceController::class, 'businessServiceToggle']);
     Route::patch('/v1.0/business-services/{id}', [BusinessServiceController::class, 'updateBusinessService']);
     Route::delete('/v1.0/business-services/{ids}', [BusinessServiceController::class, 'deleteBusinessServices']);
-    Route::patch('/v1.0/business-services/toggle', [BusinessServiceController::class, 'businessServiceToggle']);
 
     // #################
     // Business Area Management Routes
@@ -249,6 +250,11 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/v1.0/surveys/{id}', [SurveyController::class, "deleteSurveyById"]);
 
     // ============================================================================
+    // SurveyQuestionController – Display order (protected)
+    // ============================================================================
+    Route::patch('/v1.0/survey-questions/display-order', [SurveyQuestionController::class, 'surveyQuestionDisplayOrder']);
+
+    // ============================================================================
     // RolesController – Roles/permissions (protected)
     // ============================================================================
     Route::get('/v1.0/initial-role-permissions', [RolesController::class, "getInitialRolePermissions"]);
@@ -324,9 +330,9 @@ Route::middleware(['auth:api'])->group(function () {
     // Route::put('/v1.0/review-new/set-overall-question', [QuestionController::class, "setOverallQuestion"]);
     // Route::put('/review-new/update/active_state/questions', [QuestionController::class, "updateQuestionActiveState"]);
     // Route::get('/v1.0/review-new/get/questions', [QuestionController::class, "getQuestion"]);
-     Route::get('/review-new/get/questions-all', [ReviewNewController::class, 'getQuestionAll'])->name('getQuestionAll');
+    Route::get('/review-new/get/questions-all', [ReviewNewController::class, 'getQuestionAll'])->name('getQuestionAll');
 
-     Route::get('/review-new/get/questions-all-report', [ReviewNewController::class, "getQuestionAllReport"]);
+    Route::get('/review-new/get/questions-all-report', [ReviewNewController::class, "getQuestionAllReport"]);
     // Route::get('/review-new/get/questions-all-report/guest', [ReviewNewController::class, "getQuestionAllReportGuest"]);
     // Route::get('/review-new/get/questions-all-report-by-user/{perPage}', [ReviewNewController::class, "getQuestionAllReportByUser"]);
     // Route::get('/review-new/get/questions-all-report-by-user-guest/{perPage}', [ReviewNewController::class, "getQuestionAllReportByUserGuest"]);
@@ -467,4 +473,4 @@ Route::put('/v1.0/client/reviews/update-guest-email/{ids}', [ReviewNewController
 // QuestionController – Client business questions (public client)
 // ============================================================================
 Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
- Route::get('/v1.0/client/surveys/{id}', [SurveyController::class, "getSurveyByIdClient"]);
+Route::get('/v1.0/client/surveys/{id}', [SurveyController::class, "getSurveyByIdClient"]);
