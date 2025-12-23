@@ -54,11 +54,7 @@ class ReviewNew extends Model
         "is_abusive",
         "summary"
 
-
- 
     ];
-
-
 
 
     protected $casts = [
@@ -161,7 +157,78 @@ class ReviewNew extends Model
         })
             ->when($show_published_only, function ($q) use ($businessId, $is_staff_review) {
                 $q->whereMeetsThreshold($businessId, $is_staff_review);
-            });
+            })
+            
+
+                ->when(request()->filled("question_category_id")|| request()->filled("question_sub_category_id" ), function ($q) {
+
+                        $q
+                        ->whereHas("value", function ($q) {
+                        $q->whereHas("question", function($q){
+                            $q->whereHas("question_sub_categories", function($q){
+
+                                $q
+                                ->when(request()->filled("question_sub_category_id"), function($q){
+                                    $q->where("question_categories.id", request()->input("question_sub_category_id"));
+                                })
+                                ->when(request()->filled("question_category_id"), function($q){
+                                    $q->where("question_categories.parent_id", request()->input("question_category_id"));
+                                });
+                                
+                            });
+                        });
+                    });
+                    
+                        })
+                        
+                         ->when(request()->filled("business_area_id") || request()->filled("business_service_id"), function ($q) {
+
+                        $q
+                        ->whereHas("review_business_services", function ($q) {
+             
+                                $q
+                                ->when(request()->filled("business_area_id"), function($q){
+                                    $q->where("review_business_services.id", request()->input("business_area_id"));
+                                })
+                                ->when(request()->filled("business_service_id"), function($q){
+                                    $q->where("review_business_services.business_service_id", request()->input("question_category_id"));
+                                });
+                                
+                    
+                    });
+                    
+                        });
+                        ;
+          
+
+                    //  ->when(request()->filled("business_area_id") || request()->filled("business_service_id"), function ($q) {
+
+                    //     $q->whereHas("question", function($q){
+                    //         $q->whereHas("question_sub_categories", function($q){
+
+                    //             $q
+                    //             ->when(request()->filled("question_sub_category_id"), function($q){
+                    //                 $q->where("question_categories.id", request()->input("question_sub_category_id"));
+                    //             })
+                    //             ->when(request()->filled("question_category_id"), function($q){
+                    //                 $q->where("question_categories.parent_id", request()->input("question_category_id"));
+                    //             });
+                                
+                    //         });
+                    //     });
+                    // });
+       
+
+
+
+
+
+
+
+    
+          
+            
+            
     }
 
     /**

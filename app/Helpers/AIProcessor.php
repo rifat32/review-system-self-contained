@@ -2585,9 +2585,11 @@ public static function getBranchStaffPerformance($branchId, $businessId, $startD
         return ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->whereNotNull('sentiment_score')
+             ->globalFilters(0, $businessId)
 
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
+
 
             ->withCalculatedRating()
 
@@ -2682,6 +2684,7 @@ public static function getBranchStaffPerformance($branchId, $businessId, $startD
     // Get reviews for the business with staff AND calculated rating
     $reviewsQuery = ReviewNew::where('business_id', $businessId)
         ->whereNotNull('staff_id')
+         ->globalFilters(0, $businessId)
         ->withCalculatedRating();
 
     // Apply the same filters as main query

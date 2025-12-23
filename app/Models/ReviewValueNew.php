@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class ReviewValueNew extends Model
 {
     use HasFactory;
+    
     protected $fillable = [
+
         "question_id",
         'tag_id' ,
         'star_id',

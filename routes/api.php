@@ -135,7 +135,16 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // ReportController – v3 dashboard report (protected)
     // ============================================================================
-    Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
+
+      Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
+
+      
+      Route::get('/v1.0/dashboard/monthly-trends', [ReportController::class, "getMonthlyTrends"]);
+      Route::get('/v1.0/dashboard/content', [ReportController::class, "getContentStatistics"]);
+      Route::get('/v1.0/dashboard/reviews', [ReportController::class, "getReviewStatistics"]);
+      
+     
+    
 
     // ============================================================================
     // QuestionController – CRUD & ordering (protected)

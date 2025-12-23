@@ -192,7 +192,6 @@ class QuestionController extends Controller
 
         $query = Question::with([
             'surveys' => fn($q) => $q->select('surveys.id', 'surveys.name', 'surveys.order_no'),
-          
             'question_sub_categories' => fn($q) => $q->select('question_categories.id', 'question_categories.title'),
         ]);
 
@@ -273,9 +272,10 @@ class QuestionController extends Controller
         $user = $request->user();
 
         $question = Question::with([
-            'question_sub_categories.parent',
 
-            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no'),
+            'question_sub_categories.parent',
+            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'surveys.order_no')
+
         ])->find($id);
 
         if (!$question) {
@@ -660,6 +660,8 @@ class QuestionController extends Controller
 
         $question = Question::create($data);
 
+        $question->question_sub_categories()->sync($request->question_sub_category_ids ?? []);
+
         // Attach to survey if survey_id is provided
         if ($request->filled('survey_id')) {
             SurveyQuestion::create([
@@ -669,7 +671,7 @@ class QuestionController extends Controller
         }
 
         // Load relationships for complete response
-        $question->load(['question_category', 'question_sub_category', 'surveys']);
+        $question->load(['question_sub_categories', 'surveys']);
 
         return response()->json([
             'success' => true,
@@ -779,7 +781,7 @@ class QuestionController extends Controller
 
         // Update the question
         $question->update($data);
-
+$question->question_sub_categories()->sync($request->question_sub_category_ids ?? []);
 
         $question->info = "Supported types: " . implode(", ", array_values(Question::QUESTION_TYPES));
 

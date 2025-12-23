@@ -106,10 +106,10 @@ class BranchController extends Controller
     public function getBranches(Request $request)
     {
         $user = $request->user();
-        $businessIds = Business::where('OwnerID', $user->id)->pluck('id');
+        $businessId = auth()->user()->business_id;
 
         // BRANCH QUERY
-        $query = Branch::whereIn('business_id', $businessIds)
+        $query = Branch::whereIn('business_id', $businessId)
             ->filters();
 
         // Apply sorting
@@ -122,16 +122,19 @@ class BranchController extends Controller
         $branches = retrieve_data($query);
 
         // GET SUMMARY DATA
-        $branchIds = Branch::whereIn('business_id', $businessIds)->pluck('id');
+        $branchIds = Branch::whereIn('business_id', $businessId)->pluck('id');
         $totalBranches = $branchIds->count();
 
         $avgRating = ReviewNew::whereIn('branch_id', $branchIds)
+         ->globalFilters(0, $businessId)
             ->withCalculatedRating()
             ->get()
             ->avg('calculated_rating') ?? 0;
 
 
-        $overallSentiment = ReviewNew::whereIn('branch_id', $branchIds)->avg('sentiment_score') ?? 0;
+        $overallSentiment = ReviewNew::
+        whereIn('branch_id', $branchIds)
+         ->globalFilters(0, $businessId)->avg('sentiment_score') ?? 0;
 
         // SEND RESPONSE
         return response()->json([

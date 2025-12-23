@@ -132,6 +132,7 @@ if (!function_exists('calculateDashboardMetrics')) {
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->withCalculatedRating()
+             ->globalFilters(0, $businessId)
             ->get();
 
         // Get previous period reviews WITH calculated rating
@@ -141,7 +142,9 @@ if (!function_exists('calculateDashboardMetrics')) {
                 $dateRange['start']->copy()->subDays(30),
                 $dateRange['end']->copy()->subDays(30)
             ])
+             ->globalFilters(0, $businessId)
             ->withCalculatedRating()
+            
             ->get();
 
         $total = $reviews->count();
