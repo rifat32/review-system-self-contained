@@ -191,7 +191,7 @@ class QuestionController extends Controller
         $user = $request->user();
 
         $query = Question::with([
-            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'order_no'),
+            'surveys' => fn($q) => $q->select('surveys.id', 'surveys.name', 'surveys.order_no'),
           
             'question_sub_categories' => fn($q) => $q->select('question_categories.id', 'question_categories.title'),
         ]);

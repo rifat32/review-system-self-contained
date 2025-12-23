@@ -203,9 +203,9 @@ class GuestUserReviewReport extends Command
     ->globalFilters(0,$business->id)
    
     ->whereNotNull("comment")
-    ->orderBy('order_no', 'asc')
-    
-    ;
+    ->orderBy('order_no', 'asc');
+
+
     if(!empty($start_date) && !empty($end_date)) {
 
     $data2["total_comment"] = $data2["total_comment"]->whereBetween('review_news.created_at', [
