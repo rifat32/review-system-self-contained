@@ -409,7 +409,7 @@ class BusinessAreaController extends Controller
             return DB::transaction(function () use ($request, $id) {
                 // Check authorization
                 $user = $request->user();
-                $business = $user->business()->first();
+                $business = $user->business;
                 $businessId = $business ? $business->id : null;
                 $businessArea = BusinessArea::find($id);
 
@@ -435,7 +435,7 @@ class BusinessAreaController extends Controller
                     if (!$businessService->business_id !== $businessArea->business_id) {
                         return response()->json([
                             "success" => false,
-                            "message" => "The selected business service does not belong to the business"
+                            "message" => "The selected business area does not belong to the business service"
                         ], 403);
                     }
                 }
@@ -444,7 +444,7 @@ class BusinessAreaController extends Controller
                 $businessArea->update($payload_data);
 
                 // Load relationships for response
-                $businessArea->load('business', 'business_service');
+                $businessArea->load('business_service');
 
                 return response()->json([
                     "success" => true,
