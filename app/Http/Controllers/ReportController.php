@@ -773,11 +773,11 @@ public function getReviewStatistics(Request $request)
     $isOverall = $request->input('is_overall', 0);
     
     $startDate = $request->start_date
-        ? Carbon::createFromFormat('d-m-Y', $request->start_date)->startOfDay()
+        ? Carbon::parse($request->start_date)->startOfDay()
         : Carbon::now()->startOfMonth();
 
     $endDate = $request->end_date
-        ? Carbon::createFromFormat('d-m-Y', $request->end_date)->endOfDay()
+        ? Carbon::parse($request->end_date)->endOfDay()
         : Carbon::now()->endOfMonth();
 
     $queries = $this->getBaseQueries($request, $isOverall);
@@ -896,11 +896,11 @@ public function getContentStatistics(Request $request)
     $isOverall = $request->input('is_overall', 0);
     
     $startDate = $request->start_date
-        ? Carbon::createFromFormat('d-m-Y', $request->start_date)->startOfDay()
+        ? Carbon::parse($request->start_date)->startOfDay()
         : Carbon::now()->startOfMonth();
 
     $endDate = $request->end_date
-        ? Carbon::createFromFormat('d-m-Y', $request->end_date)->endOfDay()
+        ? Carbon::parse($request->end_date)->endOfDay()
         : Carbon::now()->endOfMonth();
 
     $queries = $this->getBaseQueries($request, $isOverall);
@@ -1011,11 +1011,11 @@ public function getMonthlyTrends(Request $request)
     $isOverall = $request->input('is_overall', 0);
     
     $startDate = $request->start_date
-        ? Carbon::createFromFormat('d-m-Y', $request->start_date)->startOfDay()
+        ? Carbon::parse($request->start_date)->startOfDay()
         : Carbon::now()->startOfMonth();
 
     $endDate = $request->end_date
-        ? Carbon::createFromFormat('d-m-Y', $request->end_date)->endOfDay()
+        ? Carbon::parse($request->end_date)->endOfDay()
         : Carbon::now()->endOfMonth();
 
     $queries = $this->getBaseQueries($request, $isOverall);
@@ -1842,11 +1842,11 @@ private function generateDashboardReportV2(Request $request, $is_overall, $start
     {
         // Parse and validate date inputs
         $startDate = $request->start_date
-            ? Carbon::createFromFormat('d-m-Y', $request->start_date)->startOfDay()
+            ? Carbon::parse($request->start_date)->startOfDay()
             : Carbon::now()->startOfMonth();
 
         $endDate = $request->end_date
-            ? Carbon::createFromFormat('d-m-Y', $request->end_date)->endOfDay()
+            ? Carbon::parse($request->end_date)->endOfDay()
             : Carbon::now()->endOfMonth();
 
         $data = [];

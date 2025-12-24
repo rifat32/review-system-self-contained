@@ -84,6 +84,9 @@ class UpdateBusinessRequest extends FormRequest
             'review_labels' => 'nullable|string',
             'guest_survey_id' => ['nullable', 'integer', new ValidSurvey($this->route('businessId'))],
             'registered_user_survey_id' => ['nullable', 'integer', new ValidSurvey($this->route('businessId'))],
+
+            'default_color_threshold' => 'nullable|array',
+      
         ];
     }
 

@@ -83,6 +83,7 @@ class Business extends Model
 
     protected $casts = [
         'review_labels' => 'array',
+        'default_color_threshold' => 'array',
     ];
 
     protected $hidden = [
