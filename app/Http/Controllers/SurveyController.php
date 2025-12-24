@@ -37,8 +37,8 @@ class SurveyController extends Controller
      *    @OA\Property(property="show_in_user", type="boolean", format="boolean",example="true"),
      *    @OA\Property(property="survey_questions", type="string", format="array",example="[1,2,3]"),
 
-     *  
-     * 
+     *
+     *
      *
      *         ),
      *      ),
@@ -95,10 +95,10 @@ class SurveyController extends Controller
 
                 $survey->questions()->sync($insertable_data["survey_questions"]);
 
-                  // Sync business services if provided
-     
+                // Sync business services if provided
+
                 $survey->business_services()->sync($insertable_data["business_service_ids"]);
-            
+
 
 
 
@@ -134,8 +134,8 @@ class SurveyController extends Controller
      *    @OA\Property(property="show_in_user", type="boolean", format="boolean",example="true"),
      *   *    @OA\Property(property="survey_questions", type="string", format="array",example="[1,2,3]"),
 
-     *  
-     * 
+     *
+     *
      *
      *         ),
      *      ),
@@ -301,7 +301,7 @@ class SurveyController extends Controller
         }
     }
 
-/**
+    /**
      * @OA\Get(
      *   path="/v1.0/client/surveys/{id}",
      *   operationId="getSurveyByIdClient",
@@ -318,7 +318,7 @@ class SurveyController extends Controller
      *     @OA\Schema(type="integer", example=6)
      *   ),
      *
-    
+
      *
      *   @OA\Response(
      *     response=200,
@@ -405,13 +405,29 @@ class SurveyController extends Controller
     {
         try {
             // GET ALL SURVEYS WHICH BELONGS
-            $survey =  Survey::with('questions',"business_services.business_areas")
+            $survey =  Survey::with('questions.question_stars.star.star_tags.tag', "business_services.business_areas")
                 ->withCount([
                     "reviews"
                 ])
                 ->where([
                     "id" => $id
                 ])->first();
+
+            $questions = $survey->questions;
+            $data = json_decode(json_encode($questions), true);
+            foreach ($questions as $key1 => $question) {
+                foreach ($question->question_stars as $key2 => $questionStar) {
+                    $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
+
+                    $data[$key1]["stars"][$key2]["tags"] = [];
+                    foreach ($questionStar->star->star_tags as $key3 => $starTag) {
+                        if ($starTag->question_id == $question->id) {
+                            array_push($data[$key1]["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
+                        }
+                    }
+                }
+            }
+            $survey->questions = $data;
 
             return response()->json([
                 "success" => true,
@@ -605,7 +621,7 @@ class SurveyController extends Controller
             }
 
             // GET ALL SURVEYS WHICH BELONGS
-            $query = Survey::with('questions',"business_services.business_areas")
+            $query = Survey::with('questions', "business_services.business_areas")
                 ->withCount([
                     "reviews",
                 ])

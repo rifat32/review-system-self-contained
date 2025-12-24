@@ -434,7 +434,6 @@ class QuestionController extends Controller
      *          in="query",
      *          required=false,
      *          description="Filter by active status",
-     *          example=true,
      *          @OA\Schema(type="boolean")
      *      ),
      *      @OA\Parameter(
@@ -442,7 +441,6 @@ class QuestionController extends Controller
      *          in="query",
      *          required=false,
      *          description="Filter by overall questions only",
-     *          example=true,
      *          @OA\Schema(type="boolean")
      *      ),
      *      @OA\Parameter(
@@ -450,7 +448,6 @@ class QuestionController extends Controller
      *          in="query",
      *          required=false,
      *          description="Filter questions by specific survey",
-     *          example=5,
      *          @OA\Schema(type="integer")
      *      ),
      *
@@ -511,77 +508,65 @@ class QuestionController extends Controller
      */
     public function getAllQuestionClient(Request $request, int $business_id)
     {
-        $business = Business::where(["id" => $business_id])->first();
+        $business = Business::find($business_id);
         if (!$business) {
+            return response()->json(["success" => false, "message" => "No Business Found"], 404);
+        }
+
+        if ($request->filled('survey_id') && !Survey::whereKey($request->survey_id)->exists()) {
             return response()->json([
-                "status" => false,
-                "message" => "No Business Found"
+                "success" => false,
+                "message" => 'Survey not found: ' . $request->survey_id
             ], 404);
         }
 
-        // Validate survey_id if provided
-        if ($request->filled('survey_id')) {
-            $survey = Survey::with('questions')->find($request->survey_id);
-            if (!$survey) {
-                return response()->json([
-                    "status" => false,
-                    "message" => 'Survey not found: ' . $request->survey_id
-                ], 404);
-            }
-        }
-
-        $query = Question::with(['question_stars.star.star_tags.tag'])
-            ->when($request->filled('business_id'), function ($q) use ($request, $business_id) {
-                $q->where(function ($q2) use ($business_id) {
-                    $q2->where('questions.business_id', $business_id)
-                        ->orWhere('questions.is_default', 1);
-                });
-            }, function ($q) use ($business_id) {
-                // Default to the provided business_id if none in request
-                $q->where(function ($q2) use ($business_id) {
-                    $q2->where('questions.business_id', $business_id)
-                        ->orWhere('questions.is_default', 1);
-                });
+        $query = Question::with(['question_stars'])
+            ->where(function ($q) use ($business_id) {
+                $q->where('business_id', $business_id)
+                    ->orWhere('is_default', 1);
             })
-            ->when($request->filled('is_active'), function ($q) use ($request) {
-                $q->where('questions.is_active', $request->input('is_active'));
+            ->when($request->has('is_active'), function ($q) use ($request) {
+                $q->where('is_active', (int) $request->input('is_active'));
             })
-            ->when($request->filled('is_overall'), function ($q) use ($request) {
-                $q->when($request->boolean('is_overall'), function ($q) {
-                    $q->where('questions.is_overall', 1);
-                }, function ($q) {
-                    $q->where('questions.is_overall', 0);
-                });
+            ->when($request->has('is_overall'), function ($q) use ($request) {
+                $q->where('is_overall', $request->boolean('is_overall') ? 1 : 0);
             })
             ->when($request->filled('survey_id'), function ($q) use ($request) {
                 $surveyId = $request->input('survey_id');
-                $q->whereHas('surveys', function ($sub) use ($surveyId) {
-                    $sub->where('surveys.id', $surveyId);
-                });
+                $q->whereHas('surveys', fn($sub) => $sub->where('surveys.id', $surveyId));
             });
 
         $questions = $query->get();
 
         $data = json_decode(json_encode($questions), true);
-        foreach ($questions as $key1 => $question) {
-            foreach ($question->question_stars as $key2 => $questionStar) {
-                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
 
+        foreach ($questions as $key1 => $question) {
+            $data[$key1]['stars'] = [];
+
+            foreach ($question->question_stars as $key2 => $questionStar) {
+                if (!$questionStar->star) continue;
+
+                $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
                 $data[$key1]["stars"][$key2]["tags"] = [];
-                foreach ($questionStar->star->star_tags as $key3 => $starTag) {
-                    if ($starTag->question_id == $question->id) {
+
+                foreach ($questionStar->star->star_tags as $starTag) {
+                    if ((int)$starTag->question_id === (int)$question->id) {
                         array_push($data[$key1]["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
                     }
                 }
             }
+
+            // Remove the original question_stars to avoid duplication
+            unset($data[$key1]['question_stars']);
         }
 
         return response()->json([
-            "status" => true,
+            "success" => true,
             "message" => "Questions retrieved successfully",
             "data" => $data
         ], 200);
     }
+
 
     // ##################################################
     // This method is to store question
