@@ -1067,19 +1067,21 @@ class ReviewNewController extends Controller
         storeReviewValues($review, $request->values, $business);
 
         $businessServicesData = [];
-        foreach ($request->business_services as $service) {
-            $businessServicesData[$service['business_service_id']] = [
-                'business_area_id' => $service['business_area_id']
-            ];
+        if (is_array($request->business_services) && count($request->business_services) > 0) {
+            foreach ($request->business_services as $service) {
+                $businessServicesData[$service['business_service_id']] = [
+                    'business_area_id' => $service['business_area_id']
+                ];
+            }
         }
 
-        $review->businessServices()->sync($businessServicesData);
+        $review->business_services()->sync($businessServicesData);
 
 
         $responseData = [
             "success" => true,
             "message" => "created successfully",
-            "average_rating" => $averageRating,
+            "averageRating" => $averageRating,
             "review_id" => $review->id,
             "review" => $review,
 
@@ -1286,17 +1288,17 @@ class ReviewNewController extends Controller
                 'business_area_id' => $service['business_area_id']
             ];
         }
-        $review->businessServices()->sync($businessServicesData);
+        $review->business_services()->sync($businessServicesData);
 
 
-        $averageRating = collect($request->values)
+        $average_rating = collect($request->values)
             ->pluck('star_id')
             ->filter()
             ->avg();
 
         $responseData = [
             "message" => "created successfully",
-            "averageRating" => $averageRating,
+            "averageRating" => $average_rating,
             "review_id" => $review->id,
             "review" => $review,
         ];
