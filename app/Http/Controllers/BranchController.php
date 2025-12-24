@@ -105,36 +105,29 @@ class BranchController extends Controller
 
     public function getBranches(Request $request)
     {
-        $user = $request->user();
-        $businessId = auth()->user()->business_id;
+        $business = $request->user()->business;
+        $businessId = $business->id;
 
         // BRANCH QUERY
-        $query = Branch::whereIn('business_id', $businessId)
+        $query = Branch::where('business_id', $businessId)
             ->filters();
-
-        // Apply sorting
-        if ($request->has('sort_by')) {
-            $sortOrder = $request->sort_order ?? 'asc';
-            $query->orderBy($request->sort_by, $sortOrder);
-        }
 
         // GET BRANCHES WITH PAGINATED DATA
         $branches = retrieve_data($query);
 
         // GET SUMMARY DATA
-        $branchIds = Branch::whereIn('business_id', $businessId)->pluck('id');
+        $branchIds = Branch::where('business_id', $businessId)->pluck('id');
         $totalBranches = $branchIds->count();
 
         $avgRating = ReviewNew::whereIn('branch_id', $branchIds)
-         ->globalFilters(0, $businessId)
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating()
             ->get()
             ->avg('calculated_rating') ?? 0;
 
 
-        $overallSentiment = ReviewNew::
-        whereIn('branch_id', $branchIds)
-         ->globalFilters(0, $businessId)->avg('sentiment_score') ?? 0;
+        $overallSentiment = ReviewNew::whereIn('branch_id', $branchIds)
+            ->globalFilters(0, $businessId)->avg('sentiment_score') ?? 0;
 
         // SEND RESPONSE
         return response()->json([

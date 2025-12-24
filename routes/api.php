@@ -17,6 +17,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessServiceController;
 use App\Http\Controllers\BusinessAreaController;
+use App\Http\Controllers\EmailController;
 use App\Http\Controllers\LeafletController;
 use App\Http\Controllers\OpenAITokenReportController;
 use App\Http\Controllers\QuestionCategoryController;
@@ -136,15 +137,15 @@ Route::middleware(['auth:api'])->group(function () {
     // ReportController – v3 dashboard report (protected)
     // ============================================================================
 
-      Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
+    Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
 
-      
-      Route::get('/v1.0/dashboard/monthly-trends', [ReportController::class, "getMonthlyTrends"]);
-      Route::get('/v1.0/dashboard/content', [ReportController::class, "getContentStatistics"]);
-      Route::get('/v1.0/dashboard/reviews', [ReportController::class, "getReviewStatistics"]);
-      
-     
-    
+
+    Route::get('/v1.0/dashboard/monthly-trends', [ReportController::class, "getMonthlyTrends"]);
+    Route::get('/v1.0/dashboard/content', [ReportController::class, "getContentStatistics"]);
+    Route::get('/v1.0/dashboard/reviews', [ReportController::class, "getReviewStatistics"]);
+
+
+
 
     // ============================================================================
     // QuestionController – CRUD & ordering (protected)
@@ -262,6 +263,7 @@ Route::middleware(['auth:api'])->group(function () {
     // SurveyQuestionController – Display order (protected)
     // ============================================================================
     Route::patch('/v1.0/survey-questions/display-order', [SurveyQuestionController::class, 'surveyQuestionDisplayOrder']);
+    Route::get('/v1.0/survey-questions', [SurveyQuestionController::class, 'getBySurveyAndQuestionIds']);
 
     // ============================================================================
     // RolesController – Roles/permissions (protected)
@@ -483,3 +485,4 @@ Route::put('/v1.0/client/reviews/update-guest-email/{ids}', [ReviewNewController
 // ============================================================================
 Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
 Route::get('/v1.0/client/surveys/{id}', [SurveyController::class, "getSurveyByIdClient"]);
+Route::post('/v1.0/client/email/send-email', [EmailController::class, "sendEmail"]);

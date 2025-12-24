@@ -20,9 +20,9 @@ use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-private function generateDashboardReportV3unused(Request $request, $is_overall, $startDate, $endDate)
+    private function generateDashboardReportV3unused(Request $request, $is_overall, $startDate, $endDate)
     {
-   
+
 
         // Get reviews with calculated rating for the date range
         $reviews = (clone $review_query)
@@ -670,572 +670,572 @@ private function generateDashboardReportV3unused(Request $request, $is_overall, 
 
         return $data;
     }
-private function getBaseQueries(Request $request, $isOverall)
-{
-    $businessId = $request->businessId;
-    
-    $baseReviewQuery = ReviewNew::query()
-        ->when(
-            !$request->user()->hasRole('superadmin'),
-            fn ($q) => $q->where('review_news.business_id', $businessId)
-        )
-        ->globalFilters(0, $businessId)
-        ->orderBy('review_news.order_no', 'asc')
-        ->filterByOverall($isOverall)
-        ->select('review_news.*')
-        ->withCalculatedRating();
+    private function getBaseQueries(Request $request, $isOverall)
+    {
+        $businessId = $request->businessId;
 
-    return [
-        'base_review' => $baseReviewQuery,
-        'guest_review' => (clone $baseReviewQuery)->whereNull('user_id'),
-        'customer_review' => (clone $baseReviewQuery)->whereNull('guest_id'),
-        'authenticated_customer' => (clone $baseReviewQuery)->whereNotNull('user_id'),
-        'question' => Question::when(
-            !$request->user()->hasRole('superadmin'),
-            fn ($q) => $q->where('business_id', $businessId)
-        )->filterByOverall($isOverall),
-        'tag' => Tag::when(
-            !$request->user()->hasRole('superadmin'),
-            fn ($q) => $q->where('business_id', $businessId)
-        )->filterByOverall($isOverall)
-    ];
-}
+        $baseReviewQuery = ReviewNew::query()
+            ->when(
+                !$request->user()->hasRole('superadmin'),
+                fn($q) => $q->where('review_news.business_id', $businessId)
+            )
+            ->globalFilters(0, $businessId)
+            ->orderBy('review_news.order_no', 'asc')
+            ->filterByOverall($isOverall)
+            ->select('review_news.*')
+            ->withCalculatedRating();
 
-private function getDateRanges($startDate, $endDate)
-{
-    $now = Carbon::now();
-    
-    return [
-        'today' => Carbon::today(),
-        'this_week' => [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()],
-        'previous_week' => [$now->copy()->subWeek()->startOfWeek(), $now->copy()->subWeek()->endOfWeek()],
-        'this_month_start' => now()->subDays(30)->endOfDay(),
-        'previous_month_range' => [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()],
-        'start_date' => $startDate,
-        'end_date' => $endDate,
-        'now' => $now,
-        'number_of_months' => $startDate->diffInMonths($endDate)
-    ];
-}
-
-
-/**
- * @OA\Get(
- *      path="/v1.0/dashboard/reviews",
- *      operationId="getReviewStatistics",
- *      tags={"dashboard"},
- *      @OA\Parameter(
- *         name="businessId",
- *         in="query",
- *         description="businessId",
- *         required=false,
- *         example="1"
- *      ),
- *      @OA\Parameter(
- *         name="start_date",
- *         in="query",
- *         description="Start date in d-m-Y format",
- *         required=false,
- *         example="01-12-2025"
- *      ),
- *      @OA\Parameter(
- *         name="end_date",
- *         in="query",
- *         description="End date in d-m-Y format",
- *         required=false,
- *         example="31-12-2025"
- *      ),
- *      @OA\Parameter(
- *         name="is_overall",
- *         in="query",
- *         description="0 for survey, 1 for overall",
- *         required=false,
- *         example="0"
- *      ),
- *      security={
- *          {"bearerAuth": {}}
- *      },
- *      summary="Get review statistics",
- *      description="Get detailed review statistics including guest and customer breakdown",
- *      @OA\Response(
- *          response=200,
- *          description="Successful operation",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=true),
- *              @OA\Property(property="message", type="string", example="Review statistics retrieved successfully"),
- *              @OA\Property(property="data", type="object")
- *          )
- *      )
- * )
- */
-public function getReviewStatistics(Request $request)
-{
-    $isOverall = $request->input('is_overall', 0);
-    
-    $startDate = $request->start_date
-        ? Carbon::parse($request->start_date)->startOfDay()
-        : Carbon::now()->startOfMonth();
-
-    $endDate = $request->end_date
-        ? Carbon::parse($request->end_date)->endOfDay()
-        : Carbon::now()->endOfMonth();
-
-    $queries = $this->getBaseQueries($request, $isOverall);
-    $dateRanges = $this->getDateRanges($startDate, $endDate);
-
-    $data = [
-        // Today
-        'today_total_reviews' => (clone $queries['base_review'])
-            ->whereDate('created_at', $dateRanges['today'])
-            ->count(),
-
-        // Weekly
-        'this_week_total_reviews' => (clone $queries['base_review'])
-            ->whereBetween('created_at', $dateRanges['this_week'])
-            ->count(),
-        'previous_week_total_reviews' => (clone $queries['base_review'])
-            ->whereBetween('created_at', $dateRanges['previous_week'])
-            ->count(),
-        'this_week_guest_review_count' => (clone $queries['guest_review'])
-            ->whereBetween('created_at', $dateRanges['this_week'])
-            ->count(),
-        'previous_week_guest_review_count' => (clone $queries['guest_review'])
-            ->whereBetween('created_at', $dateRanges['previous_week'])
-            ->count(),
-        'this_week_customer_review_count' => (clone $queries['customer_review'])
-            ->whereBetween('created_at', $dateRanges['this_week'])
-            ->count(),
-        'previous_week_customer_review_count' => (clone $queries['customer_review'])
-            ->whereBetween('created_at', $dateRanges['previous_week'])
-            ->count(),
-
-        // Monthly
-        'this_month_total_reviews' => (clone $queries['base_review'])
-            ->where('created_at', '>', $dateRanges['this_month_start'])
-            ->count(),
-        'previous_month_total_reviews' => (clone $queries['base_review'])
-            ->whereBetween('created_at', $dateRanges['previous_month_range'])
-            ->count(),
-        'this_month_guest_review_count' => (clone $queries['guest_review'])
-            ->where('created_at', '>', $dateRanges['this_month_start'])
-            ->count(),
-        'previous_month_guest_review_count' => (clone $queries['guest_review'])
-            ->whereBetween('created_at', $dateRanges['previous_month_range'])
-            ->count(),
-        'this_month_customer_review_count' => (clone $queries['customer_review'])
-            ->where('created_at', '>', $dateRanges['this_month_start'])
-            ->count(),
-        'previous_month_customer_review_count' => (clone $queries['customer_review'])
-            ->whereBetween('created_at', $dateRanges['previous_month_range'])
-            ->count(),
-
-        // Totals
-        'total_reviews' => (clone $queries['base_review'])->count(),
-        'total_guest_review_count' => (clone $queries['guest_review'])->count(),
-        'total_customer_review_count' => (clone $queries['customer_review'])->count(),
-    ];
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Review statistics retrieved successfully',
-        'data' => $data
-    ], 200);
-}
-
-/**
- * @OA\Get(
- *      path="/v1.0/dashboard/content",
- *      operationId="getContentStatistics",
- *      tags={"dashboard"},
- *      @OA\Parameter(
- *         name="businessId",
- *         in="query",
- *         description="businessId",
- *         required=false,
- *         example="1"
- *      ),
- *      @OA\Parameter(
- *         name="start_date",
- *         in="query",
- *         description="Start date in d-m-Y format",
- *         required=false,
- *         example="01-12-2025"
- *      ),
- *      @OA\Parameter(
- *         name="end_date",
- *         in="query",
- *         description="End date in d-m-Y format",
- *         required=false,
- *         example="31-12-2025"
- *      ),
- *      @OA\Parameter(
- *         name="is_overall",
- *         in="query",
- *         description="0 for survey, 1 for overall",
- *         required=false,
- *         example="0"
- *      ),
- *      security={
- *          {"bearerAuth": {}}
- *      },
- *      summary="Get question and tag statistics",
- *      description="Get question and tag count and trends",
- *      @OA\Response(
- *          response=200,
- *          description="Successful operation",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=true),
- *              @OA\Property(property="message", type="string", example="Content statistics retrieved successfully"),
- *              @OA\Property(property="data", type="object")
- *          )
- *      )
- * )
- */
-public function getContentStatistics(Request $request)
-{
-    $isOverall = $request->input('is_overall', 0);
-    
-    $startDate = $request->start_date
-        ? Carbon::parse($request->start_date)->startOfDay()
-        : Carbon::now()->startOfMonth();
-
-    $endDate = $request->end_date
-        ? Carbon::parse($request->end_date)->endOfDay()
-        : Carbon::now()->endOfMonth();
-
-    $queries = $this->getBaseQueries($request, $isOverall);
-    $dateRanges = $this->getDateRanges($startDate, $endDate);
-
-    $data = [
-        'questions' => [
-            // Weekly
-            'this_week_question_count' => (clone $queries['question'])
-                ->whereBetween('created_at', $dateRanges['this_week'])
-                ->count(),
-            'previous_week_question_count' => (clone $queries['question'])
-                ->whereBetween('created_at', $dateRanges['previous_week'])
-                ->count(),
-            
-            // Monthly
-            'this_month_question_count' => (clone $queries['question'])
-                ->where('created_at', '>', $dateRanges['this_month_start'])
-                ->count(),
-            'previous_month_question_count' => (clone $queries['question'])
-                ->whereBetween('created_at', $dateRanges['previous_month_range'])
-                ->count(),
-            
-            // Total
-            'total_question_count' => (clone $queries['question'])->count(),
-        ],
-        
-        'tags' => [
-            // Weekly
-            'this_week_tag_count' => (clone $queries['tag'])
-                ->whereBetween('created_at', $dateRanges['this_week'])
-                ->count(),
-            'previous_week_tag_count' => (clone $queries['tag'])
-                ->whereBetween('created_at', $dateRanges['previous_week'])
-                ->count(),
-            
-            // Monthly
-            'this_month_tag_count' => (clone $queries['tag'])
-                ->where('created_at', '>', $dateRanges['this_month_start'])
-                ->count(),
-            'previous_month_tag_count' => (clone $queries['tag'])
-                ->whereBetween('created_at', $dateRanges['previous_month_range'])
-                ->count(),
-            
-            // Total
-            'total_tag_count' => (clone $queries['tag'])->count(),
-        ]
-    ];
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Content statistics retrieved successfully',
-        'data' => $data
-    ], 200);
-}
-
-/**
- * @OA\Get(
- *      path="/v1.0/dashboard/monthly-trends",
- *      operationId="getMonthlyTrends",
- *      tags={"dashboard"},
- *      @OA\Parameter(
- *         name="businessId",
- *         in="query",
- *         description="businessId",
- *         required=false,
- *         example="1"
- *      ),
- *      @OA\Parameter(
- *         name="start_date",
- *         in="query",
- *         description="Start date in d-m-Y format",
- *         required=false,
- *         example="01-12-2025"
- *      ),
- *      @OA\Parameter(
- *         name="end_date",
- *         in="query",
- *         description="End date in d-m-Y format",
- *         required=false,
- *         example="31-12-2025"
- *      ),
- *      @OA\Parameter(
- *         name="is_overall",
- *         in="query",
- *         description="0 for survey, 1 for overall",
- *         required=false,
- *         example="0"
- *      ),
- *      security={
- *          {"bearerAuth": {}}
- *      },
- *      summary="Get monthly trends data",
- *      description="Get monthly data for charts and graphs",
- *      @OA\Response(
- *          response=200,
- *          description="Successful operation",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=true),
- *              @OA\Property(property="message", type="string", example="Monthly trends retrieved successfully"),
- *              @OA\Property(property="data", type="object")
- *          )
- *      )
- * )
- */
-public function getMonthlyTrends(Request $request)
-{
-    $isOverall = $request->input('is_overall', 0);
-    
-    $startDate = $request->start_date
-        ? Carbon::parse($request->start_date)->startOfDay()
-        : Carbon::now()->startOfMonth();
-
-    $endDate = $request->end_date
-        ? Carbon::parse($request->end_date)->endOfDay()
-        : Carbon::now()->endOfMonth();
-
-    $queries = $this->getBaseQueries($request, $isOverall);
-    $dateRanges = $this->getDateRanges($startDate, $endDate);
-    
-    $monthlyData = [
-        'monthly_reviews' => [],
-        'guest_review_count_monthly' => [],
-        'customer_review_count_monthly' => [],
-        'customers_monthly' => []
-    ];
-
-    for ($i = 0; $i <= $dateRanges['number_of_months']; $i++) {
-        $start = $dateRanges['now']->copy()->startOfMonth()->subMonths($i);
-        $end = $dateRanges['now']->copy()->endOfMonth()->subMonths($i);
-        $month = $start->format('F');
-
-        $monthlyData['monthly_reviews'][$i] = [
-            'month' => $month,
-            'value' => (clone $queries['base_review'])
-                ->whereBetween('created_at', [$start, $end])
-                ->count(),
-        ];
-
-        $monthlyData['guest_review_count_monthly'][$i] = [
-            'month' => $month,
-            'value' => (clone $queries['guest_review'])
-                ->whereBetween('created_at', [$start, $end])
-                ->count(),
-        ];
-
-        $monthlyData['customer_review_count_monthly'][$i] = [
-            'month' => $month,
-            'value' => (clone $queries['customer_review'])
-                ->whereBetween('created_at', [$start, $end])
-                ->count(),
-        ];
-
-        $monthlyData['customers_monthly'][$i] = [
-            'month' => $month,
-            'value' => (clone $queries['authenticated_customer'])
-                ->whereBetween('created_at', [$start, $end])
-                ->distinct()
-                ->count(),
+        return [
+            'base_review' => $baseReviewQuery,
+            'guest_review' => (clone $baseReviewQuery)->whereNull('user_id'),
+            'customer_review' => (clone $baseReviewQuery)->whereNull('guest_id'),
+            'authenticated_customer' => (clone $baseReviewQuery)->whereNotNull('user_id'),
+            'question' => Question::when(
+                !$request->user()->hasRole('superadmin'),
+                fn($q) => $q->where('business_id', $businessId)
+            )->filterByOverall($isOverall),
+            'tag' => Tag::when(
+                !$request->user()->hasRole('superadmin'),
+                fn($q) => $q->where('business_id', $businessId)
+            )->filterByOverall($isOverall)
         ];
     }
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Monthly trends retrieved successfully',
-        'data' => $monthlyData
-    ], 200);
-}
+    private function getDateRanges($startDate, $endDate)
+    {
+        $now = Carbon::now();
+
+        return [
+            'today' => Carbon::today(),
+            'this_week' => [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()],
+            'previous_week' => [$now->copy()->subWeek()->startOfWeek(), $now->copy()->subWeek()->endOfWeek()],
+            'this_month_start' => now()->subDays(30)->endOfDay(),
+            'previous_month_range' => [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()],
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'now' => $now,
+            'number_of_months' => $startDate->diffInMonths($endDate)
+        ];
+    }
 
 
-private function generateDashboardReportV2(Request $request, $is_overall, $startDate, $endDate)
-{
-    $businessId = $request->businessId;
-    $data = [];
-    $now = Carbon::now();
-    $numberOfMonths = $startDate->diffInMonths($endDate);
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/reviews",
+     *      operationId="getReviewStatistics",
+     *      tags={"dashboard_management"},
+     *      @OA\Parameter(
+     *         name="businessId",
+     *         in="query",
+     *         description="businessId",
+     *         required=false,
+     *         example="1"
+     *      ),
+     *      @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date in d-m-Y format",
+     *         required=false,
+     *         example="01-12-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date in d-m-Y format",
+     *         required=false,
+     *         example="31-12-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="is_overall",
+     *         in="query",
+     *         description="0 for survey, 1 for overall",
+     *         required=false,
+     *         example="0"
+     *      ),
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get review statistics",
+     *      description="Get detailed review statistics including guest and customer breakdown",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Review statistics retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      )
+     * )
+     */
+    public function getReviewStatistics(Request $request)
+    {
+        $isOverall = $request->input('is_overall', 0);
 
-    /* =========================
+        $startDate = $request->start_date
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::now()->startOfMonth();
+
+    $endDate = $request->end_date
+        ? Carbon::parse($request->end_date)->endOfDay()
+        : Carbon::now()->endOfMonth();
+
+        $queries = $this->getBaseQueries($request, $isOverall);
+        $dateRanges = $this->getDateRanges($startDate, $endDate);
+
+        $data = [
+            // Today
+            'today_total_reviews' => (clone $queries['base_review'])
+                ->whereDate('created_at', $dateRanges['today'])
+                ->count(),
+
+            // Weekly
+            'this_week_total_reviews' => (clone $queries['base_review'])
+                ->whereBetween('created_at', $dateRanges['this_week'])
+                ->count(),
+            'previous_week_total_reviews' => (clone $queries['base_review'])
+                ->whereBetween('created_at', $dateRanges['previous_week'])
+                ->count(),
+            'this_week_guest_review_count' => (clone $queries['guest_review'])
+                ->whereBetween('created_at', $dateRanges['this_week'])
+                ->count(),
+            'previous_week_guest_review_count' => (clone $queries['guest_review'])
+                ->whereBetween('created_at', $dateRanges['previous_week'])
+                ->count(),
+            'this_week_customer_review_count' => (clone $queries['customer_review'])
+                ->whereBetween('created_at', $dateRanges['this_week'])
+                ->count(),
+            'previous_week_customer_review_count' => (clone $queries['customer_review'])
+                ->whereBetween('created_at', $dateRanges['previous_week'])
+                ->count(),
+
+            // Monthly
+            'this_month_total_reviews' => (clone $queries['base_review'])
+                ->where('created_at', '>', $dateRanges['this_month_start'])
+                ->count(),
+            'previous_month_total_reviews' => (clone $queries['base_review'])
+                ->whereBetween('created_at', $dateRanges['previous_month_range'])
+                ->count(),
+            'this_month_guest_review_count' => (clone $queries['guest_review'])
+                ->where('created_at', '>', $dateRanges['this_month_start'])
+                ->count(),
+            'previous_month_guest_review_count' => (clone $queries['guest_review'])
+                ->whereBetween('created_at', $dateRanges['previous_month_range'])
+                ->count(),
+            'this_month_customer_review_count' => (clone $queries['customer_review'])
+                ->where('created_at', '>', $dateRanges['this_month_start'])
+                ->count(),
+            'previous_month_customer_review_count' => (clone $queries['customer_review'])
+                ->whereBetween('created_at', $dateRanges['previous_month_range'])
+                ->count(),
+
+            // Totals
+            'total_reviews' => (clone $queries['base_review'])->count(),
+            'total_guest_review_count' => (clone $queries['guest_review'])->count(),
+            'total_customer_review_count' => (clone $queries['customer_review'])->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review statistics retrieved successfully',
+            'data' => $data
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/content",
+     *      operationId="getContentStatistics",
+     *      tags={"dashboard_management"},
+     *      @OA\Parameter(
+     *         name="businessId",
+     *         in="query",
+     *         description="businessId",
+     *         required=false,
+     *         example="1"
+     *      ),
+     *      @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date in d-m-Y format",
+     *         required=false,
+     *         example="01-12-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date in d-m-Y format",
+     *         required=false,
+     *         example="31-12-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="is_overall",
+     *         in="query",
+     *         description="0 for survey, 1 for overall",
+     *         required=false,
+     *         example="0"
+     *      ),
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get question and tag statistics",
+     *      description="Get question and tag count and trends",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Content statistics retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      )
+     * )
+     */
+    public function getContentStatistics(Request $request)
+    {
+        $isOverall = $request->input('is_overall', 0);
+
+        $startDate = $request->start_date
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::now()->startOfMonth();
+
+    $endDate = $request->end_date
+        ? Carbon::parse($request->end_date)->endOfDay()
+        : Carbon::now()->endOfMonth();
+
+        $queries = $this->getBaseQueries($request, $isOverall);
+        $dateRanges = $this->getDateRanges($startDate, $endDate);
+
+        $data = [
+            'questions' => [
+                // Weekly
+                'this_week_question_count' => (clone $queries['question'])
+                    ->whereBetween('created_at', $dateRanges['this_week'])
+                    ->count(),
+                'previous_week_question_count' => (clone $queries['question'])
+                    ->whereBetween('created_at', $dateRanges['previous_week'])
+                    ->count(),
+
+                // Monthly
+                'this_month_question_count' => (clone $queries['question'])
+                    ->where('created_at', '>', $dateRanges['this_month_start'])
+                    ->count(),
+                'previous_month_question_count' => (clone $queries['question'])
+                    ->whereBetween('created_at', $dateRanges['previous_month_range'])
+                    ->count(),
+
+                // Total
+                'total_question_count' => (clone $queries['question'])->count(),
+            ],
+
+            'tags' => [
+                // Weekly
+                'this_week_tag_count' => (clone $queries['tag'])
+                    ->whereBetween('created_at', $dateRanges['this_week'])
+                    ->count(),
+                'previous_week_tag_count' => (clone $queries['tag'])
+                    ->whereBetween('created_at', $dateRanges['previous_week'])
+                    ->count(),
+
+                // Monthly
+                'this_month_tag_count' => (clone $queries['tag'])
+                    ->where('created_at', '>', $dateRanges['this_month_start'])
+                    ->count(),
+                'previous_month_tag_count' => (clone $queries['tag'])
+                    ->whereBetween('created_at', $dateRanges['previous_month_range'])
+                    ->count(),
+
+                // Total
+                'total_tag_count' => (clone $queries['tag'])->count(),
+            ]
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Content statistics retrieved successfully',
+            'data' => $data
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/monthly-trends",
+     *      operationId="getMonthlyTrends",
+     *      tags={"dashboard_management"},
+     *      @OA\Parameter(
+     *         name="businessId",
+     *         in="query",
+     *         description="businessId",
+     *         required=false,
+     *         example="1"
+     *      ),
+     *      @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date in d-m-Y format",
+     *         required=false,
+     *         example="01-12-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date in d-m-Y format",
+     *         required=false,
+     *         example="31-12-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="is_overall",
+     *         in="query",
+     *         description="0 for survey, 1 for overall",
+     *         required=false,
+     *         example="0"
+     *      ),
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get monthly trends data",
+     *      description="Get monthly data for charts and graphs",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Monthly trends retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      )
+     * )
+     */
+    public function getMonthlyTrends(Request $request)
+    {
+        $isOverall = $request->input('is_overall', 0);
+
+        $startDate = $request->start_date
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::now()->startOfMonth();
+
+    $endDate = $request->end_date
+        ? Carbon::parse($request->end_date)->endOfDay()
+        : Carbon::now()->endOfMonth();
+
+        $queries = $this->getBaseQueries($request, $isOverall);
+        $dateRanges = $this->getDateRanges($startDate, $endDate);
+
+        $monthlyData = [
+            'monthly_reviews' => [],
+            'guest_review_count_monthly' => [],
+            'customer_review_count_monthly' => [],
+            'customers_monthly' => []
+        ];
+
+        for ($i = 0; $i <= $dateRanges['number_of_months']; $i++) {
+            $start = $dateRanges['now']->copy()->startOfMonth()->subMonths($i);
+            $end = $dateRanges['now']->copy()->endOfMonth()->subMonths($i);
+            $month = $start->format('F');
+
+            $monthlyData['monthly_reviews'][$i] = [
+                'month' => $month,
+                'value' => (clone $queries['base_review'])
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count(),
+            ];
+
+            $monthlyData['guest_review_count_monthly'][$i] = [
+                'month' => $month,
+                'value' => (clone $queries['guest_review'])
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count(),
+            ];
+
+            $monthlyData['customer_review_count_monthly'][$i] = [
+                'month' => $month,
+                'value' => (clone $queries['customer_review'])
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count(),
+            ];
+
+            $monthlyData['customers_monthly'][$i] = [
+                'month' => $month,
+                'value' => (clone $queries['authenticated_customer'])
+                    ->whereBetween('created_at', [$start, $end])
+                    ->distinct()
+                    ->count(),
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Monthly trends retrieved successfully',
+            'data' => $monthlyData
+        ], 200);
+    }
+
+
+    private function generateDashboardReportV2(Request $request, $is_overall, $startDate, $endDate)
+    {
+        $businessId = $request->businessId;
+        $data = [];
+        $now = Carbon::now();
+        $numberOfMonths = $startDate->diffInMonths($endDate);
+
+        /* =========================
      | Date Ranges
      ========================= */
-    $today = Carbon::today();
-    $thisWeek = [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()];
-    $previousWeek = [$now->copy()->subWeek()->startOfWeek(), $now->copy()->subWeek()->endOfWeek()];
-    $thisMonthStart = now()->subDays(30)->endOfDay();
-    $previousMonthRange = [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()];
+        $today = Carbon::today();
+        $thisWeek = [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()];
+        $previousWeek = [$now->copy()->subWeek()->startOfWeek(), $now->copy()->subWeek()->endOfWeek()];
+        $thisMonthStart = now()->subDays(30)->endOfDay();
+        $previousMonthRange = [now()->subDays(60)->startOfDay(), now()->subDays(30)->endOfDay()];
 
-    /* =========================
+        /* =========================
      | BASE REVIEW QUERIES (ONLY ONCE)
      ========================= */
-    $baseReviewQuery = ReviewNew::query()
-        ->when(
-            !$request->user()->hasRole('superadmin'),
-            fn ($q) => $q->where('review_news.business_id', $businessId)
-        )
-        ->globalFilters(0, $businessId)
-        ->orderBy('review_news.order_no', 'asc')
-        ->filterByOverall($is_overall)
-        ->select('review_news.*')
-        ->withCalculatedRating();
+        $baseReviewQuery = ReviewNew::query()
+            ->when(
+                !$request->user()->hasRole('superadmin'),
+                fn($q) => $q->where('review_news.business_id', $businessId)
+            )
+            ->globalFilters(0, $businessId)
+            ->orderBy('review_news.order_no', 'asc')
+            ->filterByOverall($is_overall)
+            ->select('review_news.*')
+            ->withCalculatedRating();
 
-    $guestReviewQuery = (clone $baseReviewQuery)->whereNull('user_id');
-    $customerReviewQuery = (clone $baseReviewQuery)->whereNull('guest_id');
-    $authenticatedCustomerQuery = (clone $baseReviewQuery)->whereNotNull('user_id');
+        $guestReviewQuery = (clone $baseReviewQuery)->whereNull('user_id');
+        $customerReviewQuery = (clone $baseReviewQuery)->whereNull('guest_id');
+        $authenticatedCustomerQuery = (clone $baseReviewQuery)->whereNotNull('user_id');
 
-    /* =========================
+        /* =========================
      | QUESTIONS & TAGS BASE
      ========================= */
-    $questionQuery = Question::when(
-        !$request->user()->hasRole('superadmin'),
-        fn ($q) => $q->where('business_id', $businessId)
-    )->filterByOverall($is_overall);
+        $questionQuery = Question::when(
+            !$request->user()->hasRole('superadmin'),
+            fn($q) => $q->where('business_id', $businessId)
+        )->filterByOverall($is_overall);
 
-    $tagQuery = Tag::when(
-        !$request->user()->hasRole('superadmin'),
-        fn ($q) => $q->where('business_id', $businessId)
-    )->filterByOverall($is_overall);
+        $tagQuery = Tag::when(
+            !$request->user()->hasRole('superadmin'),
+            fn($q) => $q->where('business_id', $businessId)
+        )->filterByOverall($is_overall);
 
-    /* =========================
+        /* =========================
      | TODAY / WEEK
      ========================= */
-    $data['today_total_reviews'] =
-        (clone $baseReviewQuery)->whereDate('created_at', $today)->count();
+        $data['today_total_reviews'] =
+            (clone $baseReviewQuery)->whereDate('created_at', $today)->count();
 
-    $data['this_week_total_reviews'] =
-        (clone $baseReviewQuery)->whereBetween('created_at', $thisWeek)->count();
+        $data['this_week_total_reviews'] =
+            (clone $baseReviewQuery)->whereBetween('created_at', $thisWeek)->count();
 
-    $data['previous_week_total_reviews'] =
-        (clone $baseReviewQuery)->whereBetween('created_at', $previousWeek)->count();
+        $data['previous_week_total_reviews'] =
+            (clone $baseReviewQuery)->whereBetween('created_at', $previousWeek)->count();
 
-    $data['this_week_guest_review_count'] =
-        (clone $guestReviewQuery)->whereBetween('created_at', $thisWeek)->count();
+        $data['this_week_guest_review_count'] =
+            (clone $guestReviewQuery)->whereBetween('created_at', $thisWeek)->count();
 
-    $data['previous_week_guest_review_count'] =
-        (clone $guestReviewQuery)->whereBetween('created_at', $previousWeek)->count();
+        $data['previous_week_guest_review_count'] =
+            (clone $guestReviewQuery)->whereBetween('created_at', $previousWeek)->count();
 
-    $data['this_week_customer_review_count'] =
-        (clone $customerReviewQuery)->whereBetween('created_at', $thisWeek)->count();
+        $data['this_week_customer_review_count'] =
+            (clone $customerReviewQuery)->whereBetween('created_at', $thisWeek)->count();
 
-    $data['previous_week_customer_review_count'] =
-        (clone $customerReviewQuery)->whereBetween('created_at', $previousWeek)->count();
+        $data['previous_week_customer_review_count'] =
+            (clone $customerReviewQuery)->whereBetween('created_at', $previousWeek)->count();
 
-    $data['this_week_question_count'] =
-        (clone $questionQuery)->whereBetween('created_at', $thisWeek)->count();
+        $data['this_week_question_count'] =
+            (clone $questionQuery)->whereBetween('created_at', $thisWeek)->count();
 
-    $data['previous_week_question_count'] =
-        (clone $questionQuery)->whereBetween('created_at', $previousWeek)->count();
+        $data['previous_week_question_count'] =
+            (clone $questionQuery)->whereBetween('created_at', $previousWeek)->count();
 
-    $data['this_week_tag_count'] =
-        (clone $tagQuery)->whereBetween('created_at', $thisWeek)->count();
+        $data['this_week_tag_count'] =
+            (clone $tagQuery)->whereBetween('created_at', $thisWeek)->count();
 
-    $data['previous_week_tag_count'] =
-        (clone $tagQuery)->whereBetween('created_at', $previousWeek)->count();
+        $data['previous_week_tag_count'] =
+            (clone $tagQuery)->whereBetween('created_at', $previousWeek)->count();
 
-    /* =========================
+        /* =========================
      | MONTH (30 / 60 DAYS)
      ========================= */
-    $data['this_month_total_reviews'] =
-        (clone $baseReviewQuery)->where('created_at', '>', $thisMonthStart)->count();
+        $data['this_month_total_reviews'] =
+            (clone $baseReviewQuery)->where('created_at', '>', $thisMonthStart)->count();
 
-    $data['previous_month_total_reviews'] =
-        (clone $baseReviewQuery)->whereBetween('created_at', $previousMonthRange)->count();
+        $data['previous_month_total_reviews'] =
+            (clone $baseReviewQuery)->whereBetween('created_at', $previousMonthRange)->count();
 
-    $data['this_month_guest_review_count'] =
-        (clone $guestReviewQuery)->where('created_at', '>', $thisMonthStart)->count();
+        $data['this_month_guest_review_count'] =
+            (clone $guestReviewQuery)->where('created_at', '>', $thisMonthStart)->count();
 
-    $data['previous_month_guest_review_count'] =
-        (clone $guestReviewQuery)->whereBetween('created_at', $previousMonthRange)->count();
+        $data['previous_month_guest_review_count'] =
+            (clone $guestReviewQuery)->whereBetween('created_at', $previousMonthRange)->count();
 
-    $data['this_month_customer_review_count'] =
-        (clone $customerReviewQuery)->where('created_at', '>', $thisMonthStart)->count();
+        $data['this_month_customer_review_count'] =
+            (clone $customerReviewQuery)->where('created_at', '>', $thisMonthStart)->count();
 
-    $data['previous_month_customer_review_count'] =
-        (clone $customerReviewQuery)->whereBetween('created_at', $previousMonthRange)->count();
+        $data['previous_month_customer_review_count'] =
+            (clone $customerReviewQuery)->whereBetween('created_at', $previousMonthRange)->count();
 
-    $data['this_month_question_count'] =
-        (clone $questionQuery)->where('created_at', '>', $thisMonthStart)->count();
+        $data['this_month_question_count'] =
+            (clone $questionQuery)->where('created_at', '>', $thisMonthStart)->count();
 
-    $data['previous_month_question_count'] =
-        (clone $questionQuery)->whereBetween('created_at', $previousMonthRange)->count();
+        $data['previous_month_question_count'] =
+            (clone $questionQuery)->whereBetween('created_at', $previousMonthRange)->count();
 
-    $data['this_month_tag_count'] =
-        (clone $tagQuery)->where('created_at', '>', $thisMonthStart)->count();
+        $data['this_month_tag_count'] =
+            (clone $tagQuery)->where('created_at', '>', $thisMonthStart)->count();
 
-    $data['previous_month_tag_count'] =
-        (clone $tagQuery)->whereBetween('created_at', $previousMonthRange)->count();
+        $data['previous_month_tag_count'] =
+            (clone $tagQuery)->whereBetween('created_at', $previousMonthRange)->count();
 
-    /* =========================
+        /* =========================
      | TOTALS (ALL TIME)
      ========================= */
-    $data['total_reviews'] = (clone $baseReviewQuery)->count();
-    $data['total_guest_review_count'] = (clone $guestReviewQuery)->count();
-    $data['total_customer_review_count'] = (clone $customerReviewQuery)->count();
-    $data['total_question_count'] = (clone $questionQuery)->count();
-    $data['total_tag_count'] = (clone $tagQuery)->count();
+        $data['total_reviews'] = (clone $baseReviewQuery)->count();
+        $data['total_guest_review_count'] = (clone $guestReviewQuery)->count();
+        $data['total_customer_review_count'] = (clone $customerReviewQuery)->count();
+        $data['total_question_count'] = (clone $questionQuery)->count();
+        $data['total_tag_count'] = (clone $tagQuery)->count();
 
-    /* =========================
+        /* =========================
      | MONTHLY CHART DATA
      ========================= */
-    for ($i = 0; $i <= $numberOfMonths; $i++) {
-        $start = $now->copy()->startOfMonth()->subMonths($i);
-        $end = $now->copy()->endOfMonth()->subMonths($i);
-        $month = $start->format('F');
+        for ($i = 0; $i <= $numberOfMonths; $i++) {
+            $start = $now->copy()->startOfMonth()->subMonths($i);
+            $end = $now->copy()->endOfMonth()->subMonths($i);
+            $month = $start->format('F');
 
-        $data['monthly_data']['monthly_reviews'][$i] = [
-            'month' => $month,
-            'value' => (clone $baseReviewQuery)
-                ->whereBetween('created_at', [$start, $end])
-                ->count(),
-        ];
+            $data['monthly_data']['monthly_reviews'][$i] = [
+                'month' => $month,
+                'value' => (clone $baseReviewQuery)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count(),
+            ];
 
-        $data['monthly_data']['guest_review_count_monthly'][$i] = [
-            'month' => $month,
-            'value' => (clone $guestReviewQuery)
-                ->whereBetween('created_at', [$start, $end])
-                ->count(),
-        ];
+            $data['monthly_data']['guest_review_count_monthly'][$i] = [
+                'month' => $month,
+                'value' => (clone $guestReviewQuery)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count(),
+            ];
 
-        $data['monthly_data']['customer_review_count_monthly'][$i] = [
-            'month' => $month,
-            'value' => (clone $customerReviewQuery)
-                ->whereBetween('created_at', [$start, $end])
-                ->count(),
-        ];
+            $data['monthly_data']['customer_review_count_monthly'][$i] = [
+                'month' => $month,
+                'value' => (clone $customerReviewQuery)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count(),
+            ];
 
-        $data['monthly_data']['customers_monthly'][$i] = [
-            'month' => $month,
-            'value' => (clone $authenticatedCustomerQuery)
-                ->whereBetween('created_at', [$start, $end])
-                ->distinct()
-                ->count(),
-        ];
+            $data['monthly_data']['customers_monthly'][$i] = [
+                'month' => $month,
+                'value' => (clone $authenticatedCustomerQuery)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->distinct()
+                    ->count(),
+            ];
+        }
+
+        return $data;
     }
-
-    return $data;
-}
 
 
 
@@ -1763,7 +1763,7 @@ private function generateDashboardReportV2(Request $request, $is_overall, $start
 
 
 
-    
+
 
 
 

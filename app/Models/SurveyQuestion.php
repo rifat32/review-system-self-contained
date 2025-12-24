@@ -5,8 +5,34 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @OA\Schema(
+ *     schema="SurveyQuestion",
+ *     type="object",
+ *     title="SurveyQuestion",
+ *     description="Survey question pivot model",
+ *     required={"survey_id", "question_id"}
+ * )
+ */
 class SurveyQuestion extends Model
 {
+    /**
+     * @OA\Property(property="id", type="integer", example=1)
+     * @OA\Property(property="survey_id", type="integer", example=2)
+     * @OA\Property(property="question_id", type="integer", example=5)
+     * @OA\Property(property="order_no", type="integer", example=1)
+     * @OA\Property(property="created_at", type="string", format="date-time")
+     * @OA\Property(property="updated_at", type="string", format="date-time")
+     *
+     * @OA\Property(
+     *     property="survey",
+     *     ref="#/components/schemas/Survey"
+     * )
+     * @OA\Property(
+     *     property="question",
+     *     ref="#/components/schemas/Question"
+     * )
+     */
     use HasFactory;
 
     protected $fillable = [

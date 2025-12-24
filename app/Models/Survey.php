@@ -6,6 +6,24 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @OA\Schema(
+ *     schema="Survey",
+ *     type="object",
+ *     title="Survey",
+ *     description="Survey model",
+ *     required={"name", "business_id"},
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="Customer Feedback Survey"),
+ *     @OA\Property(property="business_id", type="integer", example=1),
+ *     @OA\Property(property="show_in_guest_user", type="boolean", example=true),
+ *     @OA\Property(property="show_in_user", type="boolean", example=true),
+ *     @OA\Property(property="order_no", type="integer", example=1),
+ *     @OA\Property(property="is_active", type="boolean", example=true),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class Survey extends Model
 {
     use HasFactory;
@@ -38,10 +56,11 @@ class Survey extends Model
         return $this->belongsToMany(Question::class, 'survey_questions', 'survey_id', 'question_id');
     }
 
-    public function reviews() {
+    public function reviews()
+    {
         return $this->hasMany(ReviewNew::class, 'survey_id', 'id');
     }
-     // Business Services (NEW RELATIONSHIP)
+    // Business Services (NEW RELATIONSHIP)
     public function business_services()
     {
         return $this->belongsToMany(

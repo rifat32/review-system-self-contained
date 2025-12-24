@@ -28,61 +28,61 @@ class ReviewNewController extends Controller
 {
 
     /**
- * @OA\Put(
- *      path="/v1.0/reviews/{reviewId}/reply",
- *      operationId="updateReviewReply",
- *      tags={"review_management"},
- *      security={{"bearerAuth": {}}},
- *      summary="Update reply content for a review",
- *      description="Allows business owner to update the reply content of a review.",
- *      @OA\Parameter(
- *          name="reviewId",
- *          in="path",
- *          required=true,
- *          description="Review ID",
- *          example="1"
- *      ),
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\JsonContent(
- *              required={"reply_content"},
- *              @OA\Property(property="reply_content", type="string", example="Thank you for your feedback.")
- *          )
- *      ),
- *      @OA\Response(
- *          response=200,
- *          description="Reply updated successfully"
- *      )
- * )
- */
-public function updateReviewReply($reviewId, Request $request)
-{
-    $request->validate([
-        'reply_content' => 'required|string'
-    ]);
+     * @OA\Put(
+     *      path="/v1.0/reviews/{reviewId}/reply",
+     *      operationId="updateReviewReply",
+     *      tags={"review_management"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Update reply content for a review",
+     *      description="Allows business owner to update the reply content of a review.",
+     *      @OA\Parameter(
+     *          name="reviewId",
+     *          in="path",
+     *          required=true,
+     *          description="Review ID",
+     *          example="1"
+     *      ),
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"reply_content"},
+     *              @OA\Property(property="reply_content", type="string", example="Thank you for your feedback.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Reply updated successfully"
+     *      )
+     * )
+     */
+    public function updateReviewReply($reviewId, Request $request)
+    {
+        $request->validate([
+            'reply_content' => 'required|string'
+        ]);
 
-    $review = ReviewNew::find($reviewId);
-    
-    if (!$review) {
-        return response()->json(['message' => 'Review not found'], 404);
+        $review = ReviewNew::find($reviewId);
+
+        if (!$review) {
+            return response()->json(['message' => 'Review not found'], 404);
+        }
+
+        // Check if user is the business owner
+        $business = Business::find($review->business_id);
+        if ($business->OwnerID != $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $review->update([
+            'reply_content' => $request->reply_content,
+            'responded_at' => now()
+        ]);
+
+        return response()->json([
+            'message' => 'Reply updated successfully',
+            'reply_content' => $review->reply_content
+        ], 200);
     }
-
-    // Check if user is the business owner
-    $business = Business::find($review->business_id);
-    if ($business->OwnerID != $request->user()->id) {
-        return response()->json(['message' => 'Unauthorized'], 403);
-    }
-
-    $review->update([
-        'reply_content' => $request->reply_content,
-        'responded_at' => now()
-    ]);
-
-    return response()->json([
-        'message' => 'Reply updated successfully',
-        'reply_content' => $review->reply_content
-    ], 200);
-}
 
     // ##################################################
 // Transcribe Voice File to Text
@@ -250,7 +250,7 @@ public function updateReviewReply($reviewId, Request $request)
      * @OA\Get(
      *      path="/v1.0/reviews/overall-dashboard/{businessId}",
      *      operationId="getOverallDashboardData",
-     *      tags={"review.dashboard"},
+     *      tags={"dashboard_management"},
      *      security={{"bearerAuth": {}}},
      *      summary="Get overall business dashboard data",
      *      description="Get comprehensive dashboard data with AI insights and analytics",
@@ -301,7 +301,7 @@ public function updateReviewReply($reviewId, Request $request)
         // Get period dates
         $dateRange = getDateRangeByPeriod($period);
 
-      
+
 
         // Calculate metrics using existing methods
         $metrics = calculateDashboardMetrics($businessId, $dateRange);
@@ -419,25 +419,25 @@ public function updateReviewReply($reviewId, Request $request)
 
 
 
-    
 
-  
 
-   
 
-  
 
-   
-  
 
- 
-    
 
-   
 
-   
-    
-   
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -613,21 +613,21 @@ public function updateReviewReply($reviewId, Request $request)
      *      )
      *     )
      */
-   public function getAverages($businessId, $start, $end, Request $request)
-{
-    // Get reviews with their values
-    $reviews = ReviewNew::with(['value'])
-        ->where("business_id", $businessId)
-        ->globalFilters(0, $businessId)
-        ->whereBetween('created_at', [$start, $end])
-        ->orderBy('order_no', 'asc')
-       ->withCalculatedRating()
-        ->get();
+    public function getAverages($businessId, $start, $end, Request $request)
+    {
+        // Get reviews with their values
+        $reviews = ReviewNew::with(['value'])
+            ->where("business_id", $businessId)
+            ->globalFilters(0, $businessId)
+            ->whereBetween('created_at', [$start, $end])
+            ->orderBy('order_no', 'asc')
+            ->withCalculatedRating()
+            ->get();
 
-     $data = extractRatingBreakdown($reviews);
+        $data = extractRatingBreakdown($reviews);
 
-    return response($data, 200);
-}
+        return response($data, 200);
+    }
 
     // ##################################################
     // This method is to store   ReviewValue2
@@ -882,54 +882,54 @@ public function updateReviewReply($reviewId, Request $request)
 
 
 
-   public function getCustommerReview($businessId, $start, $end, Request $request)
-{
-    // Get reviews with their values
-    $reviews = ReviewNew::with(['value'])
-        ->where("business_id", $businessId)
-        ->globalFilters(0, $businessId)
-        ->whereBetween('created_at', [$start, $end])
-        ->orderBy('order_no', 'asc')
-        ->withCalculatedRating()
-        ->get();
+    public function getCustommerReview($businessId, $start, $end, Request $request)
+    {
+        // Get reviews with their values
+        $reviews = ReviewNew::with(['value'])
+            ->where("business_id", $businessId)
+            ->globalFilters(0, $businessId)
+            ->whereBetween('created_at', [$start, $end])
+            ->orderBy('order_no', 'asc')
+            ->withCalculatedRating()
+            ->get();
 
-    $data["reviews"] = $reviews;
-    $data["total"] = $reviews->count();
+        $data["reviews"] = $reviews;
+        $data["total"] = $reviews->count();
 
-    // Initialize counters
-    $data["one"] = 0;
-    $data["two"] = 0;
-    $data["three"] = 0;
-    $data["four"] = 0;
-    $data["five"] = 0;
+        // Initialize counters
+        $data["one"] = 0;
+        $data["two"] = 0;
+        $data["three"] = 0;
+        $data["four"] = 0;
+        $data["five"] = 0;
 
-    foreach ($reviews as $review) {
-        // Use calculated_rating from the query instead of recalculating
-        $rating = (float) $review->calculated_rating;
+        foreach ($reviews as $review) {
+            // Use calculated_rating from the query instead of recalculating
+            $rating = (float) $review->calculated_rating;
 
-        if ($rating > 0) {
-            switch (round($rating)) {
-                case 1:
-                    $data["one"] += 1;
-                    break;
-                case 2:
-                    $data["two"] += 1;
-                    break;
-                case 3:
-                    $data["three"] += 1;
-                    break;
-                case 4:
-                    $data["four"] += 1;
-                    break;
-                case 5:
-                    $data["five"] += 1;
-                    break;
+            if ($rating > 0) {
+                switch (round($rating)) {
+                    case 1:
+                        $data["one"] += 1;
+                        break;
+                    case 2:
+                        $data["two"] += 1;
+                        break;
+                    case 3:
+                        $data["three"] += 1;
+                        break;
+                    case 4:
+                        $data["four"] += 1;
+                        break;
+                    case 5:
+                        $data["five"] += 1;
+                        break;
+                }
             }
         }
-    }
 
-    return response($data, 200);
-}
+        return response($data, 200);
+    }
 
   // ##################################################
 // Updated createReview method with audio support
@@ -939,7 +939,7 @@ public function updateReviewReply($reviewId, Request $request)
      * @OA\Post(
      *      path="/v1.0/review-new/{businessId}",
      *      operationId="createReview",
-     *      tags={"review"},
+     *      tags={"review_management"},
      *      @OA\Parameter(
      *          name="businessId",
      *          in="path",
@@ -947,29 +947,25 @@ public function updateReviewReply($reviewId, Request $request)
      *          example="1"
      *      ),
      *      security={{"bearerAuth": {}}},
-     *      summary="Store review by authenticated user with optional audio",
-     *      description="Store review with optional audio transcription and AI analysis",
+     *      summary="Store review by authenticated user",
+     *      description="Store review with AI analysis",
      *      @OA\RequestBody(
      *          required=true,
-     *          @OA\MediaType(
-     *              mediaType="multipart/form-data",
-     *              @OA\Schema(
-     *                  required={"description","rate","comment","values"},
-     *                  @OA\Property(property="description", type="string", example="Test"),
-     *                  @OA\Property(property="rate", type="string", example="2.5"),
-     *                  @OA\Property(property="comment", type="string", example="Not good"),
-     *                  @OA\Property(property="is_overall", type="boolean", example=true),
-     *                  @OA\Property(property="staff_id", type="integer", example="1"),
-     *                 @OA\Property(property="branch_id", type="integer", example="1"),
-     *                  @OA\Property(property="audio", type="string", format="binary", description="Optional audio file"),
-     *                  @OA\Property(
-     *                      property="values",
-     *                      type="array",
-     *                      @OA\Items(
-     *                          @OA\Property(property="question_id", type="integer", example=1),
-     *                          @OA\Property(property="tag_id", type="integer", example=2),
-     *                          @OA\Property(property="star_id", type="integer", example=4)
-     *                      )
+     *          @OA\JsonContent(
+     *              required={"description","rate","comment","values"},
+     *              @OA\Property(property="description", type="string", example="Test"),
+     *              @OA\Property(property="rate", type="string", example="2.5"),
+     *              @OA\Property(property="comment", type="string", example="Not good"),
+     *              @OA\Property(property="is_overall", type="boolean", example=true),
+     *              @OA\Property(property="staff_id", type="integer", example="1"),
+     *              @OA\Property(property="branch_id", type="integer", example="1"),
+     *              @OA\Property(
+     *                  property="values",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="question_id", type="integer", example=1),
+     *                      @OA\Property(property="tag_id", type="integer", example=2),
+     *                      @OA\Property(property="star_id", type="integer", example=4)
      *                  )
      *              )
      *          )
@@ -994,8 +990,8 @@ public function updateReviewReply($reviewId, Request $request)
             'values.*.tag_id' => 'nullable|integer',
             'values.*.star_id' => 'nullable|integer',
             'business_services' => 'nullable|array',
-        'business_services.*.business_service_id' => 'required|exists:business_services,id',
-        'business_services.*.business_area_id' => 'required|exists:business_areas,id',
+            'business_services.*.business_service_id' => 'required|exists:business_services,id',
+            'business_services.*.business_area_id' => 'required|exists:business_areas,id',
             // 'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
             "is_voice_review" => 'required|boolean',
         ]);
@@ -1053,8 +1049,8 @@ public function updateReviewReply($reviewId, Request $request)
             "is_voice_review" => $request->is_voice_review ?? false,
             "is_ai_processed" => 0,
 
-        "business_area_id" => $request->business_area_id ?? null,
-        "business_service_id" => $request->business_service_id ?? null,
+            "business_area_id" => $request->business_area_id ?? null,
+            "business_service_id" => $request->business_service_id ?? null,
 
         ];
 
@@ -1076,9 +1072,9 @@ public function updateReviewReply($reviewId, Request $request)
                 'business_area_id' => $service['business_area_id']
             ];
         }
-        
+
         $review->businessServices()->sync($businessServicesData);
-    
+
 
         $responseData = [
             "success" => true,
@@ -1105,64 +1101,61 @@ public function updateReviewReply($reviewId, Request $request)
 // Updated storeReviewByGuest method with audio support
 // ##################################################
 
-  /**
- * @OA\Post(
- *      path="/review-new-guest/{businessId}",
- *      operationId="storeReviewByGuest",
- *      tags={"review"},
- *      @OA\Parameter(
- *          name="businessId",
- *          in="path",
- *          required=true,
- *          example="1"
- *      ),
- *      security={{"bearerAuth": {}}},
- *      summary="Store review by guest user with optional audio",
- *      description="Store guest review with optional audio transcription and AI analysis",
- *      @OA\RequestBody(
- *          required=true,
- *          @OA\MediaType(
- *              mediaType="multipart/form-data",
- *              @OA\Schema(
- *                  required={"guest_full_name","guest_phone","description","rate","comment","values"},
- *                  @OA\Property(property="guest_full_name", type="string", example="Rifat"),
- *                  @OA\Property(property="guest_phone", type="string", example="0177"),
- *                  @OA\Property(property="description", type="string", example="Test"),
- *                  @OA\Property(property="rate", type="string", example="2.5"),
- *                  @OA\Property(property="comment", type="string", example="Not good"),
- *                  @OA\Property(property="is_overall", type="boolean", example=true),
- *                  @OA\Property(property="latitude", type="number", example="23.8103"),
- *                  @OA\Property(property="longitude", type="number", example="90.4125"),
- *                  @OA\Property(property="staff_id", type="number", example="1"),
- *                  @OA\Property(property="branch_id", type="number", example="1"),
- *                  @OA\Property(
- *                      property="business_services",
- *                      type="array",
- *                      @OA\Items(
- *                          @OA\Property(property="business_service_id", type="integer", example=1),
- *                          @OA\Property(property="business_area_id", type="integer", example=1)
- *                      ),
- *                      description="Array of business services with their area IDs"
- *                  ),
- *                  @OA\Property(property="audio", type="string", format="binary", description="Optional audio file"),
- *                  @OA\Property(
- *                      property="values",
- *                      type="array",
- *                      @OA\Items(
- *                          @OA\Property(property="question_id", type="integer", example=1),
- *                          @OA\Property(property="tag_id", type="integer", example=2),
- *                          @OA\Property(property="star_id", type="integer", example=4)
- *                      )
- *                  )
- *              )
- *          )
- *      ),
- *      @OA\Response(response=201, description="Created successfully"),
- *      @OA\Response(response=400, description="Bad Request"),
- *      @OA\Response(response=401, description="Unauthenticated"),
- *      @OA\Response(response=422, description="Unprocessable Content")
- * )
- */
+    /**
+     * @OA\Post(
+     *      path="/review-new-guest/{businessId}",
+     *      operationId="storeReviewByGuest",
+     *      tags={"review_management"},
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          example="1"
+     *      ),
+     *      security={{"bearerAuth": {}}},
+     *      summary="Store review by guest user",
+     *      description="Store guest review with AI analysis",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"guest_full_name","guest_phone","description","rate","comment","values"},
+     *              @OA\Property(property="guest_full_name", type="string", example="Rifat"),
+     *              @OA\Property(property="guest_phone", type="string", example="0177"),
+     *              @OA\Property(property="description", type="string", example="Test"),
+     *              @OA\Property(property="rate", type="string", example="2.5"),
+     *              @OA\Property(property="comment", type="string", example="Not good"),
+     *              @OA\Property(property="is_overall", type="boolean", example=true),
+     *              @OA\Property(property="is_voice_review", type="boolean", example=false),
+     *              @OA\Property(property="latitude", type="number", example="23.8103"),
+     *              @OA\Property(property="longitude", type="number", example="90.4125"),
+     *              @OA\Property(property="staff_id", type="number", example="1"),
+     *              @OA\Property(property="branch_id", type="number", example="1"),
+     *              @OA\Property(
+     *                  property="business_services",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="business_service_id", type="integer", example=1),
+     *                      @OA\Property(property="business_area_id", type="integer", example=1)
+     *                  ),
+     *                  description="Array of business services with their area IDs"
+     *              ),
+     *              @OA\Property(
+     *                  property="values",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="question_id", type="integer", example=1),
+     *                      @OA\Property(property="tag_id", type="integer", example=2),
+     *                      @OA\Property(property="star_id", type="integer", example=4)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(response=201, description="Created successfully"),
+     *      @OA\Response(response=400, description="Bad Request"),
+     *      @OA\Response(response=401, description="Unauthenticated"),
+     *      @OA\Response(response=422, description="Unprocessable Content")
+     * )
+     */
     public function storeReviewByGuest($businessId, Request $request)
     {
         $request->validate([
@@ -1181,9 +1174,8 @@ public function updateReviewReply($reviewId, Request $request)
             'values.*.tag_id' => 'nullable|integer',
             'values.*.star_id' => 'nullable|integer',
             'business_services' => 'present|array',
-        'business_services.*.business_service_id' => 'required|exists:business_services,id',
-        'business_services.*.business_area_id' => 'required|exists:business_areas,id',
-            'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
+            'business_services.*.business_service_id' => 'required|exists:business_services,id',
+            'business_services.*.business_area_id' => 'required|exists:business_areas,id',
             "is_voice_review" => 'required|boolean',
         ]);
 
@@ -1276,7 +1268,7 @@ public function updateReviewReply($reviewId, Request $request)
         ];
 
 
-        
+
 
         // Add voice data if present
         // if ($voiceData) {
@@ -1286,7 +1278,7 @@ public function updateReviewReply($reviewId, Request $request)
         $review = ReviewNew::create($reviewData);
         storeReviewValues($review, $request->values, $business);
 
-         // Attach business services with their respective business_area_id
+        // Attach business services with their respective business_area_id
 
         $businessServicesData = [];
         foreach ($request->business_services as $service) {
@@ -1295,7 +1287,7 @@ public function updateReviewReply($reviewId, Request $request)
             ];
         }
         $review->businessServices()->sync($businessServicesData);
-    
+
 
         $averageRating = collect($request->values)
             ->pluck('star_id')
@@ -1323,7 +1315,7 @@ public function updateReviewReply($reviewId, Request $request)
     }
 
 
-   
+
 
 
 
@@ -1409,7 +1401,7 @@ public function updateReviewReply($reviewId, Request $request)
             ], 500);
         }
     }
-    
+
     private function fetchAndFormatQuestions(Request $request, bool $isUnauthorized, bool $isOverallSpecific = false)
     {
         $businessId = $request->business_id;
@@ -1448,15 +1440,15 @@ public function updateReviewReply($reviewId, Request $request)
         if ($isUnauthorized) {
             // getQuestionAllUnauthorizedOverall had a 'is_default' constraint
             if ($isOverallSpecific) {
-                 $query->where(["business_id" => $businessId, "is_default" => 0]);
+                $query->where(["business_id" => $businessId, "is_default" => 0]);
             } else {
-                 // getQuestionAllUnauthorized did not have the 'is_default' constraint
-                 $query->where(["business_id" => $businessId]);
+                // getQuestionAllUnauthorized did not have the 'is_default' constraint
+                $query->where(["business_id" => $businessId]);
             }
         } else {
             // getQuestionAll logic
             $query->where(["business_id" => $businessId, "is_default" => $isDefault])
-                  ->where(["show_in_user" => 1]); // This was unique to getQuestionAll
+                ->where(["show_in_user" => 1]); // This was unique to getQuestionAll
         }
 
 
@@ -1512,7 +1504,7 @@ public function updateReviewReply($reviewId, Request $request)
 
         // --- 6. Final Response (Handling different return formats) ---
         if ($request->route()->getName() === 'getQuestionAllUnauthorized') {
-             return response([
+            return response([
                 "status" => true,
                 "message" => "Questions retrieved successfully",
                 "data" => $data
@@ -1584,7 +1576,7 @@ public function updateReviewReply($reviewId, Request $request)
      *     )
      */
 
-   public function getQuestionAllUnauthorizedOverall(Request $request)
+    public function getQuestionAllUnauthorizedOverall(Request $request)
     {
         // $isUnauthorized = true, $isOverallSpecific = true (to enforce is_default=0)
         return $this->fetchAndFormatQuestions($request, true, true);
@@ -1648,7 +1640,7 @@ public function updateReviewReply($reviewId, Request $request)
      */
     public function getQuestionAllUnauthorized(Request $request)
     {
-    
+
         // $isUnauthorized = true, $isOverallSpecific = false (no is_default=0 constraint)
         return $this->fetchAndFormatQuestions($request, true, false);
     }
@@ -1705,9 +1697,9 @@ public function updateReviewReply($reviewId, Request $request)
      *      )
      *     )
      */
-   public function getQuestionAll(Request $request)
+    public function getQuestionAll(Request $request)
     {
-   
+
         // $isUnauthorized = false
         return $this->fetchAndFormatQuestions($request, false);
     }
@@ -1769,7 +1761,7 @@ public function updateReviewReply($reviewId, Request $request)
                         "star_id" => $star->id,
                         "review_news." . $idColumnToFilter => $filterValue,
                     ]);
-                
+
                 $starCountQuery = $applyDateRangeScope($starCountQuery);
                 $starsCount = $starCountQuery->count();
 
@@ -1797,7 +1789,7 @@ public function updateReviewReply($reviewId, Request $request)
                         if ($tagCount > 0) {
                             $tagData = json_decode(json_encode($tag), true);
                             $tagData['count'] = $tagCount;
-                            
+
                             // Add to overall tags_rating list if it's new
                             if (!collect($tags_rating)->contains('id', $tag->id)) {
                                 array_push($tags_rating, $tagData);
@@ -1824,7 +1816,7 @@ public function updateReviewReply($reviewId, Request $request)
                     }
                 }
             }
-            
+
             // Calculate final question rating
             if ($starCountTotalTimes > 0) {
                 $data[$key1]["rating"] = $starCountTotal / $starCountTotalTimes;
@@ -1845,10 +1837,10 @@ public function updateReviewReply($reviewId, Request $request)
                     "review_news." . $idColumnToFilter => $filterValue,
                 ])
                 ->distinct("review_value_news.review_id", "review_value_news.question_id");
-            
+
             $starCountQuery = $applyDateRangeScope($starCountQuery);
             $selectedCount = $starCountQuery->count();
-            
+
             $data2["star_" . $star->value . "_selected_count"] = $selectedCount;
 
             $totalCount += $selectedCount * $star->value;
@@ -1954,7 +1946,7 @@ public function updateReviewReply($reviewId, Request $request)
     public function getQuestionAllReport(Request $request)
     {
 
-      // Filter by registered users (guest_id is NULL), Apply date range
+        // Filter by registered users (guest_id is NULL), Apply date range
         $reportData = $this->fetchQuestionReportData($request, 'user', true);
 
         if ($reportData instanceof \Illuminate\Http\Response) {
@@ -2043,7 +2035,7 @@ public function updateReviewReply($reviewId, Request $request)
     public function getQuestionAllReportGuest(Request $request)
     {
 
-       // Filter by guest users (user_id is NULL), Apply date range
+        // Filter by guest users (user_id is NULL), Apply date range
         $reportData = $this->fetchQuestionReportData($request, 'guest', true);
 
         if ($reportData instanceof \Illuminate\Http\Response) {
@@ -2108,7 +2100,7 @@ public function updateReviewReply($reviewId, Request $request)
      *     )
      */
 
-  public function getQuestionAllReportUnauthorized(Request $request)
+    public function getQuestionAllReportUnauthorized(Request $request)
     {
         // Filter by registered users (guest_id is NULL), DO NOT apply date range
         $reportData = $this->fetchQuestionReportData($request, 'user', false);
@@ -2116,14 +2108,14 @@ public function updateReviewReply($reviewId, Request $request)
         if ($reportData instanceof \Illuminate\Http\Response) {
             return $reportData; // Handle error response
         }
-        
+
         // Note: The original unauthorized method only returned "part1", I've preserved this anomaly.
         return response([
             "part1" => $reportData["part1"],
             // "part2" is omitted to match the original function's return structure
         ], 200);
     }
-    
+
 
 
     /**
@@ -2178,7 +2170,7 @@ public function updateReviewReply($reviewId, Request $request)
      *     )
      */
 
-  public function getQuestionAllReportGuestUnauthorized(Request $request)
+    public function getQuestionAllReportGuestUnauthorized(Request $request)
     {
         // Parameters: userTypeFilter = 'guest' (user_id = NULL), applyDateRange = false
         $reportData = $this->fetchQuestionReportData($request, 'guest', false);
@@ -2194,7 +2186,7 @@ public function updateReviewReply($reviewId, Request $request)
     }
 
 
-/**
+    /**
      * Common logic to calculate overall star ratings across multiple time quanta.
      *
      * @param Request $request
@@ -2217,14 +2209,14 @@ public function updateReviewReply($reviewId, Request $request)
             // Determine the start and end dates for the current quantum period
             $endDate = now()->subDays($currentPeriodOffset)->endOfDay();
             // The logic in the original code for subDays was unusual: now()->subDays(($request->period + $period))
-            // I will simplify the logic to standard sequential period subtraction for cleaner analysis, 
+            // I will simplify the logic to standard sequential period subtraction for cleaner analysis,
             // but will use the original logic if it's crucial:
-            
+
             // Original logic:
             // $startDate = now()->subDays(($periodDays + $currentPeriodOffset))->startOfDay();
 
             // Simplified sequential logic for a fixed period size (which is usually what 'period' implies):
-            $startDate = $endDate->copy()->subDays($periodDays)->startOfDay(); 
+            $startDate = $endDate->copy()->subDays($periodDays)->startOfDay();
 
 
             $data2 = [];
@@ -2252,13 +2244,13 @@ public function updateReviewReply($reviewId, Request $request)
             $data2['end_date'] = $endDate->toDateString();
 
             array_push($reportData, $data2);
-            
+
             // Update the offset for the next period
             // Note: The original logic for period update was: $period +=  $request->period + $period;
             // This is incorrect for sequential periods (e.g., Period 1: days 0-7, Period 2: days 8-15).
             // It seems to be calculating $period += 7 + 0 => 7, then $period += 7 + 7 => 14, then $period += 7 + 14 => 21, etc.
             // I will assume the intent was to move by the period size ($periodDays) and correct the offset logic:
-            $currentPeriodOffset += $periodDays; 
+            $currentPeriodOffset += $periodDays;
         }
 
         return $reportData;
@@ -2334,7 +2326,7 @@ public function updateReviewReply($reviewId, Request $request)
     public function getQuestionAllReportGuestQuantum(Request $request)
     {
 
-// 1. Authorization Check (OwnerID)
+        // 1. Authorization Check (OwnerID)
         $business = Business::where([
             "id" => $request->business_id,
             "OwnerID" => $request->user()->id
@@ -2423,7 +2415,7 @@ public function updateReviewReply($reviewId, Request $request)
     public function getQuestionAllReportQuantum(Request $request)
     {
 
-       // 1. Authorization Check (OwnerID)
+        // 1. Authorization Check (OwnerID)
         $business = Business::where([
             "id" => $request->business_id,
             "OwnerID" => $request->user()->id
@@ -2440,7 +2432,7 @@ public function updateReviewReply($reviewId, Request $request)
         ], 200);
     }
 
-/**
+    /**
      * Common logic to calculate Question-Level Metrics and Overall Metrics for a specific user/guest.
      * This is the refactored inner loop content for the ReportByUser methods.
      *
@@ -2687,7 +2679,7 @@ public function updateReviewReply($reviewId, Request $request)
     {
 
 
-       $business = Business::where(["id" => $request->business_id])->first();
+        $business = Business::where(["id" => $request->business_id])->first();
         if (!$business) {
             return response("No Business Found", 404);
         }
@@ -2902,7 +2894,7 @@ public function updateReviewReply($reviewId, Request $request)
             })
             ->globalFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
-           ->withCalculatedRating();
+            ->withCalculatedRating();
 
         // Apply date filters if provided
         if ($request->has('start_date') && $request->has('end_date')) {
@@ -3100,9 +3092,9 @@ public function updateReviewReply($reviewId, Request $request)
             "guest_user",
             "survey"
         ])
- 
-        ->globalFilters(1, $businessId)
-          
+
+            ->globalFilters(1, $businessId)
+
             ->where("business_id", $businessId)
             ->when($request->has('is_private'), function ($q) use ($request) {
                 $isPrivate = $request->input('is_private');
@@ -3208,8 +3200,8 @@ public function updateReviewReply($reviewId, Request $request)
             "guest_user",
             "survey"
         ])->withCalculatedRating()
-        ->where("id", $reviewId)
-        ->first();
+            ->where("id", $reviewId)
+            ->first();
 
         if (!$reviewValue) {
             return response([

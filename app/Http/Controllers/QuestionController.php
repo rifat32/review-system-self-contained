@@ -272,10 +272,8 @@ class QuestionController extends Controller
         $user = $request->user();
 
         $question = Question::with([
-
-            'question_sub_categories.parent',
-            'surveys' => fn($q) => $q->select('surveys.id', 'name', 'surveys.order_no')
-
+            'surveys' => fn($q) => $q->select('surveys.id', 'surveys.name', 'surveys.order_no'),
+            'question_sub_categories' => fn($q) => $q->select('question_categories.id', 'question_categories.title'),
         ])->find($id);
 
         if (!$question) {
@@ -606,7 +604,7 @@ class QuestionController extends Controller
      *              required={"question", "show_in_user", "is_overall"},
      *              @OA\Property(property="question", type="string", example="How was your experience?"),
      *              @OA\Property(property="business_id", type="integer", nullable=true, example=1, description="Required for non-superadmin"),
-  *              @OA\Property(property="question_sub_category_ids", type="array", @OA\Items(type="integer"), nullable=true, example="[2, 3]", description="Array of question sub-category IDs"),
+     *              @OA\Property(property="question_sub_category_ids", type="array", @OA\Items(type="integer"), nullable=true, example="[2, 3]", description="Array of question sub-category IDs"),
      *              @OA\Property(property="show_in_guest_user", type="boolean", example=true),
      *              @OA\Property(property="show_in_user", type="boolean", example=true),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
@@ -715,7 +713,7 @@ class QuestionController extends Controller
      *              @OA\Property(property="survey_id", type="integer", nullable=true, example=5),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
      *              @OA\Property(property="is_overall", type="boolean", example=false),
-   *              @OA\Property(property="question_sub_category_ids", type="array", @OA\Items(type="integer"), nullable=true, example="[2, 3]", description="Array of question sub-category IDs"),
+     *              @OA\Property(property="question_sub_category_ids", type="array", @OA\Items(type="integer"), nullable=true, example="[2, 3]", description="Array of question sub-category IDs"),
      *          )
      *      ),
      *
@@ -781,7 +779,7 @@ class QuestionController extends Controller
 
         // Update the question
         $question->update($data);
-$question->question_sub_categories()->sync($request->question_sub_category_ids ?? []);
+        $question->question_sub_categories()->sync($request->question_sub_category_ids ?? []);
 
         $question->info = "Supported types: " . implode(", ", array_values(Question::QUESTION_TYPES));
 
