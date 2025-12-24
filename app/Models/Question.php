@@ -89,7 +89,7 @@ class Question extends Model
     // }
 
 
-   // Change from belongsTo to belongsToMany
+    // Change from belongsTo to belongsToMany
     public function question_sub_categories()
     {
         return $this->belongsToMany(
@@ -98,6 +98,11 @@ class Question extends Model
             'question_id',
             'question_sub_category_id'
         );
+    }
+
+    public function survey_questions()
+    {
+        return $this->hasMany(SurveyQuestion::class, 'question_id', 'id')->orderBy('order_no');
     }
 
     protected static function boot()
