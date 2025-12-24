@@ -485,4 +485,4 @@ Route::put('/v1.0/client/reviews/update-guest-email/{ids}', [ReviewNewController
 // ============================================================================
 Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
 Route::get('/v1.0/client/surveys/{id}', [SurveyController::class, "getSurveyByIdClient"]);
-Route::post('/v1.0/client/email/send-email', [EmailController::class, "sendEmail "]);
+Route::post('/v1.0/client/email/send-email', [EmailController::class, "sendEmail"]);

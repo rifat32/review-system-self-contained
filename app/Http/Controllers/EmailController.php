@@ -68,9 +68,13 @@ class EmailController extends Controller
         try {
             Mail::to($receiverEmail)->send(new ContactFormMail($validated));
 
-            return back()->with('success', 'Thank you! Your message has been sent successfully.');
+            return response()->json(['success' => 'Thank you! Your message has been sent successfully.'], 200);
         } catch (\Exception $e) {
-            return back()->with('error', 'Sorry, something went wrong. Please try again later.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Sorry, something went wrong. Please try again later.',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

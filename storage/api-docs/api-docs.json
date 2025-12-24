@@ -1485,6 +1485,67 @@
                 "summary": "Get all branches for the authenticated user's businesses",
                 "description": "Retrieve a list of all branches belonging to businesses owned by the authenticated user.",
                 "operationId": "getBranches",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 10
+                        }
+                    },
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "Search key to filter branches by name or branch code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Main"
+                        }
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Field to sort branches by",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "name",
+                                "created_at",
+                                "updated_at"
+                            ],
+                            "example": "created_at"
+                        }
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort order (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ],
+                            "example": "desc"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Branches retrieved successfully",
@@ -1561,6 +1622,25 @@
                                                 },
                                                 "type": "object"
                                             }
+                                        },
+                                        "summary": {
+                                            "properties": {
+                                                "total_branches": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "avg_rating": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 4.2
+                                                },
+                                                "overall_sentiment": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 0.75
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -2584,12 +2664,12 @@
                                                 "lat": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 40.7128000000000014324541552923619747161865234375
+                                                    "example": 40.7128
                                                 },
                                                 "long": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": -74.006000000000000227373675443232059478759765625
+                                                    "example": -74.006
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -2692,6 +2772,20 @@
                         "description": "Filter by active status",
                         "required": false,
                         "example": 1
+                    },
+                    {
+                        "name": "order_by",
+                        "in": "query",
+                        "description": "Order by column name",
+                        "required": false,
+                        "example": "area_name"
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort order (asc or desc)",
+                        "required": false,
+                        "example": "desc"
                     },
                     {
                         "name": "search_key",
@@ -5270,6 +5364,20 @@
                         "example": 1
                     },
                     {
+                        "name": "order_by",
+                        "in": "query",
+                        "description": "Order by column name",
+                        "required": false,
+                        "example": "area_name"
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort order (asc or desc)",
+                        "required": false,
+                        "example": "desc"
+                    },
+                    {
                         "name": "search_key",
                         "in": "query",
                         "description": "Search in name and description",
@@ -6023,7 +6131,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.20000000000000017763568394002504646778106689453125
+                                                        "example": 4.2
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -6641,6 +6749,109 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/v1.0/client/email/send-email": {
+            "post": {
+                "tags": [
+                    "email_management.feed_genius"
+                ],
+                "summary": "Send contact form email",
+                "description": "Send a contact form email with user details",
+                "operationId": "sendEmail",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "first_name",
+                                    "last_name",
+                                    "email",
+                                    "subject",
+                                    "message"
+                                ],
+                                "properties": {
+                                    "first_name": {
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john.doe@example.com"
+                                    },
+                                    "subject": {
+                                        "type": "string",
+                                        "example": "Inquiry about services"
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "example": "Hello, I would like to know more about your services."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Email sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "string",
+                                            "example": "Thank you! Your message has been sent successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Sorry, something went wrong. Please try again later."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/v1.0/email-templates": {
@@ -8685,6 +8896,293 @@
                 ]
             }
         },
+        "/api/openai-tokens/report": {
+            "get": {
+                "tags": [
+                    "OpenAI Tokens"
+                ],
+                "summary": "Get OpenAI token usage report by business",
+                "description": "Returns token usage summary including total tokens, costs, and breakdown by business",
+                "operationId": "getOpenAITokenUsageReport",
+                "parameters": [
+                    {
+                        "name": "business_id",
+                        "in": "query",
+                        "description": "Business ID to filter by specific business",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering (format: YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2024-01-01"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering (format: YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2024-01-31"
+                        }
+                    },
+                    {
+                        "name": "model",
+                        "in": "query",
+                        "description": "OpenAI model to filter by",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "gpt-4o-mini",
+                                "gpt-4o",
+                                "gpt-3.5-turbo"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "branch_id",
+                        "in": "query",
+                        "description": "Branch ID to filter by specific branch",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "summary": {
+                                                    "properties": {
+                                                        "total_requests": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        },
+                                                        "total_tokens": {
+                                                            "type": "integer",
+                                                            "example": 45000
+                                                        },
+                                                        "prompt_tokens": {
+                                                            "type": "integer",
+                                                            "example": 30000
+                                                        },
+                                                        "completion_tokens": {
+                                                            "type": "integer",
+                                                            "example": 15000
+                                                        },
+                                                        "total_cost": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 12.75
+                                                        },
+                                                        "avg_tokens_per_request": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 300
+                                                        },
+                                                        "avg_cost_per_request": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 0.085
+                                                        },
+                                                        "first_request": {
+                                                            "type": "string",
+                                                            "format": "date-time",
+                                                            "example": "2024-01-01T10:00:00Z"
+                                                        },
+                                                        "last_request": {
+                                                            "type": "string",
+                                                            "format": "date-time",
+                                                            "example": "2024-01-31T15:30:00Z"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "by_business": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "business_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "business_name": {
+                                                                "type": "string",
+                                                                "example": "Acme Corp"
+                                                            },
+                                                            "total_requests": {
+                                                                "type": "integer",
+                                                                "example": 50
+                                                            },
+                                                            "total_tokens": {
+                                                                "type": "integer",
+                                                                "example": 15000
+                                                            },
+                                                            "total_cost": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 4.25
+                                                            },
+                                                            "percentage_of_total": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 33.33
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "by_model": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "model": {
+                                                                "type": "string",
+                                                                "example": "gpt-4o-mini"
+                                                            },
+                                                            "total_requests": {
+                                                                "type": "integer",
+                                                                "example": 120
+                                                            },
+                                                            "total_tokens": {
+                                                                "type": "integer",
+                                                                "example": 36000
+                                                            },
+                                                            "total_cost": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 9
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "daily_trend": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "date": {
+                                                                "type": "string",
+                                                                "format": "date",
+                                                                "example": "2024-01-15"
+                                                            },
+                                                            "total_requests": {
+                                                                "type": "integer",
+                                                                "example": 10
+                                                            },
+                                                            "total_tokens": {
+                                                                "type": "integer",
+                                                                "example": 3000
+                                                            },
+                                                            "total_cost": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 0.75
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "filters": {
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Internal server error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/owner/user/registration": {
             "post": {
                 "tags": [
@@ -10363,6 +10861,13 @@
                         "example": 1
                     },
                     {
+                        "name": "exclude_parent",
+                        "in": "query",
+                        "description": "Filter categories which does not have parent",
+                        "required": false,
+                        "example": 1
+                    },
+                    {
                         "name": "has_questions",
                         "in": "query",
                         "description": "Filter categories with/without questions",
@@ -10377,9 +10882,9 @@
                         "example": "title"
                     },
                     {
-                        "name": "sort_direction",
+                        "name": "sort_order",
                         "in": "query",
-                        "description": "Sort direction (asc, desc)",
+                        "description": "Sort order (asc, desc)",
                         "required": false,
                         "example": "asc"
                     }
@@ -11086,7 +11591,9 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "question"
+                                    "question",
+                                    "show_in_user",
+                                    "is_overall"
                                 ],
                                 "properties": {
                                     "question": {
@@ -11097,6 +11604,15 @@
                                         "description": "Required for non-superadmin",
                                         "type": "integer",
                                         "example": 1,
+                                        "nullable": true
+                                    },
+                                    "question_sub_category_ids": {
+                                        "description": "Array of question sub-category IDs",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": "[2, 3]",
                                         "nullable": true
                                     },
                                     "show_in_guest_user": {
@@ -11283,9 +11799,14 @@
                                         "type": "boolean",
                                         "example": false
                                     },
-                                    "is_staff": {
-                                        "type": "boolean",
-                                        "example": false
+                                    "question_sub_category_ids": {
+                                        "description": "Array of question sub-category IDs",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": "[2, 3]",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -12830,6 +13351,216 @@
                 ]
             }
         },
+        "/v1.0/dashboard/reviews": {
+            "get": {
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "Get review statistics",
+                "description": "Get detailed review statistics including guest and customer breakdown",
+                "operationId": "getReviewStatistics",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "businessId",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format",
+                        "required": false,
+                        "example": "01-12-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format",
+                        "required": false,
+                        "example": "31-12-2025"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "0 for survey, 1 for overall",
+                        "required": false,
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review statistics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/content": {
+            "get": {
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "Get question and tag statistics",
+                "description": "Get question and tag count and trends",
+                "operationId": "getContentStatistics",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "businessId",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format",
+                        "required": false,
+                        "example": "01-12-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format",
+                        "required": false,
+                        "example": "31-12-2025"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "0 for survey, 1 for overall",
+                        "required": false,
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Content statistics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/monthly-trends": {
+            "get": {
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "Get monthly trends data",
+                "description": "Get monthly data for charts and graphs",
+                "operationId": "getMonthlyTrends",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "businessId",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format",
+                        "required": false,
+                        "example": "01-12-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format",
+                        "required": false,
+                        "example": "31-12-2025"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "0 for survey, 1 for overall",
+                        "required": false,
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Monthly trends retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/reports/branch-comparison": {
             "get": {
                 "tags": [
@@ -13355,7 +14086,12 @@
                     "404": {
                         "description": "Not Found"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/v1.0/reports/staff-performance/{businessId}/{staffId}": {
@@ -13435,7 +14171,7 @@
                                                         },
                                                         "avg_rating": {
                                                             "type": "number",
-                                                            "example": 4.20000000000000017763568394002504646778106689453125
+                                                            "example": 4.2
                                                         },
                                                         "sentiment_distribution": {
                                                             "properties": {
@@ -13467,7 +14203,7 @@
                                                             "type": "object",
                                                             "example": {
                                                                 "2023-01": 4,
-                                                                "2023-02": 4.20000000000000017763568394002504646778106689453125
+                                                                "2023-02": 4.2
                                                             }
                                                         },
                                                         "trend_direction": {
@@ -13613,7 +14349,7 @@
                                                             "properties": {
                                                                 "value": {
                                                                     "type": "number",
-                                                                    "example": 4.20000000000000017763568394002504646778106689453125
+                                                                    "example": 4.2
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
@@ -13634,7 +14370,7 @@
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
-                                                                    "example": 2.100000000000000088817841970012523233890533447265625
+                                                                    "example": 2.1
                                                                 },
                                                                 "change_type": {
                                                                     "type": "string",
@@ -13929,6 +14665,54 @@
                         "description": "Not Found"
                     }
                 }
+            }
+        },
+        "/v1.0/reviews/{reviewId}/reply": {
+            "put": {
+                "tags": [
+                    "review_management"
+                ],
+                "summary": "Update reply content for a review",
+                "description": "Allows business owner to update the reply content of a review.",
+                "operationId": "updateReviewReply",
+                "parameters": [
+                    {
+                        "name": "reviewId",
+                        "in": "path",
+                        "description": "Review ID",
+                        "required": true,
+                        "example": "1"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reply_content"
+                                ],
+                                "properties": {
+                                    "reply_content": {
+                                        "type": "string",
+                                        "example": "Thank you for your feedback."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reply updated successfully"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/v1.0/voice/transcribe": {
@@ -14584,10 +15368,10 @@
         "/v1.0/review-new/{businessId}": {
             "post": {
                 "tags": [
-                    "review"
+                    "review_management"
                 ],
-                "summary": "Store review by authenticated user with optional audio",
-                "description": "Store review with optional audio transcription and AI analysis",
+                "summary": "Store review by authenticated user",
+                "description": "Store review with AI analysis",
                 "operationId": "createReview",
                 "parameters": [
                     {
@@ -14600,7 +15384,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "required": [
                                     "description",
@@ -14632,11 +15416,6 @@
                                     "branch_id": {
                                         "type": "integer",
                                         "example": "1"
-                                    },
-                                    "audio": {
-                                        "description": "Optional audio file",
-                                        "type": "string",
-                                        "format": "binary"
                                     },
                                     "values": {
                                         "type": "array",
@@ -14688,10 +15467,10 @@
         "/review-new-guest/{businessId}": {
             "post": {
                 "tags": [
-                    "review"
+                    "review_management"
                 ],
-                "summary": "Store review by guest user with optional audio",
-                "description": "Store guest review with optional audio transcription and AI analysis",
+                "summary": "Store review by guest user",
+                "description": "Store guest review with AI analysis",
                 "operationId": "storeReviewByGuest",
                 "parameters": [
                     {
@@ -14704,7 +15483,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "required": [
                                     "guest_full_name",
@@ -14739,6 +15518,10 @@
                                         "type": "boolean",
                                         "example": true
                                     },
+                                    "is_voice_review": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
                                     "latitude": {
                                         "type": "number",
                                         "example": "23.8103"
@@ -14755,10 +15538,22 @@
                                         "type": "number",
                                         "example": "1"
                                     },
-                                    "audio": {
-                                        "description": "Optional audio file",
-                                        "type": "string",
-                                        "format": "binary"
+                                    "business_services": {
+                                        "description": "Array of business services with their area IDs",
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "business_service_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_area_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
                                     },
                                     "values": {
                                         "type": "array",
@@ -18763,6 +19558,212 @@
                 ]
             }
         },
+        "/v1.0/client/surveys/{id}": {
+            "get": {
+                "tags": [
+                    "survey_management"
+                ],
+                "summary": "Get surveys (filters + pagination + sorting)",
+                "description": "Returns surveys for a business. Supports search, date range, active status, pagination, and sorting.",
+                "operationId": "getSurveyByIdClient",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": " ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 6
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "surveys retrieved successfully"
+                                        },
+                                        "meta": {
+                                            "description": "Pagination metadata",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 57
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 6
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "data": {
+                                            "description": "List of surveys",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 6
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Customer Feedback"
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-12-09T10:20:30Z"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-12-09T10:20:30Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bad Request"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/surveys/{business_id}": {
             "get": {
                 "tags": [
@@ -19410,6 +20411,156 @@
                                     },
                                     "type": "object"
                                 }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/survey-questions/display-order": {
+            "patch": {
+                "tags": [
+                    "survey_question_management"
+                ],
+                "summary": "Update display order for multiple survey questions",
+                "description": "Update the order_no for multiple survey questions based on survey_id and question_id",
+                "operationId": "surveyQuestionDisplayOrder",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "updates"
+                                ],
+                                "properties": {
+                                    "updates": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "survey_id",
+                                                "question_id",
+                                                "order_no"
+                                            ],
+                                            "properties": {
+                                                "survey_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "question_id": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "order_no": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/survey-questions": {
+            "get": {
+                "tags": [
+                    "survey_question_management"
+                ],
+                "summary": "Get survey questions by survey IDs and question IDs",
+                "description": "Retrieve survey questions data filtered by survey IDs and question IDs (comma-separated)",
+                "operationId": "getSurveyQuestionsBySurveyAndQuestionIds",
+                "parameters": [
+                    {
+                        "name": "survey_ids",
+                        "in": "query",
+                        "description": "Comma-separated survey IDs (e.g., 1,2,3)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "1,2,3"
+                        }
+                    },
+                    {
+                        "name": "question_ids",
+                        "in": "query",
+                        "description": "Comma-separated question IDs (e.g., 4,5,6)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "4,5,6"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/SurveyQuestion"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
                             }
                         }
                     }
@@ -20970,16 +22121,19 @@
                     "user_management",
                     "user_management.super_admin"
                 ],
-                "summary": "This method is to delete  Customer by id",
-                "description": "This method is to delete Customer  by id",
+                "summary": "Delete user by id",
+                "description": "\n     *     Rules:\n     *     - Superadmin can delete ONLY business owners and it's business\n     *     - Business owner can delete users within their own business\n     *     - Business owner cannot delete another business owner\n     *     ",
                 "operationId": "deleteUserById",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "id",
+                        "description": "User ID",
                         "required": true,
-                        "example": "1"
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
                     }
                 ],
                 "responses": {
@@ -20987,7 +22141,23 @@
                         "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User deleted successfully"
+                                        },
+                                        "data": {
+                                            "type": "boolean",
+                                            "example": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -20995,15 +22165,15 @@
                         "description": "Unauthenticated",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
@@ -21011,7 +22181,75 @@
                         "description": "Forbidden",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You are not authorized to delete user"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": []
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bad Request"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -21363,6 +22601,26 @@
                             "type": "string"
                         },
                         "example": "john"
+                    },
+                    {
+                        "name": "order_by",
+                        "in": "query",
+                        "description": "Field to order the users by, e.g., 'name', 'email', etc.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "name"
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort order for the users, e.g., 'asc' or 'desc'.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "desc"
                     }
                 ],
                 "responses": {
@@ -22047,11 +23305,6 @@
                         "example": 3,
                         "nullable": true
                     },
-                    "question_category_id": {
-                        "type": "integer",
-                        "example": 1,
-                        "nullable": true
-                    },
                     "is_active": {
                         "type": "boolean",
                         "example": true
@@ -22137,6 +23390,94 @@
                     }
                 },
                 "type": "object"
+            },
+            "Survey": {
+                "title": "Survey",
+                "description": "Survey model",
+                "required": [
+                    "name",
+                    "business_id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Customer Feedback Survey"
+                    },
+                    "business_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "show_in_guest_user": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "show_in_user": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "order_no": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "SurveyQuestion": {
+                "title": "SurveyQuestion",
+                "description": "Survey question pivot model",
+                "required": [
+                    "survey_id",
+                    "question_id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "survey_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "question_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "order_no": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "survey": {
+                        "$ref": "#/components/schemas/Survey"
+                    },
+                    "question": {
+                        "$ref": "#/components/schemas/Question"
+                    }
+                },
+                "type": "object"
             }
         },
         "securitySchemes": {
@@ -22187,6 +23528,10 @@
             "description": "dashboard_management"
         },
         {
+            "name": "email_management.feed_genius",
+            "description": "email_management.feed_genius"
+        },
+        {
             "name": "z.unused",
             "description": "z.unused"
         },
@@ -22211,6 +23556,10 @@
             "description": "notification"
         },
         {
+            "name": "OpenAI Tokens",
+            "description": "OpenAI Tokens"
+        },
+        {
             "name": "owner",
             "description": "owner"
         },
@@ -22231,12 +23580,20 @@
             "description": "question_management.client"
         },
         {
+            "name": "dashboard",
+            "description": "dashboard"
+        },
+        {
             "name": "report",
             "description": "report"
         },
         {
             "name": "Reports",
             "description": "Reports"
+        },
+        {
+            "name": "review_management",
+            "description": "review_management"
         },
         {
             "name": "voice",
@@ -22263,10 +23620,6 @@
             "description": "review_management.client"
         },
         {
-            "name": "review_management",
-            "description": "review_management"
-        },
-        {
             "name": "user_management.role",
             "description": "user_management.role"
         },
@@ -22281,6 +23634,10 @@
         {
             "name": "survey_management",
             "description": "survey_management"
+        },
+        {
+            "name": "survey_question_management",
+            "description": "survey_question_management"
         },
         {
             "name": "Tags",

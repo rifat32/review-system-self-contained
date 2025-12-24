@@ -26,7 +26,8 @@ class ContactFormMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('New Contact Message: ' . $this->data['subject'])
+        return $this->from(config('mail.from.address'), config('mail.from.name'))
+            ->subject('New Contact Message: ' . $this->data['subject'])
             ->replyTo($this->data['email']) // Allows you to reply directly to the sender
             ->view('mail.contact_template');
     }
