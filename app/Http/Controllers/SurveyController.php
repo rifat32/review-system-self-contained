@@ -405,7 +405,7 @@ class SurveyController extends Controller
     {
         try {
             // GET ALL SURVEYS WHICH BELONGS
-            $survey =  Survey::with('questions.question_stars.star.star_tags.tag', "business_services.business_areas")
+            $survey = Survey::with('questions.question_stars.star.star_tags.tag', "business_services.business_areas")
                 ->withCount([
                     "reviews"
                 ])
@@ -415,24 +415,32 @@ class SurveyController extends Controller
 
             $questions = $survey->questions;
             $data = json_decode(json_encode($questions), true);
+
             foreach ($questions as $key1 => $question) {
+                $data[$key1]["stars"] = []; // Initialize stars array
+
                 foreach ($question->question_stars as $key2 => $questionStar) {
                     $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
-
                     $data[$key1]["stars"][$key2]["tags"] = [];
+
                     foreach ($questionStar->star->star_tags as $key3 => $starTag) {
                         if ($starTag->question_id == $question->id) {
                             array_push($data[$key1]["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
                         }
                     }
                 }
+                // Remove the original question_stars to avoid duplication
+                unset($data[$key1]['question_stars']);
             }
-            $survey->questions = $data;
+
+            // Convert survey to array and replace questions
+            $surveyArray = $survey->toArray();
+            $surveyArray['questions'] = $data;
 
             return response()->json([
                 "success" => true,
                 "message" => "survey retrieved successfully",
-                "data" => $survey
+                "data" => $surveyArray
             ], 200);
         } catch (Exception $e) {
             return response()->json([
