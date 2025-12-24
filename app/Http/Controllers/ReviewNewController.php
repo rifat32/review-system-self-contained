@@ -250,7 +250,7 @@ class ReviewNewController extends Controller
      * @OA\Get(
      *      path="/v1.0/reviews/overall-dashboard/{businessId}",
      *      operationId="getOverallDashboardData",
-     *      tags={"review.dashboard"},
+     *      tags={"dashboard_management"},
      *      security={{"bearerAuth": {}}},
      *      summary="Get overall business dashboard data",
      *      description="Get comprehensive dashboard data with AI insights and analytics",
