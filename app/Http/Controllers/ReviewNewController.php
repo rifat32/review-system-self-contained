@@ -947,29 +947,25 @@ class ReviewNewController extends Controller
      *          example="1"
      *      ),
      *      security={{"bearerAuth": {}}},
-     *      summary="Store review by authenticated user with optional audio",
-     *      description="Store review with optional audio transcription and AI analysis",
+     *      summary="Store review by authenticated user",
+     *      description="Store review with AI analysis",
      *      @OA\RequestBody(
      *          required=true,
-     *          @OA\MediaType(
-     *              mediaType="multipart/form-data",
-     *              @OA\Schema(
-     *                  required={"description","rate","comment","values"},
-     *                  @OA\Property(property="description", type="string", example="Test"),
-     *                  @OA\Property(property="rate", type="string", example="2.5"),
-     *                  @OA\Property(property="comment", type="string", example="Not good"),
-     *                  @OA\Property(property="is_overall", type="boolean", example=true),
-     *                  @OA\Property(property="staff_id", type="integer", example="1"),
-     *                 @OA\Property(property="branch_id", type="integer", example="1"),
-     *                  @OA\Property(property="audio", type="string", format="binary", description="Optional audio file"),
-     *                  @OA\Property(
-     *                      property="values",
-     *                      type="array",
-     *                      @OA\Items(
-     *                          @OA\Property(property="question_id", type="integer", example=1),
-     *                          @OA\Property(property="tag_id", type="integer", example=2),
-     *                          @OA\Property(property="star_id", type="integer", example=4)
-     *                      )
+     *          @OA\JsonContent(
+     *              required={"description","rate","comment","values"},
+     *              @OA\Property(property="description", type="string", example="Test"),
+     *              @OA\Property(property="rate", type="string", example="2.5"),
+     *              @OA\Property(property="comment", type="string", example="Not good"),
+     *              @OA\Property(property="is_overall", type="boolean", example=true),
+     *              @OA\Property(property="staff_id", type="integer", example="1"),
+     *              @OA\Property(property="branch_id", type="integer", example="1"),
+     *              @OA\Property(
+     *                  property="values",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="question_id", type="integer", example=1),
+     *                      @OA\Property(property="tag_id", type="integer", example=2),
+     *                      @OA\Property(property="star_id", type="integer", example=4)
      *                  )
      *              )
      *          )

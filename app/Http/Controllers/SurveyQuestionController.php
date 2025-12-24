@@ -10,12 +10,6 @@ use App\Models\SurveyQuestion;
 class SurveyQuestionController extends Controller
 {
     /**
-     * UPDATE THE DISPLAY ORDER FOR MULTIPLE SURVEY QUESTIONS.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    /**
      * @OA\Patch(
      *      path="/v1.0/survey-questions/display-order",
      *      operationId="surveyQuestionDisplayOrder",

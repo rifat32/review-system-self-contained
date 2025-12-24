@@ -17,6 +17,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessServiceController;
 use App\Http\Controllers\BusinessAreaController;
+use App\Http\Controllers\EmailController;
 use App\Http\Controllers\LeafletController;
 use App\Http\Controllers\OpenAITokenReportController;
 use App\Http\Controllers\QuestionCategoryController;
@@ -484,3 +485,4 @@ Route::put('/v1.0/client/reviews/update-guest-email/{ids}', [ReviewNewController
 // ============================================================================
 Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
 Route::get('/v1.0/client/surveys/{id}', [SurveyController::class, "getSurveyByIdClient"]);
+Route::post('/v1.0/client/email/send-email', [EmailController::class, "sendEmail "]);
