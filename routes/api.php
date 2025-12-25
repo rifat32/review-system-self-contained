@@ -141,9 +141,16 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     Route::get('/v1.0/dashboard/monthly-trends', [ReportController::class, "getMonthlyTrends"]);
+
+Route::get('/v1.0/dashboard/top-worst-services', [ReportController::class, "getTopWorstServices"]);
+    
+
+
+
     Route::get('/v1.0/dashboard/content', [ReportController::class, "getContentStatistics"]);
     Route::get('/v1.0/dashboard/reviews', [ReportController::class, "getReviewStatistics"]);
 
+    Route::get('/v1.0/dashboard/overview', [ReportController::class, "getDashboardOverview"]);
 
 
 

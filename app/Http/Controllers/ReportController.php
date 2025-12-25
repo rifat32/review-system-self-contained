@@ -670,7 +670,7 @@ class ReportController extends Controller
 
         return $data;
     }
-    private function getBaseQueries(Request $request, $isOverall)
+    private function getBaseQueries(Request $request)
     {
         $businessId = $request->businessId;
 
@@ -681,7 +681,7 @@ class ReportController extends Controller
             )
             ->globalFilters(0, $businessId)
             ->orderBy('review_news.order_no', 'asc')
-            ->filterByOverall($isOverall)
+
             ->select('review_news.*')
             ->withCalculatedRating();
 
@@ -693,11 +693,12 @@ class ReportController extends Controller
             'question' => Question::when(
                 !$request->user()->hasRole('superadmin'),
                 fn($q) => $q->where('business_id', $businessId)
-            )->filterByOverall($isOverall),
+            )
+            ->filterByOverall(),
             'tag' => Tag::when(
                 !$request->user()->hasRole('superadmin'),
                 fn($q) => $q->where('business_id', $businessId)
-            )->filterByOverall($isOverall)
+            )->filterByOverall()
         ];
     }
 
@@ -770,7 +771,7 @@ class ReportController extends Controller
      */
     public function getReviewStatistics(Request $request)
     {
-        $isOverall = $request->input('is_overall', 0);
+     
 
         $startDate = $request->start_date
             ? Carbon::parse($request->start_date)->startOfDay()
@@ -780,7 +781,7 @@ class ReportController extends Controller
         ? Carbon::parse($request->end_date)->endOfDay()
         : Carbon::now()->endOfMonth();
 
-        $queries = $this->getBaseQueries($request, $isOverall);
+        $queries = $this->getBaseQueries($request);
         $dateRanges = $this->getDateRanges($startDate, $endDate);
 
         $data = [
@@ -893,7 +894,7 @@ class ReportController extends Controller
      */
     public function getContentStatistics(Request $request)
     {
-        $isOverall = $request->input('is_overall', 0);
+
 
         $startDate = $request->start_date
             ? Carbon::parse($request->start_date)->startOfDay()
@@ -903,7 +904,7 @@ class ReportController extends Controller
         ? Carbon::parse($request->end_date)->endOfDay()
         : Carbon::now()->endOfMonth();
 
-        $queries = $this->getBaseQueries($request, $isOverall);
+        $queries = $this->getBaseQueries($request);
         $dateRanges = $this->getDateRanges($startDate, $endDate);
 
         $data = [
@@ -1008,7 +1009,7 @@ class ReportController extends Controller
      */
     public function getMonthlyTrends(Request $request)
     {
-        $isOverall = $request->input('is_overall', 0);
+ 
 
         $startDate = $request->start_date
             ? Carbon::parse($request->start_date)->startOfDay()
@@ -1018,7 +1019,7 @@ class ReportController extends Controller
         ? Carbon::parse($request->end_date)->endOfDay()
         : Carbon::now()->endOfMonth();
 
-        $queries = $this->getBaseQueries($request, $isOverall);
+        $queries = $this->getBaseQueries($request);
         $dateRanges = $this->getDateRanges($startDate, $endDate);
 
         $monthlyData = [
@@ -1069,6 +1070,167 @@ class ReportController extends Controller
             'data' => $monthlyData
         ], 200);
     }
+
+    /**
+ * @OA\Get(
+ *      path="/v1.0/dashboard/top-worst-services",
+ *      operationId="getTopWorstServices",
+ *      tags={"dashboard_management"},
+ *      @OA\Parameter(
+ *         name="businessId",
+ *         in="query",
+ *         description="Business ID",
+ *         required=true,
+ *         example="1"
+ *      ),
+ *      @OA\Parameter(
+ *         name="period",
+ *         in="query",
+ *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
+ *         required=false,
+ *         example="last_30_days"
+ *      ),
+ *      @OA\Parameter(
+ *         name="start_date",
+ *         in="query",
+ *         description="Custom start date (d-m-Y format)",
+ *         required=false,
+ *         example="01-01-2025"
+ *      ),
+ *      @OA\Parameter(
+ *         name="end_date",
+ *         in="query",
+ *         description="Custom end date (d-m-Y format)",
+ *         required=false,
+ *         example="31-01-2025"
+ *      ),
+ *      @OA\Parameter(
+ *         name="min_reviews",
+ *         in="query",
+ *         description="Minimum reviews required for a service to be included",
+ *         required=false,
+ *         example="3"
+ *      ),
+ *      security={
+ *          {"bearerAuth": {}}
+ *      },
+ *      summary="Get top 3 and worst 3 business services",
+ *      description="Analyze business services performance based on review ratings",
+ *      @OA\Response(
+ *          response=200,
+ *          description="Successful operation",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="success", type="boolean", example=true),
+ *              @OA\Property(property="message", type="string", example="Services performance analysis retrieved successfully"),
+ *              @OA\Property(property="data", type="object",
+ *                  @OA\Property(property="top_services", type="array",
+ *                      @OA\Items(type="object",
+ *                          @OA\Property(property="service_id", type="integer", example=1),
+ *                          @OA\Property(property="service_name", type="string", example="Room Service"),
+ *                          @OA\Property(property="description", type="string", example="24-hour room service"),
+ *                          @OA\Property(property="average_rating", type="number", format="float", example=4.7),
+ *                          @OA\Property(property="total_reviews", type="integer", example=45),
+ *                          @OA\Property(property="sentiment_score", type="integer", example=85),
+ *                          @OA\Property(property="positive_reviews", type="integer", example=38),
+ *                          @OA\Property(property="negative_reviews", type="integer", example=7),
+ *                          @OA\Property(property="performance_label", type="string", example="Excellent"),
+ *                          @OA\Property(property="top_tags", type="array",
+ *                              @OA\Items(type="string", example="Prompt Service")
+ *                          ),
+ *                          @OA\Property(property="sample_comments", type="array",
+ *                              @OA\Items(type="object",
+ *                                  @OA\Property(property="comment", type="string", example="Room service was quick and food was hot..."),
+ *                                  @OA\Property(property="rating", type="number", format="float", example=5.0),
+ *                                  @OA\Property(property="sentiment", type="string", example="positive"),
+ *                                  @OA\Property(property="date", type="string", example="Jan 15, 2025")
+ *                              )
+ *                          )
+ *                      )
+ *                  ),
+ *                  @OA\Property(property="worst_services", type="array",
+ *                      @OA\Items(type="object",
+ *                          @OA\Property(property="service_id", type="integer", example=2),
+ *                          @OA\Property(property="service_name", type="string", example="Spa Services"),
+ *                          @OA\Property(property="description", type="string", example="Spa and wellness services"),
+ *                          @OA\Property(property="average_rating", type="number", format="float", example=2.3),
+ *                          @OA\Property(property="total_reviews", type="integer", example=32),
+ *                          @OA\Property(property="sentiment_score", type="integer", example=25),
+ *                          @OA\Property(property="positive_reviews", type="integer", example=8),
+ *                          @OA\Property(property="negative_reviews", type="integer", example=24),
+ *                          @OA\Property(property="performance_label", type="string", example="Poor"),
+ *                          @OA\Property(property="top_tags", type="array",
+ *                              @OA\Items(type="string", example="Long Wait")
+ *                          ),
+ *                          @OA\Property(property="sample_comments", type="array",
+ *                              @OA\Items(type="object",
+ *                                  @OA\Property(property="comment", type="string", example="Had to wait 45 minutes for massage..."),
+ *                                  @OA\Property(property="rating", type="number", format="float", example=2.0),
+ *                                  @OA\Property(property="sentiment", type="string", example="negative"),
+ *                                  @OA\Property(property="date", type="string", example="Jan 20, 2025")
+ *                              )
+ *                          )
+ *                      )
+ *                  ),
+ *                  @OA\Property(property="summary", type="object",
+ *                      @OA\Property(property="total_services_analyzed", type="integer", example=8),
+ *                      @OA\Property(property="services_with_reviews", type="integer", example=6),
+ *                      @OA\Property(property="overall_service_rating", type="number", format="float", example=3.8),
+ *                      @OA\Property(property="best_performing_service", type="string", example="Room Service"),
+ *                      @OA\Property(property="worst_performing_service", type="string", example="Spa Services"),
+ *                      @OA\Property(property="period", type="object",
+ *                          @OA\Property(property="start", type="string", example="2025-01-01"),
+ *                          @OA\Property(property="end", type="string", example="2025-01-31")
+ *                      )
+ *                  )
+ *              )
+ *          )
+ *      )
+ * )
+ */
+public function getTopWorstServices(Request $request)
+{
+    $request->validate([
+        'businessId' => 'required|integer|exists:businesses,id',
+        'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
+        'start_date' => 'nullable|date_format:d-m-Y',
+        'end_date' => 'nullable|date_format:d-m-Y',
+        'min_reviews' => 'nullable|integer|min:1'
+    ]);
+
+    $businessId = $request->input('businessId');
+    
+    // Get date range
+    if ($request->has('start_date') && $request->has('end_date')) {
+        $dateRange = [
+            'start' => Carbon::parse($request->input('start_date'))->startOfDay(),
+            'end' => Carbon::parse($request->input('end_date'))->endOfDay()
+        ];
+    } else {
+        $period = $request->input('period', 'last_30_days');
+        $dateRange = getDateRangeByPeriod($period);
+    }
+
+    // Analyze services performance
+    $servicesAnalysis = analyzeBusinessServicesPerformance($businessId, $dateRange);
+    
+    // Apply minimum reviews filter if specified
+    $minReviews = $request->input('min_reviews', 3);
+    if ($minReviews > 1) {
+        $servicesAnalysis['top_services'] = array_filter($servicesAnalysis['top_services'], 
+            fn($service) => $service['total_reviews'] >= $minReviews);
+        $servicesAnalysis['worst_services'] = array_filter($servicesAnalysis['worst_services'], 
+            fn($service) => $service['total_reviews'] >= $minReviews);
+        
+        $servicesAnalysis['top_services'] = array_values($servicesAnalysis['top_services']);
+        $servicesAnalysis['worst_services'] = array_values($servicesAnalysis['worst_services']);
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Services performance analysis retrieved successfully',
+        'data' => $servicesAnalysis
+    ], 200);
+}
 
 /**
  * @OA\Get(
@@ -1153,7 +1315,7 @@ class ReportController extends Controller
  */
 public function getDashboardOverview(Request $request)
 {
-    $isOverall = $request->input('is_overall', 0);
+
     $businessId = $request->input('businessId');
     
     if (!$businessId) {
@@ -1186,7 +1348,7 @@ public function getDashboardOverview(Request $request)
     $previousPeriodStart = $previousPeriodEnd->copy()->subDays($periodDuration);
     
     // Get base queries
-    $queries = $this->getBaseQueries($request, $isOverall);
+    $queries = $this->getBaseQueries($request);
     
     // 1. Total Reviews for current period and previous period
     $currentPeriodReviews = (clone $queries['base_review'])
@@ -1196,6 +1358,8 @@ public function getDashboardOverview(Request $request)
     $previousPeriodReviews = (clone $queries['base_review'])
         ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
         ->count();
+
+        
     
     // Calculate percentage change
     $percentageChange = 0;
@@ -1215,16 +1379,19 @@ public function getDashboardOverview(Request $request)
     
     // 2. Average Rating for current period
     $currentPeriodReviewsWithRating = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$startDate, $endDate])
+         ->whereBetween('created_at', [$startDate, $endDate])
         ->get();
     
-    $averageRating = $currentPeriodReviewsWithRating->isNotEmpty() 
+       $averageRating = $currentPeriodReviewsWithRating->isNotEmpty() 
         ? round($currentPeriodReviewsWithRating->avg('calculated_rating'), 1)
         : 0;
+
+   
     
     // 3. Top Topic from tags in current period
-    $topTopic = $this->getTopTopic($businessId, $startDate, $endDate, $isOverall);
+    $topTopic = $this->getTopTopic($businessId, $startDate, $endDate);
     
+ 
     // 4. New Reviews this week (always calculated for current week, regardless of selected period)
     $weekStart = Carbon::now()->startOfWeek();
     $weekEnd = Carbon::now()->endOfWeek();
@@ -1234,20 +1401,15 @@ public function getDashboardOverview(Request $request)
         ->count();
     
     // 5. All Sentiment analysis for current period
-    $sentimentStatus = $this->getSentimentStatus($currentPeriodReviewsWithRating);
+    $sentiment_status =  calculateAggregatedSentiment($currentPeriodReviewsWithRating);
     
+   
+          
     // 6. Pending reviews (reviews that need attention - flagged or low rating)
-    $pendingReviews = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->where(function($query) {
-            $query->where('status', 'flagged')
-                  ->orWhere(function($q) {
-                      $q->whereNotNull('calculated_rating')
-                        ->where('calculated_rating', '<=', 2);
-                  });
-        })
-        ->count();
+     $reviews = clone $queries['base_review'];
     
+     $pendingReviews = $reviews ->whereBetween('created_at', [$startDate, $endDate]) ->where('status', 'flagged') ->get() ->filter(function ($review) { return $review->calculated_rating !== null && $review->calculated_rating <= 2; }) ->count();
+
     // Format period display text
     $periodDisplayText = $this->formatPeriodDisplay($startDate, $endDate);
     
@@ -1276,7 +1438,7 @@ public function getDashboardOverview(Request $request)
             'from_period' => 'this week'
         ],
         'all_sentiment' => [
-            'status' => $sentimentStatus,
+            'status' => $sentiment_status,
             'based_on' => 'Based on selected period'
         ],
         'pending_reviews' => [
@@ -1295,7 +1457,7 @@ public function getDashboardOverview(Request $request)
 /**
  * Helper method to get the top topic from tags
  */
-private function getTopTopic($businessId, $startDate, $endDate, $isOverall)
+private function getTopTopic($businessId, $startDate, $endDate)
 {
     // Get tag counts from ReviewValueNew for the period
     $topTag = ReviewValueNew::
@@ -1307,14 +1469,11 @@ private function getTopTopic($businessId, $startDate, $endDate, $isOverall)
                   ->globalFilters(0, $businessId);
                    
          })
-
-
-
         ->where('tags.business_id', $businessId)
         ->whereBetween('review_value_news.created_at', [$startDate, $endDate])
-        ->filterByOverall($isOverall)
-        ->select('tags.name', DB::raw('COUNT(review_value_news.id) as count'))
-        ->groupBy('tags.id', 'tags.name')
+    
+        ->select('tags.tag', DB::raw('COUNT(review_value_news.id) as count'))
+        ->groupBy('tags.id', 'tags.tag')
         ->orderByDesc('count')
         ->first();
     
@@ -1350,34 +1509,6 @@ private function getTopTopic($businessId, $startDate, $endDate, $isOverall)
     ];
 }
 
-/**
- * Helper method to determine sentiment status
- */
-private function getSentimentStatus($reviews)
-{
-    if ($reviews->isEmpty()) {
-        return 'Neutral';
-    }
-    
-    $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
-    $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
-    $totalReviews = $reviews->count();
-    
-    $positivePercentage = ($positiveReviews / $totalReviews) * 100;
-    $negativePercentage = ($negativeReviews / $totalReviews) * 100;
-    
-    if ($positivePercentage >= 60) {
-        return 'Positive';
-    } elseif ($negativePercentage >= 40) {
-        return 'Negative';
-    } elseif ($positivePercentage > $negativePercentage) {
-        return 'Mostly Positive';
-    } elseif ($negativePercentage > $positivePercentage) {
-        return 'Mostly Negative';
-    }
-    
-    return 'Neutral';
-}
 
 /**
  * Helper method to format period display text

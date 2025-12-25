@@ -4,6 +4,7 @@
 
 use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
+use App\Models\Tag;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -106,6 +107,90 @@ if (!function_exists('extractRatingBreakdown')) {
             'average_rating' => $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0,
             'total_reviews' => $reviews->count(),
             'valid_reviews' => $validReviews
+        ];
+    }
+}
+
+if (!function_exists('extractTagsBreakdown')) {
+    function extractTagsBreakdown($businessId, $dateRange)
+    {
+        // First, get all tags for this business
+        $allTags = \App\Models\Tag::where('business_id', $businessId)
+            ->select('id', 'tag')
+            ->get()
+            ->keyBy('id');
+
+        // Get tag counts from ReviewValueNew for the period
+        $tagCounts = ReviewValueNew::join('tags', 'review_value_news.tag_id', '=', 'tags.id')
+            ->where('tags.business_id', $businessId)
+            ->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']])
+            ->select('tags.id', 'tags.tag', DB::raw('COUNT(review_value_news.id) as count'))
+            ->groupBy('tags.id', 'tags.tag')
+            ->orderByDesc('count')
+            ->get();
+
+        $totalTagMentions = $tagCounts->sum('count');
+        
+        // Color palette for visualization
+        $colorPalette = [
+            '#3490dc', // blue
+            '#38c172', // green
+            '#e3342f', // red
+            '#f6993f', // orange
+            '#9561e2', // purple
+            '#ffed4a', // yellow
+            '#4dc0b5', // teal
+            '#f66d9b', // pink
+            '#6574cd', // indigo
+            '#a0aec0'  // gray
+        ];
+        
+        // Prepare breakdown with all tags, including those with zero mentions
+        $breakdown = $allTags->map(function ($tag, $index) use ($tagCounts, $totalTagMentions, $colorPalette) {
+            $tagData = $tagCounts->firstWhere('id', $tag->id);
+            $count = $tagData ? $tagData->count : 0;
+            
+            // Calculate percentage based on total tag mentions (not total reviews)
+            $percentage = $totalTagMentions > 0 ? round(($count / $totalTagMentions) * 100) : 0;
+            
+            // Assign color from palette (cycle through if more tags than colors)
+            $colorIndex = $index % count($colorPalette);
+            $color = $colorPalette[$colorIndex];
+            
+            return [
+                'id' => $tag->id,
+                'tag' => $tag->tag,
+                'color' => $color,
+                'count' => $count,
+                'percentage' => $percentage,
+                'display_text' => "{$tag->name} ({$percentage}%)"
+            ];
+        })->sortByDesc('percentage')->values();
+
+        // Get top 8 tags for the chart
+        $topTags = $breakdown->take(8)->values();
+
+        return [
+            'tags' => $topTags->toArray(),
+            'summary' => [
+                'total_tags' => $allTags->count(),
+                'total_tag_mentions' => $totalTagMentions,
+                'tags_with_mentions' => $tagCounts->count(),
+                'top_tag' => $breakdown->isNotEmpty() ? $breakdown->first()['tag'] : null,
+                'top_tag_percentage' => $breakdown->isNotEmpty() ? $breakdown->first()['percentage'] : 0,
+                'average_mentions_per_tag' => $allTags->count() > 0 ? round($totalTagMentions / $allTags->count(), 1) : 0
+            ],
+            'all_tags_count' => $allTags->count(),
+            'visualization_data' => [
+                'labels' => $topTags->pluck('name')->toArray(),
+                'datasets' => [
+                    [
+                        'data' => $topTags->pluck('percentage')->toArray(),
+                        'backgroundColor' => $topTags->pluck('color')->toArray(),
+                        'borderWidth' => 1
+                    ]
+                ]
+            ]
         ];
     }
 }

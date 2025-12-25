@@ -2,6 +2,8 @@
 
 // AI Moderation
 
+use App\Models\BusinessService;
+use App\Models\ReviewNew;
 
 
 if (!function_exists('aiModeration')) {
@@ -522,7 +524,153 @@ if (!function_exists('getAudioDuration')) {
     }
 }
 
-
+if (!function_exists('analyzeBusinessServicesPerformance')) {
+    function analyzeBusinessServicesPerformance($businessId, $dateRange)
+    {
+        // Get all business services for this business
+        $businessServices = BusinessService::where('business_id', $businessId)
+            ->get(['id', 'name', 'description']);
+        
+        if ($businessServices->isEmpty()) {
+            return [
+                'top_services' => [],
+                'worst_services' => [],
+                'message' => 'No business services defined'
+            ];
+        }
+        
+        // Get reviews within date range with their associated services
+        $reviews = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->globalFilters(0, $businessId)
+            ->with(['business_services', 'value']) // Eager load services and values
+            ->withCalculatedRating()
+            ->get();
+        
+        if ($reviews->isEmpty()) {
+            return [
+                'top_services' => [],
+                'worst_services' => [],
+                'message' => 'No reviews available for the selected period'
+            ];
+        }
+        
+        $serviceMetrics = [];
+        
+        foreach ($businessServices as $service) {
+            // Find reviews that mention this specific service
+            $serviceReviews = $reviews->filter(function ($review) use ($service) {
+                return $review->business_services->contains('id', $service->id);
+            });
+            
+            if ($serviceReviews->isNotEmpty()) {
+                // Calculate average rating for this service
+                $avgRating = round($serviceReviews->avg('calculated_rating'), 2);
+                $totalReviews = $serviceReviews->count();
+                
+                // Calculate sentiment for this service
+                $positiveCount = $serviceReviews->where('sentiment_score', '>=', 0.7)->count();
+                $negativeCount = $serviceReviews->where('sentiment_score', '<', 0.4)->count();
+                $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
+                
+                // Get common tags for this service
+                $commonTags = [];
+                foreach ($serviceReviews as $review) {
+                    if ($review->value) {
+                        foreach ($review->value as $value) {
+                            if ($value->tag) {
+                                $tagName = $value->tag->tag;
+                                $commonTags[$tagName] = ($commonTags[$tagName] ?? 0) + 1;
+                            }
+                        }
+                    }
+                }
+                arsort($commonTags);
+                $topTags = array_slice(array_keys($commonTags), 0, 3);
+                
+                // Get sample comments
+                $sampleComments = $serviceReviews->sortByDesc('calculated_rating')
+                    ->take(2)
+                    ->map(function ($review) {
+                        return [
+                            'comment' => substr($review->comment ?? '', 0, 100) . (strlen($review->comment ?? '') > 100 ? '...' : ''),
+                            'rating' => round($review->calculated_rating ?? 0, 1),
+                            'sentiment' => getSentimentLabel($review->sentiment_score ?? 0),
+                            'date' => $review->created_at->format('M d, Y')
+                        ];
+                    })
+                    ->values()
+                    ->toArray();
+                
+                $serviceMetrics[$service->id] = [
+                    'service_id' => $service->id,
+                    'service_name' => $service->name,
+                    'description' => $service->description,
+                    'average_rating' => $avgRating,
+                    'total_reviews' => $totalReviews,
+                    'sentiment_score' => $sentimentPercentage,
+                    'positive_reviews' => $positiveCount,
+                    'negative_reviews' => $negativeCount,
+                    'top_tags' => $topTags,
+                    'sample_comments' => $sampleComments,
+                    'performance_label' => $avgRating >= 4.5 ? 'Excellent' : 
+                                         ($avgRating >= 4.0 ? 'Very Good' : 
+                                         ($avgRating >= 3.5 ? 'Good' : 
+                                         ($avgRating >= 3.0 ? 'Average' : 
+                                         ($avgRating >= 2.0 ? 'Below Average' : 'Poor'))))
+                ];
+            }
+        }
+        
+        // Sort by average rating (highest first)
+        uasort($serviceMetrics, function ($a, $b) {
+            // First by rating, then by number of reviews for tie-breaking
+            if ($b['average_rating'] == $a['average_rating']) {
+                return $b['total_reviews'] <=> $a['total_reviews'];
+            }
+            return $b['average_rating'] <=> $a['average_rating'];
+        });
+        
+        // Get services with at least 3 reviews for accurate analysis
+        $qualifiedServices = array_filter($serviceMetrics, function ($service) {
+            return $service['total_reviews'] >= 3;
+        });
+        
+        // Get top 3 and worst 3
+        if (count($qualifiedServices) >= 6) {
+            $allServices = array_values($qualifiedServices);
+            $topServices = array_slice($allServices, 0, 3);
+            $worstServices = array_slice(array_reverse($allServices), 0, 3);
+        } else {
+            // If not enough qualified services, use all available
+            $allServices = array_values($serviceMetrics);
+            $topServices = array_slice($allServices, 0, min(3, count($allServices)));
+            $worstServices = array_slice(array_reverse($allServices), 0, min(3, count($allServices)));
+        }
+        
+        // Calculate overall metrics
+        $allServiceRatings = array_column($serviceMetrics, 'average_rating');
+        $overallServiceRating = count($allServiceRatings) > 0 ? 
+            round(array_sum($allServiceRatings) / count($allServiceRatings), 2) : 0;
+        
+        return [
+            'top_services' => array_values($topServices),
+            'worst_services' => array_values($worstServices),
+            'all_services' => array_values($serviceMetrics),
+            'summary' => [
+                'total_services_analyzed' => count($serviceMetrics),
+                'services_with_reviews' => count($qualifiedServices),
+                'overall_service_rating' => $overallServiceRating,
+                'best_performing_service' => !empty($topServices) ? $topServices[0]['service_name'] : 'N/A',
+                'worst_performing_service' => !empty($worstServices) ? $worstServices[0]['service_name'] : 'N/A',
+                'period' => [
+                    'start' => $dateRange['start']->format('Y-m-d'),
+                    'end' => $dateRange['end']->format('Y-m-d')
+                ]
+            ]
+        ];
+    }
+}
 
 //   private function calculateRatingBreakdown($businessId, $dateRange)
 //     {

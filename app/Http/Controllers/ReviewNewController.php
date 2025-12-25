@@ -314,6 +314,9 @@ class ReviewNewController extends Controller
                 ->get()
         );
 
+         // Get tags breakdown (NEW)
+    $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange);
+
         // Get AI insights using existing AI pipeline
         $aiInsights = getAiInsightsPanel($businessId, $dateRange);
 
@@ -332,6 +335,7 @@ class ReviewNewController extends Controller
             'data' => [
                 'metrics' => $metrics,
                 'rating_breakdown' => $ratingBreakdown,
+                'tags_breakdown' => $tagsBreakdown,
                 'ai_insights_panel' => $aiInsights,
                 'staff_performance_snapshot' => $staffPerformance,
                 'review_feed' => $reviewFeed,

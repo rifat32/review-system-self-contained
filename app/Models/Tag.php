@@ -28,13 +28,16 @@ class Tag extends Model
         return $this->hasMany(ReviewValueNew::class, 'tag_id', 'id');
     }
 
-    public function scopeFilterByOverall($query, $is_overall)
+    public function scopeFilterByOverall($query)
     {
-        return $query->when(isset($is_overall), function ($q) use ($is_overall) {
-            $q->whereHas('review_values', function ($q2) use ($is_overall) {
+        if(request()->filled("is_overall")) {
+            $is_overall = request()->boolean("is_overall");
+            $query->whereHas('review_values', function ($q2) use ($is_overall) {
                 $q2->filterByOverall($is_overall);
             });
-        });
+       
+        }
+        return $query;
     }
 
     public function scopeFilter(Builder $query): Builder
