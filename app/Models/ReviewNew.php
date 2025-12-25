@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\DB;
 
 class ReviewNew extends Model
@@ -11,7 +12,7 @@ class ReviewNew extends Model
     use HasFactory;
 
     protected $fillable = [
-    
+
         'survey_id',
         'description',
         'business_id',
@@ -89,7 +90,7 @@ class ReviewNew extends Model
         return $this->hasMany(ReviewBusinessService::class, 'review_id', 'id');
     }
 
-    
+
     public function business_services(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -98,8 +99,8 @@ class ReviewNew extends Model
             'review_id',                // foreign key on pivot table
             'business_service_id',       // related key on pivot table
         )
-        ->withPivot('business_area_id') // include business_area_id from pivot
-        ->withTimestamps();
+            ->withPivot('business_area_id') // include business_area_id from pivot
+            ->withTimestamps();
     }
 
 
@@ -166,66 +167,71 @@ class ReviewNew extends Model
             ->when($show_published_only, function ($q) use ($businessId, $is_staff_review) {
                 $q->whereMeetsThreshold($businessId, $is_staff_review);
             })
-            
 
-                ->when(request()->filled("question_category_id")|| request()->filled("question_sub_category_id" ), function ($q) {
 
-                        $q
-                        ->whereHas("value", function ($q) {
-                        $q->whereHas("question", function($q){
-                            $q->whereHas("question_sub_categories", function($q){
+            ->when(request()->filled("question_category_id") || request()->filled("question_sub_category_id"), function ($q) {
+
+                $q
+                    ->whereHas("value", function ($q) {
+                        $q->whereHas("question", function ($q) {
+                            $q->whereHas("question_sub_categories", function ($q) {
 
                                 $q
-                                ->when(request()->filled("question_sub_category_id"), function($q){
-                                    $q->where("question_categories.id", request()->input("question_sub_category_id"));
-                                })
-                                ->when(request()->filled("question_category_id"), function($q){
-                                    $q->where("question_categories.parent_id", request()->input("question_category_id"));
-                                });
-                                
+                                    ->when(request()->filled("question_sub_category_id"), function ($q) {
+                                        $q->where("question_categories.id", request()->input("question_sub_category_id"));
+                                    })
+                                    ->when(request()->filled("question_category_id"), function ($q) {
+                                        $q->where("question_categories.parent_id", request()->input("question_category_id"));
+                                    });
                             });
                         });
                     });
-                    
-                        })
-                        
-                         ->when(request()->filled("business_area_id") || request()->filled("business_service_id"), function ($q) {
+            })
+
+            ->when(request()->filled("business_area_id") || request()->filled("business_service_id"), function ($q) {
+
+                $q
+                    ->whereHas("review_business_services", function ($q) {
 
                         $q
-                        ->whereHas("review_business_services", function ($q) {
-             
-                                $q
-                                ->when(request()->filled("business_area_id"), function($q){
-                                    $q->where("review_business_services.id", request()->input("business_area_id"));
-                                })
-                                ->when(request()->filled("business_service_id"), function($q){
-                                    $q->where("review_business_services.business_service_id", request()->input("question_category_id"));
-                                });
-                                
-                    
+                            ->when(request()->filled("business_area_id"), function ($q) {
+                                $q->where("review_business_services.id", request()->input("business_area_id"));
+                            })
+                            ->when(request()->filled("business_service_id"), function ($q) {
+                                $q->where("review_business_services.business_service_id", request()->input("question_category_id"));
+                            });
                     });
-                    
-                        });
-                        ;
-          
+            });;
 
-                    //  ->when(request()->filled("business_area_id") || request()->filled("business_service_id"), function ($q) {
 
-                    //     $q->whereHas("question", function($q){
-                    //         $q->whereHas("question_sub_categories", function($q){
+        //  ->when(request()->filled("business_area_id") || request()->filled("business_service_id"), function ($q) {
 
-                    //             $q
-                    //             ->when(request()->filled("question_sub_category_id"), function($q){
-                    //                 $q->where("question_categories.id", request()->input("question_sub_category_id"));
-                    //             })
-                    //             ->when(request()->filled("question_category_id"), function($q){
-                    //                 $q->where("question_categories.parent_id", request()->input("question_category_id"));
-                    //             });
-                                
-                    //         });
-                    //     });
-                    // });
-        
+        //     $q->whereHas("question", function($q){
+        //         $q->whereHas("question_sub_categories", function($q){
+
+        //             $q
+        //             ->when(request()->filled("question_sub_category_id"), function($q){
+        //                 $q->where("question_categories.id", request()->input("question_sub_category_id"));
+        //             })
+        //             ->when(request()->filled("question_category_id"), function($q){
+        //                 $q->where("question_categories.parent_id", request()->input("question_category_id"));
+        //             });
+
+        //         });
+        //     });
+        // });
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     /**
@@ -248,41 +254,34 @@ class ReviewNew extends Model
     }
 
     public function scopeWhereMeetsThreshold($query, $businessId, $is_staff_review = 0)
-{
-    // Get threshold rating
-    $business = Business::find($businessId);
-    $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
+    {
+        // Get threshold rating
+        $business = Business::find($businessId);
+        $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
 
-    return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
-        $subQuery->select(DB::raw(1))
-            ->from('review_value_news as rvn')
-            ->join('questions as q', 'rvn.question_id', '=', 'q.id')
-            ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
-                $q->whereExists(function ($subQuery) {
-                    $subQuery->select(DB::raw(1))
-                        ->from('q_q_sub_categories as qqsc')
-                        ->join('question_categories as qc_sub', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
-                        ->join('question_categories as qc_parent', 'qc_sub.parent_id', '=', 'qc_parent.id')
-                        ->whereColumn('qqsc.question_id', 'q.id')
-                        ->where('qc_parent.title', 'Staff') // Parent category is "Staff"
-                        ->where('qc_parent.is_active', 1)
-                        ->where('qc_parent.is_default', 1)
-                        ->whereNull('qc_parent.business_id')
-                        // Also check subcategory if needed
-                        ->where('qc_sub.is_active', 1);
-                });
-            })
-            ->join('stars as s', 'rvn.star_id', '=', 's.id')
-            ->whereColumn('rvn.review_id', 'review_news.id')
-            ->groupBy('rvn.review_id')
-            ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
-    });
-}
-
-
-
-
-
-
-
+        return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
+            $subQuery->select(DB::raw(1))
+                ->from('review_value_news as rvn')
+                ->join('questions as q', 'rvn.question_id', '=', 'q.id')
+                ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
+                    $q->whereExists(function ($subQuery) {
+                        $subQuery->select(DB::raw(1))
+                            ->from('q_q_sub_categories as qqsc')
+                            ->join('question_categories as qc_sub', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
+                            ->join('question_categories as qc_parent', 'qc_sub.parent_id', '=', 'qc_parent.id')
+                            ->whereColumn('qqsc.question_id', 'q.id')
+                            ->where('qc_parent.title', 'Staff') // Parent category is "Staff"
+                            ->where('qc_parent.is_active', 1)
+                            ->where('qc_parent.is_default', 1)
+                            ->whereNull('qc_parent.business_id')
+                            // Also check subcategory if needed
+                            ->where('qc_sub.is_active', 1);
+                    });
+                })
+                ->join('stars as s', 'rvn.star_id', '=', 's.id')
+                ->whereColumn('rvn.review_id', 'review_news.id')
+                ->groupBy('rvn.review_id')
+                ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
+        });
+    }
 }
