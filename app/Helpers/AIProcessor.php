@@ -2826,8 +2826,8 @@ public static function getBranchStaffPerformance($branchId, $businessId, $startD
             })->count(),
             'guest_reviews_count' => $reviews->whereNotNull('guest_id')->count(),
             'user_reviews_count' => $reviews->whereNotNull('user_id')->count(),
-            'overall_reviews_count' => $reviews->where('is_overall', 1)->count(),
-            'survey_reviews_count' => $reviews->whereNotNull('survey_id')->count()
+            // 'overall_reviews_count' => $reviews->where('is_overall', 1)->count(),
+            // 'survey_reviews_count' => $reviews->whereNotNull('survey_id')->count()
         ];
     }
   public static  function getReviewSamples($reviews, $limit = 2)

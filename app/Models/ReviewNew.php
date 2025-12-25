@@ -152,8 +152,16 @@ class ReviewNew extends Model
 
     public function scopeGlobalFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
-        return $query->when(request()->has('staff_id'), function ($q) {
-            $q->where('staff_id', request()->input('staff_id'));
+        return $query
+        ->when(request()->filled('is_overall'), function ($q) {
+                $q->when(request()->boolean('is_overall'), function ($q) {
+                    $q->where('review_news.is_overall', 1);
+                }, function ($q) {
+                    $q->where('review_news.is_overall', 0);
+                });
+            })
+        ->when(request()->has('staff_id'), function ($q) {
+            $q->where('review_news.staff_id', request()->input('staff_id'));
         })
             ->when($show_published_only, function ($q) use ($businessId, $is_staff_review) {
                 $q->whereMeetsThreshold($businessId, $is_staff_review);
@@ -217,18 +225,7 @@ class ReviewNew extends Model
                     //         });
                     //     });
                     // });
-       
-
-
-
-
-
-
-
-    
-          
-            
-            
+        
     }
 
     /**

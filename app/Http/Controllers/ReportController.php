@@ -1070,6 +1070,348 @@ class ReportController extends Controller
         ], 200);
     }
 
+/**
+ * @OA\Get(
+ *      path="/v1.0/dashboard/overview",
+ *      operationId="getDashboardOverview",
+ *      tags={"dashboard_management"},
+ *      @OA\Parameter(
+ *         name="businessId",
+ *         in="query",
+ *         description="businessId",
+ *         required=true,
+ *         example="1"
+ *      ),
+ *      @OA\Parameter(
+ *         name="start_date",
+ *         in="query",
+ *         description="Start date in d-m-Y format (e.g., 01-01-2025)",
+ *         required=false,
+ *         example="01-01-2025"
+ *      ),
+ *      @OA\Parameter(
+ *         name="end_date",
+ *         in="query",
+ *         description="End date in d-m-Y format (e.g., 31-12-2025)",
+ *         required=false,
+ *         example="31-12-2025"
+ *      ),
+ *      @OA\Parameter(
+ *         name="is_overall",
+ *         in="query",
+ *         description="0 for survey, 1 for overall",
+ *         required=false,
+ *         example="0"
+ *      ),
+ *      security={
+ *          {"bearerAuth": {}}
+ *      },
+ *      summary="Get dashboard overview data",
+ *      description="Get dashboard overview statistics for the specified date range",
+ *      @OA\Response(
+ *          response=200,
+ *          description="Successful operation",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="success", type="boolean", example=true),
+ *              @OA\Property(property="message", type="string", example="Dashboard overview retrieved successfully"),
+ *              @OA\Property(property="data", type="object",
+ *                  @OA\Property(property="period", type="object",
+ *                      @OA\Property(property="start_date", type="string", example="2025-01-01"),
+ *                      @OA\Property(property="end_date", type="string", example="2025-12-31"),
+ *                      @OA\Property(property="display_text", type="string", example="Jan 1, 2025 - Dec 31, 2025")
+ *                  ),
+ *                  @OA\Property(property="total_reviews", type="object",
+ *                      @OA\Property(property="count", type="integer", example=1204),
+ *                      @OA\Property(property="percentage_change", type="string", example="+2.7%"),
+ *                      @OA\Property(property="change_type", type="string", example="increase"),
+ *                      @OA\Property(property="from_period", type="string", example="from previous period")
+ *                  ),
+ *                  @OA\Property(property="average_rating", type="object",
+ *                      @OA\Property(property="value", type="number", format="float", example=4.5),
+ *                      @OA\Property(property="out_of", type="integer", example=5)
+ *                  ),
+ *                  @OA\Property(property="top_topic", type="object",
+ *                      @OA\Property(property="name", type="string", example="Service"),
+ *                      @OA\Property(property="mention_count", type="integer", example=45)
+ *                  ),
+ *                  @OA\Property(property="new_reviews", type="object",
+ *                      @OA\Property(property="count", type="integer", example=58),
+ *                      @OA\Property(property="from_period", type="string", example="this week")
+ *                  ),
+ *                  @OA\Property(property="all_sentiment", type="object",
+ *                      @OA\Property(property="status", type="string", example="Positive"),
+ *                      @OA\Property(property="based_on", type="string", example="Based on selected period")
+ *                  ),
+ *                  @OA\Property(property="pending_reviews", type="object",
+ *                      @OA\Property(property="count", type="integer", example=3),
+ *                      @OA\Property(property="action_text", type="string", example="Review Now")
+ *                  )
+ *              )
+ *          )
+ *      )
+ * )
+ */
+public function getDashboardOverview(Request $request)
+{
+    $isOverall = $request->input('is_overall', 0);
+    $businessId = $request->input('businessId');
+    
+    if (!$businessId) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Business ID is required'
+        ], 400);
+    }
+    
+    // Parse date parameters with defaults for all-time data
+    $endDate = $request->end_date 
+        ? Carbon::parse($request->end_date)->endOfDay()
+        : Carbon::now()->endOfDay();
+    
+    $startDate = $request->start_date 
+        ? Carbon::parse($request->start_date)->startOfDay()
+        : Carbon::createFromTimestamp(0)->startOfDay(); // Very old date for all-time
+    
+    // Validate date range
+    if ($startDate->greaterThan($endDate)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Start date cannot be greater than end date'
+        ], 400);
+    }
+    
+    // Calculate previous period of same duration
+    $periodDuration = $startDate->diffInDays($endDate);
+    $previousPeriodEnd = $startDate->copy()->subDay();
+    $previousPeriodStart = $previousPeriodEnd->copy()->subDays($periodDuration);
+    
+    // Get base queries
+    $queries = $this->getBaseQueries($request, $isOverall);
+    
+    // 1. Total Reviews for current period and previous period
+    $currentPeriodReviews = (clone $queries['base_review'])
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->count();
+    
+    $previousPeriodReviews = (clone $queries['base_review'])
+        ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
+        ->count();
+    
+    // Calculate percentage change
+    $percentageChange = 0;
+    $changeType = 'no-change';
+    $fromPeriodText = 'from previous period';
+    
+    if ($previousPeriodReviews > 0) {
+        $percentageChange = (($currentPeriodReviews - $previousPeriodReviews) / $previousPeriodReviews) * 100;
+        $changeType = $percentageChange >= 0 ? 'increase' : 'decrease';
+    } elseif ($currentPeriodReviews > 0 && $previousPeriodReviews == 0) {
+        $percentageChange = 100;
+        $changeType = 'increase';
+        $fromPeriodText = 'from no reviews';
+    } elseif ($currentPeriodReviews == 0 && $previousPeriodReviews == 0) {
+        $fromPeriodText = 'no previous data';
+    }
+    
+    // 2. Average Rating for current period
+    $currentPeriodReviewsWithRating = (clone $queries['base_review'])
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->get();
+    
+    $averageRating = $currentPeriodReviewsWithRating->isNotEmpty() 
+        ? round($currentPeriodReviewsWithRating->avg('calculated_rating'), 1)
+        : 0;
+    
+    // 3. Top Topic from tags in current period
+    $topTopic = $this->getTopTopic($businessId, $startDate, $endDate, $isOverall);
+    
+    // 4. New Reviews this week (always calculated for current week, regardless of selected period)
+    $weekStart = Carbon::now()->startOfWeek();
+    $weekEnd = Carbon::now()->endOfWeek();
+    
+    $newReviewsThisWeek = (clone $queries['base_review'])
+        ->whereBetween('created_at', [$weekStart, $weekEnd])
+        ->count();
+    
+    // 5. All Sentiment analysis for current period
+    $sentimentStatus = $this->getSentimentStatus($currentPeriodReviewsWithRating);
+    
+    // 6. Pending reviews (reviews that need attention - flagged or low rating)
+    $pendingReviews = (clone $queries['base_review'])
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->where(function($query) {
+            $query->where('status', 'flagged')
+                  ->orWhere(function($q) {
+                      $q->whereNotNull('calculated_rating')
+                        ->where('calculated_rating', '<=', 2);
+                  });
+        })
+        ->count();
+    
+    // Format period display text
+    $periodDisplayText = $this->formatPeriodDisplay($startDate, $endDate);
+    
+    $data = [
+        'period' => [
+            'start_date' => $startDate->format('Y-m-d'),
+            'end_date' => $endDate->format('Y-m-d'),
+            'display_text' => $periodDisplayText
+        ],
+        'total_reviews' => [
+            'count' => $currentPeriodReviews,
+            'percentage_change' => $percentageChange != 0 ? sprintf('%+.1f%%', $percentageChange) : '0%',
+            'change_type' => $changeType,
+            'from_period' => $fromPeriodText
+        ],
+        'average_rating' => [
+            'value' => $averageRating,
+            'out_of' => 5
+        ],
+        'top_topic' => [
+            'name' => $topTopic['name'] ?? 'General',
+            'mention_count' => $topTopic['count'] ?? 0
+        ],
+        'new_reviews' => [
+            'count' => $newReviewsThisWeek,
+            'from_period' => 'this week'
+        ],
+        'all_sentiment' => [
+            'status' => $sentimentStatus,
+            'based_on' => 'Based on selected period'
+        ],
+        'pending_reviews' => [
+            'count' => $pendingReviews,
+            'action_text' => 'Review Now'
+        ]
+    ];
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Dashboard overview retrieved successfully',
+        'data' => $data
+    ], 200);
+}
+
+/**
+ * Helper method to get the top topic from tags
+ */
+private function getTopTopic($businessId, $startDate, $endDate, $isOverall)
+{
+    // Get tag counts from ReviewValueNew for the period
+    $topTag = ReviewValueNew::
+    
+    join('tags', 'review_value_news.tag_id', '=', 'tags.id')
+    ->whereHas("review", function ($query) use ($businessId, $startDate, $endDate) {
+            $query->where('business_id', $businessId)
+                  ->whereBetween('created_at', [$startDate, $endDate])
+                  ->globalFilters(0, $businessId);
+                   
+         })
+
+
+
+        ->where('tags.business_id', $businessId)
+        ->whereBetween('review_value_news.created_at', [$startDate, $endDate])
+        ->filterByOverall($isOverall)
+        ->select('tags.name', DB::raw('COUNT(review_value_news.id) as count'))
+        ->groupBy('tags.id', 'tags.name')
+        ->orderByDesc('count')
+        ->first();
+    
+    if ($topTag) {
+        return [
+            'name' => $topTag->name,
+            'count' => $topTag->count
+        ];
+    }
+    
+    // Fallback: check for common topics from AI analysis
+    $commonTopics = ReviewNew::where('business_id', $businessId)
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->whereNotNull('topics')
+        ->globalFilters(0, $businessId)
+        ->get()
+        ->pluck('topics')
+        ->flatten()
+        ->countBy()
+        ->sortDesc()
+        ->first();
+    
+    if ($commonTopics) {
+        return [
+            'name' => $commonTopics->keys()->first() ?? 'Service',
+            'count' => $commonTopics->first()
+        ];
+    }
+    
+    return [
+        'name' => 'Service',
+        'count' => 0
+    ];
+}
+
+/**
+ * Helper method to determine sentiment status
+ */
+private function getSentimentStatus($reviews)
+{
+    if ($reviews->isEmpty()) {
+        return 'Neutral';
+    }
+    
+    $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
+    $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
+    $totalReviews = $reviews->count();
+    
+    $positivePercentage = ($positiveReviews / $totalReviews) * 100;
+    $negativePercentage = ($negativeReviews / $totalReviews) * 100;
+    
+    if ($positivePercentage >= 60) {
+        return 'Positive';
+    } elseif ($negativePercentage >= 40) {
+        return 'Negative';
+    } elseif ($positivePercentage > $negativePercentage) {
+        return 'Mostly Positive';
+    } elseif ($negativePercentage > $positivePercentage) {
+        return 'Mostly Negative';
+    }
+    
+    return 'Neutral';
+}
+
+/**
+ * Helper method to format period display text
+ */
+private function formatPeriodDisplay($startDate, $endDate)
+{
+    // Check if it's all-time data (start date is very old)
+    $veryOldDate = Carbon::createFromTimestamp(0)->addDay();
+    
+    if ($startDate->lessThan($veryOldDate)) {
+        return 'All Time';
+    }
+    
+    $startFormatted = $startDate->format('M j, Y');
+    $endFormatted = $endDate->format('M j, Y');
+    
+    // If same day
+    if ($startDate->isSameDay($endDate)) {
+        return $startDate->format('M j, Y');
+    }
+    
+    // If same month
+    if ($startDate->format('Y-m') === $endDate->format('Y-m')) {
+        return $startDate->format('M j') . ' - ' . $endDate->format('j, Y');
+    }
+    
+    // If same year
+    if ($startDate->format('Y') === $endDate->format('Y')) {
+        return $startDate->format('M j') . ' - ' . $endDate->format('M j, Y');
+    }
+    
+    return $startFormatted . ' - ' . $endFormatted;
+}
+
 
     private function generateDashboardReportV2(Request $request, $is_overall, $startDate, $endDate)
     {
@@ -3234,7 +3576,7 @@ class ReportController extends Controller
         $reviews = (clone $reviewsQuery)->get();
 
         // Calculate performance overview using ReviewValueNew
-        $performanceOverview = calculatePerformanceOverviewFromReviewValue($reviews);
+        $performance_overview = calculatePerformanceOverviewFromReviewValue($reviews);
 
 
 
@@ -3255,7 +3597,7 @@ class ReportController extends Controller
                 'business_id' => (int)$businessId,
                 'business_name' => $business->name,
                 'filters_applied' => $filterSummary,
-                'performance_overview' => $performanceOverview,
+                'performance_overview' => $performance_overview,
                 'submissions_over_time' => $submissionsOverTime,
                 'recent_submissions' => $recentSubmissions,
                 // NEW: Add top three staff to the response
