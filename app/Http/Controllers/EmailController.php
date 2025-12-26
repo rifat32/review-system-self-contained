@@ -62,7 +62,7 @@ class EmailController extends Controller
         ]);
 
         // 2. Define the Receiver
-        $receiverEmail = "rony.mia7800@gmail.com";
+        $receiverEmail = "info@feedgenius.ai";
 
         // 3. Send the Email
         try {
