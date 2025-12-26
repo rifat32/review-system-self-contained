@@ -1632,7 +1632,7 @@
                                                 "avg_rating": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 4.2
+                                                    "example": 4.20000000000000017763568394002504646778106689453125
                                                 },
                                                 "overall_sentiment": {
                                                     "type": "number",
@@ -2664,12 +2664,12 @@
                                                 "lat": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 40.7128
+                                                    "example": 40.7128000000000014324541552923619747161865234375
                                                 },
                                                 "long": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": -74.006
+                                                    "example": -74.006000000000000227373675443232059478759765625
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -6131,7 +6131,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.2
+                                                        "example": 4.20000000000000017763568394002504646778106689453125
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -6563,6 +6563,1684 @@
                                     },
                                     "type": "object"
                                 }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/reviews": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get review statistics",
+                "description": "Get detailed review statistics including guest and customer breakdown",
+                "operationId": "getReviewStatistics",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "businessId",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format",
+                        "required": false,
+                        "example": "01-12-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format",
+                        "required": false,
+                        "example": "31-12-2025"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "0 for survey, 1 for overall",
+                        "required": false,
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review statistics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/content": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get question and tag statistics",
+                "description": "Get question and tag count and trends",
+                "operationId": "getContentStatistics",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "businessId",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format",
+                        "required": false,
+                        "example": "01-12-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format",
+                        "required": false,
+                        "example": "31-12-2025"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "0 for survey, 1 for overall",
+                        "required": false,
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Content statistics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/monthly-trends": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get monthly trends data",
+                "description": "Get monthly data for charts and graphs",
+                "operationId": "getMonthlyTrends",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "businessId",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format",
+                        "required": false,
+                        "example": "01-12-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format",
+                        "required": false,
+                        "example": "31-12-2025"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "0 for survey, 1 for overall",
+                        "required": false,
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Monthly trends retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/top-worst-services": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get top 3 and worst 3 business services",
+                "description": "Analyze business services performance based on review ratings",
+                "operationId": "getTopWorstServices",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "Business ID",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period (last_30_days, last_7_days, this_month, last_month)",
+                        "required": false,
+                        "example": "last_30_days"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Custom start date (d-m-Y format)",
+                        "required": false,
+                        "example": "01-01-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "Custom end date (d-m-Y format)",
+                        "required": false,
+                        "example": "31-01-2025"
+                    },
+                    {
+                        "name": "min_reviews",
+                        "in": "query",
+                        "description": "Minimum reviews required for a service to be included",
+                        "required": false,
+                        "example": "3"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Services performance analysis retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "top_services": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "service_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "service_name": {
+                                                                "type": "string",
+                                                                "example": "Room Service"
+                                                            },
+                                                            "description": {
+                                                                "type": "string",
+                                                                "example": "24-hour room service"
+                                                            },
+                                                            "average_rating": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 4.70000000000000017763568394002504646778106689453125
+                                                            },
+                                                            "total_reviews": {
+                                                                "type": "integer",
+                                                                "example": 45
+                                                            },
+                                                            "sentiment_score": {
+                                                                "type": "integer",
+                                                                "example": 85
+                                                            },
+                                                            "positive_reviews": {
+                                                                "type": "integer",
+                                                                "example": 38
+                                                            },
+                                                            "negative_reviews": {
+                                                                "type": "integer",
+                                                                "example": 7
+                                                            },
+                                                            "performance_label": {
+                                                                "type": "string",
+                                                                "example": "Excellent"
+                                                            },
+                                                            "top_tags": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "string",
+                                                                    "example": "Prompt Service"
+                                                                }
+                                                            },
+                                                            "sample_comments": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "properties": {
+                                                                        "comment": {
+                                                                            "type": "string",
+                                                                            "example": "Room service was quick and food was hot..."
+                                                                        },
+                                                                        "rating": {
+                                                                            "type": "number",
+                                                                            "format": "float",
+                                                                            "example": 5
+                                                                        },
+                                                                        "sentiment": {
+                                                                            "type": "string",
+                                                                            "example": "positive"
+                                                                        },
+                                                                        "date": {
+                                                                            "type": "string",
+                                                                            "example": "Jan 15, 2025"
+                                                                        }
+                                                                    },
+                                                                    "type": "object"
+                                                                }
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "worst_services": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "service_id": {
+                                                                "type": "integer",
+                                                                "example": 2
+                                                            },
+                                                            "service_name": {
+                                                                "type": "string",
+                                                                "example": "Spa Services"
+                                                            },
+                                                            "description": {
+                                                                "type": "string",
+                                                                "example": "Spa and wellness services"
+                                                            },
+                                                            "average_rating": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 2.29999999999999982236431605997495353221893310546875
+                                                            },
+                                                            "total_reviews": {
+                                                                "type": "integer",
+                                                                "example": 32
+                                                            },
+                                                            "sentiment_score": {
+                                                                "type": "integer",
+                                                                "example": 25
+                                                            },
+                                                            "positive_reviews": {
+                                                                "type": "integer",
+                                                                "example": 8
+                                                            },
+                                                            "negative_reviews": {
+                                                                "type": "integer",
+                                                                "example": 24
+                                                            },
+                                                            "performance_label": {
+                                                                "type": "string",
+                                                                "example": "Poor"
+                                                            },
+                                                            "top_tags": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "string",
+                                                                    "example": "Long Wait"
+                                                                }
+                                                            },
+                                                            "sample_comments": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "properties": {
+                                                                        "comment": {
+                                                                            "type": "string",
+                                                                            "example": "Had to wait 45 minutes for massage..."
+                                                                        },
+                                                                        "rating": {
+                                                                            "type": "number",
+                                                                            "format": "float",
+                                                                            "example": 2
+                                                                        },
+                                                                        "sentiment": {
+                                                                            "type": "string",
+                                                                            "example": "negative"
+                                                                        },
+                                                                        "date": {
+                                                                            "type": "string",
+                                                                            "example": "Jan 20, 2025"
+                                                                        }
+                                                                    },
+                                                                    "type": "object"
+                                                                }
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "summary": {
+                                                    "properties": {
+                                                        "total_services_analyzed": {
+                                                            "type": "integer",
+                                                            "example": 8
+                                                        },
+                                                        "services_with_reviews": {
+                                                            "type": "integer",
+                                                            "example": 6
+                                                        },
+                                                        "overall_service_rating": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 3.79999999999999982236431605997495353221893310546875
+                                                        },
+                                                        "best_performing_service": {
+                                                            "type": "string",
+                                                            "example": "Room Service"
+                                                        },
+                                                        "worst_performing_service": {
+                                                            "type": "string",
+                                                            "example": "Spa Services"
+                                                        },
+                                                        "period": {
+                                                            "properties": {
+                                                                "start": {
+                                                                    "type": "string",
+                                                                    "example": "2025-01-01"
+                                                                },
+                                                                "end": {
+                                                                    "type": "string",
+                                                                    "example": "2025-01-31"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/top-worst-staff": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get top worst performing staff",
+                "description": "Get staff with lowest ratings and sentiment scores",
+                "operationId": "getTopWorstStaff",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "Business ID",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period (last_30_days, last_7_days, this_month, last_month)",
+                        "required": false,
+                        "example": "last_30_days"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Custom start date (d-m-Y format)",
+                        "required": false,
+                        "example": "01-01-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "Custom end date (d-m-Y format)",
+                        "required": false,
+                        "example": "31-01-2025"
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of worst staff to return",
+                        "required": false,
+                        "example": "5"
+                    },
+                    {
+                        "name": "criteria",
+                        "in": "query",
+                        "description": "Criteria for ranking (rating, sentiment, negative)",
+                        "required": false,
+                        "example": "rating"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Worst staff analysis retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/overview": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get dashboard overview data",
+                "description": "Get dashboard overview statistics for the specified date range",
+                "operationId": "getDashboardOverview",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "businessId",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format (e.g., 01-01-2025)",
+                        "required": false,
+                        "example": "01-01-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format (e.g., 31-12-2025)",
+                        "required": false,
+                        "example": "31-12-2025"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "0 for survey, 1 for overall",
+                        "required": false,
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dashboard overview retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "period": {
+                                                    "properties": {
+                                                        "start_date": {
+                                                            "type": "string",
+                                                            "example": "2025-01-01"
+                                                        },
+                                                        "end_date": {
+                                                            "type": "string",
+                                                            "example": "2025-12-31"
+                                                        },
+                                                        "display_text": {
+                                                            "type": "string",
+                                                            "example": "Jan 1, 2025 - Dec 31, 2025"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "total_reviews": {
+                                                    "properties": {
+                                                        "count": {
+                                                            "type": "integer",
+                                                            "example": 1204
+                                                        },
+                                                        "percentage_change": {
+                                                            "type": "string",
+                                                            "example": "+2.7%"
+                                                        },
+                                                        "change_type": {
+                                                            "type": "string",
+                                                            "example": "increase"
+                                                        },
+                                                        "from_period": {
+                                                            "type": "string",
+                                                            "example": "from previous period"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "average_rating": {
+                                                    "properties": {
+                                                        "value": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 4.5
+                                                        },
+                                                        "out_of": {
+                                                            "type": "integer",
+                                                            "example": 5
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "top_topic": {
+                                                    "properties": {
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "Service"
+                                                        },
+                                                        "mention_count": {
+                                                            "type": "integer",
+                                                            "example": 45
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "new_reviews": {
+                                                    "properties": {
+                                                        "count": {
+                                                            "type": "integer",
+                                                            "example": 58
+                                                        },
+                                                        "from_period": {
+                                                            "type": "string",
+                                                            "example": "this week"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "all_sentiment": {
+                                                    "properties": {
+                                                        "status": {
+                                                            "type": "string",
+                                                            "example": "Positive"
+                                                        },
+                                                        "based_on": {
+                                                            "type": "string",
+                                                            "example": "Based on selected period"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "pending_reviews": {
+                                                    "properties": {
+                                                        "count": {
+                                                            "type": "integer",
+                                                            "example": 3
+                                                        },
+                                                        "action_text": {
+                                                            "type": "string",
+                                                            "example": "Review Now"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/branch-comparison": {
+            "get": {
+                "tags": [
+                    "report"
+                ],
+                "summary": "Compare multiple branches performance",
+                "description": "Compare up to 5 branches with real metrics from database",
+                "operationId": "branchComparison",
+                "parameters": [
+                    {
+                        "name": "branch_ids",
+                        "in": "query",
+                        "description": "Comma-separated branch IDs (max 5)",
+                        "required": true,
+                        "example": "1,2,3"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in Y-m-d format",
+                        "required": false,
+                        "example": "2024-01-01"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in Y-m-d format",
+                        "required": false,
+                        "example": "2024-03-31"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch comparison retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branch-dashboard/{branchId}": {
+            "get": {
+                "tags": [
+                    "report"
+                ],
+                "summary": "Get branch dashboard data with real metrics",
+                "description": "Returns branch dashboard with real data from database",
+                "operationId": "getBranchDashboard",
+                "parameters": [
+                    {
+                        "name": "branchId",
+                        "in": "path",
+                        "description": "Branch ID",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in Y-m-d format",
+                        "required": false,
+                        "example": "2024-01-01"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in Y-m-d format",
+                        "required": false,
+                        "example": "2024-12-31"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch dashboard retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Branch not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/staff-comparison/{businessId}": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Compare two staff members performance",
+                "description": "Get detailed comparison between two staff members",
+                "operationId": "staffComparison",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "staff_a_id",
+                        "in": "query",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "staff_b_id",
+                        "in": "query",
+                        "required": true,
+                        "example": "2"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff comparison data retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_name": {
+                                                    "type": "string",
+                                                    "example": "Business Name"
+                                                },
+                                                "comparison": {
+                                                    "properties": {
+                                                        "rating_gap": {
+                                                            "type": "number",
+                                                            "example": 0.5
+                                                        },
+                                                        "rating_gap_message": {
+                                                            "type": "string",
+                                                            "example": "Staff A is performing better"
+                                                        },
+                                                        "sentiment_gap": {
+                                                            "type": "number",
+                                                            "example": 10
+                                                        },
+                                                        "sentiment_gap_message": {
+                                                            "type": "string",
+                                                            "example": "Staff A has more positive reviews"
+                                                        },
+                                                        "better_performer": {
+                                                            "type": "string",
+                                                            "example": "John Doe"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "staff_a": {
+                                                    "type": "object"
+                                                },
+                                                "staff_b": {
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/staff-performance/{businessId}/{staffId}": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get detailed staff performance report",
+                "description": "Get comprehensive performance analysis for a staff member",
+                "operationId": "staffPerformance",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "staffId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff performance report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "staff_profile": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "John Doe"
+                                                        },
+                                                        "job_title": {
+                                                            "type": "string",
+                                                            "example": "Staff"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "example": "john@example.com"
+                                                        },
+                                                        "tenure": {
+                                                            "type": "string",
+                                                            "example": "2 years 3 months"
+                                                        },
+                                                        "join_date": {
+                                                            "type": "string",
+                                                            "format": "date",
+                                                            "example": "2022-01-15"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "performance_summary": {
+                                                    "properties": {
+                                                        "total_reviews": {
+                                                            "type": "integer",
+                                                            "example": 25
+                                                        },
+                                                        "avg_rating": {
+                                                            "type": "number",
+                                                            "example": 4.20000000000000017763568394002504646778106689453125
+                                                        },
+                                                        "sentiment_distribution": {
+                                                            "properties": {
+                                                                "positive": {
+                                                                    "type": "integer",
+                                                                    "example": 60
+                                                                },
+                                                                "neutral": {
+                                                                    "type": "integer",
+                                                                    "example": 25
+                                                                },
+                                                                "negative": {
+                                                                    "type": "integer",
+                                                                    "example": 15
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "rating_trend": {
+                                                    "properties": {
+                                                        "period": {
+                                                            "type": "string",
+                                                            "example": "last_6_months"
+                                                        },
+                                                        "data": {
+                                                            "type": "object",
+                                                            "example": {
+                                                                "2023-01": 4,
+                                                                "2023-02": 4.20000000000000017763568394002504646778106689453125
+                                                            }
+                                                        },
+                                                        "trend_direction": {
+                                                            "type": "string",
+                                                            "example": "improving"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "review_samples": {
+                                                    "properties": {
+                                                        "positive": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "constructive": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "neutral": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "recommended_training": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "skill_gap_analysis": {
+                                                    "properties": {
+                                                        "strengths": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "improvement_areas": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "customer_perceived_tone": {
+                                                    "properties": {
+                                                        "friendliness": {
+                                                            "type": "integer",
+                                                            "example": 75
+                                                        },
+                                                        "patience": {
+                                                            "type": "integer",
+                                                            "example": 80
+                                                        },
+                                                        "professionalism": {
+                                                            "type": "integer",
+                                                            "example": 85
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/v1.0/reports/staff-dashboard/{businessId}": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get staff performance dashboard",
+                "description": "Get overall staff performance metrics and rankings",
+                "operationId": "staffDashboard",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period for comparison: last_week, last_month, last_quarter",
+                        "required": false,
+                        "example": "last_month"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff dashboard report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_name": {
+                                                    "type": "string",
+                                                    "example": "Business Name"
+                                                },
+                                                "period": {
+                                                    "type": "string",
+                                                    "example": "last_month"
+                                                },
+                                                "overall_metrics": {
+                                                    "properties": {
+                                                        "overall_rating": {
+                                                            "properties": {
+                                                                "value": {
+                                                                    "type": "number",
+                                                                    "example": 4.20000000000000017763568394002504646778106689453125
+                                                                },
+                                                                "change": {
+                                                                    "type": "number",
+                                                                    "example": 5.5
+                                                                },
+                                                                "change_type": {
+                                                                    "type": "string",
+                                                                    "example": "positive"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        "overall_sentiment": {
+                                                            "properties": {
+                                                                "value": {
+                                                                    "type": "integer",
+                                                                    "example": 75
+                                                                },
+                                                                "change": {
+                                                                    "type": "number",
+                                                                    "example": 2.100000000000000088817841970012523233890533447265625
+                                                                },
+                                                                "change_type": {
+                                                                    "type": "string",
+                                                                    "example": "positive"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        "total_reviews": {
+                                                            "properties": {
+                                                                "value": {
+                                                                    "type": "integer",
+                                                                    "example": 150
+                                                                },
+                                                                "change": {
+                                                                    "type": "integer",
+                                                                    "example": 25
+                                                                },
+                                                                "change_type": {
+                                                                    "type": "string",
+                                                                    "example": "positive"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "compliment_ratio": {
+                                                    "properties": {
+                                                        "compliments_percentage": {
+                                                            "type": "integer",
+                                                            "example": 70
+                                                        },
+                                                        "complaints_percentage": {
+                                                            "type": "integer",
+                                                            "example": 15
+                                                        },
+                                                        "neutral_percentage": {
+                                                            "type": "integer",
+                                                            "example": 15
+                                                        },
+                                                        "compliments_count": {
+                                                            "type": "integer",
+                                                            "example": 105
+                                                        },
+                                                        "complaints_count": {
+                                                            "type": "integer",
+                                                            "example": 22
+                                                        },
+                                                        "neutral_count": {
+                                                            "type": "integer",
+                                                            "example": 23
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "top_staff": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "all_staff": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/v1.0/reports/review-analytics/{businessId}": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get review analytics with flexible filtering",
+                "description": "Get performance overview and recent submissions with optional filters for survey, guest reviews, user reviews, and overall reviews",
+                "operationId": "reviewAnalytics",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "survey_id",
+                        "in": "query",
+                        "description": "Filter by survey ID",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "is_guest_review",
+                        "in": "query",
+                        "description": "Filter guest reviews: true=guest only, false=exclude guest",
+                        "required": false,
+                        "example": "true"
+                    },
+                    {
+                        "name": "is_user_review",
+                        "in": "query",
+                        "description": "Filter user reviews: true=user only, false=exclude user",
+                        "required": false,
+                        "example": "true"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "Filter overall reviews: true=overall only, false=survey only",
+                        "required": false,
+                        "example": "true"
+                    },
+                    {
+                        "name": "staff_id",
+                        "in": "query",
+                        "description": "Filter by staff member ID",
+                        "required": false,
+                        "example": "1"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period for data: 7d, 30d, 90d, 1y",
+                        "required": false,
+                        "example": "30d"
+                    },
+                    {
+                        "name": "min_score",
+                        "in": "query",
+                        "description": "Minimum rating score (1-5)",
+                        "required": false,
+                        "example": "3"
+                    },
+                    {
+                        "name": "max_score",
+                        "in": "query",
+                        "description": "Maximum rating score (1-5)",
+                        "required": false,
+                        "example": "5"
+                    },
+                    {
+                        "name": "labels",
+                        "in": "query",
+                        "description": "Filter by sentiment labels (comma separated)",
+                        "required": false,
+                        "example": "positive,neutral"
+                    },
+                    {
+                        "name": "review_type",
+                        "in": "query",
+                        "description": "Filter by review type",
+                        "required": false,
+                        "example": "feedback"
+                    },
+                    {
+                        "name": "has_comment",
+                        "in": "query",
+                        "description": "Filter by comments: true=with comments, false=without comments",
+                        "required": false,
+                        "example": "true"
+                    },
+                    {
+                        "name": "has_reply",
+                        "in": "query",
+                        "description": "Filter by replies: true=replied, false=not replied",
+                        "required": false,
+                        "example": "false"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review analytics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_name": {
+                                                    "type": "string",
+                                                    "example": "Business Name"
+                                                },
+                                                "filters_applied": {
+                                                    "type": "object"
+                                                },
+                                                "performance_overview": {
+                                                    "type": "object"
+                                                },
+                                                "submissions_over_time": {
+                                                    "type": "object"
+                                                },
+                                                "recent_submissions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "top_three_staff": {
+                                                    "description": "Top 3 staff by aggregated review metrics",
+                                                    "properties": {
+                                                        "total_staff_reviewed": {
+                                                            "type": "integer",
+                                                            "example": 5
+                                                        },
+                                                        "staff": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "properties": {
+                                                                    "staff_id": {
+                                                                        "type": "integer",
+                                                                        "example": 1
+                                                                    },
+                                                                    "staff_name": {
+                                                                        "type": "string",
+                                                                        "example": "John Doe"
+                                                                    },
+                                                                    "position": {
+                                                                        "type": "string",
+                                                                        "example": "Manager"
+                                                                    },
+                                                                    "avg_rating": {
+                                                                        "type": "number",
+                                                                        "format": "float",
+                                                                        "example": 4.5
+                                                                    },
+                                                                    "review_count": {
+                                                                        "type": "integer",
+                                                                        "example": 25
+                                                                    },
+                                                                    "sentiment_score": {
+                                                                        "type": "integer",
+                                                                        "example": 80
+                                                                    },
+                                                                    "sentiment_label": {
+                                                                        "type": "string",
+                                                                        "example": "Excellent"
+                                                                    },
+                                                                    "top_topics": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "recent_activity": {
+                                                                        "type": "string",
+                                                                        "example": "2 days ago"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/v1.0/reviews/overall-dashboard/{businessId}": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get overall business dashboard data",
+                "description": "Get comprehensive dashboard data with AI insights and analytics",
+                "operationId": "getOverallDashboardData",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month",
+                        "required": false,
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dashboard data retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/review-new/getavg/review/{businessId}/{start}/{end}": {
+            "get": {
+                "tags": [
+                    "z.unused"
+                ],
+                "summary": "This method is to get average",
+                "description": "This method is to get average",
+                "operationId": "getAverages",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "businessId",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "start",
+                        "in": "path",
+                        "description": "from date",
+                        "required": true,
+                        "example": "2019-06-29"
+                    },
+                    {
+                        "name": "end",
+                        "in": "path",
+                        "description": "to date",
+                        "required": true,
+                        "example": "2026-06-29"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
                             }
                         }
                     }
@@ -9004,7 +10682,7 @@
                                                         "avg_cost_per_request": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 0.085
+                                                            "example": 0.08500000000000000610622663543836097232997417449951171875
                                                         },
                                                         "first_request": {
                                                             "type": "string",
@@ -9047,7 +10725,7 @@
                                                             "percentage_of_total": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 33.33
+                                                                "example": 33.3299999999999982946974341757595539093017578125
                                                             }
                                                         },
                                                         "type": "object"
@@ -11936,8 +13614,7 @@
                         "required": false,
                         "schema": {
                             "type": "boolean"
-                        },
-                        "example": true
+                        }
                     },
                     {
                         "name": "is_overall",
@@ -11946,8 +13623,7 @@
                         "required": false,
                         "schema": {
                             "type": "boolean"
-                        },
-                        "example": true
+                        }
                     },
                     {
                         "name": "survey_id",
@@ -11956,8 +13632,7 @@
                         "required": false,
                         "schema": {
                             "type": "integer"
-                        },
-                        "example": 5
+                        }
                     }
                 ],
                 "responses": {
@@ -13351,348 +15026,6 @@
                 ]
             }
         },
-        "/v1.0/dashboard/reviews": {
-            "get": {
-                "tags": [
-                    "dashboard"
-                ],
-                "summary": "Get review statistics",
-                "description": "Get detailed review statistics including guest and customer breakdown",
-                "operationId": "getReviewStatistics",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "query",
-                        "description": "businessId",
-                        "required": false,
-                        "example": "1"
-                    },
-                    {
-                        "name": "start_date",
-                        "in": "query",
-                        "description": "Start date in d-m-Y format",
-                        "required": false,
-                        "example": "01-12-2025"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "End date in d-m-Y format",
-                        "required": false,
-                        "example": "31-12-2025"
-                    },
-                    {
-                        "name": "is_overall",
-                        "in": "query",
-                        "description": "0 for survey, 1 for overall",
-                        "required": false,
-                        "example": "0"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Review statistics retrieved successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/dashboard/content": {
-            "get": {
-                "tags": [
-                    "dashboard"
-                ],
-                "summary": "Get question and tag statistics",
-                "description": "Get question and tag count and trends",
-                "operationId": "getContentStatistics",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "query",
-                        "description": "businessId",
-                        "required": false,
-                        "example": "1"
-                    },
-                    {
-                        "name": "start_date",
-                        "in": "query",
-                        "description": "Start date in d-m-Y format",
-                        "required": false,
-                        "example": "01-12-2025"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "End date in d-m-Y format",
-                        "required": false,
-                        "example": "31-12-2025"
-                    },
-                    {
-                        "name": "is_overall",
-                        "in": "query",
-                        "description": "0 for survey, 1 for overall",
-                        "required": false,
-                        "example": "0"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Content statistics retrieved successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/dashboard/monthly-trends": {
-            "get": {
-                "tags": [
-                    "dashboard"
-                ],
-                "summary": "Get monthly trends data",
-                "description": "Get monthly data for charts and graphs",
-                "operationId": "getMonthlyTrends",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "query",
-                        "description": "businessId",
-                        "required": false,
-                        "example": "1"
-                    },
-                    {
-                        "name": "start_date",
-                        "in": "query",
-                        "description": "Start date in d-m-Y format",
-                        "required": false,
-                        "example": "01-12-2025"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "End date in d-m-Y format",
-                        "required": false,
-                        "example": "31-12-2025"
-                    },
-                    {
-                        "name": "is_overall",
-                        "in": "query",
-                        "description": "0 for survey, 1 for overall",
-                        "required": false,
-                        "example": "0"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Monthly trends retrieved successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/reports/branch-comparison": {
-            "get": {
-                "tags": [
-                    "report"
-                ],
-                "summary": "Compare multiple branches performance",
-                "description": "Compare up to 5 branches with real metrics from database",
-                "operationId": "branchComparison",
-                "parameters": [
-                    {
-                        "name": "branch_ids",
-                        "in": "query",
-                        "description": "Comma-separated branch IDs (max 5)",
-                        "required": true,
-                        "example": "1,2,3"
-                    },
-                    {
-                        "name": "start_date",
-                        "in": "query",
-                        "description": "Start date in Y-m-d format",
-                        "required": false,
-                        "example": "2024-01-01"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "End date in Y-m-d format",
-                        "required": false,
-                        "example": "2024-03-31"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Branch comparison retrieved successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/branch-dashboard/{branchId}": {
-            "get": {
-                "tags": [
-                    "report"
-                ],
-                "summary": "Get branch dashboard data with real metrics",
-                "description": "Returns branch dashboard with real data from database",
-                "operationId": "getBranchDashboard",
-                "parameters": [
-                    {
-                        "name": "branchId",
-                        "in": "path",
-                        "description": "Branch ID",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "start_date",
-                        "in": "query",
-                        "description": "Start date in Y-m-d format",
-                        "required": false,
-                        "example": "2024-01-01"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "End date in Y-m-d format",
-                        "required": false,
-                        "example": "2024-12-31"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Branch dashboard retrieved successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Branch not found"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
         "/v1.0/customer-report": {
             "get": {
                 "tags": [
@@ -13990,683 +15323,6 @@
                 ]
             }
         },
-        "/v1.0/reports/staff-comparison/{businessId}": {
-            "get": {
-                "tags": [
-                    "Reports"
-                ],
-                "summary": "Compare two staff members performance",
-                "description": "Get detailed comparison between two staff members",
-                "operationId": "staffComparison",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "staff_a_id",
-                        "in": "query",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "staff_b_id",
-                        "in": "query",
-                        "required": true,
-                        "example": "2"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Staff comparison data retrieved successfully"
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "business_id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "business_name": {
-                                                    "type": "string",
-                                                    "example": "Business Name"
-                                                },
-                                                "comparison": {
-                                                    "properties": {
-                                                        "rating_gap": {
-                                                            "type": "number",
-                                                            "example": 0.5
-                                                        },
-                                                        "rating_gap_message": {
-                                                            "type": "string",
-                                                            "example": "Staff A is performing better"
-                                                        },
-                                                        "sentiment_gap": {
-                                                            "type": "number",
-                                                            "example": 10
-                                                        },
-                                                        "sentiment_gap_message": {
-                                                            "type": "string",
-                                                            "example": "Staff A has more positive reviews"
-                                                        },
-                                                        "better_performer": {
-                                                            "type": "string",
-                                                            "example": "John Doe"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "staff_a": {
-                                                    "type": "object"
-                                                },
-                                                "staff_b": {
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/reports/staff-performance/{businessId}/{staffId}": {
-            "get": {
-                "tags": [
-                    "Reports"
-                ],
-                "summary": "Get detailed staff performance report",
-                "description": "Get comprehensive performance analysis for a staff member",
-                "operationId": "staffPerformance",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "staffId",
-                        "in": "path",
-                        "required": true,
-                        "example": "1"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Staff performance report retrieved successfully"
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "staff_profile": {
-                                                    "properties": {
-                                                        "id": {
-                                                            "type": "integer",
-                                                            "example": 1
-                                                        },
-                                                        "name": {
-                                                            "type": "string",
-                                                            "example": "John Doe"
-                                                        },
-                                                        "job_title": {
-                                                            "type": "string",
-                                                            "example": "Staff"
-                                                        },
-                                                        "email": {
-                                                            "type": "string",
-                                                            "example": "john@example.com"
-                                                        },
-                                                        "tenure": {
-                                                            "type": "string",
-                                                            "example": "2 years 3 months"
-                                                        },
-                                                        "join_date": {
-                                                            "type": "string",
-                                                            "format": "date",
-                                                            "example": "2022-01-15"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "performance_summary": {
-                                                    "properties": {
-                                                        "total_reviews": {
-                                                            "type": "integer",
-                                                            "example": 25
-                                                        },
-                                                        "avg_rating": {
-                                                            "type": "number",
-                                                            "example": 4.2
-                                                        },
-                                                        "sentiment_distribution": {
-                                                            "properties": {
-                                                                "positive": {
-                                                                    "type": "integer",
-                                                                    "example": 60
-                                                                },
-                                                                "neutral": {
-                                                                    "type": "integer",
-                                                                    "example": 25
-                                                                },
-                                                                "negative": {
-                                                                    "type": "integer",
-                                                                    "example": 15
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "rating_trend": {
-                                                    "properties": {
-                                                        "period": {
-                                                            "type": "string",
-                                                            "example": "last_6_months"
-                                                        },
-                                                        "data": {
-                                                            "type": "object",
-                                                            "example": {
-                                                                "2023-01": 4,
-                                                                "2023-02": 4.2
-                                                            }
-                                                        },
-                                                        "trend_direction": {
-                                                            "type": "string",
-                                                            "example": "improving"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "review_samples": {
-                                                    "properties": {
-                                                        "positive": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "type": "object"
-                                                            }
-                                                        },
-                                                        "constructive": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "type": "object"
-                                                            }
-                                                        },
-                                                        "neutral": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "type": "object"
-                                                            }
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "recommended_training": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object"
-                                                    }
-                                                },
-                                                "skill_gap_analysis": {
-                                                    "properties": {
-                                                        "strengths": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "type": "string"
-                                                            }
-                                                        },
-                                                        "improvement_areas": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "type": "string"
-                                                            }
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "customer_perceived_tone": {
-                                                    "properties": {
-                                                        "friendliness": {
-                                                            "type": "integer",
-                                                            "example": 75
-                                                        },
-                                                        "patience": {
-                                                            "type": "integer",
-                                                            "example": 80
-                                                        },
-                                                        "professionalism": {
-                                                            "type": "integer",
-                                                            "example": 85
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found"
-                    }
-                }
-            }
-        },
-        "/v1.0/reports/staff-dashboard/{businessId}": {
-            "get": {
-                "tags": [
-                    "Reports"
-                ],
-                "summary": "Get staff performance dashboard",
-                "description": "Get overall staff performance metrics and rankings",
-                "operationId": "staffDashboard",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "period",
-                        "in": "query",
-                        "description": "Period for comparison: last_week, last_month, last_quarter",
-                        "required": false,
-                        "example": "last_month"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Staff dashboard report retrieved successfully"
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "business_id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "business_name": {
-                                                    "type": "string",
-                                                    "example": "Business Name"
-                                                },
-                                                "period": {
-                                                    "type": "string",
-                                                    "example": "last_month"
-                                                },
-                                                "overall_metrics": {
-                                                    "properties": {
-                                                        "overall_rating": {
-                                                            "properties": {
-                                                                "value": {
-                                                                    "type": "number",
-                                                                    "example": 4.2
-                                                                },
-                                                                "change": {
-                                                                    "type": "number",
-                                                                    "example": 5.5
-                                                                },
-                                                                "change_type": {
-                                                                    "type": "string",
-                                                                    "example": "positive"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        "overall_sentiment": {
-                                                            "properties": {
-                                                                "value": {
-                                                                    "type": "integer",
-                                                                    "example": 75
-                                                                },
-                                                                "change": {
-                                                                    "type": "number",
-                                                                    "example": 2.1
-                                                                },
-                                                                "change_type": {
-                                                                    "type": "string",
-                                                                    "example": "positive"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        "total_reviews": {
-                                                            "properties": {
-                                                                "value": {
-                                                                    "type": "integer",
-                                                                    "example": 150
-                                                                },
-                                                                "change": {
-                                                                    "type": "integer",
-                                                                    "example": 25
-                                                                },
-                                                                "change_type": {
-                                                                    "type": "string",
-                                                                    "example": "positive"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "compliment_ratio": {
-                                                    "properties": {
-                                                        "compliments_percentage": {
-                                                            "type": "integer",
-                                                            "example": 70
-                                                        },
-                                                        "complaints_percentage": {
-                                                            "type": "integer",
-                                                            "example": 15
-                                                        },
-                                                        "neutral_percentage": {
-                                                            "type": "integer",
-                                                            "example": 15
-                                                        },
-                                                        "compliments_count": {
-                                                            "type": "integer",
-                                                            "example": 105
-                                                        },
-                                                        "complaints_count": {
-                                                            "type": "integer",
-                                                            "example": 22
-                                                        },
-                                                        "neutral_count": {
-                                                            "type": "integer",
-                                                            "example": 23
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "top_staff": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object"
-                                                    }
-                                                },
-                                                "all_staff": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object"
-                                                    }
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found"
-                    }
-                }
-            }
-        },
-        "/v1.0/reports/review-analytics/{businessId}": {
-            "get": {
-                "tags": [
-                    "Reports"
-                ],
-                "summary": "Get review analytics with flexible filtering",
-                "description": "Get performance overview and recent submissions with optional filters for survey, guest reviews, user reviews, and overall reviews",
-                "operationId": "reviewAnalytics",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "survey_id",
-                        "in": "query",
-                        "description": "Filter by survey ID",
-                        "required": false,
-                        "example": "1"
-                    },
-                    {
-                        "name": "is_guest_review",
-                        "in": "query",
-                        "description": "Filter guest reviews: true=guest only, false=exclude guest",
-                        "required": false,
-                        "example": "true"
-                    },
-                    {
-                        "name": "is_user_review",
-                        "in": "query",
-                        "description": "Filter user reviews: true=user only, false=exclude user",
-                        "required": false,
-                        "example": "true"
-                    },
-                    {
-                        "name": "is_overall",
-                        "in": "query",
-                        "description": "Filter overall reviews: true=overall only, false=survey only",
-                        "required": false,
-                        "example": "true"
-                    },
-                    {
-                        "name": "staff_id",
-                        "in": "query",
-                        "description": "Filter by staff member ID",
-                        "required": false,
-                        "example": "1"
-                    },
-                    {
-                        "name": "period",
-                        "in": "query",
-                        "description": "Period for data: 7d, 30d, 90d, 1y",
-                        "required": false,
-                        "example": "30d"
-                    },
-                    {
-                        "name": "min_score",
-                        "in": "query",
-                        "description": "Minimum rating score (1-5)",
-                        "required": false,
-                        "example": "3"
-                    },
-                    {
-                        "name": "max_score",
-                        "in": "query",
-                        "description": "Maximum rating score (1-5)",
-                        "required": false,
-                        "example": "5"
-                    },
-                    {
-                        "name": "labels",
-                        "in": "query",
-                        "description": "Filter by sentiment labels (comma separated)",
-                        "required": false,
-                        "example": "positive,neutral"
-                    },
-                    {
-                        "name": "review_type",
-                        "in": "query",
-                        "description": "Filter by review type",
-                        "required": false,
-                        "example": "feedback"
-                    },
-                    {
-                        "name": "has_comment",
-                        "in": "query",
-                        "description": "Filter by comments: true=with comments, false=without comments",
-                        "required": false,
-                        "example": "true"
-                    },
-                    {
-                        "name": "has_reply",
-                        "in": "query",
-                        "description": "Filter by replies: true=replied, false=not replied",
-                        "required": false,
-                        "example": "false"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Review analytics retrieved successfully"
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "business_id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "business_name": {
-                                                    "type": "string",
-                                                    "example": "Business Name"
-                                                },
-                                                "filters_applied": {
-                                                    "type": "object"
-                                                },
-                                                "performance_overview": {
-                                                    "type": "object"
-                                                },
-                                                "submissions_over_time": {
-                                                    "type": "object"
-                                                },
-                                                "recent_submissions": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object"
-                                                    }
-                                                },
-                                                "top_three_staff": {
-                                                    "description": "Top 3 staff by aggregated review metrics",
-                                                    "properties": {
-                                                        "total_staff_reviewed": {
-                                                            "type": "integer",
-                                                            "example": 5
-                                                        },
-                                                        "staff": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "properties": {
-                                                                    "staff_id": {
-                                                                        "type": "integer",
-                                                                        "example": 1
-                                                                    },
-                                                                    "staff_name": {
-                                                                        "type": "string",
-                                                                        "example": "John Doe"
-                                                                    },
-                                                                    "position": {
-                                                                        "type": "string",
-                                                                        "example": "Manager"
-                                                                    },
-                                                                    "avg_rating": {
-                                                                        "type": "number",
-                                                                        "format": "float",
-                                                                        "example": 4.5
-                                                                    },
-                                                                    "review_count": {
-                                                                        "type": "integer",
-                                                                        "example": 25
-                                                                    },
-                                                                    "sentiment_score": {
-                                                                        "type": "integer",
-                                                                        "example": 80
-                                                                    },
-                                                                    "sentiment_label": {
-                                                                        "type": "string",
-                                                                        "example": "Excellent"
-                                                                    },
-                                                                    "top_topics": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    },
-                                                                    "recent_activity": {
-                                                                        "type": "string",
-                                                                        "example": "2 days ago"
-                                                                    }
-                                                                },
-                                                                "type": "object"
-                                                            }
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found"
-                    }
-                }
-            }
-        },
         "/v1.0/reviews/{reviewId}/reply": {
             "put": {
                 "tags": [
@@ -14871,61 +15527,6 @@
                 ]
             }
         },
-        "/v1.0/reviews/overall-dashboard/{businessId}": {
-            "get": {
-                "tags": [
-                    "review.dashboard"
-                ],
-                "summary": "Get overall business dashboard data",
-                "description": "Get comprehensive dashboard data with AI insights and analytics",
-                "operationId": "getOverallDashboardData",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "period",
-                        "in": "query",
-                        "description": "Period: last_30_days, last_7_days, this_month, last_month",
-                        "required": false,
-                        "example": "last_30_days"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Dashboard data retrieved successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
         "/v1.0/businesses/{businessId}/review-settings": {
             "put": {
                 "tags": [
@@ -15075,78 +15676,6 @@
                     },
                     "422": {
                         "description": "Unprocessable Content"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/getavg/review/{businessId}/{start}/{end}": {
-            "get": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to get average",
-                "description": "This method is to get average",
-                "operationId": "getAverages",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "description": "businessId",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "start",
-                        "in": "path",
-                        "description": "from date",
-                        "required": true,
-                        "example": "2019-06-29"
-                    },
-                    {
-                        "name": "end",
-                        "in": "path",
-                        "description": "to date",
-                        "required": true,
-                        "example": "2026-06-29"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
                     }
                 },
                 "security": [
@@ -23528,12 +24057,20 @@
             "description": "dashboard_management"
         },
         {
-            "name": "email_management.feed_genius",
-            "description": "email_management.feed_genius"
+            "name": "report",
+            "description": "report"
+        },
+        {
+            "name": "Reports",
+            "description": "Reports"
         },
         {
             "name": "z.unused",
             "description": "z.unused"
+        },
+        {
+            "name": "email_management.feed_genius",
+            "description": "email_management.feed_genius"
         },
         {
             "name": "template_management.email",
@@ -23580,28 +24117,12 @@
             "description": "question_management.client"
         },
         {
-            "name": "dashboard",
-            "description": "dashboard"
-        },
-        {
-            "name": "report",
-            "description": "report"
-        },
-        {
-            "name": "Reports",
-            "description": "Reports"
-        },
-        {
             "name": "review_management",
             "description": "review_management"
         },
         {
             "name": "voice",
             "description": "voice"
-        },
-        {
-            "name": "review.dashboard",
-            "description": "review.dashboard"
         },
         {
             "name": "business.settings",

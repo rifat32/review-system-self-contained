@@ -636,27 +636,7 @@ PROMPT;
     ];
 }
 
-    /**
-     * Get sentiment label from score - CORRECTED VERSION
-     */
-    public static function getSentimentLabel(?float $score): string
-    {
-        if ($score === null) return 'neutral';
-
-        // Ensure score is between 0 and 1
-        $score = max(0, min(1, $score));
-
-        // Debug: Check what score we're getting
-        if (app()->environment('local')) {
-            Log::debug('getSentimentLabel called', ['score' => $score]);
-        }
-
-        if ($score >= 0.8) return 'very_positive';
-        if ($score >= 0.6) return 'positive';
-        if ($score >= 0.4) return 'neutral';
-        if ($score >= 0.2) return 'negative';
-        return 'very_negative';
-    }
+   
 
     /**
      * Fallback analysis when OpenAI fails - ensure 0 confidence
@@ -733,14 +713,6 @@ PROMPT;
 
 
 
-    /**
-     * Get sentiment percentage for reports
-     */
-    public static function getSentimentPercentage($score): int
-    {
-        if ($score === null) return 50;
-        return round($score * 100);
-    }
 
     /**
      * Legacy compatibility method

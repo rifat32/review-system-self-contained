@@ -80,7 +80,7 @@
         </div>
 
         <div class="content">
-            <p>Hello Rony,</p>
+            <p>Hello FeedGenius Team,</p>
             <p>You have received a new message from your website contact form. Here are the details:</p>
 
             <table class="info-table">

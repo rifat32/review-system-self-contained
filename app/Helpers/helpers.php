@@ -3,40 +3,17 @@
 
 
 
-
-
-// Calculate Aggregated Sentiment
-if (!function_exists('calculateAggregatedSentiment')) {
-    function calculateAggregatedSentiment($reviews)
+if (!function_exists('getDistanceMeters')) {
+    function getDistanceMeters($lat1, $lon1, $lat2, $lon2)
     {
-        return App\Helpers\AIProcessor::calculateAggregatedSentiment($reviews);
-    }
-}
-
-// Generate Staff Suggestions
-if (!function_exists('generateStaffSuggestions')) {
-    function generateStaffSuggestions($weaknesses)
-    {
-        $suggestions = [];
-
-        foreach ($weaknesses as $weakness) {
-            switch ($weakness) {
-                case 'communication':
-                    $suggestions[] = 'Needs better communication skills training';
-                    break;
-                case 'service_speed':
-                    $suggestions[] = 'Requires efficiency and time management training';
-                    break;
-                case 'product_knowledge':
-                    $suggestions[] = 'Needs product knowledge workshop';
-                    break;
-                case 'attitude':
-                    $suggestions[] = 'Customer service excellence training recommended';
-                    break;
-            }
-        }
-
-        return $suggestions;
+        $earth_radius = 6371000; // meters
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+            sin($dLon / 2) * sin($dLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        return $earth_radius * $c;
     }
 }
 

@@ -11,11 +11,6 @@ use Carbon\Carbon;
 
 
 
-
-
-
-
-
 if (!function_exists('getDateRangeByPeriod')) {
     function getDateRangeByPeriod($period)
     {
@@ -195,19 +190,42 @@ if (!function_exists('extractTagsBreakdown')) {
     }
 }
 
-if (!function_exists('getDistanceMeters')) {
-    function getDistanceMeters($lat1, $lon1, $lat2, $lon2)
-    {
-        $earth_radius = 6371000; // meters
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-            sin($dLon / 2) * sin($dLon / 2);
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        return $earth_radius * $c;
+if (!function_exists('formatPeriodDisplay')) {
+   
+
+ function formatPeriodDisplay($startDate, $endDate)
+{
+    // Check if it's all-time data (start date is very old)
+    $veryOldDate = Carbon::createFromTimestamp(0)->addDay();
+    
+    if ($startDate->lessThan($veryOldDate)) {
+        return 'All Time';
     }
+    
+    $startFormatted = $startDate->format('M j, Y');
+    $endFormatted = $endDate->format('M j, Y');
+    
+    // If same day
+    if ($startDate->isSameDay($endDate)) {
+        return $startDate->format('M j, Y');
+    }
+    
+    // If same month
+    if ($startDate->format('Y-m') === $endDate->format('Y-m')) {
+        return $startDate->format('M j') . ' - ' . $endDate->format('j, Y');
+    }
+    
+    // If same year
+    if ($startDate->format('Y') === $endDate->format('Y')) {
+        return $startDate->format('M j') . ' - ' . $endDate->format('M j, Y');
+    }
+    
+    return $startFormatted . ' - ' . $endFormatted;
 }
+
+}
+
+
 
 if (!function_exists('calculateDashboardMetrics')) {
     function calculateDashboardMetrics($businessId, $dateRange)
@@ -305,13 +323,6 @@ if (!function_exists('calculateDashboardMetrics')) {
 }
 
 
-
-
-
-
-
-
-
 if (!function_exists('storeReviewValues')) {
     // ##################################################
     // Helper to store review values (question/star)
@@ -347,17 +358,6 @@ if (!function_exists('storeReviewValues')) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 if (!function_exists('getAvailableFilters')) {
     function getAvailableFilters($businessId)
     {
@@ -378,9 +378,6 @@ if (!function_exists('getAvailableFilters')) {
 }
 
 
-
-
-
 if (!function_exists('calculateResponseRate')) {
     /**
      * Calculate response rate
@@ -394,16 +391,6 @@ if (!function_exists('calculateResponseRate')) {
         return round(($responded / $total) * 100, 1);
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 
 if (!function_exists('calculateTenure')) {
@@ -422,6 +409,7 @@ if (!function_exists('calculateTenure')) {
         return "{$years} years {$months} months";
     }
 }
+
 if (!function_exists('getRatingTrendFromReviewValue')) {
     function getRatingTrendFromReviewValue($reviews)
     {
@@ -471,11 +459,6 @@ if (!function_exists('calculateTrendDirection')) {
 }
 
 
-
-
-
-
-
 if (!function_exists('fillMissingPeriods')) {
     function fillMissingPeriods($data, $startDate, $endDate, $format)
     {
@@ -500,8 +483,6 @@ if (!function_exists('fillMissingPeriods')) {
         return $filledData;
     }
 }
-
-
 
 if (!function_exists('applyFilters')) {
     function applyFilters($query, $filters)
@@ -574,9 +555,6 @@ if (!function_exists('applyFilters')) {
     }
 }
 
-
-
-
 if (!function_exists('getTopStaffByRatingFromReviewValue')) {
     function getTopStaffByRatingFromReviewValue($reviews, $limit = 5)
     {
@@ -611,9 +589,6 @@ if (!function_exists('getTopStaffByRatingFromReviewValue')) {
     }
 }
 
-
-
-
 if (!function_exists('getUserName')) {
     function getUserName($review)
     {
@@ -629,103 +604,3 @@ if (!function_exists('getUserName')) {
 
 
 
-//   private function calculateRatingBreakdown($businessId, $dateRange)
-//     {
-//         // Get reviews WITH calculated_rating in one query
-//         $reviews = ReviewNew::where('business_id', $businessId)
-//             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-//             ->globalFilters(0, $businessId)
-//             ->withCalculatedRating()
-//             ->get();
-
-//         // Initialize counters
-//         $excellent = 0;
-//         $good = 0;
-//         $average = 0;
-//         $poor = 0;
-//         $veryPoor = 0;
-//         $totalRating = 0;
-//         $validReviews = 0;
-
-//         // Count ratings based on calculated_rating values
-//         foreach ($reviews as $review) {
-//             $rating = $review->calculated_rating;
-
-//             // Only count reviews with valid ratings (> 0)
-//             if ($rating > 0) {
-//                 $totalRating += $rating;
-//                 $validReviews++;
-
-//                 switch (true) {
-//                     case $rating >= 4.5:
-//                         $excellent++;
-//                         break;
-//                     case $rating >= 3.5 && $rating < 4.5:
-//                         $good++;
-//                         break;
-//                     case $rating >= 2.5 && $rating < 3.5:
-//                         $average++;
-//                         break;
-//                     case $rating >= 1.5 && $rating < 2.5:
-//                         $poor++;
-//                         break;
-//                     case $rating < 1.5:
-//                         $veryPoor++;
-//                         break;
-//                 }
-//             }
-//         }
-
-//         // Calculate average rating
-//         $avgRating = $validReviews > 0 ? round($totalRating / $validReviews, 1) : 0;
-//         $totalReviews = $reviews->count();
-
-//         return [
-//             'excellent' => [
-//                 'percentage' => $validReviews > 0 ? round(($excellent / $validReviews) * 100) : 0,
-//                 'count' => $excellent,
-//                 'range' => '4.5-5.0 stars'
-//             ],
-//             'good' => [
-//                 'percentage' => $validReviews > 0 ? round(($good / $validReviews) * 100) : 0,
-//                 'count' => $good,
-//                 'range' => '3.5-4.4 stars'
-//             ],
-//             'average' => [
-//                 'percentage' => $validReviews > 0 ? round(($average / $validReviews) * 100) : 0,
-//                 'count' => $average,
-//                 'range' => '2.5-3.4 stars'
-//             ],
-//             'poor' => [
-//                 'percentage' => $validReviews > 0 ? round(($poor / $validReviews) * 100) : 0,
-//                 'count' => $poor,
-//                 'range' => '1.5-2.4 stars'
-//             ],
-//             'very_poor' => [
-//                 'percentage' => $validReviews > 0 ? round(($veryPoor / $validReviews) * 100) : 0,
-//                 'count' => $veryPoor,
-//                 'range' => '0-1.4 stars'
-//             ],
-//             'avg_rating' => $avgRating,
-//             'total_reviews' => $totalReviews,
-//             'reviews_with_rating' => $validReviews,
-//             'rating_distribution' => [
-//                 '5_star' => $reviews->where('calculated_rating', '>=', 4.5)->count(),
-//                 '4_star' => $reviews->whereBetween('calculated_rating', [4.0, 4.49])->count(),
-//                 '3_star' => $reviews->whereBetween('calculated_rating', [3.0, 3.99])->count(),
-//                 '2_star' => $reviews->whereBetween('calculated_rating', [2.0, 2.99])->count(),
-//                 '1_star' => $reviews->where('calculated_rating', '<', 2.0)->count()
-//             ],
-//             'summary' => [
-//                 'positive_reviews' => $reviews->where('calculated_rating', '>=', 4)->count(),
-//                 'neutral_reviews' => $reviews->whereBetween('calculated_rating', [3, 3.99])->count(),
-//                 'negative_reviews' => $reviews->where('calculated_rating', '<', 3)->count(),
-//                 'positive_percentage' => $validReviews > 0
-//                     ? round(($reviews->where('calculated_rating', '>=', 4)->count() / $validReviews) * 100)
-//                     : 0,
-//                 'csat_score' => $validReviews > 0
-//                     ? round(($reviews->where('calculated_rating', '>=', 4)->count() / $validReviews) * 100)
-//                     : 0
-//             ]
-//         ];
-//     }

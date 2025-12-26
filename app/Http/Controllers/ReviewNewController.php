@@ -246,104 +246,7 @@ class ReviewNewController extends Controller
 // Get Overall Business Dashboard Data
 // ##################################################
 
-    /**
-     * @OA\Get(
-     *      path="/v1.0/reviews/overall-dashboard/{businessId}",
-     *      operationId="getOverallDashboardData",
-     *      tags={"dashboard_management"},
-     *      security={{"bearerAuth": {}}},
-     *      summary="Get overall business dashboard data",
-     *      description="Get comprehensive dashboard data with AI insights and analytics",
-     *      @OA\Parameter(
-     *          name="businessId",
-     *          in="path",
-     *          required=true,
-     *          example="1"
-     *      ),
-     *      @OA\Parameter(
-     *          name="period",
-     *          in="query",
-     *          required=false,
-     *          description="Period: last_30_days, last_7_days, this_month, last_month",
-     *          example="last_30_days"
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="Dashboard data retrieved successfully"),
-     *              @OA\Property(property="data", type="object")
-     *          )
-     *      )
-     * )
-     */
-    public function getOverallDashboardData($businessId, Request $request)
-    {
-        $filterable_fields = [
-            "last_30_days",
-            "last_7_days",
-            "this_month",
-            "last_month"
-        ];
-
-
-
-        if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid period. Only allowed' . implode(', ', $filterable_fields),
-                'data' => null
-            ], 400);
-        }
-        $period = $request->get('period', 'last_30_days');
-
-        // Get period dates
-        $dateRange = getDateRangeByPeriod($period);
-
-
-
-        // Calculate metrics using existing methods
-        $metrics = calculateDashboardMetrics($businessId, $dateRange);
-
-        // Get rating breakdown using existing getAverage method logic
-        $ratingBreakdown = extractRatingBreakdown(
-            ReviewNew::withCalculatedRating()
-                ->globalFilters(0, $businessId)
-                ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-                ->get()
-        );
-
-         // Get tags breakdown (NEW)
-    $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange);
-
-        // Get AI insights using existing AI pipeline
-        $aiInsights = getAiInsightsPanel($businessId, $dateRange);
-
-        // Get staff performance using existing staff suggestions
-        $staffPerformance = getStaffPerformanceSnapshot($businessId, $dateRange);
-
-        // Get recent reviews feed
-        $reviewFeed = getReviewFeed($businessId, $dateRange);
-
-        // Get available filters
-        $filters = getAvailableFilters($businessId);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Dashboard data retrieved successfully',
-            'data' => [
-                'metrics' => $metrics,
-                'rating_breakdown' => $ratingBreakdown,
-                'tags_breakdown' => $tagsBreakdown,
-                'ai_insights_panel' => $aiInsights,
-                'staff_performance_snapshot' => $staffPerformance,
-                'review_feed' => $reviewFeed,
-                'filters' => $filters
-            ]
-        ], 200);
-    }
-
+  
 
 
 // ##################################################
@@ -416,36 +319,7 @@ class ReviewNewController extends Controller
         ], 200);
     }
 
-    // ##################################################
-    // Helper Methods
-    // ##################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
 
     // ##################################################
     // This method is to store   ReviewValue
@@ -552,86 +426,7 @@ class ReviewNewController extends Controller
 
         return response($reviewValues, 200);
     }
-    // ##################################################
-    // This method is to get average
-    // ##################################################
-    /**
-     *
-     * @OA\Get(
-     *      path="/review-new/getavg/review/{businessId}/{start}/{end}",
-     *      operationId="getAverages",
-     *      tags={"z.unused"},
-     *         security={
-     *           {"bearerAuth": {}}
-     *       },
-     *  @OA\Parameter(
-     * name="businessId",
-     * in="path",
-     * description="businessId",
-     * required=true,
-     * example="1"
-     * ),
-     *  @OA\Parameter(
-     * name="start",
-     * in="path",
-     * description="from date",
-     * required=true,
-     * example="2019-06-29"
-     * ),
-     *  @OA\Parameter(
-     * name="end",
-     * in="path",
-     * description="to date",
-     * required=true,
-     * example="2026-06-29"
-     * ),
-     *      summary="This method is to get average",
-     *      description="This method is to get average",
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocessable Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function getAverages($businessId, $start, $end, Request $request)
-    {
-        // Get reviews with their values
-        $reviews = ReviewNew::with(['value'])
-            ->where("business_id", $businessId)
-            ->globalFilters(0, $businessId)
-            ->whereBetween('created_at', [$start, $end])
-            ->orderBy('order_no', 'asc')
-            ->withCalculatedRating()
-            ->get();
-
-        $data = extractRatingBreakdown($reviews);
-
-        return response($data, 200);
-    }
+    
 
     // ##################################################
     // This method is to store   ReviewValue2
@@ -815,6 +610,8 @@ class ReviewNewController extends Controller
 
         return response($reviewValue, 200);
     }
+
+
     // ##################################################
     // This method is to get customer review
     // ##################################################
@@ -836,7 +633,6 @@ class ReviewNewController extends Controller
      * required=true,
      * example="1"
      * ),
-
      *  @OA\Parameter(
      * name="start",
      * in="path",
@@ -883,8 +679,6 @@ class ReviewNewController extends Controller
      *      )
      *     )
      */
-
-
 
     public function getCustommerReview($businessId, $start, $end, Request $request)
     {
@@ -1022,11 +816,6 @@ class ReviewNewController extends Controller
         //         ]
         //     ];
         // }
-
-
-
-
-
         // Check if content should be blocked
         // if ($moderationResults['should_block']) {
         //     return response([
@@ -1038,7 +827,6 @@ class ReviewNewController extends Controller
 
 
         $reviewData = [
-
             'survey_id' => $request->survey_id,
             'description' => $request->description,
             'business_id' => $businessId,

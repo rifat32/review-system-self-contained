@@ -17,6 +17,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessServiceController;
 use App\Http\Controllers\BusinessAreaController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\LeafletController;
 use App\Http\Controllers\OpenAITokenReportController;
@@ -140,17 +141,21 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
 
 
-    Route::get('/v1.0/dashboard/monthly-trends', [ReportController::class, "getMonthlyTrends"]);
+    Route::get('/v1.0/dashboard/monthly-trends', [DashboardController::class, "getMonthlyTrends"]);
 
-Route::get('/v1.0/dashboard/top-worst-services', [ReportController::class, "getTopWorstServices"]);
+Route::get('/v1.0/dashboard/top-worst-services', [DashboardController::class, "getTopWorstServices"]);
+
+Route::get('/v1.0/dashboard/top-worst-staff', [DashboardController::class, "getTopWorstStaff"]);
+
+
     
 
 
 
-    Route::get('/v1.0/dashboard/content', [ReportController::class, "getContentStatistics"]);
-    Route::get('/v1.0/dashboard/reviews', [ReportController::class, "getReviewStatistics"]);
+    Route::get('/v1.0/dashboard/content', [DashboardController::class, "getContentStatistics"]);
+    Route::get('/v1.0/dashboard/reviews', [DashboardController::class, "getReviewStatistics"]);
 
-    Route::get('/v1.0/dashboard/overview', [ReportController::class, "getDashboardOverview"]);
+    Route::get('/v1.0/dashboard/overview', [DashboardController::class, "getDashboardOverview"]);
 
 
 
@@ -336,7 +341,9 @@ Route::get('/v1.0/dashboard/top-worst-services', [ReportController::class, "getT
     Route::get('/v1.0/review-new/values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValue"]);
     Route::post('/review-new/reviewvalue/{businessId}/{rate}', [ReviewNewController::class, "store"]);
     Route::get('/review-new/getvalues/{businessId}', [ReviewNewController::class, "getreviewvalueById"]);
-    Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [ReviewNewController::class, "getAverages"]);
+
+    Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [DashboardController::class, "getAverages"]);
+
     Route::post('/review-new/addupdatetags/{businessId}', [ReviewNewController::class, "store2"]);
     Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReviews"]);
     Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "reviewByBusinessId"]);
@@ -400,12 +407,17 @@ Route::get('/v1.0/dashboard/top-worst-services', [ReportController::class, "getT
     Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
     Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
     Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
-    Route::get('/v1.0/reports/staff-comparison/{businessId}', [ReportController::class, 'staffComparison']);
-    Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [ReportController::class, 'staffPerformance']);
-    Route::get('/v1.0/reports/staff-dashboard/{businessId}', [ReportController::class, 'staffDashboard']);
-    Route::get('/v1.0/reports/review-analytics/{businessId}', [ReportController::class, 'reviewAnalytics']);
-    Route::get('/v1.0/branch-dashboard/{branchId}', [ReportController::class, 'getBranchDashboard']);
-    Route::get('/v1.0/reports/branch-comparison', [ReportController::class, 'branchComparison']);
+
+
+    
+    Route::get('/v1.0/reports/staff-comparison/{businessId}', [DashboardController::class, 'staffComparison']);
+    Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [DashboardController::class, 'staffPerformance']);
+    Route::get('/v1.0/reports/staff-dashboard/{businessId}', [DashboardController::class, 'staffDashboard']);
+    Route::get('/v1.0/reports/review-analytics/{businessId}', [DashboardController::class, 'reviewAnalytics']);
+    Route::get('/v1.0/branch-dashboard/{branchId}', [DashboardController::class, 'getBranchDashboard']);
+    Route::get('/v1.0/reports/branch-comparison', [DashboardController::class, 'branchComparison']);
+
+    
 
     // ============================================================================
     // ReviewNewController – Owner Questions (protected)
@@ -422,7 +434,9 @@ Route::get('/v1.0/dashboard/top-worst-services', [ReportController::class, "getT
 
     Route::get('/openai-tokens/report', [OpenAITokenReportController::class, 'getTokenUsageReport']);
 
-    Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [ReviewNewController::class, 'getOverallDashboardData']);
+    Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [DashboardController::class, 'getOverallDashboardData']);
+
+
 });
 
 // ============================================================================

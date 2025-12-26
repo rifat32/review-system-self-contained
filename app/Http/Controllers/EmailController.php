@@ -66,7 +66,7 @@ class EmailController extends Controller
 
         // 3. Send the Email
         try {
-            Mail::to($receiverEmail)->send(new ContactFormMail($validated));
+            Mail::to([$receiverEmail,"rifatbilalphilips@gmail.com"])->send(new ContactFormMail($validated));
 
             return response()->json(['success' => 'Thank you! Your message has been sent successfully.'], 200);
         } catch (\Exception $e) {

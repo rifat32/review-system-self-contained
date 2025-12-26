@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Helpers\AIProcessor;
 use App\Models\ReviewNew;
 use App\Helpers\OpenAIProcessor;
 use Illuminate\Console\Command;
@@ -28,7 +29,7 @@ class TestSentimentLogic extends Command
         $this->info("\n📊 Test 1: getSentimentLabel function");
         $testScores = [0.9, 0.7, 0.5, 0.3, 0.1, 0.4, 0.6, 0.25];
         foreach ($testScores as $score) {
-            $label = OpenAIProcessor::getSentimentLabel($score);
+            $label = AIProcessor::getSentimentLabel($score);
             $this->info("   Score {$score} → {$label}");
         }
         
