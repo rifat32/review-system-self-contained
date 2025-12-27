@@ -80,7 +80,7 @@ class NotificationController extends Controller
         $body["sender_id"] = $request->user()->id;
         $body["status"] = "unread";
         $body["sender_type"] = $request->user()->hasRole("superadmin") ? "superadmin" : "";
-        $notification =  Notification::create($body);
+        $notification = Notification::create($body);
 
         //  SEND RESPONSE
         return response([
@@ -163,7 +163,7 @@ class NotificationController extends Controller
         // VALIDATE REQUEST
         $request_payload = $request->validated();
 
-        $notification =    Notification::find($notificationId);
+        $notification = Notification::find($notificationId);
 
         if (!$notification) {
             return response([
@@ -190,16 +190,27 @@ class NotificationController extends Controller
      *      path="/v1.0/notification",
      *      operationId="getNotification",
      *      tags={"notification"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to get notification by reciever_id",
-     *      description="This method is to get notification by reciever_id",
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="This method is to get notification by receiver_id",
+     *      description="This method is to get notification by receiver_id with pagination",
      *
-
+     *      @OA\Parameter(
+     *          name="page",
+     *          in="query",
+     *          description="Page number for pagination",
+     *          required=false,
+     *          @OA\Schema(type="integer")
+     *      ),
+     *      @OA\Parameter(
+     *          name="per_page",
+     *          in="query",
+     *          description="Number of items per page",
+     *          required=false,
+     *          @OA\Schema(type="integer")
+     *      ),
      *
-
-
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
@@ -207,7 +218,10 @@ class NotificationController extends Controller
      *              @OA\Property(property="success", type="boolean", example=true),
      *              @OA\Property(property="message", type="string", example="Notifications retrieved successfully"),
      *              @OA\Property(property="meta", type="object",
-     *                  @OA\Property(property="total", type="integer", example=10)
+     *                  @OA\Property(property="total", type="integer", example=100),
+     *                  @OA\Property(property="per_page", type="integer", example=10),
+     *                  @OA\Property(property="current_page", type="integer", example=1),
+     *                  @OA\Property(property="last_page", type="integer", example=10)
      *              ),
      *              @OA\Property(property="data", type="array", @OA\Items(type="object"))
      *          )
@@ -215,39 +229,41 @@ class NotificationController extends Controller
      *      @OA\Response(
      *          response=401,
      *          description="Unauthenticated",
-     * @OA\JsonContent(),
+     *          @OA\JsonContent()
      *      ),
-     *        @OA\Response(
+     *      @OA\Response(
      *          response=422,
      *          description="Unprocessable Content",
-     *    @OA\JsonContent(),
+     *          @OA\JsonContent()
      *      ),
      *      @OA\Response(
      *          response=403,
      *          description="Forbidden",
-     *   @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad Request",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="Not found",
+     *          @OA\JsonContent()
      *      )
      *     )
      */
     public function getNotification(Request $request)
     {
-        $notification = Notification::where(["reciever_id" => $request->user()->id])->get();
+        $query = Notification::where(["receiver_id" => $request->user()->id]);
+
+        $notification = retrieve_data($query);
 
         return response([
             "success" => true,
             "message" => "Notifications retrieved successfully",
-            "meta" => [
-                "total" => $notification->count()
-            ],
-            "data" => $notification
+            "meta" => $notification["meta"],
+            "data" => $notification["data"]
         ], 200);
     }
 

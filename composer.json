@@ -11,7 +11,7 @@
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^2.0",
         "darkaonline/l5-swagger": "^8.4",
-        "doctrine/dbal": "^3.0",
+        "doctrine/dbal": "^3.10",
         "dompdf/dompdf": "^2.0",
         "guzzlehttp/guzzle": "^7.2",
         "james-heinrich/getid3": "^1.9",

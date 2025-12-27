@@ -2,6 +2,7 @@
 
 // AI Moderation
 
+use App\Models\Branch;
 use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
 use App\Models\Tag;
@@ -43,7 +44,8 @@ if (!function_exists('getDateRangeByPeriod')) {
 if (!function_exists('calculatePercentageChange')) {
     function calculatePercentageChange($current, $previous)
     {
-        if ($previous == 0) return 0;
+        if ($previous == 0)
+            return 0;
         return round((($current - $previous) / $previous) * 100, 1);
     }
 }
@@ -125,7 +127,7 @@ if (!function_exists('extractTagsBreakdown')) {
             ->get();
 
         $totalTagMentions = $tagCounts->sum('count');
-        
+
         // Color palette for visualization
         $colorPalette = [
             '#3490dc', // blue
@@ -139,19 +141,19 @@ if (!function_exists('extractTagsBreakdown')) {
             '#6574cd', // indigo
             '#a0aec0'  // gray
         ];
-        
+
         // Prepare breakdown with all tags, including those with zero mentions
         $breakdown = $allTags->map(function ($tag, $index) use ($tagCounts, $totalTagMentions, $colorPalette) {
             $tagData = $tagCounts->firstWhere('id', $tag->id);
             $count = $tagData ? $tagData->count : 0;
-            
+
             // Calculate percentage based on total tag mentions (not total reviews)
             $percentage = $totalTagMentions > 0 ? round(($count / $totalTagMentions) * 100) : 0;
-            
+
             // Assign color from palette (cycle through if more tags than colors)
             $colorIndex = $index % count($colorPalette);
             $color = $colorPalette[$colorIndex];
-            
+
             return [
                 'id' => $tag->id,
                 'tag' => $tag->tag,
@@ -191,37 +193,37 @@ if (!function_exists('extractTagsBreakdown')) {
 }
 
 if (!function_exists('formatPeriodDisplay')) {
-   
 
- function formatPeriodDisplay($startDate, $endDate)
-{
-    // Check if it's all-time data (start date is very old)
-    $veryOldDate = Carbon::createFromTimestamp(0)->addDay();
-    
-    if ($startDate->lessThan($veryOldDate)) {
-        return 'All Time';
+
+    function formatPeriodDisplay($startDate, $endDate)
+    {
+        // Check if it's all-time data (start date is very old)
+        $veryOldDate = Carbon::createFromTimestamp(0)->addDay();
+
+        if ($startDate->lessThan($veryOldDate)) {
+            return 'All Time';
+        }
+
+        $startFormatted = $startDate->format('M j, Y');
+        $endFormatted = $endDate->format('M j, Y');
+
+        // If same day
+        if ($startDate->isSameDay($endDate)) {
+            return $startDate->format('M j, Y');
+        }
+
+        // If same month
+        if ($startDate->format('Y-m') === $endDate->format('Y-m')) {
+            return $startDate->format('M j') . ' - ' . $endDate->format('j, Y');
+        }
+
+        // If same year
+        if ($startDate->format('Y') === $endDate->format('Y')) {
+            return $startDate->format('M j') . ' - ' . $endDate->format('M j, Y');
+        }
+
+        return $startFormatted . ' - ' . $endFormatted;
     }
-    
-    $startFormatted = $startDate->format('M j, Y');
-    $endFormatted = $endDate->format('M j, Y');
-    
-    // If same day
-    if ($startDate->isSameDay($endDate)) {
-        return $startDate->format('M j, Y');
-    }
-    
-    // If same month
-    if ($startDate->format('Y-m') === $endDate->format('Y-m')) {
-        return $startDate->format('M j') . ' - ' . $endDate->format('j, Y');
-    }
-    
-    // If same year
-    if ($startDate->format('Y') === $endDate->format('Y')) {
-        return $startDate->format('M j') . ' - ' . $endDate->format('M j, Y');
-    }
-    
-    return $startFormatted . ' - ' . $endFormatted;
-}
 
 }
 
@@ -235,7 +237,7 @@ if (!function_exists('calculateDashboardMetrics')) {
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->withCalculatedRating()
-             ->globalFilters(0, $businessId)
+            ->globalFilters(0, $businessId)
             ->get();
 
         // Get previous period reviews WITH calculated rating
@@ -245,9 +247,9 @@ if (!function_exists('calculateDashboardMetrics')) {
                 $dateRange['start']->copy()->subDays(30),
                 $dateRange['end']->copy()->subDays(30)
             ])
-             ->globalFilters(0, $businessId)
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating()
-            
+
             ->get();
 
         $total = $reviews->count();
@@ -342,12 +344,68 @@ if (!function_exists('storeReviewValues')) {
         }
 
         if ($business && $review->guest_id) {
+            $notificationService = app(\App\Services\NotificationService::class);
+
+            // Get branch manager if review has branch_id
+            $branchManagerId = null;
+            if ($review->branch_id) {
+                $branch = Branch::find($review->branch_id);
+                $branchManagerId = $branch?->manager_id;
+            }
+
             if ($averageRating >= $business->threshold_rating) {
                 $review->is_private = 0;
                 $review->save();
+
+                // Send notification only to branch manager
+                if ($branchManagerId) {
+                    $notificationService->send_notification([
+                        'receiver_id' => $branchManagerId,
+                        'business_id' => $business->id,
+                        'type' => 'new_review',
+                        'title' => 'New Review Received',
+                        'message' => "A new review with rating {$averageRating} has been submitted.",
+                        'entity_id' => $review->id,
+                        'priority' => 'normal',
+                    ]);
+                } else {
+                    $ownerId = $business->OwnerID;
+                    $notificationService->send_notification([
+                        'receiver_id' => $ownerId,
+                        'business_id' => $business->id,
+                        'type' => 'new_review',
+                        'title' => 'New Review Received',
+                        'message' => "A new review with rating {$averageRating} has been submitted.",
+                        'entity_id' => $review->id,
+                        'priority' => 'normal',
+                    ]);
+                }
             } else {
                 $review->is_private = 1;
                 $review->save();
+
+                // Send notification to both business owner and branch manager
+                $receiverIds = [];
+
+                if ($business->OwnerID) {
+                    $receiverIds[] = $business->OwnerID;
+                }
+
+                if ($branchManagerId && $branchManagerId !== $business->OwnerID) {
+                    $receiverIds[] = $branchManagerId;
+                }
+
+                foreach ($receiverIds as $receiverId) {
+                    $notificationService->send_notification([
+                        'receiver_id' => $receiverId,
+                        'business_id' => $business->id,
+                        'type' => 'low_rating_review',
+                        'title' => 'Low Rating Review Alert',
+                        'message' => "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
+                        'entity_id' => $review->id,
+                        'priority' => 'high',
+                    ]);
+                }
             }
         }
 
@@ -385,7 +443,8 @@ if (!function_exists('calculateResponseRate')) {
     function calculateResponseRate($reviews)
     {
         $total = $reviews->count();
-        if ($total === 0) return 0;
+        if ($total === 0)
+            return 0;
 
         $responded = $reviews->whereNotNull('responded_at')->count();
         return round(($responded / $total) * 100, 1);
@@ -562,7 +621,8 @@ if (!function_exists('getTopStaffByRatingFromReviewValue')) {
 
         $staffRatings = $staffGroups->map(function ($staffReviews, $staffId) {
             $staff = User::find($staffId);
-            if (!$staff) return null;
+            if (!$staff)
+                return null;
 
             // Use calculated_rating field directly
             $avgRating = $staffReviews->avg('calculated_rating') ?? 0;

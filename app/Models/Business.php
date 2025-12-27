@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -10,7 +11,7 @@ class Business extends Model
 {
     use HasFactory, SoftDeletes;
 
-        protected $appends = ['is_subscribed'];
+    protected $appends = ['is_subscribed'];
 
     protected $table = "businesses";
 
@@ -92,36 +93,36 @@ class Business extends Model
         "STRIPE_SECRET"
 
     ];
-  private function isTrailDateValid($trail_end_date)
-{
-    // If date is null, empty, or zero-date → treat as NOT expired
-    if (
-        empty($trail_end_date) ||
-        $trail_end_date === '0000-00-00 00:00:00' ||
-        $trail_end_date === '0000-00-00'
-    ) {
-        return true;
+    private function isTrailDateValid($trail_end_date)
+    {
+        // If date is null, empty, or zero-date → treat as NOT expired
+        if (
+            empty($trail_end_date) ||
+            $trail_end_date === '0000-00-00 00:00:00' ||
+            $trail_end_date === '0000-00-00'
+        ) {
+            return true;
+        }
+
+        try {
+            $parsedDate = Carbon::parse($trail_end_date)->endOfDay();
+        } catch (\Exception $e) {
+            // If parsing fails, assume not expired
+            return true;
+        }
+
+        // Valid if today or future
+        return !$parsedDate->isPast();
     }
 
-    try {
-        $parsedDate = Carbon::parse($trail_end_date)->endOfDay();
-    } catch (\Exception $e) {
-        // If parsing fails, assume not expired
-        return true;
-    }
-
-    // Valid if today or future
-    return !$parsedDate->isPast();
-}
-
-     public function getIsSubscribedAttribute($value)
+    public function getIsSubscribedAttribute($value)
     {
         $user = auth()->user();
         if (empty($user)) {
             return 0;
         }
         // Check for self-registered businesses
-        if ($this->is_self_registered_businesses??0) {
+        if ($this->is_self_registered_businesses ?? 0) {
             $validTrailDate = $this->isTrailDateValid($this->trail_end_date);
             $latest_subscription = $this->current_subscription;
 
@@ -140,7 +141,7 @@ class Business extends Model
         return 1;
     }
 
-     private function isValidSubscription($subscription)
+    private function isValidSubscription($subscription)
     {
         if (!$subscription) {
             return false;
@@ -159,12 +160,14 @@ class Business extends Model
         // Return false if the subscription hasn't started
         if ($startDate->isFuture()) {
             return false;
-        };
+        }
+        ;
 
         // Return false if the subscription has expired (end_date is before today)
         if ($endDate->isPast() && !$endDate->isSameDay($today)) {
             return false;
-        };
+        }
+        ;
 
         return true;
     }

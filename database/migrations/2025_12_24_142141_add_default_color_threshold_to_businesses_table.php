@@ -4,19 +4,18 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
-   public function up()
-{
-    Schema::table('businesses', function (Table $table) {
-        $table->json('default_color_threshold')->nullable()->after('id');
-    });
-}
+return new class extends Migration {
+    public function up()
+    {
+        Schema::table('businesses', function (Blueprint $table) {
+            $table->json('default_color_threshold')->nullable()->after('id');
+        });
+    }
 
-public function down()
-{
-    Schema::table('businesses', function (Table $table) {
-        $table->dropColumn('default_color_threshold');
-    });
-}
+    public function down()
+    {
+        Schema::table('businesses', function (Blueprint $table) {
+            $table->dropColumn('default_color_threshold');
+        });
+    }
 };
