@@ -224,14 +224,6 @@ class ReviewNew extends Model
 
 
 
-
-
-
-
-
-
-
-
     }
 
     /**
@@ -282,6 +274,39 @@ class ReviewNew extends Model
                 ->whereColumn('rvn.review_id', 'review_news.id')
                 ->groupBy('rvn.review_id')
                 ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
+        });
+    }
+
+
+     public function scopeWhereDoesNotMeetsThreshold($query, $businessId, $is_staff_review = 0)
+    {
+        // Get threshold rating
+        $business = Business::find($businessId);
+        $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
+
+        return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
+            $subQuery->select(DB::raw(1))
+                ->from('review_value_news as rvn')
+                ->join('questions as q', 'rvn.question_id', '=', 'q.id')
+                ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
+                    $q->whereExists(function ($subQuery) {
+                        $subQuery->select(DB::raw(1))
+                            ->from('q_q_sub_categories as qqsc')
+                            ->join('question_categories as qc_sub', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
+                            ->join('question_categories as qc_parent', 'qc_sub.parent_id', '=', 'qc_parent.id')
+                            ->whereColumn('qqsc.question_id', 'q.id')
+                            ->where('qc_parent.title', 'Staff') // Parent category is "Staff"
+                            ->where('qc_parent.is_active', 1)
+                            ->where('qc_parent.is_default', 1)
+                            ->whereNull('qc_parent.business_id')
+                            // Also check subcategory if needed
+                            ->where('qc_sub.is_active', 1);
+                    });
+                })
+                ->join('stars as s', 'rvn.star_id', '=', 's.id')
+                ->whereColumn('rvn.review_id', 'review_news.id')
+                ->groupBy('rvn.review_id')
+                ->havingRaw('AVG(s.value) < ?', [$thresholdRating]);
         });
     }
 }
