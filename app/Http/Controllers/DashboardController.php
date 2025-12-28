@@ -128,7 +128,7 @@ class DashboardController extends Controller
         $dateRanges = $this->getDateRanges($startDate, $endDate);
 
         $data = [
-           
+
             'today_total_reviews' => (clone $queries['base_review'])
                 ->whereDate('created_at', $dateRanges['today'])
                 ->count(),
@@ -536,12 +536,11 @@ class DashboardController extends Controller
         ]);
 
         $businessId = $request->input('businessId');
-
         // Get date range
         if ($request->has('start_date') && $request->has('end_date')) {
             $dateRange = [
-                'start' => Carbon::parse($request->input('start_date'))->startOfDay(),
-                'end' => Carbon::parse($request->input('end_date'))->endOfDay()
+                'start' => Carbon::createFromFormat('d-m-Y', $request->input('start_date'))->startOfDay(),
+                'end' => Carbon::createFromFormat('d-m-Y', $request->input('end_date'))->endOfDay()
             ];
         } else {
             $period = $request->input('period', 'last_30_days');
@@ -576,104 +575,104 @@ class DashboardController extends Controller
 
 
     /**
- * @OA\Get(
- *      path="/v1.0/dashboard/top-worst-staff",
- *      operationId="getTopWorstStaff",
- *      tags={"dashboard_management"},
- *      summary="Get top worst performing staff",
- *      description="Get staff with lowest ratings and sentiment scores",
- *      @OA\Parameter(
- *         name="businessId",
- *         in="query",
- *         description="Business ID",
- *         required=true,
- *         example="1"
- *      ),
- *      @OA\Parameter(
- *         name="period",
- *         in="query",
- *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
- *         required=false,
- *         example="last_30_days"
- *      ),
- *      @OA\Parameter(
- *         name="start_date",
- *         in="query",
- *         description="Custom start date (d-m-Y format)",
- *         required=false,
- *         example="01-01-2025"
- *      ),
- *      @OA\Parameter(
- *         name="end_date",
- *         in="query",
- *         description="Custom end date (d-m-Y format)",
- *         required=false,
- *         example="31-01-2025"
- *      ),
- *      @OA\Parameter(
- *         name="limit",
- *         in="query",
- *         description="Number of worst staff to return",
- *         required=false,
- *         example="5"
- *      ),
- *      @OA\Parameter(
- *         name="criteria",
- *         in="query",
- *         description="Criteria for ranking (rating, sentiment, negative)",
- *         required=false,
- *         example="rating"
- *      ),
- *      security={
- *          {"bearerAuth": {}}
- *      },
- *      @OA\Response(
- *          response=200,
- *          description="Successful operation",
- *          @OA\JsonContent(
- *              @OA\Property(property="success", type="boolean", example=true),
- *              @OA\Property(property="message", type="string", example="Worst staff analysis retrieved successfully"),
- *              @OA\Property(property="data", type="object")
- *          )
- *      )
- * )
- */
-public function getTopWorstStaff(Request $request)
-{
-    $request->validate([
-        'businessId' => 'required|integer|exists:businesses,id',
-        'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
-        'start_date' => 'nullable|date_format:d-m-Y',
-        'end_date' => 'nullable|date_format:d-m-Y',
-        'limit' => 'nullable|integer|min:1|max:20',
-        'criteria' => 'nullable|in:rating,sentiment,negative'
-    ]);
+     * @OA\Get(
+     *      path="/v1.0/dashboard/top-worst-staff",
+     *      operationId="getTopWorstStaff",
+     *      tags={"dashboard_management"},
+     *      summary="Get top worst performing staff",
+     *      description="Get staff with lowest ratings and sentiment scores",
+     *      @OA\Parameter(
+     *         name="businessId",
+     *         in="query",
+     *         description="Business ID",
+     *         required=true,
+     *         example="1"
+     *      ),
+     *      @OA\Parameter(
+     *         name="period",
+     *         in="query",
+     *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
+     *         required=false,
+     *         example="last_30_days"
+     *      ),
+     *      @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Custom start date (d-m-Y format)",
+     *         required=false,
+     *         example="01-01-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="Custom end date (d-m-Y format)",
+     *         required=false,
+     *         example="31-01-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="Number of worst staff to return",
+     *         required=false,
+     *         example="5"
+     *      ),
+     *      @OA\Parameter(
+     *         name="criteria",
+     *         in="query",
+     *         description="Criteria for ranking (rating, sentiment, negative)",
+     *         required=false,
+     *         example="rating"
+     *      ),
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Worst staff analysis retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      )
+     * )
+     */
+    public function getTopWorstStaff(Request $request)
+    {
+        $request->validate([
+            'businessId' => 'required|integer|exists:businesses,id',
+            'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
+            'start_date' => 'nullable|date_format:d-m-Y',
+            'end_date' => 'nullable|date_format:d-m-Y',
+            'limit' => 'nullable|integer|min:1|max:20',
+            'criteria' => 'nullable|in:rating,sentiment,negative'
+        ]);
 
-    $businessId = $request->input('businessId');
-    
-    // Get date range
-    if ($request->has('start_date') && $request->has('end_date')) {
-        $dateRange = [
-            'start' => Carbon::parse($request->input('start_date'))->startOfDay(),
-            'end' => Carbon::parse($request->input('end_date'))->endOfDay()
-        ];
-    } else {
-        $period = $request->input('period', 'last_30_days');
-        $dateRange = getDateRangeByPeriod($period);
+        $businessId = $request->input('businessId');
+
+        // Get date range
+        if ($request->has('start_date') && $request->has('end_date')) {
+            $dateRange = [
+                'start' => Carbon::parse($request->input('start_date'))->startOfDay(),
+                'end' => Carbon::parse($request->input('end_date'))->endOfDay()
+            ];
+        } else {
+            $period = $request->input('period', 'last_30_days');
+            $dateRange = getDateRangeByPeriod($period);
+        }
+
+        $limit = $request->input('limit', 5);
+        $criteria = $request->input('criteria', 'rating');
+
+        // Use the new method
+        $worstStaffAnalysis = AIProcessor::getTopWorstStaff($businessId, $dateRange, $limit, $criteria);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Worst staff analysis retrieved successfully',
+            'data' => $worstStaffAnalysis
+        ], 200);
     }
-
-    $limit = $request->input('limit', 5);
-    $criteria = $request->input('criteria', 'rating');
-
-    // Use the new method
-    $worstStaffAnalysis = AIProcessor::getTopWorstStaff($businessId, $dateRange, $limit, $criteria);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Worst staff analysis retrieved successfully',
-        'data' => $worstStaffAnalysis
-    ], 200);
-}
 
     /**
      * @OA\Get(
@@ -756,259 +755,259 @@ public function getTopWorstStaff(Request $request)
      *      )
      * )
      */
-public function getDashboardOverview(Request $request)
-{
-    $businessId = $request->input('businessId');
+    public function getDashboardOverview(Request $request)
+    {
+        $businessId = $request->input('businessId');
 
-    if (!$businessId) {
+        if (!$businessId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Business ID is required'
+            ], 400);
+        }
+
+        // Parse date parameters with defaults for all-time data
+        $endDate = $request->end_date
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $startDate = $request->start_date
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::createFromTimestamp(0)->startOfDay(); // Very old date for all-time
+
+        // Validate date range
+        if ($startDate->greaterThan($endDate)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Start date cannot be greater than end date'
+            ], 400);
+        }
+
+        // Calculate previous period of same duration
+        $periodDuration = $startDate->diffInDays($endDate);
+        $previousPeriodEnd = $startDate->copy()->subDay();
+        $previousPeriodStart = $previousPeriodEnd->copy()->subDays($periodDuration);
+
+        // Get base queries
+        $queries = $this->getBaseQueries($request);
+
+        // 1. Total Reviews for current period and previous period
+        $currentPeriodReviews = (clone $queries['base_review'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        $previousPeriodReviews = (clone $queries['base_review'])
+            ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
+            ->count();
+
+        // Calculate percentage change
+        $percentageChange = 0;
+        $changeType = 'no-change';
+        $fromPeriodText = 'from previous period';
+
+        if ($previousPeriodReviews > 0) {
+            $percentageChange = (($currentPeriodReviews - $previousPeriodReviews) / $previousPeriodReviews) * 100;
+            $changeType = $percentageChange >= 0 ? 'increase' : 'decrease';
+        } elseif ($currentPeriodReviews > 0 && $previousPeriodReviews == 0) {
+            $percentageChange = 100;
+            $changeType = 'increase';
+            $fromPeriodText = 'from no reviews';
+        } elseif ($currentPeriodReviews == 0 && $previousPeriodReviews == 0) {
+            $fromPeriodText = 'no previous data';
+        }
+
+        // 2. Average Rating for current period
+        $currentPeriodReviewsWithRating = (clone $queries['base_review'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get();
+
+        $averageRating = $currentPeriodReviewsWithRating->isNotEmpty()
+            ? round($currentPeriodReviewsWithRating->avg('calculated_rating'), 1)
+            : 0;
+
+        // 3. Top Topic from tags in current period
+        $topTopic = getTopTopic($businessId, $startDate, $endDate);
+
+        // 4. New Reviews this week (always calculated for current week, regardless of selected period)
+        $weekStart = Carbon::now()->startOfWeek();
+        $weekEnd = Carbon::now()->endOfWeek();
+
+        $newReviewsThisWeek = (clone $queries['base_review'])
+            ->whereBetween('created_at', [$weekStart, $weekEnd])
+            ->count();
+
+        // 5. All Sentiment analysis for current period
+        $sentiment_data = calculateAggregatedSentiment($currentPeriodReviewsWithRating);
+        $sentiment_status = is_array($sentiment_data) ? $sentiment_data['sentiment_label'] : $sentiment_data;
+
+        // 6. Flagged reviews (reviews below threshold)
+        $flagged_reviews = (clone $queries['base_review'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereDoesNotMeetsThreshold($businessId)
+            ->count();
+
+        // 7. CSAT Score (percentage of reviews meeting threshold)
+        $totalReviewsInPeriod = $currentPeriodReviews;
+        $csatReviewsCount = (clone $queries['base_review'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereMeetsThreshold($businessId)
+            ->count();
+
+        $csatPercentage = $totalReviewsInPeriod > 0
+            ? round(($csatReviewsCount / $totalReviewsInPeriod) * 100)
+            : 0;
+
+        // 8. Calculate CSAT percentage change vs previous period
+        $previousPeriodCSATCount = (clone $queries['base_review'])
+            ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
+            ->whereMeetsThreshold($businessId)
+            ->count();
+
+        $previousPeriodTotalReviews = $previousPeriodReviews;
+        $previousCSATPercentage = $previousPeriodTotalReviews > 0
+            ? round(($previousPeriodCSATCount / $previousPeriodTotalReviews) * 100)
+            : 0;
+
+        $csatPercentageChange = $previousCSATPercentage > 0
+            ? round($csatPercentage - $previousCSATPercentage, 1)
+            : 0;
+
+        // 9. Surveys Data
+        // Active Surveys (surveys that are active/published)
+        $activeSurveys = \App\Models\Survey::where('business_id', $businessId)
+            ->where('is_active', true)
+            ->count();
+
+        // Recent Submissions (reviews in the current period that are from surveys)
+        $recentSubmissions = (clone $queries['base_review'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotNull('survey_id')
+            ->count();
+
+        // 10. Staff Insights Data - Get top performing staff for the current period
+        $topPerformer = null;
+
+        // Get reviews with staff for the current period
+        $staffReviews = ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->withCalculatedRating()
+            ->get();
+
+        if ($staffReviews->isNotEmpty()) {
+            // Group reviews by staff_id
+            $staffGroups = [];
+            foreach ($staffReviews as $review) {
+                if ($review->staff_id) {
+                    $staffGroups[$review->staff_id][] = $review;
+                }
+            }
+
+            $staffPerformance = [];
+
+            foreach ($staffGroups as $staffId => $reviewsArray) {
+                $staff = \App\Models\User::find($staffId);
+                if (!$staff || count($reviewsArray) < 3) continue; // Skip staff with less than 3 reviews
+
+                $totalRating = 0;
+                $totalReviews = count($reviewsArray);
+
+                foreach ($reviewsArray as $review) {
+                    $totalRating += $review->calculated_rating ?? 0;
+                }
+
+                $avgRating = $totalReviews > 0 ? $totalRating / $totalReviews : 0;
+
+                $staffPerformance[] = [
+                    'staff_id' => $staffId,
+                    'staff_name' => $staff->name,
+                    'avg_rating' => round($avgRating, 2),
+                    'review_count' => $totalReviews
+                ];
+            }
+
+            // Sort by average rating (highest first)
+            usort($staffPerformance, function ($a, $b) {
+                if ($b['avg_rating'] == $a['avg_rating']) {
+                    return $b['review_count'] <=> $a['review_count'];
+                }
+                return $b['avg_rating'] <=> $a['avg_rating'];
+            });
+
+            // Get the top performer
+            if (!empty($staffPerformance)) {
+                $topStaff = $staffPerformance[0];
+                $topPerformer = [
+                    'name' => $topStaff['staff_name'],
+                    'rating' => $topStaff['avg_rating'],
+                    'review_count' => $topStaff['review_count']
+                ];
+            }
+        }
+
+        // Format period display text
+        $periodDisplayText = formatPeriodDisplay($startDate, $endDate);
+
+        $data = [
+            'period' => [
+                'start_date' => $startDate->format('Y-m-d'),
+                'end_date' => $endDate->format('Y-m-d'),
+                'display_text' => $periodDisplayText
+            ],
+            'total_reviews' => [
+                'count' => $currentPeriodReviews,
+                'percentage_change' => $percentageChange != 0 ? sprintf('%+.1f%%', $percentageChange) : '0%',
+                'change_type' => $changeType,
+                'from_period' => $fromPeriodText
+            ],
+            'average_rating' => [
+                'value' => $averageRating,
+                'out_of' => 5
+            ],
+            'top_topic' => [
+                'name' => $topTopic['name'] ?? 'General',
+                'mention_count' => $topTopic['count'] ?? 0
+            ],
+            'new_reviews' => [
+                'count' => $newReviewsThisWeek,
+                'from_period' => 'this week'
+            ],
+            'all_sentiment' => [
+                'status' => $sentiment_status,
+                'based_on' => 'Based on selected period'
+            ],
+            'flagged_reviews' => [
+                'count' => $flagged_reviews,
+                'action_text' => 'Review Now'
+            ],
+            'csat_score' => [
+                'percentage' => $csatPercentage,
+                'percentage_change' => $csatPercentageChange != 0 ? sprintf('%+.1f%%', $csatPercentageChange) : '0%',
+                'change_type' => $csatPercentageChange >= 0 ? 'increase' : 'decrease'
+            ],
+            // New sections from image
+            'surveys' => [
+                'active_surveys' => $activeSurveys,
+                'recent_submissions' => $recentSubmissions,
+                'action_text' => 'Manage'
+            ],
+            'staff_insights' => [
+                'overall_sentiment' => $sentiment_status,
+                'top_performer' => $topPerformer ? [
+                    'name' => $topPerformer['name'],
+                    'rating' => $topPerformer['rating'],
+                    'review_count' => $topPerformer['review_count']
+                ] : null,
+                'action_text' => 'Details'
+            ]
+        ];
+
         return response()->json([
-            'success' => false,
-            'message' => 'Business ID is required'
-        ], 400);
+            'success' => true,
+            'message' => 'Dashboard overview retrieved successfully',
+            'data' => $data
+        ], 200);
     }
-
-    // Parse date parameters with defaults for all-time data
-    $endDate = $request->end_date
-        ? Carbon::parse($request->end_date)->endOfDay()
-        : Carbon::now()->endOfDay();
-
-    $startDate = $request->start_date
-        ? Carbon::parse($request->start_date)->startOfDay()
-        : Carbon::createFromTimestamp(0)->startOfDay(); // Very old date for all-time
-
-    // Validate date range
-    if ($startDate->greaterThan($endDate)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Start date cannot be greater than end date'
-        ], 400);
-    }
-
-    // Calculate previous period of same duration
-    $periodDuration = $startDate->diffInDays($endDate);
-    $previousPeriodEnd = $startDate->copy()->subDay();
-    $previousPeriodStart = $previousPeriodEnd->copy()->subDays($periodDuration);
-
-    // Get base queries
-    $queries = $this->getBaseQueries($request);
-
-    // 1. Total Reviews for current period and previous period
-    $currentPeriodReviews = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->count();
-
-    $previousPeriodReviews = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
-        ->count();
-
-    // Calculate percentage change
-    $percentageChange = 0;
-    $changeType = 'no-change';
-    $fromPeriodText = 'from previous period';
-
-    if ($previousPeriodReviews > 0) {
-        $percentageChange = (($currentPeriodReviews - $previousPeriodReviews) / $previousPeriodReviews) * 100;
-        $changeType = $percentageChange >= 0 ? 'increase' : 'decrease';
-    } elseif ($currentPeriodReviews > 0 && $previousPeriodReviews == 0) {
-        $percentageChange = 100;
-        $changeType = 'increase';
-        $fromPeriodText = 'from no reviews';
-    } elseif ($currentPeriodReviews == 0 && $previousPeriodReviews == 0) {
-        $fromPeriodText = 'no previous data';
-    }
-
-    // 2. Average Rating for current period
-    $currentPeriodReviewsWithRating = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->get();
-
-    $averageRating = $currentPeriodReviewsWithRating->isNotEmpty()
-        ? round($currentPeriodReviewsWithRating->avg('calculated_rating'), 1)
-        : 0;
-
-    // 3. Top Topic from tags in current period
-    $topTopic = getTopTopic($businessId, $startDate, $endDate);
-
-    // 4. New Reviews this week (always calculated for current week, regardless of selected period)
-    $weekStart = Carbon::now()->startOfWeek();
-    $weekEnd = Carbon::now()->endOfWeek();
-
-    $newReviewsThisWeek = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$weekStart, $weekEnd])
-        ->count();
-
-    // 5. All Sentiment analysis for current period
-    $sentiment_data = calculateAggregatedSentiment($currentPeriodReviewsWithRating);
-    $sentiment_status = is_array($sentiment_data) ? $sentiment_data['sentiment_label'] : $sentiment_data;
-
-    // 6. Flagged reviews (reviews below threshold)
-    $flagged_reviews = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->whereDoesNotMeetsThreshold($businessId)
-        ->count();
-
-    // 7. CSAT Score (percentage of reviews meeting threshold)
-    $totalReviewsInPeriod = $currentPeriodReviews;
-    $csatReviewsCount = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->whereMeetsThreshold($businessId)
-        ->count();
-    
-    $csatPercentage = $totalReviewsInPeriod > 0 
-        ? round(($csatReviewsCount / $totalReviewsInPeriod) * 100) 
-        : 0;
-
-    // 8. Calculate CSAT percentage change vs previous period
-    $previousPeriodCSATCount = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
-        ->whereMeetsThreshold($businessId)
-        ->count();
-    
-    $previousPeriodTotalReviews = $previousPeriodReviews;
-    $previousCSATPercentage = $previousPeriodTotalReviews > 0
-        ? round(($previousPeriodCSATCount / $previousPeriodTotalReviews) * 100)
-        : 0;
-    
-    $csatPercentageChange = $previousCSATPercentage > 0
-        ? round($csatPercentage - $previousCSATPercentage, 1)
-        : 0;
-
-    // 9. Surveys Data
-    // Active Surveys (surveys that are active/published)
-    $activeSurveys = \App\Models\Survey::where('business_id', $businessId)
-        ->where('is_active', true)
-        ->count();
-    
-    // Recent Submissions (reviews in the current period that are from surveys)
-    $recentSubmissions = (clone $queries['base_review'])
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->whereNotNull('survey_id')
-        ->count();
-
-    // 10. Staff Insights Data - Get top performing staff for the current period
-    $topPerformer = null;
-    
-    // Get reviews with staff for the current period
-    $staffReviews = ReviewNew::where('business_id', $businessId)
-        ->whereNotNull('staff_id')
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->withCalculatedRating()
-        ->get();
-
-    if ($staffReviews->isNotEmpty()) {
-        // Group reviews by staff_id
-        $staffGroups = [];
-        foreach ($staffReviews as $review) {
-            if ($review->staff_id) {
-                $staffGroups[$review->staff_id][] = $review;
-            }
-        }
-
-        $staffPerformance = [];
-        
-        foreach ($staffGroups as $staffId => $reviewsArray) {
-            $staff = \App\Models\User::find($staffId);
-            if (!$staff || count($reviewsArray) < 3) continue; // Skip staff with less than 3 reviews
-
-            $totalRating = 0;
-            $totalReviews = count($reviewsArray);
-            
-            foreach ($reviewsArray as $review) {
-                $totalRating += $review->calculated_rating ?? 0;
-            }
-            
-            $avgRating = $totalReviews > 0 ? $totalRating / $totalReviews : 0;
-
-            $staffPerformance[] = [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'avg_rating' => round($avgRating, 2),
-                'review_count' => $totalReviews
-            ];
-        }
-
-        // Sort by average rating (highest first)
-        usort($staffPerformance, function ($a, $b) {
-            if ($b['avg_rating'] == $a['avg_rating']) {
-                return $b['review_count'] <=> $a['review_count'];
-            }
-            return $b['avg_rating'] <=> $a['avg_rating'];
-        });
-
-        // Get the top performer
-        if (!empty($staffPerformance)) {
-            $topStaff = $staffPerformance[0];
-            $topPerformer = [
-                'name' => $topStaff['staff_name'],
-                'rating' => $topStaff['avg_rating'],
-                'review_count' => $topStaff['review_count']
-            ];
-        }
-    }
-
-    // Format period display text
-    $periodDisplayText = formatPeriodDisplay($startDate, $endDate);
-
-    $data = [
-        'period' => [
-            'start_date' => $startDate->format('Y-m-d'),
-            'end_date' => $endDate->format('Y-m-d'),
-            'display_text' => $periodDisplayText
-        ],
-        'total_reviews' => [
-            'count' => $currentPeriodReviews,
-            'percentage_change' => $percentageChange != 0 ? sprintf('%+.1f%%', $percentageChange) : '0%',
-            'change_type' => $changeType,
-            'from_period' => $fromPeriodText
-        ],
-        'average_rating' => [
-            'value' => $averageRating,
-            'out_of' => 5
-        ],
-        'top_topic' => [
-            'name' => $topTopic['name'] ?? 'General',
-            'mention_count' => $topTopic['count'] ?? 0
-        ],
-        'new_reviews' => [
-            'count' => $newReviewsThisWeek,
-            'from_period' => 'this week'
-        ],
-        'all_sentiment' => [
-            'status' => $sentiment_status,
-            'based_on' => 'Based on selected period'
-        ],
-        'flagged_reviews' => [
-            'count' => $flagged_reviews,
-            'action_text' => 'Review Now'
-        ],
-        'csat_score' => [
-            'percentage' => $csatPercentage,
-            'percentage_change' => $csatPercentageChange != 0 ? sprintf('%+.1f%%', $csatPercentageChange) : '0%',
-            'change_type' => $csatPercentageChange >= 0 ? 'increase' : 'decrease'
-        ],
-        // New sections from image
-        'surveys' => [
-            'active_surveys' => $activeSurveys,
-            'recent_submissions' => $recentSubmissions,
-            'action_text' => 'Manage'
-        ],
-        'staff_insights' => [
-            'overall_sentiment' => $sentiment_status,
-            'top_performer' => $topPerformer ? [
-                'name' => $topPerformer['name'],
-                'rating' => $topPerformer['rating'],
-                'review_count' => $topPerformer['review_count']
-            ] : null,
-            'action_text' => 'Details'
-        ]
-    ];
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Dashboard overview retrieved successfully',
-        'data' => $data
-    ], 200);
-}
 
 
 
