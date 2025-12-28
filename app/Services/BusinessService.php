@@ -206,6 +206,7 @@ class BusinessService
                 'lat' => $business->latitude ?? null,
                 'long' => $business->longitude ?? null,
                 'manager_id' => null,
+                'is_default' => true,
             ];
 
             // Insert branch data

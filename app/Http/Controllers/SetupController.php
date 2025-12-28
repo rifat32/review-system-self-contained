@@ -4,32 +4,51 @@ namespace App\Http\Controllers;
 
 use App\Http\Utils\ErrorUtil;
 use App\Models\ActivityLog;
+use App\Models\Branch;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Laravel\Passport\Passport;
 
 
 class SetupController extends Controller
 {
     use ErrorUtil;
 
-    // public function oneTimeDBOperation()
-    // {
-    //    DB::statement("
-    //     UPDATE review_news 
-    //     SET rate = FLOOR(1 + RAND() * 5)
-    //     WHERE rate > 5
-    // ");
+    public function oneTimeDBOperation()
+    {
+        $businesses = DB::table("businesses")->get();
+        foreach ($businesses as $business) {
+            $branchData = [
+                'business_id' => $business->id,
+                'name' => $business->Name,
+                'address' => $business->Address,
+                'street' => null,
+                'door_no' => null,
+                'city' => $business->city ?? null,
+                'country' => $business->country ?? null,
+                'postcode' => $business->PostCode ?? null,
+                'phone' => $business->PhoneNumber ?? null,
+                'email' => $business->EmailAddress ?? null,
+                'is_active' => true,
+                'is_geo_enabled' => true,
+                'branch_code' => 'MAIN_BRANCH',
+                'lat' => $business->latitude ?? null,
+                'long' => $business->longitude ?? null,
+                'manager_id' => null,
+                'is_default' => true,
+            ];
 
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'DB Operation Complete'
-    //     ]);
-    // }
+            Branch::create($branchData);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'DB Operation Complete'
+        ]);
+    }
 
     public function setupPassport()
     {
@@ -196,29 +215,33 @@ class SetupController extends Controller
         // ###############################
         // permissions
         // ###############################
-        $permissions =  config("setup-config.permissions");
+        $permissions = config("setup-config.permissions");
 
         // setup permissions
         foreach ($permissions as $permission) {
-            if (!Permission::where([
-                'name' => $permission,
-                'guard_name' => 'api'
-            ])
-                ->exists()) {
+            if (
+                !Permission::where([
+                    'name' => $permission,
+                    'guard_name' => 'api'
+                ])
+                    ->exists()
+            ) {
                 Permission::create(['guard_name' => 'api', 'name' => $permission]);
             }
         }
         // setup roles
         $roles = config("setup-config.roles");
         foreach ($roles as $role) {
-            if (!Role::where([
-                'name' => $role,
-                'guard_name' => 'api',
-                "is_system_default" => 1,
-                "business_id" => NULL,
-                "is_default" => 1,
-            ])
-                ->exists()) {
+            if (
+                !Role::where([
+                    'name' => $role,
+                    'guard_name' => 'api',
+                    "is_system_default" => 1,
+                    "business_id" => NULL,
+                    "is_default" => 1,
+                ])
+                    ->exists()
+            ) {
                 Role::create([
                     'guard_name' => 'api',
                     'name' => $role,

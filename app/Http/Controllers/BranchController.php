@@ -75,6 +75,7 @@ class BranchController extends Controller
      *                      @OA\Property(property="phone", type="string", example="+1234567890"),
      *                      @OA\Property(property="email", type="string", example="branch@example.com"),
      *                      @OA\Property(property="is_active", type="boolean", example=true),
+     *                      @OA\Property(property="is_default", type="boolean", example=false),
      *                      @OA\Property(property="is_geo_enabled", type="boolean", example=false),
      *                      @OA\Property(property="branch_code", type="string", example="BR001"),
      *                      @OA\Property(property="lat", type="string", format="float", example="40.7128"),
@@ -168,6 +169,7 @@ class BranchController extends Controller
               @OA\Property(property="postcode", type="string", example="10001", description="Postcode"),     *              @OA\Property(property="phone", type="string", example="+1234567890", description="Phone number of the branch"),
      *              @OA\Property(property="email", type="string", example="branch@example.com", description="Email of the branch"),
      *              @OA\Property(property="is_active", type="boolean", example=true, description="Whether the branch is active"),
+     *              @OA\Property(property="is_default", type="boolean", example=false, description="Whether this is the default branch"),
      *              @OA\Property(property="is_geo_enabled", type="boolean", example=false, description="Whether geolocation is enabled for the branch"),
      *              @OA\Property(property="branch_code", type="string", example="BR001", description="Unique code for the branch"),
      *              @OA\Property(property="lat", type="string", format="float", example="40.7128", description="lat coordinate of the branch"),
@@ -195,6 +197,7 @@ class BranchController extends Controller
                   @OA\Property(property="phone", type="string", example="+1234567890"),
      *              @OA\Property(property="email", type="string", example="branch@example.com"),
      *              @OA\Property(property="is_active", type="boolean", example=true),
+     *              @OA\Property(property="is_default", type="boolean", example=false),
      *              @OA\Property(property="is_geo_enabled", type="boolean", example=false),
      *              @OA\Property(property="branch_code", type="string", example="BR001"),
      *              @OA\Property(property="lat", type="string", format="float", example="40.7128"),
@@ -295,6 +298,7 @@ class BranchController extends Controller
                   @OA\Property(property="phone", type="string", example="+1234567890"),
      *                  @OA\Property(property="email", type="string", example="branch@example.com"),
      *                  @OA\Property(property="is_active", type="boolean", example=true),
+     *                  @OA\Property(property="is_default", type="boolean", example=false),
      *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
      *                  @OA\Property(property="branch_code", type="string", example="BR001"),
                         @OA\Property(property="lat", type="string", format="float", example="40.7128"),
@@ -399,6 +403,7 @@ class BranchController extends Controller
               @OA\Property(property="postcode", type="string", example="20002", description="Postcode"),     *              @OA\Property(property="phone", type="string", example="+0987654321", description="Phone number of the branch"),
      *              @OA\Property(property="email", type="string", example="updated@example.com", description="Email of the branch"),
      *              @OA\Property(property="is_active", type="boolean", example=true, description="Whether the branch is active"),
+     *              @OA\Property(property="is_default", type="boolean", example=false, description="Whether this is the default branch"),
      *              @OA\Property(property="is_geo_enabled", type="boolean", example=false, description="Whether geolocation is enabled for the branch"),
      *              @OA\Property(property="branch_code", type="string", example="BR001", description="Unique code for the branch"),
      *              @OA\Property(property="lat", type="string", format="float", example="40.7128", description="lat coordinate of the branch"),
@@ -428,6 +433,7 @@ class BranchController extends Controller
      *                  @OA\Property(property="phone", type="string", example="+0987654321"),
      *                  @OA\Property(property="email", type="string", example="updated@example.com"),
      *                  @OA\Property(property="is_active", type="boolean", example=true),
+     *                  @OA\Property(property="is_default", type="boolean", example=false),
      *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
      *                  @OA\Property(property="branch_code", type="string", example="BR001"),
      *                  @OA\Property(property="lat", type="string", format="float", example="40.7128"),
@@ -448,10 +454,10 @@ class BranchController extends Controller
      *
      *      @OA\Response(
      *          response=403,
-     *          description="Forbidden - Not business owner or super admin",
+     *          description="Forbidden - Not business owner, super admin, or attempting to update default branch",
      *          @OA\JsonContent(
      *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="You do not have permission to update this branch")
+     *              @OA\Property(property="message", type="string", example="Cannot update default branch")
      *          )
      *      ),
      *
@@ -494,6 +500,14 @@ class BranchController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'You do not have permission to update this branch'
+            ], 403);
+        }
+
+        // Prevent updating default branch
+        if ($branch->is_default) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot update default branch'
             ], 403);
         }
 
@@ -545,10 +559,10 @@ class BranchController extends Controller
      *
      *      @OA\Response(
      *          response=403,
-     *          description="Forbidden - Not business owner or super admin",
+     *          description="Forbidden - Not business owner, super admin, or attempting to delete default branch",
      *          @OA\JsonContent(
      *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="You do not have permission to delete this branch")
+     *              @OA\Property(property="message", type="string", example="Cannot delete default branch")
      *          )
      *      ),
      *
@@ -579,6 +593,14 @@ class BranchController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'You do not have permission to delete this branch'
+            ], 403);
+        }
+
+        // Prevent deleting default branch
+        if ($branch->is_default) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete default branch'
             ], 403);
         }
 
@@ -627,6 +649,7 @@ class BranchController extends Controller
      *         @OA\Property(property="phone", type="string", example="+1234567890"),
      *         @OA\Property(property="email", type="string", example="branch@example.com"),
      *         @OA\Property(property="is_active", type="boolean", example=true),
+     *         @OA\Property(property="is_default", type="boolean", example=false),
      *         @OA\Property(property="is_geo_enabled", type="boolean", example=false),
      *         @OA\Property(property="branch_code", type="string", example="BR001"),
      *         @OA\Property(property="lat", type="number", format="float", example=40.7128),

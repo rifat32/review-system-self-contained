@@ -23,6 +23,7 @@ class Branch extends Model
         'phone',
         'email',
         'is_active',
+        'is_default',
         'is_geo_enabled',
         'branch_code',
         'lat',
