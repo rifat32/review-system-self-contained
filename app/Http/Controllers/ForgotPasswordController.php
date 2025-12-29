@@ -7,6 +7,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -90,9 +91,10 @@ class ForgotPasswordController extends Controller
 
         // CREATE TOKEN AND SAVE TO DB
         $token = Str::random(30);
-        $user->resetPasswordToken = $token;
-        $user->resetPasswordExpires = Carbon::now()->subDays(-1);
-        $user->save();
+        DB::table('password_resets')->updateOrInsert(
+            ['email' => $user->email],
+            ['token' => Hash::make($token), 'created_at' => now()]
+        );
 
 
         // SEND EMAIL
@@ -104,6 +106,130 @@ class ForgotPasswordController extends Controller
             "message" => "please check email"
         ], 200);
     }
+
+
+
+
+
+    // ##################################################
+    // This method is to change password by token
+    // ##################################################
+
+
+    /**
+     * @OA\Patch(
+     *     path="/v1.0/forget-password/reset/{token}",
+     *     operationId="changePasswordByToken",
+     *     tags={"forgot_password"},
+     *     summary="This method is to change password",
+     *     description="This method is to change password",
+     *
+     *     @OA\Parameter(
+     *         name="token",
+     *         in="path",
+     *         description="Reset token",
+     *         required=true,
+     *         @OA\Schema(type="string", example="reset-token-123")
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"password"},
+     *             @OA\Property(
+     *                 property="password",
+     *                 type="string",
+     *                 format="password",
+     *                 example="aaaaaaaa"
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent()
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad Request",
+     *         @OA\JsonContent()
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent()
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden",
+     *         @OA\JsonContent()
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Not found",
+     *         @OA\JsonContent()
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Unprocessable Content",
+     *         @OA\JsonContent()
+     *     )
+     * )
+     */
+
+
+
+
+
+    public function changePasswordByToken($token, Request $request)
+    {
+        // Validate request
+        $request->validate([
+            'password' => 'required|string|min:6'
+        ]);
+
+        // Find the reset record
+        $reset = DB::table('password_resets')
+            ->where('created_at', '>', now()->subHours(1))
+            ->get()
+            ->first(function ($record) use ($token) {
+                return Hash::check($token, $record->token);
+            });
+
+        if (!$reset) {
+            return response()->json([
+                "success" => false,
+                "message" => "Invalid Token Or Token Expired"
+            ], 400);
+        }
+
+        // Get user by email
+        $user = User::where('email', $reset->email)->first();
+        if (!$user) {
+            return response()->json([
+                "success" => false,
+                "message" => "User not found"
+            ], 404);
+        }
+
+        $password = Hash::make($request->password);
+        $user->password = $password;
+
+        $user->login_attempts = 0;
+        $user->last_failed_login_attempt_at = null;
+        $user->save();
+
+        // Delete the reset record
+        DB::table('password_resets')->where('email', $reset->email)->delete();
+
+        // RETURN RESPONSE
+        return response()->json([
+            "success" => true,
+            "message" => "password changed"
+        ], 200);
+    }
+
 
 
     /**
@@ -198,111 +324,5 @@ class ForgotPasswordController extends Controller
             "success" => true,
             "message" => "password changed"
         ], 200);
-    }
-
-
-
-
-
-    // ##################################################
-    // This method is to change password by token
-    // ##################################################
-
-
-    /**
-     * @OA\Patch(
-     *     path="/v1.0/forget-password/reset/{token}",
-     *     operationId="changePasswordByToken",
-     *     tags={"forgot_password"},
-     *     summary="This method is to change password",
-     *     description="This method is to change password",
-     *
-     *     @OA\Parameter(
-     *         name="token",
-     *         in="path",
-     *         description="Reset token",
-     *         required=true,
-     *         @OA\Schema(type="string", example="reset-token-123")
-     *     ),
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"password"},
-     *             @OA\Property(
-     *                 property="password",
-     *                 type="string",
-     *                 format="password",
-     *                 example="aaaaaaaa"
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Bad Request",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Forbidden",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Not found",
-     *         @OA\JsonContent()
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Unprocessable Content",
-     *         @OA\JsonContent()
-     *     )
-     * )
-     */
-
-
-
-
-
-    public function changePasswordByToken($token, Request $request)
-    {
-
-        $user = User::where([
-            "resetPasswordToken" => $token,
-        ])
-            ->where("resetPasswordExpires", ">", now())
-            ->first();
-        if (!$user) {
-            return response()->json([
-                "success" => false,
-                "message" => "Invalid Token Or Token Expired"
-            ], 400);
-        }
-
-        $password = Hash::make($request->password);
-        $user->password = $password;
-
-
-
-        $user->login_attempts = 0;
-        $user->last_failed_login_attempt_at = null;
-        $user->save();
-
-        // RETURN RESPONSE
-        return response()->json([
-            "success" => true,
-            "message" => "password changed"
-        ], 200);;
     }
 }
