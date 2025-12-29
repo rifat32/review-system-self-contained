@@ -651,6 +651,21 @@ class QuestionCategoryController extends Controller
                 ], 404);
             }
 
+            // Check for default categories
+            $defaultIds = [];
+            foreach ($questionCategories as $category) {
+                if ($category->is_default) {
+                    $defaultIds[] = $category->id;
+                }
+            }
+
+            if (!empty($defaultIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Default question categories cannot be deleted: ' . implode(', ', $defaultIds)
+                ], 403);
+            }
+
             // Delete the question categories
             $deletedCount = QuestionCategory::whereIn('id', $idArray)->delete();
 

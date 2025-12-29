@@ -116,7 +116,7 @@ class BusinessController extends Controller
         $payload_data["expiry_date"] = now()->addDays(15)->format('d-m-Y');
 
         // CREATE BUSINESS
-        $business =  Business::create($payload_data);
+        $business = Business::create($payload_data);
 
 
         // RETURN RESPONSE
@@ -610,74 +610,68 @@ class BusinessController extends Controller
      *
      *     @OA\RequestBody(
      *         required=true,
+     *         description="All fields are optional for update",
      *         @OA\JsonContent(
-     *             required={"Name","Layout","Address","PostCode"},
-     *
-     *             @OA\Property(property="GoogleMapApi", type="string", format="string", example="business name"),
-     *             @OA\Property(property="Name", type="string", format="string", example="business name"),
-     *
-     *             @OA\Property(property="EmailAddress", type="string", format="string", example="test@example.com"),
-     *             @OA\Property(property="homeText", type="string", format="string", example="How was this?"),
-     *             @OA\Property(property="AdditionalInformation", type="string", format="string", example="How was this?"),
-     *
-     *             @OA\Property(property="PostCode", type="string", format="string", example="12345"),
-     *             @OA\Property(property="Webpage", type="string", format="string", example="https://example.com"),
-     *             @OA\Property(property="PhoneNumber", type="string", format="string", example="+44123456789"),
-     *
-     *             @OA\Property(property="About", type="string", format="string", example="How was this?"),
-     *             @OA\Property(property="Layout", type="string", format="string", example="How was this?"),
-     *             @OA\Property(property="Address", type="string", format="string", example="Street 1, City"),
-     *
-
-     *             @OA\Property(property="show_image", type="string", format="string", example="0"),
-     *
-     *             @OA\Property(property="Key_ID", type="string", format="string", example="0"),
-     *             @OA\Property(property="review_type", type="string", format="string", example="0"),
-     *             @OA\Property(property="google_map_iframe", type="string", format="string", example="test"),
-     *
-     *             @OA\Property(property="Is_guest_user", type="boolean", format="boolean", example="false"),
-     *             @OA\Property(property="is_review_slider", type="boolean", format="boolean", example="false"),
-     *
-     *             @OA\Property(property="header_image", type="string", format="string", example="/header_image/default.png"),
-     *
-     *             @OA\Property(property="primary_color", type="string", format="string", example="red"),
-     *             @OA\Property(property="secondary_color", type="string", format="string", example="red"),
-     *             @OA\Property(property="client_primary_color", type="string", format="string", example="red"),
-     *             @OA\Property(property="client_secondary_color", type="string", format="string", example="red"),
-     *             @OA\Property(property="client_tertiary_color", type="string", format="string", example="red"),
-     *
-     *             @OA\Property(property="user_review_report", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="guest_user_review_report", type="boolean", format="boolean", example="1"),
-     *
-     *             @OA\Property(property="is_report_email_enabled", type="boolean", format="boolean", example="1"),
-     *
-     *             @OA\Property(property="pin", type="string", format="string", example="1"),
-     *
-     *             @OA\Property(property="is_registered_user_overall_review", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_registered_user_survey", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_registered_user_survey_required", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_registered_user_show_stuffs", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_registered_user_show_stuff_image", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_registered_user_show_stuff_name", type="boolean", format="boolean", example="1"),
-     *
-     *             @OA\Property(property="enable_ip_check", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="enable_location_check", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="latitude", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="longitude", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="review_distance_limit", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="review_labels", type="string", format="string", example="['a','b']"),
-     *             @OA\Property(property="threshold_rating", type="boolean", format="boolean", example="1"),
-     *
-     *             @OA\Property(property="is_guest_user_overall_review", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_guest_user_survey", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_guest_user_survey_required", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_branch", type="boolean", format="boolean", example="1"), 
-     * 
-     * 
-     * 
-     *             @OA\Property(property="is_guest_user_show_stuffs", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_guest_user_show_stuff_image", type="boolean", format="boolean", example="1"),
-     *             @OA\Property(property="is_guest_user_show_stuff_name", type="boolean", format="boolean", example="1")
+     *             @OA\Property(property="Name", type="string", example="My Restaurant", description="Business name"),
+     *             @OA\Property(property="Address", type="string", example="123 Main Street, City", description="Business address"),
+     *             @OA\Property(property="PostCode", type="string", example="12345", description="Postal code"),
+     *             @OA\Property(property="OwnerID", type="integer", example=1, description="Owner user ID"),
+     *             @OA\Property(property="Status", type="string", example="Active", description="Business status (Active/Inactive)"),
+     *             @OA\Property(property="Logo", type="string", example="img/business/logo.png", description="Logo image path"),
+     *             @OA\Property(property="Key_ID", type="string", example="abc123", description="Unique business key"),
+     *             @OA\Property(property="expiry_date", type="string", format="date", example="15-12-2025", description="Subscription expiry date"),
+     *             @OA\Property(property="About", type="string", example="Best restaurant in town", description="Business description"),
+     *             @OA\Property(property="Webpage", type="string", format="url", example="https://example.com", description="Business website"),
+     *             @OA\Property(property="PhoneNumber", type="string", example="+44123456789", description="Contact phone number"),
+     *             @OA\Property(property="EmailAddress", type="string", format="email", example="business@example.com", description="Contact email"),
+     *             @OA\Property(property="homeText", type="string", example="Welcome to our restaurant", description="Homepage text"),
+     *             @OA\Property(property="AdditionalInformation", type="string", example="Open 24/7", description="Additional business info"),
+     *             @OA\Property(property="GoogleMapApi", type="string", example="AIza...", description="Google Maps API key"),
+     *             @OA\Property(property="review_type", type="string", example="star", description="Type of review system"),
+     *             @OA\Property(property="show_image", type="boolean", example=true, description="Show images in reviews"),
+     *             @OA\Property(property="google_map_iframe", type="string", example="<iframe>...</iframe>", description="Google Maps iframe embed code"),
+     *             @OA\Property(property="Is_guest_user", type="boolean", example=true, description="Allow guest user reviews"),
+     *             @OA\Property(property="is_review_slider", type="boolean", example=true, description="Enable review slider"),
+     *             @OA\Property(property="review_only", type="boolean", example=false, description="Review only mode (no ratings)"),
+     *             @OA\Property(property="is_branch", type="boolean", example=true, description="Business has branches"),
+     *             @OA\Property(property="header_image", type="string", example="/header_image/default.png", description="Header image path"),
+     *             @OA\Property(property="rating_page_image", type="string", example="/rating_page/default.png", description="Rating page background image"),
+     *             @OA\Property(property="placeholder_image", type="string", example="/placeholder/default.png", description="Placeholder image"),
+     *             @OA\Property(property="primary_color", type="string", example="#FF5733", description="Primary brand color"),
+     *             @OA\Property(property="secondary_color", type="string", example="#33FF57", description="Secondary brand color"),
+     *             @OA\Property(property="client_primary_color", type="string", example="#5733FF", description="Client-facing primary color"),
+     *             @OA\Property(property="client_secondary_color", type="string", example="#FF3357", description="Client-facing secondary color"),
+     *             @OA\Property(property="client_tertiary_color", type="string", example="#3357FF", description="Client-facing tertiary color"),
+     *             @OA\Property(property="user_review_report", type="boolean", example=true, description="Enable reports for registered user reviews"),
+     *             @OA\Property(property="guest_user_review_report", type="boolean", example=true, description="Enable reports for guest user reviews"),
+     *             @OA\Property(property="pin", type="string", example="1234", description="Security PIN"),
+     *             @OA\Property(property="time_zone", type="string", example="UTC", description="Business timezone"),
+     *             @OA\Property(property="is_guest_user_overall_review", type="boolean", example=true, description="Allow overall review from guests"),
+     *             @OA\Property(property="is_guest_user_survey", type="boolean", example=true, description="Enable survey for guests"),
+     *             @OA\Property(property="is_guest_user_survey_required", type="boolean", example=false, description="Make guest survey required"),
+     *             @OA\Property(property="is_guest_user_show_stuffs", type="boolean", example=true, description="Show staff selection to guests"),
+     *             @OA\Property(property="is_guest_user_show_stuff_image", type="boolean", example=true, description="Show staff images to guests"),
+     *             @OA\Property(property="is_guest_user_show_stuff_name", type="boolean", example=true, description="Show staff names to guests"),
+     *             @OA\Property(property="is_registered_user_overall_review", type="boolean", example=true, description="Allow overall review from registered users"),
+     *             @OA\Property(property="is_registered_user_survey", type="boolean", example=true, description="Enable survey for registered users"),
+     *             @OA\Property(property="is_registered_user_survey_required", type="boolean", example=false, description="Make registered user survey required"),
+     *             @OA\Property(property="is_registered_user_show_stuffs", type="boolean", example=true, description="Show staff selection to registered users"),
+     *             @OA\Property(property="is_registered_user_show_stuff_image", type="boolean", example=true, description="Show staff images to registered users"),
+     *             @OA\Property(property="is_registered_user_show_stuff_name", type="boolean", example=true, description="Show staff names to registered users"),
+     *             @OA\Property(property="enable_ip_check", type="boolean", example=false, description="Enable IP address verification"),
+     *             @OA\Property(property="enable_location_check", type="boolean", example=true, description="Enable location verification"),
+     *             @OA\Property(property="latitude", type="number", format="float", example=40.7128, description="Business latitude coordinate"),
+     *             @OA\Property(property="longitude", type="number", format="float", example=-74.0060, description="Business longitude coordinate"),
+     *             @OA\Property(property="review_distance_limit", type="number", format="float", example=1.5, description="Maximum distance (km) to allow reviews"),
+     *             @OA\Property(property="threshold_rating", type="number", format="float", example=3.5, description="Minimum rating threshold for public reviews"),
+     *             @OA\Property(
+     *                 property="review_labels",
+     *                 type="array",
+     *                 description="Custom review labels",
+     *                 @OA\Items(type="string", example="Excellent Service")
+     *             ),
+     *             @OA\Property(property="guest_survey_id", type="integer", nullable=true, example=1, description="ID of survey for guest users"),
+     *             @OA\Property(property="registered_user_survey_id", type="integer", nullable=true, example=2, description="ID of survey for registered users")
      *         )
      *     ),
      *
@@ -731,7 +725,7 @@ class BusinessController extends Controller
         $request_payload = $request->validated();
 
         // Check Business
-        $business =    Business::find($businessId);
+        $business = Business::find($businessId);
 
         if (!$business) {
             return response()->json([
