@@ -77,7 +77,8 @@ class Business extends Model
 
         //
         'guest_survey_id',
-        'registered_user_survey_id'
+        'registered_user_survey_id',
+        'default_color_threshold'
 
 
     ];
@@ -160,14 +161,12 @@ class Business extends Model
         // Return false if the subscription hasn't started
         if ($startDate->isFuture()) {
             return false;
-        }
-        ;
+        };
 
         // Return false if the subscription has expired (end_date is before today)
         if ($endDate->isPast() && !$endDate->isSameDay($today)) {
             return false;
-        }
-        ;
+        };
 
         return true;
     }
