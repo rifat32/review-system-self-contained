@@ -182,7 +182,7 @@ class TagController extends Controller
 
         $tags = Tag::query()
             ->when($request->filled('business_id'), fn($q) => $q->where('business_id', $request->integer('business_id')))
-             ->orWhere(["business_id" => NULL, "is_default" => 1])
+            ->orWhere(["business_id" => NULL, "is_default" => 1])
             ->latest()
             ->get();
 
@@ -1277,6 +1277,13 @@ class TagController extends Controller
             ->first();
         $tagId = $tag->id;
 
+        if ($tag->is_default) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Default tags cannot be deleted.'
+            ], 403);
+        }
+
         if ($request->user()->hasRole("superadmin") &&  $tag->is_default == 1) {
             StarTag::where(["tag_id" => $tagId])->delete();
             $tag->delete();
@@ -1297,11 +1304,4 @@ class TagController extends Controller
 
         return response(["message" => "ok"], 200);
     }
-
-
-
-
-
-
-
 }
