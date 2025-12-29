@@ -574,106 +574,116 @@ class DashboardController extends Controller
     }
 
 
-    /**
-     * @OA\Get(
-     *      path="/v1.0/dashboard/top-worst-staff",
-     *      operationId="getTopWorstStaff",
-     *      tags={"dashboard_management"},
-     *      summary="Get top worst performing staff",
-     *      description="Get staff with lowest ratings and sentiment scores",
-     *      @OA\Parameter(
-     *         name="businessId",
-     *         in="query",
-     *         description="Business ID",
-     *         required=true,
-     *         example="1"
-     *      ),
-     *      @OA\Parameter(
-     *         name="period",
-     *         in="query",
-     *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
-     *         required=false,
-     *         example="last_30_days"
-     *      ),
-     *      @OA\Parameter(
-     *         name="start_date",
-     *         in="query",
-     *         description="Custom start date (d-m-Y format)",
-     *         required=false,
-     *         example="01-01-2025"
-     *      ),
-     *      @OA\Parameter(
-     *         name="end_date",
-     *         in="query",
-     *         description="Custom end date (d-m-Y format)",
-     *         required=false,
-     *         example="31-01-2025"
-     *      ),
-     *      @OA\Parameter(
-     *         name="limit",
-     *         in="query",
-     *         description="Number of worst staff to return",
-     *         required=false,
-     *         example="5"
-     *      ),
-     *      @OA\Parameter(
-     *         name="criteria",
-     *         in="query",
-     *         description="Criteria for ranking (rating, sentiment, negative)",
-     *         required=false,
-     *         example="rating"
-     *      ),
-     *      security={
-     *          {"bearerAuth": {}}
-     *      },
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="Worst staff analysis retrieved successfully"),
-     *              @OA\Property(property="data", type="object")
-     *          )
-     *      )
-     * )
-     */
-    public function getTopWorstStaff(Request $request)
-    {
-        $request->validate([
-            'businessId' => 'required|integer|exists:businesses,id',
-            'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
-            'start_date' => 'nullable|date_format:d-m-Y',
-            'end_date' => 'nullable|date_format:d-m-Y',
-            'limit' => 'nullable|integer|min:1|max:20',
-            'criteria' => 'nullable|in:rating,sentiment,negative'
-        ]);
+   /**
+ * @OA\Get(
+ *      path="/v1.0/dashboard/staff-performance",
+ *      operationId="getStaffPerformanceAnalysis",
+ *      tags={"dashboard_management"},
+ *      summary="Get top and worst performing staff",
+ *      description="Get both top performing and worst performing staff with analysis",
+ *      @OA\Parameter(
+ *         name="businessId",
+ *         in="query",
+ *         description="Business ID",
+ *         required=true,
+ *         example="1"
+ *      ),
+ *      @OA\Parameter(
+ *         name="period",
+ *         in="query",
+ *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
+ *         required=false,
+ *         example="last_30_days"
+ *      ),
+ *      @OA\Parameter(
+ *         name="start_date",
+ *         in="query",
+ *         description="Custom start date (d-m-Y format)",
+ *         required=false,
+ *         example="01-01-2025"
+ *      ),
+ *      @OA\Parameter(
+ *         name="end_date",
+ *         in="query",
+ *         description="Custom end date (d-m-Y format)",
+ *         required=false,
+ *         example="31-01-2025"
+ *      ),
+ *      @OA\Parameter(
+ *         name="limit",
+ *         in="query",
+ *         description="Number of top/worst staff to return (default: 3)",
+ *         required=false,
+ *         example="3"
+ *      ),
+ *      @OA\Parameter(
+ *         name="criteria",
+ *         in="query",
+ *         description="Criteria for ranking (rating, sentiment, positive, negative)",
+ *         required=false,
+ *         example="rating"
+ *      ),
+ *      security={
+ *          {"bearerAuth": {}}
+ *      },
+ *      @OA\Response(
+ *          response=200,
+ *          description="Successful operation",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="success", type="boolean", example=true),
+ *              @OA\Property(property="message", type="string", example="Staff performance analysis retrieved successfully"),
+ *              @OA\Property(property="data", type="object",
+ *                  @OA\Property(property="top_staff", type="array",
+ *                      @OA\Items(type="object")
+ *                  ),
+ *                  @OA\Property(property="worst_staff", type="array",
+ *                      @OA\Items(type="object")
+ *                  ),
+ *                  @OA\Property(property="summary", type="object"),
+ *                  @OA\Property(property="total_staff_analyzed", type="integer"),
+ *                  @OA\Property(property="criteria_used", type="string"),
+ *                  @OA\Property(property="date_range", type="object")
+ *              )
+ *          )
+ *      )
+ * )
+ */
+public function getStaffPerformanceAnalysis(Request $request)
+{
+    $request->validate([
+        'businessId' => 'required|integer|exists:businesses,id',
+        'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
+        'start_date' => 'nullable|date_format:d-m-Y',
+        'end_date' => 'nullable|date_format:d-m-Y',
+        'limit' => 'nullable|integer|min:1|max:10',
+        'criteria' => 'nullable|in:rating,sentiment,positive,negative'
+    ]);
 
-        $businessId = $request->input('businessId');
+    $businessId = $request->input('businessId');
 
-        // Get date range
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $dateRange = [
-                'start' => Carbon::parse($request->input('start_date'))->startOfDay(),
-                'end' => Carbon::parse($request->input('end_date'))->endOfDay()
-            ];
-        } else {
-            $period = $request->input('period', 'last_30_days');
-            $dateRange = getDateRangeByPeriod($period);
-        }
-
-        $limit = $request->input('limit', 5);
-        $criteria = $request->input('criteria', 'rating');
-
-        // Use the new method
-        $worstStaffAnalysis = AIProcessor::getTopWorstStaff($businessId, $dateRange, $limit, $criteria);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Worst staff analysis retrieved successfully',
-            'data' => $worstStaffAnalysis
-        ], 200);
+    // Get date range
+    if ($request->has('start_date') && $request->has('end_date')) {
+        $dateRange = [
+            'start' => Carbon::parse($request->input('start_date'))->startOfDay(),
+            'end' => Carbon::parse($request->input('end_date'))->endOfDay()
+        ];
+    } else {
+        $period = $request->input('period', 'last_30_days');
+        $dateRange = getDateRangeByPeriod($period);
     }
 
+    $limit = $request->input('limit', 3);
+    $criteria = $request->input('criteria', 'rating');
+
+    // Use the updated method
+    $performanceAnalysis = AIProcessor::getTopWorstStaff($businessId, $dateRange, $limit, $criteria);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Staff performance analysis retrieved successfully',
+        'data' => $performanceAnalysis
+    ], 200);
+}
     /**
      * @OA\Get(
      *      path="/v1.0/dashboard/overview",
