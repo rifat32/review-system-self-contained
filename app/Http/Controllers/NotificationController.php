@@ -194,7 +194,7 @@ class NotificationController extends Controller
      *          {"bearerAuth": {}}
      *      },
      *      summary="This method is to get notification by receiver_id",
-     *      description="This method is to get notification by receiver_id with pagination",
+     *      description="This method is to get notification by receiver_id with pagination and filters",
      *
      *      @OA\Parameter(
      *          name="page",
@@ -209,6 +209,34 @@ class NotificationController extends Controller
      *          description="Number of items per page",
      *          required=false,
      *          @OA\Schema(type="integer")
+     *      ),
+     *      @OA\Parameter(
+     *          name="status",
+     *          in="query",
+     *          description="Filter by notification status",
+     *          required=false,
+     *          @OA\Schema(type="string", enum={"read", "unread"})
+     *      ),
+     *      @OA\Parameter(
+     *          name="search_key",
+     *          in="query",
+     *          description="Search in title and message",
+     *          required=false,
+     *          @OA\Schema(type="string")
+     *      ),
+     *      @OA\Parameter(
+     *          name="order_by",
+     *          in="query",
+     *          description="Field to order by (e.g., created_at, title)",
+     *          required=false,
+     *          @OA\Schema(type="string")
+     *      ),
+     *      @OA\Parameter(
+     *          name="sort_order",
+     *          in="query",
+     *          description="Sort order",
+     *          required=false,
+     *          @OA\Schema(type="string", enum={"asc", "desc"})
      *      ),
      *
      *      @OA\Response(
@@ -255,7 +283,7 @@ class NotificationController extends Controller
      */
     public function getNotification(Request $request)
     {
-        $query = Notification::where(["receiver_id" => $request->user()->id]);
+        $query = Notification::where(["receiver_id" => $request->user()->id])->filters();
 
         $notification = retrieve_data($query);
 

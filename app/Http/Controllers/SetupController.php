@@ -19,30 +19,17 @@ class SetupController extends Controller
 
     public function oneTimeDBOperation()
     {
-        $businesses = DB::table("businesses")->get();
-        foreach ($businesses as $business) {
-            $branchData = [
-                'business_id' => $business->id,
-                'name' => $business->Name,
-                'address' => $business->Address,
-                'street' => null,
-                'door_no' => null,
-                'city' => $business->city ?? null,
-                'country' => $business->country ?? null,
-                'postcode' => $business->PostCode ?? null,
-                'phone' => $business->PhoneNumber ?? null,
-                'email' => $business->EmailAddress ?? null,
-                'is_active' => true,
-                'is_geo_enabled' => true,
-                'branch_code' => 'MAIN_BRANCH',
-                'lat' => $business->latitude ?? null,
-                'long' => $business->longitude ?? null,
-                'manager_id' => null,
-                'is_default' => true,
-            ];
-
-            Branch::create($branchData);
-        }
+        // DB::table('question_categories')->insert([
+        //     'title' => 'Staff',
+        //     'description' => 'Default category for staff-related questions',
+        //     'is_active' => true,
+        //     'is_default' => true,
+        //     'business_id' => null,
+        //     'parent_question_category_id' => null,
+        //     'created_by' => null, // Nullable field
+        //     'created_at' => now(),
+        //     'updated_at' => now(),
+        // ]);
 
         return response()->json([
             'success' => true,

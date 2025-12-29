@@ -39,4 +39,13 @@ class Notification extends Model
     {
         return $this->belongsTo(User::class, "receiver_id", "id");
     }
+
+    public function scopeFilters($query)
+    {
+        if (request()->filled('status')) {
+            $query->where('status', request()->input('status'));
+        }
+
+        return $query;
+    }
 }
