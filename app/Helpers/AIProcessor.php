@@ -2384,7 +2384,7 @@ public static function getSubmissionsOverTime($reviews, $period)
 
 
   
-public static function getTopWorstStaff($businessId, $dateRange, $limit = 5, $criteria = 'rating')
+public static function getTopWorstStaff($businessId, $dateRange, $limit = 3, $criteria = 'rating')
 {
     // Get staff reviews WITH calculated rating
     $staffReviews = ReviewNew::with('staff')
@@ -2398,6 +2398,7 @@ public static function getTopWorstStaff($businessId, $dateRange, $limit = 5, $cr
     if ($staffReviews->isEmpty()) {
         return [
             'message' => 'No staff reviews found in the selected period',
+            'top_staff' => [],
             'worst_staff' => []
         ];
     }
@@ -2455,8 +2456,8 @@ public static function getTopWorstStaff($businessId, $dateRange, $limit = 5, $cr
         $sentimentPercentage = $reviewCount > 0 ? round(($positiveCount / $reviewCount) * 100) : 0;
         $negativePercentage = $reviewCount > 0 ? round(($negativeCount / $reviewCount) * 100) : 0;
         
-        // Get common complaints/issues
-        $commonComplaints = self::extractCommonComplaints(collect($reviews));
+        // Get common praise for top performers
+        $commonPraise = self::extractCommonPraise(collect($reviews));
         
         $staffPerformance[] = [
             'staff_id' => $staffId,
@@ -2471,38 +2472,57 @@ public static function getTopWorstStaff($businessId, $dateRange, $limit = 5, $cr
             'review_count' => $reviewCount,
             'positive_reviews' => $positiveCount,
             'negative_reviews' => $negativeCount,
-            'common_complaints' => array_slice($commonComplaints, 0, 3),
+            'common_praise' => array_slice($commonPraise, 0, 3),
             'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'No reviews',
             'rating_trend' => self::calculateStaffRatingTrend(collect($reviews)),
-            'performance_issue' => self::identifyPerformanceIssue($avgRating, $avgSentiment, $negativePercentage)
+            'performance_level' => self::identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage)
         ];
     }
 
-    // Sort based on selected criteria
+    // Sort based on selected criteria for TOP performers (highest first)
     if ($criteria === 'rating') {
-        // Sort by average rating (lowest first)
+        // Sort by average rating (highest first for top, lowest first for worst)
+        usort($staffPerformance, function ($a, $b) {
+            return $b['avg_rating'] <=> $a['avg_rating'];
+        });
+        $topStaff = array_slice($staffPerformance, 0, $limit);
+        
+        // Reverse sort for worst staff
         usort($staffPerformance, function ($a, $b) {
             return $a['avg_rating'] <=> $b['avg_rating'];
         });
+        $worstStaff = array_slice($staffPerformance, 0, $limit);
+        
     } elseif ($criteria === 'sentiment') {
-        // Sort by sentiment score (lowest first)
+        // Sort by sentiment score (highest first for top, lowest first for worst)
+        usort($staffPerformance, function ($a, $b) {
+            return $b['avg_sentiment'] <=> $a['avg_sentiment'];
+        });
+        $topStaff = array_slice($staffPerformance, 0, $limit);
+        
         usort($staffPerformance, function ($a, $b) {
             return $a['avg_sentiment'] <=> $b['avg_sentiment'];
         });
+        $worstStaff = array_slice($staffPerformance, 0, $limit);
+        
     } else {
-        // Default: sort by negative percentage (highest first)
+        // Sort by positive percentage (highest first for top) and negative percentage (highest first for worst)
+        usort($staffPerformance, function ($a, $b) {
+            return $b['sentiment_percentage'] <=> $a['sentiment_percentage'];
+        });
+        $topStaff = array_slice($staffPerformance, 0, $limit);
+        
         usort($staffPerformance, function ($a, $b) {
             return $b['negative_percentage'] <=> $a['negative_percentage'];
         });
+        $worstStaff = array_slice($staffPerformance, 0, $limit);
     }
 
-    // Take the worst staff
-    $worstStaff = array_slice($staffPerformance, 0, $limit);
-
     // Calculate overall summary
-    $summary = self::generateWorstStaffSummary($worstStaff, $staffPerformance);
+    $summary = self::generateTopWorstSummary($topStaff, $worstStaff, $staffPerformance);
 
     return [
+        'top_staff' => $topStaff,
         'worst_staff' => $worstStaff,
         'summary' => $summary,
         'total_staff_analyzed' => count($staffPerformance),
@@ -2512,6 +2532,197 @@ public static function getTopWorstStaff($businessId, $dateRange, $limit = 5, $cr
             'end' => $dateRange['end']->format('Y-m-d')
         ]
     ];
+}
+
+/**
+ * Extract common praise from reviews
+ */
+public static function extractCommonPraise($reviews)
+{
+    $praise = [];
+    
+    foreach ($reviews as $review) {
+        if (empty($review->comment)) continue;
+        
+        $text = strtolower($review->comment);
+        
+        // Define praise patterns
+        $patterns = [
+            'friendly' => ['friendly', 'polite', 'courteous', 'pleasant', 'welcoming'],
+            'helpful' => ['helpful', 'supportive', 'assistive', 'accommodating'],
+            'knowledgeable' => ['knowledgeable', 'expert', 'professional', 'experienced'],
+            'efficient' => ['efficient', 'quick', 'fast', 'prompt', 'timely'],
+            'attentive' => ['attentive', 'caring', 'thoughtful', 'considerate'],
+            'problem_solver' => ['solved', 'resolved', 'fixed', 'helped with', 'assisted with'],
+            'excellent_service' => ['excellent service', 'great service', 'outstanding service', 'amazing service'],
+            'goes_extra_mile' => ['goes above', 'extra mile', 'above and beyond', 'exceeded expectations']
+        ];
+        
+        foreach ($patterns as $key => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (strpos($text, $keyword) !== false) {
+                    $praise[$key] = ($praise[$key] ?? 0) + 1;
+                    break; // Count once per pattern per review
+                }
+            }
+        }
+    }
+    
+    // Sort by frequency
+    arsort($praise);
+    
+    // Convert to readable format
+    $readablePraise = [];
+    $labelMap = [
+        'friendly' => 'Friendliness',
+        'helpful' => 'Helpfulness',
+        'knowledgeable' => 'Knowledge/Expertise',
+        'efficient' => 'Efficiency',
+        'attentive' => 'Attentiveness',
+        'problem_solver' => 'Problem Solving',
+        'excellent_service' => 'Excellent Service',
+        'goes_extra_mile' => 'Going Above & Beyond'
+    ];
+    
+    foreach ($praise as $key => $count) {
+        $readablePraise[] = [
+            'strength' => $labelMap[$key] ?? ucfirst($key),
+            'count' => $count,
+            'percentage' => count($reviews) > 0 ? round(($count / count($reviews)) * 100) : 0
+        ];
+    }
+    
+    return $readablePraise;
+}
+
+/**
+ * Identify performance level based on metrics
+ */
+public static function identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage)
+{
+    if ($avgRating >= 4.5 && $avgSentiment >= 0.8 && $negativePercentage < 10) {
+        return 'Excellent - Top Performer';
+    } elseif ($avgRating >= 4.0 && $avgSentiment >= 0.7 && $negativePercentage < 20) {
+        return 'Very Good - Strong Performer';
+    } elseif ($avgRating >= 3.5 && $avgSentiment >= 0.6 && $negativePercentage < 30) {
+        return 'Good - Consistent Performer';
+    } elseif ($avgRating >= 3.0 && $negativePercentage < 40) {
+        return 'Average - Room for Improvement';
+    } elseif ($avgRating >= 2.0) {
+        return 'Below Average - Needs Attention';
+    } else {
+        return 'Poor - Critical Attention Required';
+    }
+}
+
+/**
+ * Generate summary for top and worst staff
+ */
+public static function generateTopWorstSummary($topStaff, $worstStaff, $allStaff)
+{
+    if (empty($topStaff) && empty($worstStaff)) {
+        return [
+            'overall_status' => 'No staff with enough reviews for analysis',
+            'rating_gap' => 0,
+            'top_performers_key_strengths' => [],
+            'worst_performers_key_issues' => []
+        ];
+    }
+    
+    // Calculate average rating gap
+    $topAvgRating = !empty($topStaff) ? array_sum(array_column($topStaff, 'avg_rating')) / count($topStaff) : 0;
+    $worstAvgRating = !empty($worstStaff) ? array_sum(array_column($worstStaff, 'avg_rating')) / count($worstStaff) : 0;
+    
+    // Get most common strengths across top staff
+    $allStrengths = [];
+    foreach ($topStaff as $staff) {
+        foreach ($staff['common_praise'] as $praise) {
+            $strength = $praise['strength'];
+            $allStrengths[$strength] = ($allStrengths[$strength] ?? 0) + $praise['count'];
+        }
+    }
+    
+    arsort($allStrengths);
+    $topStrengths = array_slice($allStrengths, 0, 3, true);
+    
+    $keyStrengths = [];
+    foreach ($topStrengths as $strength => $count) {
+        $keyStrengths[] = $strength;
+    }
+    
+    // Get most common complaints across worst staff
+    $allComplaints = [];
+    foreach ($worstStaff as $staff) {
+        // For worst staff, we need to extract complaints
+        $worstReviews = ReviewNew::where('staff_id', $staff['staff_id'])
+            ->where('business_id', $staff['business_id'] ?? 0) // You might need to pass business_id
+            ->whereBetween('created_at', [$dateRange['start'] ?? now()->subMonth(), $dateRange['end'] ?? now()])
+            ->get();
+            
+        $complaints = self::extractCommonComplaints($worstReviews);
+        foreach ($complaints as $complaint) {
+            $issue = $complaint['issue'];
+            $allComplaints[$issue] = ($allComplaints[$issue] ?? 0) + $complaint['count'];
+        }
+    }
+    
+    arsort($allComplaints);
+    $topIssues = array_slice($allComplaints, 0, 3, true);
+    
+    $keyIssues = [];
+    foreach ($topIssues as $issue => $count) {
+        $keyIssues[] = $issue;
+    }
+    
+    // Determine overall performance health
+    $health = 'good';
+    if (!empty($worstStaff) && $worstAvgRating < 2.5) {
+        $health = 'needs_attention';
+    } elseif (!empty($worstStaff) && $worstAvgRating < 3.0) {
+        $health = 'monitor';
+    }
+    
+    $ratingGap = round($topAvgRating - $worstAvgRating, 2);
+    
+    return [
+        'overall_status' => $health === 'good' ? 'Performance Levels Normal' : 
+                           ($health === 'monitor' ? 'Some Staff Need Monitoring' : 'Performance Issues Detected'),
+        'performance_health' => $health,
+        'top_average_rating' => round($topAvgRating, 1),
+        'worst_average_rating' => round($worstAvgRating, 1),
+        'rating_gap' => $ratingGap,
+        'top_performers_count' => count($topStaff),
+        'worst_performers_count' => count($worstStaff),
+        'top_performers_key_strengths' => $keyStrengths,
+        'worst_performers_key_issues' => $keyIssues,
+        'recommendations' => self::getTopWorstRecommendations($ratingGap, $keyStrengths, $keyIssues)
+    ];
+}
+
+/**
+ * Get recommendations based on top/worst analysis
+ */
+public static function getTopWorstRecommendations($ratingGap, $keyStrengths, $keyIssues)
+{
+    $recommendations = [];
+    
+    if ($ratingGap > 2.0) {
+        $recommendations[] = 'Significant performance gap detected. Consider peer mentoring program.';
+    }
+    
+    if (!empty($keyStrengths)) {
+        $recommendations[] = 'Leverage top performers\' strengths (' . implode(', ', $keyStrengths) . ') in training programs.';
+    }
+    
+    if (!empty($keyIssues)) {
+        $recommendations[] = 'Address common issues in underperformers: ' . implode(', ', $keyIssues);
+    }
+    
+    if (count($recommendations) === 0) {
+        $recommendations[] = 'Maintain current performance monitoring and support systems.';
+    }
+    
+    return $recommendations;
 }
 
 /**

@@ -858,16 +858,16 @@ class ReviewNewController extends Controller
         $review = ReviewNew::create($reviewData);
         storeReviewValues($review, $request->values, $business);
 
-        $businessServicesData = [];
-        if (is_array($request->business_services) && count($request->business_services) > 0) {
-            foreach ($request->business_services as $service) {
-                $businessServicesData[$service['business_service_id']] = [
-                    'business_area_id' => $service['business_area_id']
-                ];
-            }
+       if(!empty($request->business_services)){
+              $businessServicesData = [];
+        foreach ($request->business_services as $service) {
+            $businessServicesData[$service['business_service_id']] = [
+                'business_area_id' => $service['business_area_id']
+            ];
         }
-
         $review->business_services()->sync($businessServicesData);
+        }
+      
 
 
         $responseData = [
@@ -967,7 +967,7 @@ class ReviewNewController extends Controller
             'values.*.question_id' => 'required|integer',
             'values.*.tag_id' => 'nullable|integer',
             'values.*.star_id' => 'nullable|integer',
-            'business_services' => 'present|array',
+            'business_services' => 'nullable|array',
             'business_services.*.business_service_id' => 'required|exists:business_services,id',
             'business_services.*.business_area_id' => 'required|exists:business_areas,id',
             "is_voice_review" => 'required|boolean',
@@ -1074,13 +1074,16 @@ class ReviewNewController extends Controller
 
         // Attach business services with their respective business_area_id
 
-        $businessServicesData = [];
+        if(!empty($request->business_services)){
+              $businessServicesData = [];
         foreach ($request->business_services as $service) {
             $businessServicesData[$service['business_service_id']] = [
                 'business_area_id' => $service['business_area_id']
             ];
         }
         $review->business_services()->sync($businessServicesData);
+        }
+      
 
 
         $average_rating = collect($request->values)
@@ -2913,12 +2916,14 @@ class ReviewNewController extends Controller
             case 'oldest':
                 $query->orderBy('created_at', 'asc');
                 break;
-            case 'highest_rating':
-                $query->orderByRaw('calculated_rating DESC NULLS LAST');
-                break;
-            case 'lowest_rating':
-                $query->orderByRaw('calculated_rating ASC NULLS LAST');
-                break;
+           case 'highest_rating':
+        // ISNULL returns 1 for null, 0 for not null. 
+        // Ordering by it first ensures nulls go to the bottom.
+        $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating DESC');
+        break;
+    case 'lowest_rating':
+        $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating ASC');
+        break;
             default:
                 $query->orderBy('created_at', 'desc');
                 break;
