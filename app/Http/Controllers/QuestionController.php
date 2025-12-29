@@ -381,20 +381,30 @@ class QuestionController extends Controller
         }
 
         // Check permissions for each question
-        $unauthorizedIds = [];
+        $defaultIds = [];
+        $unauthorizedBusinessIds = [];
         foreach ($questions as $question) {
-            if (!$user->hasRole('superadmin')) {
-                // Business owner: can only delete their own business questions (not default questions)
-                if ($question->is_default || !in_array($question->business_id, $user->businesses()->pluck('id')->toArray())) {
-                    $unauthorizedIds[] = $question->id;
+            if ($question->is_default) {
+                $defaultIds[] = $question->id;
+            } elseif (!$user->hasRole('superadmin')) {
+                // Business owner: can only delete their own business questions
+                if ($question->business_id !== $user->business->id) {
+                    $unauthorizedBusinessIds[] = $question->id;
                 }
             }
         }
 
-        if (!empty($unauthorizedIds)) {
+        if (!empty($defaultIds) || !empty($unauthorizedBusinessIds)) {
+            $message = '';
+            if (!empty($defaultIds)) {
+                $message .= 'Default questions cannot be deleted: ' . implode(', ', $defaultIds) . '. ';
+            }
+            if (!empty($unauthorizedBusinessIds)) {
+                $message .= 'You do not have permission to delete questions: ' . implode(', ', $unauthorizedBusinessIds) . '. ';
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to delete questions: ' . implode(', ', $unauthorizedIds)
+                'message' => trim($message)
             ], 403);
         }
 
