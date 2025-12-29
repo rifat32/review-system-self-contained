@@ -143,12 +143,12 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/v1.0/dashboard/monthly-trends', [DashboardController::class, "getMonthlyTrends"]);
 
-Route::get('/v1.0/dashboard/top-worst-services', [DashboardController::class, "getTopWorstServices"]);
+    Route::get('/v1.0/dashboard/top-worst-services', [DashboardController::class, "getTopWorstServices"]);
 
-Route::get('/v1.0/dashboard/top-worst-staff', [DashboardController::class, "getTopWorstStaff"]);
+    Route::get('/v1.0/dashboard/top-worst-staff', [DashboardController::class, "getTopWorstStaff"]);
 
 
-    
+
 
 
 
@@ -248,9 +248,11 @@ Route::get('/v1.0/dashboard/top-worst-staff', [DashboardController::class, "getT
     // ============================================================================
     // NotificationController – Notifications CRUD (protected)
     // ============================================================================
-    Route::post('/v1.0/notification', [NotificationController::class, "createNotification"]);
-    Route::patch('/v1.0/notification/{notificationId}', [NotificationController::class, "updateNotification"]);
+    // Route::post('/v1.0/notification', [NotificationController::class, "createNotification"]);
+    // Route::patch('/v1.0/notification/{notificationId}', [NotificationController::class, "updateNotification"]);
     Route::get('/v1.0/notification', [NotificationController::class, "getNotification"]);
+    Route::patch('/v1.0/notification/{notificationId}/status', [NotificationController::class, "changeNotificationStatus"]);
+    Route::patch('/v1.0/notification/mark-all-read', [NotificationController::class, "markAsAllRead"]);
     Route::delete('/v1.0/notification/{notificationId}', [NotificationController::class, "deleteNotification"]);
 
     // ============================================================================
@@ -411,7 +413,7 @@ Route::get('/v1.0/dashboard/top-worst-staff', [DashboardController::class, "getT
     Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
 
 
-    
+
     Route::get('/v1.0/reports/staff-comparison/{businessId}', [DashboardController::class, 'staffComparison']);
     Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [DashboardController::class, 'staffPerformance']);
     Route::get('/v1.0/reports/staff-dashboard/{businessId}', [DashboardController::class, 'staffDashboard']);
@@ -419,7 +421,7 @@ Route::get('/v1.0/dashboard/top-worst-staff', [DashboardController::class, "getT
     Route::get('/v1.0/branch-dashboard/{branchId}', [DashboardController::class, 'getBranchDashboard']);
     Route::get('/v1.0/reports/branch-comparison', [DashboardController::class, 'branchComparison']);
 
-    
+
 
     // ============================================================================
     // ReviewNewController – Owner Questions (protected)
@@ -437,8 +439,6 @@ Route::get('/v1.0/dashboard/top-worst-staff', [DashboardController::class, "getT
     Route::get('/openai-tokens/report', [OpenAITokenReportController::class, 'getTokenUsageReport']);
 
     Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [DashboardController::class, 'getOverallDashboardData']);
-
-
 });
 
 // ============================================================================
