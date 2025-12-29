@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTagMultipleRequest;
+use App\Models\Business;
 use App\Models\ReviewValueNew;
 use App\Models\StarTag;
 use App\Models\Tag;
