@@ -145,7 +145,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/v1.0/dashboard/top-worst-services', [DashboardController::class, "getTopWorstServices"]);
 
-    Route::get('/v1.0/dashboard/top-worst-staff', [DashboardController::class, "getTopWorstStaff"]);
+    Route::get('/v1.0/dashboard/staff-performance', [DashboardController::class, "getStaffPerformanceAnalysis"]);
 
 
 
