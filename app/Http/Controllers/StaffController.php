@@ -20,7 +20,7 @@ class StaffController extends Controller
      * @OA\Post(
      *   path="/v1.0/staffs",
      *   operationId="createStaff",
-     *   tags={"staff_management"},
+     *   tags={"z.unused"},
      *   summary="Create a staff member",
      *   description="Registers a new staff user in the authenticated user's business.",
      *   security={{"bearerAuth":{}}},
@@ -147,7 +147,7 @@ class StaffController extends Controller
      * @OA\Patch(
      *   path="/v1.0/staffs/{id}",
      *   operationId="updateStaff",
-     *   tags={"staff_management"},
+     *   tags={"z.unused"},
      *   summary="Update a staff member (partial)",
      *   description="Updates selected fields of a staff user in the authenticated user's business.",
      *   security={{"bearerAuth":{}}},
@@ -264,7 +264,7 @@ class StaffController extends Controller
      * @OA\Delete(
      *   path="/v1.0/staffs/{id}",
      *   operationId="deleteStaff",
-     *   tags={"staff_management"},
+     *   tags={"z.unused"},
      *   summary="Delete a staff member",
      *   description="Soft-deletes the staff user (if the model uses SoftDeletes) within the authenticated user's business.",
      *   security={{"bearerAuth":{}}},
@@ -339,7 +339,7 @@ class StaffController extends Controller
      * @OA\Get(
      *   path="/v1.0/staffs",
      *   operationId="getAllStaffs",
-     *   tags={"staff_management"},
+     *   tags={"z.unused"},
      *   summary="List staff",
      *   description="Returns staff users for the authenticated user's business. Supports name search, pagination, and sorting.",
      *   security={{"bearerAuth":{}}},
@@ -476,7 +476,7 @@ class StaffController extends Controller
      * @OA\Get(
      *   path="/v1.0/staffs/{id}",
      *   operationId="getStaffById",
-     *   tags={"staff_management"},
+     *   tags={"z.unused"},
      *   summary="Get a single staff member by ID",
      *   description="Returns a staff user for the authenticated user's business.",
      *   security={{"bearerAuth":{}}},
@@ -565,7 +565,7 @@ class StaffController extends Controller
      * @OA\Get(
      *   path="/v1.0/client/staffs",
      *   operationId="getClientAllStaffs",
-     *   tags={"staff_management"},
+     *   tags={"z.unused"},
      *   summary="List staff (paginated)",
      *   description="Returns staff users for the authenticated user's business. Supports simple name search and pagination.",
      *
@@ -833,5 +833,127 @@ class StaffController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * @OA\Get(
+     *   path="/v1.0/staffs/{staffId}/performance-report",
+     *   operationId="staffPerformanceReport",
+     *   tags={"staff_management"},
+     *   summary="Get staff performance report",
+     *   description="Returns performance report for a specific staff member within the authenticated user's business.",
+     *   security={{"bearerAuth":{}}},
+     *
+     *   @OA\Parameter(
+     *     name="staffId",
+     *     in="path",
+     *     required=true,
+     *     description="Staff user ID",
+     *     @OA\Schema(type="integer"),
+     *     example=12
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="date_range",
+     *     in="query",
+     *     required=false,
+     *     description="Date range filter for the report",
+     *     @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month"}),
+     *     example="last_30_days"
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Staff performance report retrieved successfully",
+     *     @OA\JsonContent(
+     *       type="object",
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="Staff performance report retrieved successfully"),
+     *       @OA\Property(
+     *         property="data",
+     *         type="object",
+     *         description="Performance report data"
+     *       )
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=400,
+     *     description="Invalid date range",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Invalid date range provided")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=404,
+     *     description="Staff not found",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Staff not found")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=401,
+     *     description="Unauthenticated",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *     )
+     *   ),
+     *   @OA\Response(
+     *     response=403,
+     *     description="Forbidden",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="message", type="string", example="Forbidden")
+     *     )
+     *   )
+     * )
+     */
+    public function staffPerformanceReport(Request $request, $staffId)
+    {
+        $filterable_fields = [
+            "last_30_days",
+            "last_7_days",
+            "this_month",
+            "last_month"
+        ];
+
+        $businessId = $request->user()->business->id;
+
+        // Validate staff exists and belongs to the business
+        $staff = User::where('business_id', $businessId)
+            ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
+            ->find($staffId);
+
+        if (!$staff) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff not found'
+            ], 404);
+        }
+
+        // Get date range from query parameter
+        // Get period dates
+        $period = $request->query('date_range', 'last_30_days');
+
+        // Validate date range
+        if (!in_array($period, $filterable_fields)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid date range provided. Valid options: ' . implode(', ', $filterable_fields)
+            ], 400);
+        }
+
+        $dateRange = getDateRangeByPeriod($period);
+        // Get staff performance using existing staff suggestions
+        $staffPerformance = getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Staff performance report retrieved successfully',
+            'data' => $staffPerformance
+        ], 200);
     }
 }

@@ -627,7 +627,7 @@ class UserController extends Controller
     public function updateBusinessUser(UserRequest $request, $id)
     {
         // Get the authenticated user's business ID
-        $business_id = $request->user()->business()->id;
+        $business_id = $request->user()->business->id;
 
         if (!$business_id) {
             return response()->json([
