@@ -350,6 +350,8 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [DashboardController::class, "getAverages"]);
 
     Route::post('/review-new/addupdatetags/{businessId}', [ReviewNewController::class, "store2"]);
+
+    
     Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReviews"]);
     Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "reviewByBusinessId"]);
     Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);

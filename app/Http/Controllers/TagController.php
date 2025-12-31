@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTagMultipleRequest;
 use App\Models\Business;
-use App\Models\ReviewValueNew;
-use App\Models\StarTag;
+
 use App\Models\Tag;
 use App\Rules\ValidBusiness;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @OA\Schema(
@@ -1276,7 +1276,7 @@ class TagController extends Controller
     {
         $tag =    Tag::where(["id" => $id])
             ->first();
-        $tagId = $tag->id;
+
 
         if ($tag->is_default) {
             return response()->json([
@@ -1285,21 +1285,18 @@ class TagController extends Controller
             ], 403);
         }
 
-        if ($request->user()->hasRole("superadmin") &&  $tag->is_default == 1) {
-            StarTag::where(["tag_id" => $tagId])->delete();
-            $tag->delete();
-            ReviewValueNew::where([
-                'tag_id' => $tagId
-            ])
-                ->delete();
-        } else  if (!$request->user()->hasRole("superadmin") &&  $tag->is_default == 0) {
-            StarTag::where(["tag_id" => $tagId])->delete();
-            $tag->delete();
-            ReviewValueNew::where([
-                'tag_id' => $tagId
-            ])
-                ->delete();
+
+     $review_value_tag_exists =   DB::table("review_value_tag")
+            ->where(["tag_id" => $id])
+            ->exists();
+
+        if ($review_value_tag_exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tag is associated with review values and cannot be deleted.'
+            ], 403);
         }
+       
 
 
 

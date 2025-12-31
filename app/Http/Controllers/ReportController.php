@@ -106,13 +106,16 @@ class ReportController extends Controller
                 ->count();
         }
 
-        // Get all distinct tags selected in reviews
-        $total_tag_selected = ReviewValueNew::
-            // whereMeetsThreshold($businessId)
-            select("review_value_news.tag_id")
-            ->filterByOverall($is_overall)
-            ->distinct()
-            ->get();
+      // Fixed: Get distinct tags through the many-to-many relationship
+$total_tag_selected = ReviewValueNew::
+    // whereMeetsThreshold($businessId)
+    filterByOverall($is_overall)
+    ->with('tags') // Eager load tags
+    ->get()
+    ->flatMap(function ($reviewValue) {
+        return $reviewValue->tags;
+    })
+    ->unique('id');
 
         // Loop through each distinct tag selected
         foreach ($total_tag_selected as $key => $tag_selected) {

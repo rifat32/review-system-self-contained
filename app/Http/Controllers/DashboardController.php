@@ -12,6 +12,7 @@ use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Exception;
 
 class DashboardController extends Controller
 {
@@ -793,6 +794,7 @@ public function getStaffPerformanceAnalysis(Request $request)
             ], 400);
         }
 
+    
         // Calculate previous period of same duration
         $periodDuration = $startDate->diffInDays($endDate);
         $previousPeriodEnd = $startDate->copy()->subDay();
@@ -800,6 +802,7 @@ public function getStaffPerformanceAnalysis(Request $request)
 
         // Get base queries
         $queries = $this->getBaseQueries($request);
+          
 
         // 1. Total Reviews for current period and previous period
         $currentPeriodReviews = (clone $queries['base_review'])
@@ -826,6 +829,7 @@ public function getStaffPerformanceAnalysis(Request $request)
             $fromPeriodText = 'no previous data';
         }
 
+         
         // 2. Average Rating for current period
         $currentPeriodReviewsWithRating = (clone $queries['base_review'])
             ->whereBetween('created_at', [$startDate, $endDate])
@@ -834,7 +838,7 @@ public function getStaffPerformanceAnalysis(Request $request)
         $averageRating = $currentPeriodReviewsWithRating->isNotEmpty()
             ? round($currentPeriodReviewsWithRating->avg('calculated_rating'), 1)
             : 0;
-
+ 
         // 3. Top Topic from tags in current period
         $topTopic = getTopTopic($businessId, $startDate, $endDate);
 

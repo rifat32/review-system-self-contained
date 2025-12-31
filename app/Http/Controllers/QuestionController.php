@@ -5,20 +5,22 @@ namespace App\Http\Controllers;
 use App\Http\Requests\QuestionRequest;
 use App\Http\Requests\SetOverallQuestionRequest;
 use App\Models\Business;
+
 use App\Models\Question;
 use App\Models\QuestionStar;
+
 use App\Models\ReviewValueNew;
-use App\Models\Star;
 use App\Models\StarTag;
-use App\Models\StarTagQuestion;
+
 use App\Models\Survey;
 use App\Models\SurveyQuestion;
-use Exception;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
+use Exception;
 /**
  * Global OpenAPI component schemas used across controllers.
  *
@@ -1304,12 +1306,16 @@ class QuestionController extends Controller
                 if ($starTag->question_id == $question->id) {
                     $data["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
 
-                    $data["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
-                        "question_id" => $question->id,
-                        "star_id" => $questionStar->star->id,
-                        "tag_id" => $starTag->tag->id
+            // Fixed: Use whereHas with tags relationship 
+$data["stars"][$key2]["tags"][$key3]["tag_count"] = ReviewValueNew::where([
+    "question_id" => $question->id,
+    "star_id" => $questionStar->star->id,
+])
+->whereHas('tags', function ($query) use ($starTag) {
+    $query->where('tags.id', $starTag->tag->id);
+})
+->count();
 
-                    ])->count();
                 }
             }
         }
@@ -1334,7 +1340,6 @@ class QuestionController extends Controller
                 $data[$key1]["stars"][$key2]["star_count"]  =  ReviewValueNew::where([
                     "question_id" => $question->id,
                     "star_id" => $questionStar->star->id,
-
                 ])->count();
 
 
@@ -1343,15 +1348,18 @@ class QuestionController extends Controller
                         $data[$key1]["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
 
 
-                        $data[$key1]["stars"][$key2]["tags"][$key3]["tag_count"]  =  ReviewValueNew::where([
-                            "question_id" => $question->id,
-                            "star_id" => $questionStar->star->id,
-                            "tag_id" => $starTag->tag->id
+    // Fixed: Use whereHas with tags relationship (many-to-many)
+$data[$key1]["stars"][$key2]["tags"][$key3]["tag_count"] = ReviewValueNew::where([
+    "question_id" => $question->id,
+    "star_id" => $questionStar->star->id,
+])
+->whereHas('tags', function ($query) use ($starTag) {
+    $query->where('tags.id', $starTag->tag->id);
+})
+->count();
 
-                        ])->count();
 
 
-                        
                     }
                 }
             }

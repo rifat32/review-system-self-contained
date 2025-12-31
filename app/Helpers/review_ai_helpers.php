@@ -360,7 +360,7 @@ if (!function_exists('getTopTopic')) {
 {
     // Get tag counts using Eloquent relationships
     $topTag = Tag::where('business_id', $businessId)
-        ->whereHas('reviewValues', function ($query) use ($businessId, $startDate, $endDate) {
+        ->whereHas('review_values', function ($query) use ($businessId, $startDate, $endDate) {
             $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
                 $q->where('business_id', $businessId)
                   ->whereBetween('created_at', [$startDate, $endDate])

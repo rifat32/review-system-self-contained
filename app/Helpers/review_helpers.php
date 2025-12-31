@@ -113,7 +113,7 @@ if (!function_exists('extractTagsBreakdown')) {
 {
     // Get all tags with their mention counts
     $tags = Tag::where('business_id', $businessId)
-        ->withCount(['reviewValues' => function ($query) use ($dateRange) {
+        ->withCount(['review_values' => function ($query) use ($dateRange) {
             $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
         }])
         ->orderByDesc('review_values_count')
