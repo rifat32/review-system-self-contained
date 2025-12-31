@@ -234,6 +234,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/staffs/{id}', [StaffController::class, 'updateStaff']);
     Route::delete('/v1.0/staffs/{id}', [StaffController::class, 'deleteStaff']);
     Route::get('/v1.0/staffs/{staffId}/performance-report', [StaffController::class, 'staffPerformanceReport']);
+    Route::get('/v1.0/staffs/{staffId}/rating-trends', [StaffController::class, 'staffRatingTrends']);
     Route::post('/v1.0/staff-image', [StaffController::class, 'uploadStaffImage']);
 
     // ============================================================================

@@ -3295,7 +3295,7 @@ class ReviewNewController extends Controller
 
         $query = ReviewNew::with([
             "value.question",
-            "value.tag",
+            "value",
             "user",
             "guest_user",
             "survey",
