@@ -803,7 +803,6 @@ class ReviewNewController extends Controller
 
             'values.*.tag_ids' => 'present|array',
 
-            'values.*.tag_ids' => 'present|array', 
             'values.*.tag_ids.*' => 'integer|exists:tags,id',
 
             'values.*.star_id' => 'nullable|integer',
