@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\AIProcessor;
 use App\Http\Requests\StaffRequest;
 use App\Http\Requests\UpdateStaffRequest;
 use App\Models\User;
@@ -948,7 +949,7 @@ class StaffController extends Controller
 
         $dateRange = getDateRangeByPeriod($period);
         // Get staff performance using existing staff suggestions
-        $staffPerformance = getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
+        $staffPerformance = AIProcessor::getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
 
         return response()->json([
             'success' => true,
