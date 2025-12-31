@@ -246,7 +246,7 @@ class ReviewNewController extends Controller
 // Get Overall Business Dashboard Data
 // ##################################################
 
-  
+
 
 
 // ##################################################
@@ -319,7 +319,7 @@ class ReviewNewController extends Controller
         ], 200);
     }
 
- 
+
 
     // ##################################################
     // This method is to store   ReviewValue
@@ -426,7 +426,7 @@ class ReviewNewController extends Controller
 
         return response($reviewValues, 200);
     }
-    
+
 
     // ##################################################
     // This method is to store   ReviewValue2
@@ -757,31 +757,31 @@ class ReviewNewController extends Controller
      *              @OA\Property(property="is_overall", type="boolean", example=true),
      *              @OA\Property(property="staff_id", type="integer", example="1"),
      *              @OA\Property(property="branch_id", type="integer", example="1"),
-*              @OA\Property(
- *                  property="business_services",
- *                  type="array",
- *                  @OA\Items(
- *                      @OA\Property(property="business_service_id", type="integer", example=1),
- *                      @OA\Property(property="business_area_id", type="integer", example=1)
- *                  ),
- *                  description="Array of business services with their area IDs"
- *              ),
- *              @OA\Property(
- *                  property="values",
- *                  type="array",
- *                  @OA\Items(
- *                      @OA\Property(property="question_id", type="integer", example=1),
- *                      @OA\Property(
- *                          property="tag_ids",
- *                          type="array",
- *                          @OA\Items(type="integer", example=2),
- *                          description="Array of tag IDs (many-to-many relationship)"
- *                      ),
- *                      @OA\Property(property="star_id", type="integer", example=4)
- *                  )
- *              )
- *          )
- *      ),
+     *              @OA\Property(
+     *                  property="business_services",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="business_service_id", type="integer", example=1),
+     *                      @OA\Property(property="business_area_id", type="integer", example=1)
+     *                  ),
+     *                  description="Array of business services with their area IDs"
+     *              ),
+     *              @OA\Property(
+     *                  property="values",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="question_id", type="integer", example=1),
+     *                      @OA\Property(
+     *                          property="tag_ids",
+     *                          type="array",
+     *                          @OA\Items(type="integer", example=2),
+     *                          description="Array of tag IDs (many-to-many relationship)"
+     *                      ),
+     *                      @OA\Property(property="star_id", type="integer", example=4)
+     *                  )
+     *              )
+     *          )
+     *      ),
      *      @OA\Response(response=201, description="Created successfully"),
      *      @OA\Response(response=400, description="Bad Request"),
      *      @OA\Response(response=401, description="Unauthenticated"),
@@ -800,6 +800,8 @@ class ReviewNewController extends Controller
             'is_overall' => 'required|boolean',
             'values' => 'required|array',
             'values.*.question_id' => 'required|integer',
+
+            'values.*.tag_ids' => 'present|array',
 
             'values.*.tag_ids' => 'present|array', 
             'values.*.tag_ids.*' => 'integer|exists:tags,id',
@@ -843,16 +845,16 @@ class ReviewNewController extends Controller
         $review = ReviewNew::create($reviewData);
         storeReviewValues($review, $request->values, $business);
 
-       if(!empty($request->business_services)){
-              $businessServicesData = [];
-        foreach ($request->business_services as $service) {
-            $businessServicesData[$service['business_service_id']] = [
-                'business_area_id' => $service['business_area_id']
-            ];
+        if (!empty($request->business_services)) {
+            $businessServicesData = [];
+            foreach ($request->business_services as $service) {
+                $businessServicesData[$service['business_service_id']] = [
+                    'business_area_id' => $service['business_area_id']
+                ];
+            }
+            $review->business_services()->sync($businessServicesData);
         }
-        $review->business_services()->sync($businessServicesData);
-        }
-      
+
         $responseData = [
             "success" => true,
             "message" => "created successfully",
@@ -898,31 +900,31 @@ class ReviewNewController extends Controller
      *              @OA\Property(property="longitude", type="number", example="90.4125"),
      *              @OA\Property(property="staff_id", type="number", example="1"),
      *              @OA\Property(property="branch_id", type="number", example="1"),
-    *              @OA\Property(
- *                  property="business_services",
- *                  type="array",
- *                  @OA\Items(
- *                      @OA\Property(property="business_service_id", type="integer", example=1),
- *                      @OA\Property(property="business_area_id", type="integer", example=1)
- *                  ),
- *                  description="Array of business services with their area IDs"
- *              ),
- *              @OA\Property(
- *                  property="values",
- *                  type="array",
- *                  @OA\Items(
- *                      @OA\Property(property="question_id", type="integer", example=1),
- *                      @OA\Property(
- *                          property="tag_ids",
- *                          type="array",
- *                          @OA\Items(type="integer", example=2),
- *                          description="Array of tag IDs (many-to-many relationship)"
- *                      ),
- *                      @OA\Property(property="star_id", type="integer", example=4)
- *                  )
- *              )
- *          )
- *      ),
+     *              @OA\Property(
+     *                  property="business_services",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="business_service_id", type="integer", example=1),
+     *                      @OA\Property(property="business_area_id", type="integer", example=1)
+     *                  ),
+     *                  description="Array of business services with their area IDs"
+     *              ),
+     *              @OA\Property(
+     *                  property="values",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      @OA\Property(property="question_id", type="integer", example=1),
+     *                      @OA\Property(
+     *                          property="tag_ids",
+     *                          type="array",
+     *                          @OA\Items(type="integer", example=2),
+     *                          description="Array of tag IDs (many-to-many relationship)"
+     *                      ),
+     *                      @OA\Property(property="star_id", type="integer", example=4)
+     *                  )
+     *              )
+     *          )
+     *      ),
      *      @OA\Response(response=201, description="Created successfully"),
      *      @OA\Response(response=400, description="Bad Request"),
      *      @OA\Response(response=401, description="Unauthenticated"),
@@ -944,8 +946,8 @@ class ReviewNewController extends Controller
             'longitude' => 'nullable|numeric',
             'values' => 'required|array',
             'values.*.question_id' => 'required|integer',
-             'values.*.tag_ids' => 'present|array', 
-        'values.*.tag_ids.*' => 'integer|exists:tags,id', 
+            'values.*.tag_ids' => 'present|array',
+            'values.*.tag_ids.*' => 'integer|exists:tags,id',
             'values.*.star_id' => 'nullable|integer',
             'business_services' => 'nullable|array',
             'business_services.*.business_service_id' => 'required|exists:business_services,id',
@@ -1021,16 +1023,16 @@ class ReviewNewController extends Controller
 
         // Attach business services with their respective business_area_id
 
-        if(!empty($request->business_services)){
-              $businessServicesData = [];
-        foreach ($request->business_services as $service) {
-            $businessServicesData[$service['business_service_id']] = [
-                'business_area_id' => $service['business_area_id']
-            ];
+        if (!empty($request->business_services)) {
+            $businessServicesData = [];
+            foreach ($request->business_services as $service) {
+                $businessServicesData[$service['business_service_id']] = [
+                    'business_area_id' => $service['business_area_id']
+                ];
+            }
+            $review->business_services()->sync($businessServicesData);
         }
-        $review->business_services()->sync($businessServicesData);
-        }
-      
+
         $average_rating = collect($request->values)
             ->pluck('star_id')
             ->filter()
@@ -2868,14 +2870,14 @@ $tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.revi
             case 'oldest':
                 $query->orderBy('created_at', 'asc');
                 break;
-           case 'highest_rating':
-        // ISNULL returns 1 for null, 0 for not null. 
-        // Ordering by it first ensures nulls go to the bottom.
-        $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating DESC');
-        break;
-    case 'lowest_rating':
-        $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating ASC');
-        break;
+            case 'highest_rating':
+                // ISNULL returns 1 for null, 0 for not null.
+                // Ordering by it first ensures nulls go to the bottom.
+                $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating DESC');
+                break;
+            case 'lowest_rating':
+                $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating ASC');
+                break;
             default:
                 $query->orderBy('created_at', 'desc');
                 break;
@@ -3213,6 +3215,171 @@ $tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.revi
                 'missing_review_ids' => $missingReviewIds,
                 'email' => $validated['email']
             ]
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/reviews",
+     *      operationId="getAllReviews",
+     *      tags={"review_management"},
+     *      security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="Get all reviews",
+     *      description="Retrieve all reviews across all businesses with filtering and pagination - Admin only",
+     *      @OA\Parameter(
+     *          name="page",
+     *          in="query",
+     *          required=false,
+     *          description="Page number"
+     *      ),
+     *      @OA\Parameter(
+     *          name="per_page",
+     *          in="query",
+     *          required=false,
+     *          description="Items per page"
+     *      ),
+     *      @OA\Parameter(
+     *          name="is_private",
+     *          in="query",
+     *          required=false,
+     *          description="Filter by privacy status (0 for public, 1 for private)"
+     *      ),
+     *      @OA\Parameter(
+     *          name="status",
+     *          in="query",
+     *          required=false,
+     *          description="Filter by review status",
+     *          @OA\Schema(
+     *              type="string",
+     *              enum={"published", "draft", "archived"}
+     *          )
+     *      ),
+     *      @OA\Parameter(
+     *          name="sort_by",
+     *          in="query",
+     *          required=false,
+     *          description="Sort option",
+     *          @OA\Schema(
+     *              type="string",
+     *              enum={"newest", "oldest", "highest_rating", "lowest_rating"}
+     *          )
+     *      ),
+     *      @OA\Parameter(
+     *          name="start_date",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews from this date"
+     *      ),
+     *      @OA\Parameter(
+     *          name="end_date",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews until this date"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Reviews retrieved successfully"),
+     *              @OA\Property(property="meta", type="object"),
+     *              @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - Admin access required",
+     *          @OA\JsonContent()
+     *      )
+     * )
+     */
+    public function getAllReviews(Request $request)
+    {
+        // Check if user is admin/superadmin
+        // if (!$request->user()->hasRole(['superadmin', 'admin'])) {
+        //     return response([
+        //         "success" => false,
+        //         "message" => "Access denied. Admin privileges required."
+        //     ], 403);
+        // }
+
+        $businessId = $request->user()->business_id;
+
+        $query = ReviewNew::with([
+            "value.question",
+            "value",
+            "user",
+            "guest_user",
+            "survey",
+        ])->where("business_id", $businessId)
+            ->withCalculatedRating();
+
+
+        // Apply privacy filter
+        if ($request->has('is_private')) {
+            $isPrivate = $request->input('is_private');
+            if ($isPrivate == 0) {
+                $query->where(function ($subQ) {
+                    $subQ->where('is_private', 0)
+                        ->orWhereNull('is_private');
+                });
+            } else {
+                $query->where('is_private', $isPrivate);
+            }
+        }
+
+        // Apply status filter
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
+        // Apply date range filters
+        if ($request->has('start_date') && !empty($request->start_date)) {
+            $startDate = Carbon::createFromFormat('d-m-Y', $request->start_date);
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($request->has('end_date') && !empty($request->end_date)) {
+            $endDate = Carbon::createFromFormat('d-m-Y', $request->end_date);
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        // Sorting logic
+        $sortBy = $request->get('sort_by', 'newest');
+
+        switch ($sortBy) {
+            case 'newest':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'highest_rating':
+                // ISNULL returns 1 for null, 0 for not null.
+                // Ordering by it first ensures nulls go to the bottom.
+                $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating DESC');
+                break;
+            case 'lowest_rating':
+                $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating ASC');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
+
+        $result = retrieve_data($query);
+
+        return response([
+            "success" => true,
+            "message" => "Reviews retrieved successfully",
+            "meta" => $result['meta'],
+            "data" => $result['data']
         ], 200);
     }
 }

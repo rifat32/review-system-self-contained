@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\AIProcessor;
 use App\Http\Requests\StaffRequest;
 use App\Http\Requests\UpdateStaffRequest;
+use App\Models\ReviewNew;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
+use Carbon\Carbon;
 
 class StaffController extends Controller
 {
@@ -955,6 +957,151 @@ class StaffController extends Controller
             'success' => true,
             'message' => 'Staff performance report retrieved successfully',
             'data' => $staffPerformance
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *   path="/v1.0/staffs/{staffId}/rating-trends",
+     *   operationId="staffRatingTrends",
+     *   tags={"staff_management"},
+     *   summary="Get staff rating trends",
+     *   description="Returns rating trends for a specific staff member within the specified date range, grouped by weeks.",
+     *   security={{"bearerAuth":{}}},
+     *
+     *   @OA\Parameter(
+     *     name="staffId",
+     *     in="path",
+     *     required=true,
+     *     description="Staff user ID",
+     *     @OA\Schema(type="integer")
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="start_date",
+     *     in="query",
+     *     required=true,
+     *     description="Start date for the trends (DD-MM-YYYY)",
+     *     @OA\Schema(type="string", format="date")
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="end_date",
+     *     in="query",
+     *     required=true,
+     *     description="End date for the trends (DD-MM-YYYY)",
+     *     @OA\Schema(type="string", format="date")
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Staff rating trends retrieved successfully",
+     *     @OA\JsonContent(
+     *       type="object",
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="Staff rating trends retrieved successfully"),
+     *       @OA\Property(
+     *         property="data",
+     *         type="array",
+     *         @OA\Items(
+     *           type="object",
+     *           @OA\Property(property="name", type="string", example="Week 1"),
+     *           @OA\Property(property="rating", type="number", format="float", example=4.2)
+     *         )
+     *       )
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=400,
+     *     description="Invalid date range",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Invalid date range provided")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=404,
+     *     description="Staff not found",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Staff not found")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=401,
+     *     description="Unauthenticated",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *     )
+     *   ),
+     *   @OA\Response(
+     *     response=403,
+     *     description="Forbidden",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="message", type="string", example="Forbidden")
+     *     )
+     *   )
+     * )
+     */
+    public function staffRatingTrends(Request $request, $staffId)
+    {
+        $businessId = $request->user()->business->id;
+
+        // Validate staff exists and belongs to the business
+        $staff = User::where('business_id', $businessId)
+            ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
+            ->find($staffId);
+
+        if (!$staff) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff not found'
+            ], 404);
+        }
+
+        // Validate start_date and end_date
+        $request->validate([
+            'start_date' => 'required|date|before_or_equal:end_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $startDate = Carbon::createFromFormat('d-m-Y', $request->query('start_date'))->startOfDay();
+        $endDate = Carbon::createFromFormat('d-m-Y', $request->query('end_date'))->endOfDay();
+
+        // Get weekly rating trends using calculated ratings
+        $reviews = ReviewNew::withCalculatedRating()
+            ->where('staff_id', $staffId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get();
+
+        // Group by week and calculate average rating
+        $weeklyTrends = $reviews->groupBy(function ($review) {
+            return Carbon::parse($review->created_at)->format('oW'); // Year and week number
+        })->map(function ($weekReviews) {
+            return [
+                'week' => $weekReviews->first()->created_at->format('oW'),
+                'avg_rating' => $weekReviews->avg('calculated_rating')
+            ];
+        })->sortBy('week');
+
+        $ratingData = [];
+        $weekNumber = 1;
+
+        foreach ($weeklyTrends as $trend) {
+            $ratingData[] = [
+                'name' => 'Week ' . $weekNumber,
+                'rating' => round((float) $trend['avg_rating'], 2)
+            ];
+            $weekNumber++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Staff rating trends retrieved successfully',
+            'data' => $ratingData
         ], 200);
     }
 }
