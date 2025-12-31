@@ -980,16 +980,16 @@ class StaffController extends Controller
      *   @OA\Parameter(
      *     name="start_date",
      *     in="query",
-     *     required=true,
-     *     description="Start date for the trends (DD-MM-YYYY)",
+     *     required=false,
+     *     description="Start date for the trends (DD-MM-YYYY). Defaults to 30 days ago if not provided.",
      *     @OA\Schema(type="string", format="date")
      *   ),
      *
      *   @OA\Parameter(
      *     name="end_date",
      *     in="query",
-     *     required=true,
-     *     description="End date for the trends (DD-MM-YYYY)",
+     *     required=false,
+     *     description="End date for the trends (DD-MM-YYYY). Defaults to today if not provided.",
      *     @OA\Schema(type="string", format="date")
      *   ),
      *
@@ -1062,14 +1062,23 @@ class StaffController extends Controller
             ], 404);
         }
 
-        // Validate start_date and end_date
-        $request->validate([
-            'start_date' => 'required|date|before_or_equal:end_date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-        ]);
+        // Get start and end dates, default to last 30 days if not provided
+        $startDateInput = $request->query('start_date');
+        $endDateInput = $request->query('end_date');
 
-        $startDate = Carbon::createFromFormat('d-m-Y', $request->query('start_date'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d-m-Y', $request->query('end_date'))->endOfDay();
+        if ($startDateInput && $endDateInput) {
+            // Validate provided dates
+            $request->validate([
+                'start_date' => 'date_format:d-m-Y|before_or_equal:end_date',
+                'end_date' => 'date_format:d-m-Y|after_or_equal:start_date',
+            ]);
+            $startDate = Carbon::createFromFormat('d-m-Y', $startDateInput)->startOfDay();
+            $endDate = Carbon::createFromFormat('d-m-Y', $endDateInput)->endOfDay();
+        } else {
+            // Default to last 30 days
+            $endDate = Carbon::now()->endOfDay();
+            $startDate = Carbon::now()->subDays(30)->startOfDay();
+        }
 
         // Get weekly rating trends using calculated ratings
         $reviews = ReviewNew::withCalculatedRating()
@@ -1114,6 +1123,13 @@ class StaffController extends Controller
      *   description="Returns reviews for a specific staff member filtered by sentiment (positive, negative, neutral) with pagination.",
      *   security={{"bearerAuth":{}}},
      *
+     *   @OA\Parameter(
+     *     name="staffId",
+     *     in="path",
+     *     required=true,
+     *     description="Staff user ID",
+     *     @OA\Schema(type="integer")
+     *   ),
      *
      *   @OA\Parameter(
      *     name="filter",
@@ -1254,13 +1270,13 @@ class StaffController extends Controller
 
         // Apply filter based on calculated_rating
         if ($filter === 'positive') {
-            $query->where('calculated_rating', '>=', 4);
+            $query->having('calculated_rating', '>=', 4);
         } elseif ($filter === 'negative') {
-            $query->where('calculated_rating', '<=', 2);
+            $query->having('calculated_rating', '<=', 2);
         } elseif ($filter === 'neutral') {
-            $query->whereBetween('calculated_rating', [2.1, 3.9]);
+            $query->havingRaw('calculated_rating BETWEEN 2.1 AND 3.9');
         } else {
-            $query->where('calculated_rating', '>=', 4);
+            $query->having('calculated_rating', '>=', 4);
         }
 
         // Get the reviews using retrieve_data for consistent pagination
