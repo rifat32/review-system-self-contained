@@ -109,87 +109,64 @@ if (!function_exists('extractRatingBreakdown')) {
 }
 
 if (!function_exists('extractTagsBreakdown')) {
-    function extractTagsBreakdown($businessId, $dateRange)
-    {
-        // First, get all tags for this business
-        $allTags = \App\Models\Tag::where('business_id', $businessId)
-            ->select('id', 'tag')
-            ->get()
-            ->keyBy('id');
+   function extractTagsBreakdown($businessId, $dateRange)
+{
+    // Get all tags with their mention counts
+    $tags = Tag::where('business_id', $businessId)
+        ->withCount(['reviewValues' => function ($query) use ($dateRange) {
+            $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
+        }])
+        ->orderByDesc('review_values_count')
+        ->get();
 
-        // Get tag counts from ReviewValueNew for the period
-        $tagCounts = ReviewValueNew::join('tags', 'review_value_news.tag_id', '=', 'tags.id')
-            ->where('tags.business_id', $businessId)
-            ->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']])
-            ->select('tags.id', 'tags.tag', DB::raw('COUNT(review_value_news.id) as count'))
-            ->groupBy('tags.id', 'tags.tag')
-            ->orderByDesc('count')
-            ->get();
+    $totalTagMentions = $tags->sum('review_values_count');
 
-        $totalTagMentions = $tagCounts->sum('count');
+    // Color palette for visualization
+    $colorPalette = [
+        '#3490dc', '#38c172', '#e3342f', '#f6993f', 
+        '#9561e2', '#ffed4a', '#4dc0b5', '#f66d9b', 
+        '#6574cd', '#a0aec0'
+    ];
 
-        // Color palette for visualization
-        $colorPalette = [
-            '#3490dc', // blue
-            '#38c172', // green
-            '#e3342f', // red
-            '#f6993f', // orange
-            '#9561e2', // purple
-            '#ffed4a', // yellow
-            '#4dc0b5', // teal
-            '#f66d9b', // pink
-            '#6574cd', // indigo
-            '#a0aec0'  // gray
-        ];
-
-        // Prepare breakdown with all tags, including those with zero mentions
-        $breakdown = $allTags->map(function ($tag, $index) use ($tagCounts, $totalTagMentions, $colorPalette) {
-            $tagData = $tagCounts->firstWhere('id', $tag->id);
-            $count = $tagData ? $tagData->count : 0;
-
-            // Calculate percentage based on total tag mentions (not total reviews)
-            $percentage = $totalTagMentions > 0 ? round(($count / $totalTagMentions) * 100) : 0;
-
-            // Assign color from palette (cycle through if more tags than colors)
-            $colorIndex = $index % count($colorPalette);
-            $color = $colorPalette[$colorIndex];
-
-            return [
-                'id' => $tag->id,
-                'tag' => $tag->tag,
-                'color' => $color,
-                'count' => $count,
-                'percentage' => $percentage,
-                'display_text' => "{$tag->name} ({$percentage}%)"
-            ];
-        })->sortByDesc('percentage')->values();
-
-        // Get top 8 tags for the chart
-        $topTags = $breakdown->take(8)->values();
-
+    // Prepare breakdown
+    $breakdown = $tags->map(function ($tag, $index) use ($totalTagMentions, $colorPalette) {
+        $count = $tag->review_values_count;
+        $percentage = $totalTagMentions > 0 ? round(($count / $totalTagMentions) * 100) : 0;
+        $colorIndex = $index % count($colorPalette);
+        
         return [
-            'tags' => $topTags->toArray(),
-            'summary' => [
-                'total_tags' => $allTags->count(),
-                'total_tag_mentions' => $totalTagMentions,
-                'tags_with_mentions' => $tagCounts->count(),
-                'top_tag' => $breakdown->isNotEmpty() ? $breakdown->first()['tag'] : null,
-                'top_tag_percentage' => $breakdown->isNotEmpty() ? $breakdown->first()['percentage'] : 0,
-                'average_mentions_per_tag' => $allTags->count() > 0 ? round($totalTagMentions / $allTags->count(), 1) : 0
-            ],
-            'all_tags_count' => $allTags->count(),
-            'visualization_data' => [
-                'labels' => $topTags->pluck('name')->toArray(),
-                'datasets' => [
-                    [
-                        'data' => $topTags->pluck('percentage')->toArray(),
-                        'backgroundColor' => $topTags->pluck('color')->toArray(),
-                        'borderWidth' => 1
-                    ]
-                ]
-            ]
+            'id' => $tag->id,
+            'tag' => $tag->tag,
+            'color' => $colorPalette[$colorIndex],
+            'count' => $count,
+            'percentage' => $percentage,
+            'display_text' => "{$tag->tag} ({$percentage}%)"
         ];
-    }
+    });
+
+    $topTags = $breakdown->take(8)->values();
+
+    return [
+        'tags' => $topTags->toArray(),
+        'summary' => [
+            'total_tags' => $tags->count(),
+            'total_tag_mentions' => $totalTagMentions,
+            'tags_with_mentions' => $tags->where('review_values_count', '>', 0)->count(),
+            'top_tag' => $topTags->isNotEmpty() ? $topTags->first()['tag'] : null,
+            'top_tag_percentage' => $topTags->isNotEmpty() ? $topTags->first()['percentage'] : 0,
+            'average_mentions_per_tag' => $tags->count() > 0 ? round($totalTagMentions / $tags->count(), 1) : 0
+        ],
+        'all_tags_count' => $tags->count(),
+        'visualization_data' => [
+            'labels' => $topTags->pluck('tag')->toArray(),
+            'datasets' => [[
+                'data' => $topTags->pluck('percentage')->toArray(),
+                'backgroundColor' => $topTags->pluck('color')->toArray(),
+                'borderWidth' => 1
+            ]]
+        ]
+    ];
+}
 }
 
 if (!function_exists('formatPeriodDisplay')) {
@@ -340,7 +317,9 @@ if (!function_exists('storeReviewValues')) {
 
         foreach ($values as $value) {
             $value['review_id'] = $review->id;
-            ReviewValueNew::create($value);
+            $review_value = ReviewValueNew::create($value);
+            $review_value->tags()->sync($value['tag_ids']);
+            
         }
 
         if ($business && $review->guest_id) {
@@ -582,12 +561,15 @@ if (!function_exists('applyFilters')) {
         }
 
         // Labels filter (using sentiment field)
-        if (!empty($filters['labels'])) {
-            $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
-            $query->whereHas('value', function ($q) use ($labels) {
-                $q->whereIn('review_value_news.tag_id', $labels);
-            });
-        }
+        // Labels filter (using sentiment field)
+if (!empty($filters['labels'])) {
+    $labels = is_array($filters['labels']) ? $filters['labels'] : explode(',', $filters['labels']);
+    $query->whereHas('value', function ($q) use ($labels) {
+        $q->whereHas('tags', function ($q2) use ($labels) {
+            $q2->whereIn('tags.id', $labels);
+        });
+    });
+}
 
         // Review type filter (using review_type field)
         if (!empty($filters['review_type'])) {

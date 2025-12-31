@@ -2318,7 +2318,9 @@ class AIProcessor
                 'time_ago' => $review->created_at->diffForHumans(),
                 'comment' => $review->comment,
                 'staff_name' => $review->staff?->name,
-                'tags' => $review->value->map(fn($v) => $v->tag->tag ?? null)->filter()->unique()->values()->toArray(),
+'tags' => $review->value->flatMap(function ($value) {
+    return $value->tags->pluck('tag')->all();
+})->filter()->unique()->values()->toArray(),
                 'is_voice' => $review->is_voice_review,
                 'sentiment' =>  self::getSentimentLabel($review->sentiment_score),
                 'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])

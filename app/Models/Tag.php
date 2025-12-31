@@ -23,10 +23,11 @@ class Tag extends Model
     ];
 
 
-    public function review_values()
+      public function review_values()
     {
-        return $this->hasMany(ReviewValueNew::class, 'tag_id', 'id');
+        return $this->belongsToMany(ReviewValueNew::class, 'review_value_tag', 'tag_id', 'review_value_id');
     }
+
 
     public function scopeFilterByOverall($query)
     {

@@ -1349,6 +1349,9 @@ class QuestionController extends Controller
                             "tag_id" => $starTag->tag->id
 
                         ])->count();
+
+
+                        
                     }
                 }
             }

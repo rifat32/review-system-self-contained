@@ -757,17 +757,31 @@ class ReviewNewController extends Controller
      *              @OA\Property(property="is_overall", type="boolean", example=true),
      *              @OA\Property(property="staff_id", type="integer", example="1"),
      *              @OA\Property(property="branch_id", type="integer", example="1"),
-     *              @OA\Property(
-     *                  property="values",
-     *                  type="array",
-     *                  @OA\Items(
-     *                      @OA\Property(property="question_id", type="integer", example=1),
-     *                      @OA\Property(property="tag_id", type="integer", example=2),
-     *                      @OA\Property(property="star_id", type="integer", example=4)
-     *                  )
-     *              )
-     *          )
-     *      ),
+*              @OA\Property(
+ *                  property="business_services",
+ *                  type="array",
+ *                  @OA\Items(
+ *                      @OA\Property(property="business_service_id", type="integer", example=1),
+ *                      @OA\Property(property="business_area_id", type="integer", example=1)
+ *                  ),
+ *                  description="Array of business services with their area IDs"
+ *              ),
+ *              @OA\Property(
+ *                  property="values",
+ *                  type="array",
+ *                  @OA\Items(
+ *                      @OA\Property(property="question_id", type="integer", example=1),
+ *                      @OA\Property(
+ *                          property="tag_ids",
+ *                          type="array",
+ *                          @OA\Items(type="integer", example=2),
+ *                          description="Array of tag IDs (many-to-many relationship)"
+ *                      ),
+ *                      @OA\Property(property="star_id", type="integer", example=4)
+ *                  )
+ *              )
+ *          )
+ *      ),
      *      @OA\Response(response=201, description="Created successfully"),
      *      @OA\Response(response=400, description="Bad Request"),
      *      @OA\Response(response=401, description="Unauthenticated"),
@@ -776,6 +790,7 @@ class ReviewNewController extends Controller
      */
     public function createReview($businessId, Request $request)
     {
+
         $request->validate([
             'description' => 'nullable|string',
             'rate' => 'required|numeric|min:1|max:5',
@@ -785,7 +800,10 @@ class ReviewNewController extends Controller
             'is_overall' => 'required|boolean',
             'values' => 'required|array',
             'values.*.question_id' => 'required|integer',
-            'values.*.tag_id' => 'nullable|integer',
+            
+            'values.*.tag_ids' => 'present|array', 
+            'values.*.tag_ids.*' => 'integer|exists:tags,id',
+
             'values.*.star_id' => 'nullable|integer',
             'business_services' => 'nullable|array',
             'business_services.*.business_service_id' => 'required|exists:business_services,id',
@@ -796,35 +814,6 @@ class ReviewNewController extends Controller
 
         $business = Business::findOrFail($businessId);
         $raw_text = $request->input('comment', '');
-
-        // Voice review handling
-        // $voiceData = null;
-
-        // if ($request->hasFile('audio')) {
-        //     $audioPath = $request->file('audio')->store('voice-reviews', 'public');
-        //     $audioUrl = Storage::url($audioPath);
-        //     $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
-
-        //     $voiceData = [
-        //         'is_voice_review' => true,
-        //         'voice_url' => $audioUrl,
-        //         'voice_duration' => getAudioDuration($request->file('audio')->getRealPath()),
-        //         'transcription_metadata' => [
-        //             'audio_path' => $audioPath,
-        //             'file_size' => $request->file('audio')->getSize(),
-        //             'mime_type' => $request->file('audio')->getMimeType(),
-        //         ]
-        //     ];
-        // }
-        // Check if content should be blocked
-        // if ($moderationResults['should_block']) {
-        //     return response([
-        //         "success" => false,
-        //         "message" => $moderationResults['action_message'],
-        //         "moderation_results" => $moderationResults
-        //     ], 400);
-        // }
-
 
         $reviewData = [
             'survey_id' => $request->survey_id,
@@ -846,10 +835,6 @@ class ReviewNewController extends Controller
 
         ];
 
-        // Add voice data if present
-        // if ($voiceData) {
-        //     $reviewData = array_merge($reviewData, $voiceData);
-        // }
         $averageRating = collect($request->values)
             ->pluck('star_id')
             ->filter()
@@ -868,8 +853,6 @@ class ReviewNewController extends Controller
         $review->business_services()->sync($businessServicesData);
         }
       
-
-
         $responseData = [
             "success" => true,
             "message" => "created successfully",
@@ -878,15 +861,6 @@ class ReviewNewController extends Controller
             "review" => $review,
 
         ];
-
-        // Add voice info if present
-        // if ($voiceData) {
-        //     $responseData['voice_info'] = [
-        //         'voice_url' => $voiceData['voice_url'],
-        //         'duration' => $voiceData['voice_duration'],
-        //         'transcription' => $raw_text
-        //     ];
-        // }
 
         return response($responseData, 201);
     }
@@ -897,7 +871,7 @@ class ReviewNewController extends Controller
 
     /**
      * @OA\Post(
-     *      path="/review-new-guest/{businessId}",
+     *      path="/v1.0/review-new-guest/{businessId}",
      *      operationId="storeReviewByGuest",
      *      tags={"review_management"},
      *      @OA\Parameter(
@@ -924,26 +898,31 @@ class ReviewNewController extends Controller
      *              @OA\Property(property="longitude", type="number", example="90.4125"),
      *              @OA\Property(property="staff_id", type="number", example="1"),
      *              @OA\Property(property="branch_id", type="number", example="1"),
-     *              @OA\Property(
-     *                  property="business_services",
-     *                  type="array",
-     *                  @OA\Items(
-     *                      @OA\Property(property="business_service_id", type="integer", example=1),
-     *                      @OA\Property(property="business_area_id", type="integer", example=1)
-     *                  ),
-     *                  description="Array of business services with their area IDs"
-     *              ),
-     *              @OA\Property(
-     *                  property="values",
-     *                  type="array",
-     *                  @OA\Items(
-     *                      @OA\Property(property="question_id", type="integer", example=1),
-     *                      @OA\Property(property="tag_id", type="integer", example=2),
-     *                      @OA\Property(property="star_id", type="integer", example=4)
-     *                  )
-     *              )
-     *          )
-     *      ),
+    *              @OA\Property(
+ *                  property="business_services",
+ *                  type="array",
+ *                  @OA\Items(
+ *                      @OA\Property(property="business_service_id", type="integer", example=1),
+ *                      @OA\Property(property="business_area_id", type="integer", example=1)
+ *                  ),
+ *                  description="Array of business services with their area IDs"
+ *              ),
+ *              @OA\Property(
+ *                  property="values",
+ *                  type="array",
+ *                  @OA\Items(
+ *                      @OA\Property(property="question_id", type="integer", example=1),
+ *                      @OA\Property(
+ *                          property="tag_ids",
+ *                          type="array",
+ *                          @OA\Items(type="integer", example=2),
+ *                          description="Array of tag IDs (many-to-many relationship)"
+ *                      ),
+ *                      @OA\Property(property="star_id", type="integer", example=4)
+ *                  )
+ *              )
+ *          )
+ *      ),
      *      @OA\Response(response=201, description="Created successfully"),
      *      @OA\Response(response=400, description="Bad Request"),
      *      @OA\Response(response=401, description="Unauthenticated"),
@@ -965,7 +944,8 @@ class ReviewNewController extends Controller
             'longitude' => 'nullable|numeric',
             'values' => 'required|array',
             'values.*.question_id' => 'required|integer',
-            'values.*.tag_id' => 'nullable|integer',
+             'values.*.tag_ids' => 'present|array', 
+        'values.*.tag_ids.*' => 'integer|exists:tags,id', 
             'values.*.star_id' => 'nullable|integer',
             'business_services' => 'nullable|array',
             'business_services.*.business_service_id' => 'required|exists:business_services,id',
@@ -1010,37 +990,12 @@ class ReviewNewController extends Controller
             }
         }
 
-
-
         $guest = GuestUser::create([
             'full_name' => $request->guest_full_name ?? 'anonymous',
             'phone' => $request->guest_phone,
         ]);
 
         $raw_text = $request->input('comment', '');
-
-
-
-        // Voice review handling
-        // $voiceData = null;
-        // if ($request->hasFile('audio')) {
-        //     $audioPath = $request->file('audio')->store('voice-reviews', 'public');
-        //     $audioUrl = Storage::url($audioPath);
-        //     $raw_text = $this->transcribeAudio($request->file('audio')->getRealPath());
-
-        //     $voiceData = [
-        //         'is_voice_review' => true,
-        //         'voice_url' => $audioUrl,
-        //         'voice_duration' => getAudioDuration($request->file('audio')->getRealPath()),
-        //         'transcription_metadata' => [
-        //             'audio_path' => $audioPath,
-        //             'file_size' => $request->file('audio')->getSize(),
-        //             'mime_type' => $request->file('audio')->getMimeType(),
-        //         ]
-        //     ];
-        // }
-
-
 
 
         $reviewData = [
@@ -1061,14 +1016,6 @@ class ReviewNewController extends Controller
             "business_service_id" => $request->business_service_id ?? null,
         ];
 
-
-
-
-        // Add voice data if present
-        // if ($voiceData) {
-        //     $reviewData = array_merge($reviewData, $voiceData);
-        // }
-
         $review = ReviewNew::create($reviewData);
         storeReviewValues($review, $request->values, $business);
 
@@ -1084,8 +1031,6 @@ class ReviewNewController extends Controller
         $review->business_services()->sync($businessServicesData);
         }
       
-
-
         $average_rating = collect($request->values)
             ->pluck('star_id')
             ->filter()
@@ -1097,16 +1042,6 @@ class ReviewNewController extends Controller
             "review_id" => $review->id,
             "review" => $review,
         ];
-
-
-        // Add voice info if present
-        // if ($voiceData) {
-        //     $responseData['voice_info'] = [
-        //         'voice_url' => $voiceData['voice_url'],
-        //         'duration' => $voiceData['voice_duration'],
-        //         'transcription' => $raw_text
-        //     ];
-        // }
 
         return response($responseData, 201);
     }

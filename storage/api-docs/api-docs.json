@@ -1593,6 +1593,10 @@
                                                         "type": "boolean",
                                                         "example": true
                                                     },
+                                                    "is_default": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
                                                     "is_geo_enabled": {
                                                         "type": "boolean",
                                                         "example": false
@@ -1749,6 +1753,11 @@
                                         "type": "boolean",
                                         "example": true
                                     },
+                                    "is_default": {
+                                        "description": "Whether this is the default branch",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
                                     "is_geo_enabled": {
                                         "description": "Whether geolocation is enabled for the branch",
                                         "type": "boolean",
@@ -1846,6 +1855,10 @@
                                                 "is_active": {
                                                     "type": "boolean",
                                                     "example": true
+                                                },
+                                                "is_default": {
+                                                    "type": "boolean",
+                                                    "example": false
                                                 },
                                                 "is_geo_enabled": {
                                                     "type": "boolean",
@@ -2039,6 +2052,10 @@
                                                     "type": "boolean",
                                                     "example": true
                                                 },
+                                                "is_default": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
                                                 "is_geo_enabled": {
                                                     "type": "boolean",
                                                     "example": false
@@ -2207,7 +2224,7 @@
                         }
                     },
                     "403": {
-                        "description": "Forbidden - Not business owner or super admin",
+                        "description": "Forbidden - Not business owner, super admin, or attempting to delete default branch",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2218,7 +2235,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "You do not have permission to delete this branch"
+                                            "example": "Cannot delete default branch"
                                         }
                                     },
                                     "type": "object"
@@ -2344,6 +2361,11 @@
                                         "type": "boolean",
                                         "example": true
                                     },
+                                    "is_default": {
+                                        "description": "Whether this is the default branch",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
                                     "is_geo_enabled": {
                                         "description": "Whether geolocation is enabled for the branch",
                                         "type": "boolean",
@@ -2442,6 +2464,10 @@
                                                     "type": "boolean",
                                                     "example": true
                                                 },
+                                                "is_default": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
                                                 "is_geo_enabled": {
                                                     "type": "boolean",
                                                     "example": false
@@ -2494,7 +2520,7 @@
                         }
                     },
                     "403": {
-                        "description": "Forbidden - Not business owner or super admin",
+                        "description": "Forbidden - Not business owner, super admin, or attempting to update default branch",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2505,7 +2531,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "You do not have permission to update this branch"
+                                            "example": "Cannot update default branch"
                                         }
                                     },
                                     "type": "object"
@@ -2652,6 +2678,10 @@
                                                 "is_active": {
                                                     "type": "boolean",
                                                     "example": true
+                                                },
+                                                "is_default": {
+                                                    "type": "boolean",
+                                                    "example": false
                                                 },
                                                 "is_geo_enabled": {
                                                     "type": "boolean",
@@ -4412,251 +4442,298 @@
                     }
                 ],
                 "requestBody": {
+                    "description": "All fields are optional for update",
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "Name",
-                                    "Layout",
-                                    "Address",
-                                    "PostCode"
-                                ],
                                 "properties": {
-                                    "GoogleMapApi": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "business name"
-                                    },
                                     "Name": {
+                                        "description": "Business name",
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "business name"
+                                        "example": "My Restaurant"
                                     },
-                                    "EmailAddress": {
+                                    "Address": {
+                                        "description": "Business address",
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "test@example.com"
-                                    },
-                                    "homeText": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
-                                    },
-                                    "AdditionalInformation": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "example": "123 Main Street, City"
                                     },
                                     "PostCode": {
+                                        "description": "Postal code",
                                         "type": "string",
-                                        "format": "string",
                                         "example": "12345"
                                     },
-                                    "Webpage": {
+                                    "OwnerID": {
+                                        "description": "Owner user ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "Status": {
+                                        "description": "Business status (Active/Inactive)",
                                         "type": "string",
-                                        "format": "string",
+                                        "example": "Active"
+                                    },
+                                    "Logo": {
+                                        "description": "Logo image path",
+                                        "type": "string",
+                                        "example": "img/business/logo.png"
+                                    },
+                                    "Key_ID": {
+                                        "description": "Unique business key",
+                                        "type": "string",
+                                        "example": "abc123"
+                                    },
+                                    "expiry_date": {
+                                        "description": "Subscription expiry date",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "15-12-2025"
+                                    },
+                                    "About": {
+                                        "description": "Business description",
+                                        "type": "string",
+                                        "example": "Best restaurant in town"
+                                    },
+                                    "Webpage": {
+                                        "description": "Business website",
+                                        "type": "string",
+                                        "format": "url",
                                         "example": "https://example.com"
                                     },
                                     "PhoneNumber": {
+                                        "description": "Contact phone number",
                                         "type": "string",
-                                        "format": "string",
                                         "example": "+44123456789"
                                     },
-                                    "About": {
+                                    "EmailAddress": {
+                                        "description": "Contact email",
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "format": "email",
+                                        "example": "business@example.com"
                                     },
-                                    "Layout": {
+                                    "homeText": {
+                                        "description": "Homepage text",
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
+                                        "example": "Welcome to our restaurant"
                                     },
-                                    "Address": {
+                                    "AdditionalInformation": {
+                                        "description": "Additional business info",
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "Street 1, City"
+                                        "example": "Open 24/7"
                                     },
-                                    "show_image": {
+                                    "GoogleMapApi": {
+                                        "description": "Google Maps API key",
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "0"
-                                    },
-                                    "Key_ID": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "0"
+                                        "example": "AIza..."
                                     },
                                     "review_type": {
+                                        "description": "Type of review system",
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "0"
+                                        "example": "star"
+                                    },
+                                    "show_image": {
+                                        "description": "Show images in reviews",
+                                        "type": "boolean",
+                                        "example": true
                                     },
                                     "google_map_iframe": {
+                                        "description": "Google Maps iframe embed code",
                                         "type": "string",
-                                        "format": "string",
-                                        "example": "test"
+                                        "example": "<iframe>...</iframe>"
                                     },
                                     "Is_guest_user": {
+                                        "description": "Allow guest user reviews",
                                         "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "false"
+                                        "example": true
                                     },
                                     "is_review_slider": {
+                                        "description": "Enable review slider",
                                         "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "false"
+                                        "example": true
                                     },
-                                    "header_image": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "/header_image/default.png"
-                                    },
-                                    "primary_color": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "red"
-                                    },
-                                    "secondary_color": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "red"
-                                    },
-                                    "client_primary_color": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "red"
-                                    },
-                                    "client_secondary_color": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "red"
-                                    },
-                                    "client_tertiary_color": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "red"
-                                    },
-                                    "user_review_report": {
+                                    "review_only": {
+                                        "description": "Review only mode (no ratings)",
                                         "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "guest_user_review_report": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_report_email_enabled": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "pin": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "1"
-                                    },
-                                    "is_registered_user_overall_review": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_registered_user_survey": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_registered_user_survey_required": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_registered_user_show_stuffs": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_registered_user_show_stuff_image": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_registered_user_show_stuff_name": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "enable_ip_check": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "enable_location_check": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "latitude": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "longitude": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "review_distance_limit": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "review_labels": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "['a','b']"
-                                    },
-                                    "threshold_rating": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_guest_user_overall_review": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_guest_user_survey": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
-                                    },
-                                    "is_guest_user_survey_required": {
-                                        "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
+                                        "example": false
                                     },
                                     "is_branch": {
+                                        "description": "Business has branches",
                                         "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
+                                        "example": true
+                                    },
+                                    "header_image": {
+                                        "description": "Header image path",
+                                        "type": "string",
+                                        "example": "/header_image/default.png"
+                                    },
+                                    "rating_page_image": {
+                                        "description": "Rating page background image",
+                                        "type": "string",
+                                        "example": "/rating_page/default.png"
+                                    },
+                                    "placeholder_image": {
+                                        "description": "Placeholder image",
+                                        "type": "string",
+                                        "example": "/placeholder/default.png"
+                                    },
+                                    "primary_color": {
+                                        "description": "Primary brand color",
+                                        "type": "string",
+                                        "example": "#FF5733"
+                                    },
+                                    "secondary_color": {
+                                        "description": "Secondary brand color",
+                                        "type": "string",
+                                        "example": "#33FF57"
+                                    },
+                                    "client_primary_color": {
+                                        "description": "Client-facing primary color",
+                                        "type": "string",
+                                        "example": "#5733FF"
+                                    },
+                                    "client_secondary_color": {
+                                        "description": "Client-facing secondary color",
+                                        "type": "string",
+                                        "example": "#FF3357"
+                                    },
+                                    "client_tertiary_color": {
+                                        "description": "Client-facing tertiary color",
+                                        "type": "string",
+                                        "example": "#3357FF"
+                                    },
+                                    "user_review_report": {
+                                        "description": "Enable reports for registered user reviews",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "guest_user_review_report": {
+                                        "description": "Enable reports for guest user reviews",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "pin": {
+                                        "description": "Security PIN",
+                                        "type": "string",
+                                        "example": "1234"
+                                    },
+                                    "time_zone": {
+                                        "description": "Business timezone",
+                                        "type": "string",
+                                        "example": "UTC"
+                                    },
+                                    "is_guest_user_overall_review": {
+                                        "description": "Allow overall review from guests",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_guest_user_survey": {
+                                        "description": "Enable survey for guests",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_guest_user_survey_required": {
+                                        "description": "Make guest survey required",
+                                        "type": "boolean",
+                                        "example": false
                                     },
                                     "is_guest_user_show_stuffs": {
+                                        "description": "Show staff selection to guests",
                                         "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
+                                        "example": true
                                     },
                                     "is_guest_user_show_stuff_image": {
+                                        "description": "Show staff images to guests",
                                         "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
+                                        "example": true
                                     },
                                     "is_guest_user_show_stuff_name": {
+                                        "description": "Show staff names to guests",
                                         "type": "boolean",
-                                        "format": "boolean",
-                                        "example": "1"
+                                        "example": true
+                                    },
+                                    "is_registered_user_overall_review": {
+                                        "description": "Allow overall review from registered users",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_registered_user_survey": {
+                                        "description": "Enable survey for registered users",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_registered_user_survey_required": {
+                                        "description": "Make registered user survey required",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_registered_user_show_stuffs": {
+                                        "description": "Show staff selection to registered users",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_registered_user_show_stuff_image": {
+                                        "description": "Show staff images to registered users",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_registered_user_show_stuff_name": {
+                                        "description": "Show staff names to registered users",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "enable_ip_check": {
+                                        "description": "Enable IP address verification",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "enable_location_check": {
+                                        "description": "Enable location verification",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "latitude": {
+                                        "description": "Business latitude coordinate",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 40.7128000000000014324541552923619747161865234375
+                                    },
+                                    "longitude": {
+                                        "description": "Business longitude coordinate",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": -74.006000000000000227373675443232059478759765625
+                                    },
+                                    "review_distance_limit": {
+                                        "description": "Maximum distance (km) to allow reviews",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 1.5
+                                    },
+                                    "threshold_rating": {
+                                        "description": "Minimum rating threshold for public reviews",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 3.5
+                                    },
+                                    "review_labels": {
+                                        "description": "Custom review labels",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "example": "Excellent Service"
+                                        }
+                                    },
+                                    "guest_survey_id": {
+                                        "description": "ID of survey for guest users",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "registered_user_survey_id": {
+                                        "description": "ID of survey for registered users",
+                                        "type": "integer",
+                                        "example": 2,
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -7056,14 +7133,14 @@
                 ]
             }
         },
-        "/v1.0/dashboard/top-worst-staff": {
+        "/v1.0/dashboard/staff-performance": {
             "get": {
                 "tags": [
                     "dashboard_management"
                 ],
-                "summary": "Get top worst performing staff",
-                "description": "Get staff with lowest ratings and sentiment scores",
-                "operationId": "getTopWorstStaff",
+                "summary": "Get top and worst performing staff",
+                "description": "Get both top performing and worst performing staff with analysis",
+                "operationId": "getStaffPerformanceAnalysis",
                 "parameters": [
                     {
                         "name": "businessId",
@@ -7096,14 +7173,14 @@
                     {
                         "name": "limit",
                         "in": "query",
-                        "description": "Number of worst staff to return",
+                        "description": "Number of top/worst staff to return (default: 3)",
                         "required": false,
-                        "example": "5"
+                        "example": "3"
                     },
                     {
                         "name": "criteria",
                         "in": "query",
-                        "description": "Criteria for ranking (rating, sentiment, negative)",
+                        "description": "Criteria for ranking (rating, sentiment, positive, negative)",
                         "required": false,
                         "example": "rating"
                     }
@@ -7121,9 +7198,35 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Worst staff analysis retrieved successfully"
+                                            "example": "Staff performance analysis retrieved successfully"
                                         },
                                         "data": {
+                                            "properties": {
+                                                "top_staff": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "worst_staff": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "summary": {
+                                                    "type": "object"
+                                                },
+                                                "total_staff_analyzed": {
+                                                    "type": "integer"
+                                                },
+                                                "criteria_used": {
+                                                    "type": "string"
+                                                },
+                                                "date_range": {
+                                                    "type": "object"
+                                                }
+                                            },
                                             "type": "object"
                                         }
                                     },
@@ -9718,6 +9821,98 @@
                 }
             }
         },
+        "/v1.0/forget-password/reset/{token}": {
+            "patch": {
+                "tags": [
+                    "forgot_password"
+                ],
+                "summary": "This method is to change password",
+                "description": "This method is to change password",
+                "operationId": "changePasswordByToken",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "description": "Reset token",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "reset-token-123"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "password"
+                                ],
+                                "properties": {
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "aaaaaaaa"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1.0/auth/change-password": {
             "patch": {
                 "tags": [
@@ -9812,98 +10007,6 @@
                         "bearerAuth": []
                     }
                 ]
-            }
-        },
-        "/v1.0/forget-password/reset/{token}": {
-            "patch": {
-                "tags": [
-                    "forgot_password"
-                ],
-                "summary": "This method is to change password",
-                "description": "This method is to change password",
-                "operationId": "changePasswordByToken",
-                "parameters": [
-                    {
-                        "name": "token",
-                        "in": "path",
-                        "description": "Reset token",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "reset-token-123"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "password"
-                                ],
-                                "properties": {
-                                    "password": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "aaaaaaaa"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
             }
         },
         "/v1.0/leaflet/create": {
@@ -10245,9 +10348,73 @@
                 "tags": [
                     "notification"
                 ],
-                "summary": "This method is to get notification by reciever_id",
-                "description": "This method is to get notification by reciever_id",
+                "summary": "This method is to get notification by receiver_id",
+                "description": "This method is to get notification by receiver_id with pagination and filters",
                 "operationId": "getNotification",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by notification status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "read",
+                                "unread"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "Search in title and message",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "order_by",
+                        "in": "query",
+                        "description": "Field to order by (e.g., created_at, title)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort order",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ]
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -10267,6 +10434,18 @@
                                             "properties": {
                                                 "total": {
                                                     "type": "integer",
+                                                    "example": 100
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
                                                     "example": 10
                                                 }
                                             },
@@ -10275,8 +10454,246 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "receiver_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "sender_id": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 1,
+                                                        "nullable": true
+                                                    },
+                                                    "sender_type": {
+                                                        "type": "string",
+                                                        "example": "superadmin"
+                                                    },
+                                                    "message": {
+                                                        "type": "string",
+                                                        "example": "Notification message content"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "unread"
+                                                    },
+                                                    "title": {
+                                                        "type": "string",
+                                                        "example": "Notification Title"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "example": "info"
+                                                    },
+                                                    "read_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "nullable": true
+                                                    },
+                                                    "link": {
+                                                        "type": "string",
+                                                        "example": "https://example.com",
+                                                        "nullable": true
+                                                    },
+                                                    "priority": {
+                                                        "type": "string",
+                                                        "example": "high",
+                                                        "nullable": true
+                                                    },
+                                                    "entity_id": {
+                                                        "type": "integer",
+                                                        "example": 123,
+                                                        "nullable": true
+                                                    },
+                                                    "entity_ids": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "integer"
+                                                        },
+                                                        "example": [
+                                                            1,
+                                                            2,
+                                                            3
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
                                                 "type": "object"
                                             }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/notification/{notificationId}/status": {
+            "patch": {
+                "tags": [
+                    "notification"
+                ],
+                "summary": "This method is to change notification status to read",
+                "description": "This method is to change notification status to read and set read_at timestamp",
+                "operationId": "changeNotificationStatus",
+                "parameters": [
+                    {
+                        "name": "notificationId",
+                        "in": "path",
+                        "description": "notificationId",
+                        "required": true,
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Notification status changed successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "receiver_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "sender_id": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1,
+                                                    "nullable": true
+                                                },
+                                                "sender_type": {
+                                                    "type": "string",
+                                                    "example": "superadmin"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Notification message content"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "read"
+                                                },
+                                                "title": {
+                                                    "type": "string",
+                                                    "example": "Notification Title"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "info"
+                                                },
+                                                "read_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "link": {
+                                                    "type": "string",
+                                                    "example": "https://example.com",
+                                                    "nullable": true
+                                                },
+                                                "priority": {
+                                                    "type": "string",
+                                                    "example": "high",
+                                                    "nullable": true
+                                                },
+                                                "entity_id": {
+                                                    "type": "integer",
+                                                    "example": 123,
+                                                    "nullable": true
+                                                },
+                                                "entity_ids": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer"
+                                                    },
+                                                    "example": [
+                                                        1,
+                                                        2,
+                                                        3
+                                                    ],
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -10314,45 +10731,16 @@
                         "bearerAuth": []
                     }
                 ]
-            },
-            "post": {
+            }
+        },
+        "/v1.0/notification/mark-all-read": {
+            "patch": {
                 "tags": [
                     "notification"
                 ],
-                "summary": "This method is to store notification",
-                "description": "This method is to store notification",
-                "operationId": "createNotification",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "message",
-                                    "reciever_id"
-                                ],
-                                "properties": {
-                                    "title": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "hello"
-                                    },
-                                    "message": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "hello"
-                                    },
-                                    "reciever_id": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "1"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
+                "summary": "This method is to mark all notifications as read for the current user",
+                "description": "This method is to mark all unread notifications as read and set read_at timestamp",
+                "operationId": "markAsAllRead",
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -10366,9 +10754,15 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Notification created successfully"
+                                            "example": "All notifications marked as read successfully"
                                         },
                                         "data": {
+                                            "properties": {
+                                                "updated_count": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                }
+                                            },
                                             "type": "object"
                                         }
                                     },
@@ -10439,102 +10833,6 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Notification deleted successfully"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            },
-            "patch": {
-                "tags": [
-                    "notification"
-                ],
-                "summary": "This method is to update notification",
-                "description": "This method is to update notification",
-                "operationId": "updateNotification",
-                "parameters": [
-                    {
-                        "name": "notificationId",
-                        "in": "path",
-                        "description": "notificationId",
-                        "required": true,
-                        "example": "1"
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "message"
-                                ],
-                                "properties": {
-                                    "message": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "test@g.c"
-                                    },
-                                    "status": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "test"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Notification updated successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -12379,101 +12677,6 @@
             }
         },
         "/v1.0/question-categories": {
-            "post": {
-                "tags": [
-                    "question_category_management"
-                ],
-                "summary": "This method is to create question category",
-                "description": "This method is to create question category",
-                "operationId": "createQuestionCategory",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "title"
-                                ],
-                                "properties": {
-                                    "title": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "Staff"
-                                    },
-                                    "description": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "Staff-related questions"
-                                    },
-                                    "parent_question_category_id": {
-                                        "type": "integer",
-                                        "format": "integer",
-                                        "example": null
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/question-categories/{business_id}": {
             "get": {
                 "tags": [
                     "question_category_management"
@@ -12567,6 +12770,99 @@
                         "example": "asc"
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "question_category_management"
+                ],
+                "summary": "This method is to create question category",
+                "description": "This method is to create question category",
+                "operationId": "createQuestionCategory",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "Staff"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "example": "Staff-related questions"
+                                    },
+                                    "parent_question_category_id": {
+                                        "type": "integer",
+                                        "format": "integer",
+                                        "example": null
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -15993,7 +16289,7 @@
                 ]
             }
         },
-        "/review-new-guest/{businessId}": {
+        "/v1.0/review-new-guest/{businessId}": {
             "post": {
                 "tags": [
                     "review_management"
@@ -16092,9 +16388,13 @@
                                                     "type": "integer",
                                                     "example": 1
                                                 },
-                                                "tag_id": {
-                                                    "type": "integer",
-                                                    "example": 2
+                                                "tag_ids": {
+                                                    "description": "Array of tag IDs (many-to-many relationship)",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    }
                                                 },
                                                 "star_id": {
                                                     "type": "integer",
@@ -18047,7 +18347,7 @@
         "/v1.0/staffs": {
             "get": {
                 "tags": [
-                    "staff_management"
+                    "z.unused"
                 ],
                 "summary": "List staff",
                 "description": "Returns staff users for the authenticated user's business. Supports name search, pagination, and sorting.",
@@ -18270,7 +18570,7 @@
             },
             "post": {
                 "tags": [
-                    "staff_management"
+                    "z.unused"
                 ],
                 "summary": "Create a staff member",
                 "description": "Registers a new staff user in the authenticated user's business.",
@@ -18503,7 +18803,7 @@
         "/v1.0/staffs/{id}": {
             "get": {
                 "tags": [
-                    "staff_management"
+                    "z.unused"
                 ],
                 "summary": "Get a single staff member by ID",
                 "description": "Returns a staff user for the authenticated user's business.",
@@ -18629,7 +18929,7 @@
             },
             "delete": {
                 "tags": [
-                    "staff_management"
+                    "z.unused"
                 ],
                 "summary": "Delete a staff member",
                 "description": "Soft-deletes the staff user (if the model uses SoftDeletes) within the authenticated user's business.",
@@ -18724,7 +19024,7 @@
             },
             "patch": {
                 "tags": [
-                    "staff_management"
+                    "z.unused"
                 ],
                 "summary": "Update a staff member (partial)",
                 "description": "Updates selected fields of a staff user in the authenticated user's business.",
@@ -18944,7 +19244,7 @@
         "/v1.0/client/staffs": {
             "get": {
                 "tags": [
-                    "staff_management"
+                    "z.unused"
                 ],
                 "summary": "List staff (paginated)",
                 "description": "Returns staff users for the authenticated user's business. Supports simple name search and pagination.",
@@ -19267,6 +19567,147 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Upload failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/staffs/{staffId}/performance-report": {
+            "get": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Get staff performance report",
+                "description": "Returns performance report for a specific staff member within the authenticated user's business.",
+                "operationId": "staffPerformanceReport",
+                "parameters": [
+                    {
+                        "name": "staffId",
+                        "in": "path",
+                        "description": "Staff user ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 12
+                    },
+                    {
+                        "name": "date_range",
+                        "in": "query",
+                        "description": "Date range filter for the report",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff performance report retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff performance report retrieved successfully"
+                                        },
+                                        "data": {
+                                            "description": "Performance report data",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid date range",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid date range provided"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Staff not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
                                         }
                                     },
                                     "type": "object"

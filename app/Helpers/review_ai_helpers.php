@@ -5,6 +5,7 @@
 use App\Models\BusinessService;
 use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
+use App\Models\Tag;
 use Illuminate\Support\Facades\DB;
 
 
@@ -357,28 +358,31 @@ if (!function_exists('getTopTopic')) {
  */
  function getTopTopic($businessId, $startDate, $endDate)
 {
-    // Get tag counts from ReviewValueNew for the period
-    $topTag = ReviewValueNew::
-    
-    join('tags', 'review_value_news.tag_id', '=', 'tags.id')
-    ->whereHas("review", function ($query) use ($businessId, $startDate, $endDate) {
-            $query->where('business_id', $businessId)
+    // Get tag counts using Eloquent relationships
+    $topTag = Tag::where('business_id', $businessId)
+        ->whereHas('reviewValues', function ($query) use ($businessId, $startDate, $endDate) {
+            $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
+                $q->where('business_id', $businessId)
                   ->whereBetween('created_at', [$startDate, $endDate])
                   ->globalFilters(0, $businessId);
-                   
-         })
-        ->where('tags.business_id', $businessId)
-        ->whereBetween('review_value_news.created_at', [$startDate, $endDate])
-    
-        ->select('tags.tag', DB::raw('COUNT(review_value_news.id) as count'))
-        ->groupBy('tags.id', 'tags.tag')
-        ->orderByDesc('count')
+            })
+            ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
+        })
+        ->withCount(['review_values' => function ($query) use ($businessId, $startDate, $endDate) {
+            $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
+                $q->where('business_id', $businessId)
+                  ->whereBetween('created_at', [$startDate, $endDate])
+                  ->globalFilters(0, $businessId);
+            })
+            ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
+        }])
+        ->orderByDesc('review_values_count')
         ->first();
     
-    if ($topTag) {
+    if ($topTag && $topTag->review_values_count > 0) {
         return [
-            'name' => $topTag->name,
-            'count' => $topTag->count
+            'name' => $topTag->name ?? $topTag->tag,
+            'count' => $topTag->review_values_count
         ];
     }
     
@@ -457,20 +461,14 @@ if (!function_exists('analyzeBusinessServicesPerformance')) {
                 $negativeCount = $serviceReviews->where('sentiment_score', '<', 0.4)->count();
                 $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
                 
-                // Get common tags for this service
-                $commonTags = [];
-                foreach ($serviceReviews as $review) {
-                    if ($review->value) {
-                        foreach ($review->value as $value) {
-                            if ($value->tag) {
-                                $tagName = $value->tag->tag;
-                                $commonTags[$tagName] = ($commonTags[$tagName] ?? 0) + 1;
-                            }
-                        }
-                    }
-                }
-                arsort($commonTags);
-                $topTags = array_slice(array_keys($commonTags), 0, 3);
+               // Get common tags for this service - one-liner approach
+$commonTags = collect($serviceReviews)
+    ->flatMap(fn($review) => $review->value ? $review->value->flatMap(fn($value) => $value->tags) : [])
+    ->pluck('tag')
+    ->countBy()
+    ->sortDesc();
+
+$topTags = $commonTags->keys()->take(3)->toArray();
                 
                 // Get sample comments
                 $sampleComments = $serviceReviews->sortByDesc('calculated_rating')

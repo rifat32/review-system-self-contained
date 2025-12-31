@@ -12,7 +12,6 @@ class ReviewValueNew extends Model
     protected $fillable = [
 
         "question_id",
-        'tag_id' ,
         'star_id',
         'review_id',
 
@@ -34,8 +33,10 @@ class ReviewValueNew extends Model
         return $this->hasOne(Question::class,'id','question_id');
     }
 
-    public function tag() {
-        return $this->belongsTo(Tag::class, 'tag_id', 'id');
+   // Change from belongsTo to belongsToMany
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'review_value_tag', 'review_value_id', 'tag_id');
     }
 
 
