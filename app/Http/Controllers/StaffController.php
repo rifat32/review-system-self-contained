@@ -1104,4 +1104,173 @@ class StaffController extends Controller
             'data' => $ratingData
         ], 200);
     }
+
+    /**
+     * @OA\Get(
+     *   path="/v1.0/staffs/{staffId}/reviews",
+     *   operationId="getStaffReviews",
+     *   tags={"staff_management"},
+     *   summary="Get filtered staff reviews",
+     *   description="Returns reviews for a specific staff member filtered by sentiment (positive, negative, neutral) with pagination.",
+     *   security={{"bearerAuth":{}}},
+     *
+     *
+     *   @OA\Parameter(
+     *     name="filter",
+     *     in="query",
+     *     required=false,
+     *     description="Filter reviews by sentiment",
+     *     @OA\Schema(type="string", enum={"positive", "negative", "neutral"}),
+     *     example="positive"
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="per_page",
+     *     in="query",
+     *     required=false,
+     *     description="Number of reviews per page",
+     *     @OA\Schema(type="integer", minimum=1, maximum=100)
+     *   ),
+     *
+     *   @OA\Parameter(
+     *     name="page",
+     *     in="query",
+     *     required=false,
+     *     description="Page number",
+     *     @OA\Schema(type="integer", minimum=1)
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Staff reviews retrieved successfully",
+     *     @OA\JsonContent(
+     *       type="object",
+     *       @OA\Property(property="success", type="boolean", example=true),
+     *       @OA\Property(property="message", type="string", example="Staff reviews retrieved successfully"),
+     *       @OA\Property(
+     *         property="data",
+     *         type="array",
+     *         @OA\Items(
+     *           type="object",
+     *           @OA\Property(property="id", type="integer", example=1),
+     *           @OA\Property(property="description", type="string", example="Great service!"),
+     *           @OA\Property(property="calculated_rating", type="number", format="float", example=4.5),
+     *           @OA\Property(
+     *             property="staff",
+     *             type="object",
+     *             @OA\Property(property="id", type="integer", example=12),
+     *             @OA\Property(property="first_Name", type="string", example="John"),
+     *             @OA\Property(property="last_Name", type="string", example="Doe")
+     *           )
+     *         )
+     *       ),
+     *       @OA\Property(
+     *         property="links",
+     *         type="object",
+     *         @OA\Property(property="first", type="string", example="https://api.example.com/v1.0/staffs/12/reviews?page=1"),
+     *         @OA\Property(property="last", type="string", example="https://api.example.com/v1.0/staffs/12/reviews?page=10"),
+     *         @OA\Property(property="prev", type="string", nullable=true, example=null),
+     *         @OA\Property(property="next", type="string", nullable=true, example="https://api.example.com/v1.0/staffs/12/reviews?page=2")
+     *       ),
+     *       @OA\Property(
+     *         property="meta",
+     *         type="object",
+     *         @OA\Property(property="current_page", type="integer", example=1),
+     *         @OA\Property(property="from", type="integer", example=1),
+     *         @OA\Property(property="last_page", type="integer", example=10),
+     *         @OA\Property(property="path", type="string", example="https://api.example.com/v1.0/staffs/12/reviews"),
+     *         @OA\Property(property="per_page", type="integer", example=15),
+     *         @OA\Property(property="to", type="integer", example=15),
+     *         @OA\Property(property="total", type="integer", example=150)
+     *       )
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=400,
+     *     description="Invalid filter",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Invalid filter provided. Valid options: positive, negative, neutral")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=404,
+     *     description="Staff not found",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="success", type="boolean", example=false),
+     *       @OA\Property(property="message", type="string", example="Staff not found")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=401,
+     *     description="Unauthenticated",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *     )
+     *   ),
+     *   @OA\Response(
+     *     response=403,
+     *     description="Forbidden",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="message", type="string", example="Forbidden")
+     *     )
+     *   )
+     * )
+     */
+    public function getStaffReviews(Request $request, $staffId)
+    {
+        $businessId = $request->user()->business->id;
+
+        // Validate staff exists and belongs to the business
+        $staff = User::where('business_id', $businessId)
+            ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
+            ->find($staffId);
+
+        if (!$staff) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff not found'
+            ], 404);
+        }
+
+        $validFilters = ['positive', 'negative', 'neutral'];
+
+        $filter = $request->query('filter');
+
+        if ($filter && !in_array($filter, $validFilters)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid filter provided. Valid options: ' . implode(', ', $validFilters)
+            ], 400);
+        }
+
+        $query = ReviewNew::with('staff')
+            ->where('staff_id', $staffId)
+            ->where('business_id', $businessId)
+            ->withCalculatedRating();
+
+        // Apply filter based on calculated_rating
+        if ($filter === 'positive') {
+            $query->where('calculated_rating', '>=', 4);
+        } elseif ($filter === 'negative') {
+            $query->where('calculated_rating', '<=', 2);
+        } elseif ($filter === 'neutral') {
+            $query->whereBetween('calculated_rating', [2.1, 3.9]);
+        } else {
+            $query->where('calculated_rating', '>=', 4);
+        }
+
+        // Get the reviews using retrieve_data for consistent pagination
+        $reviews = retrieve_data($query);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Staff reviews retrieved successfully',
+            'data' => $reviews['data'],
+            'meta' => $reviews['meta']
+        ], 200);
+    }
 }

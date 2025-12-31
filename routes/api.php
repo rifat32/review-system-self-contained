@@ -235,6 +235,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/v1.0/staffs/{id}', [StaffController::class, 'deleteStaff']);
     Route::get('/v1.0/staffs/{staffId}/performance-report', [StaffController::class, 'staffPerformanceReport']);
     Route::get('/v1.0/staffs/{staffId}/rating-trends', [StaffController::class, 'staffRatingTrends']);
+    Route::get('/v1.0/staffs/{staffId}/reviews', [StaffController::class, 'getStaffReviews']);
     Route::post('/v1.0/staff-image', [StaffController::class, 'uploadStaffImage']);
 
     // ============================================================================
@@ -353,7 +354,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::post('/review-new/addupdatetags/{businessId}', [ReviewNewController::class, "store2"]);
 
-    
+
     Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReviews"]);
     Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "reviewByBusinessId"]);
     Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);
