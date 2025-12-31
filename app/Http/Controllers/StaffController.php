@@ -966,7 +966,7 @@ class StaffController extends Controller
      *   operationId="staffRatingTrends",
      *   tags={"staff_management"},
      *   summary="Get staff rating trends",
-     *   description="Returns rating trends for a specific staff member within the specified date range, grouped by weeks.",
+     *   description="Returns rating trends for a specific staff member within the specified date range, grouped by dates.",
      *   security={{"bearerAuth":{}}},
      *
      *   @OA\Parameter(
@@ -982,7 +982,7 @@ class StaffController extends Controller
      *     in="query",
      *     required=false,
      *     description="Start date for the trends (DD-MM-YYYY). Defaults to 30 days ago if not provided.",
-     *     @OA\Schema(type="string", format="date")
+     *     @OA\Schema(type="string")
      *   ),
      *
      *   @OA\Parameter(
@@ -990,7 +990,7 @@ class StaffController extends Controller
      *     in="query",
      *     required=false,
      *     description="End date for the trends (DD-MM-YYYY). Defaults to today if not provided.",
-     *     @OA\Schema(type="string", format="date")
+     *     @OA\Schema(type="string")
      *   ),
      *
      *   @OA\Response(
@@ -1005,7 +1005,7 @@ class StaffController extends Controller
      *         type="array",
      *         @OA\Items(
      *           type="object",
-     *           @OA\Property(property="name", type="string", example="Week 1"),
+     *           @OA\Property(property="name", type="string", example="2025-12-01"),
      *           @OA\Property(property="rating", type="number", format="float", example=4.2)
      *         )
      *       )
@@ -1069,9 +1069,10 @@ class StaffController extends Controller
         if ($startDateInput && $endDateInput) {
             // Validate provided dates
             $request->validate([
-                'start_date' => 'date_format:d-m-Y|before_or_equal:end_date',
-                'end_date' => 'date_format:d-m-Y|after_or_equal:start_date',
+                'start_date' => 'required|date_format:d-m-Y',
+                'end_date' => 'required|date_format:d-m-Y|after_or_equal:start_date',
             ]);
+
             $startDate = Carbon::createFromFormat('d-m-Y', $startDateInput)->startOfDay();
             $endDate = Carbon::createFromFormat('d-m-Y', $endDateInput)->endOfDay();
         } else {
@@ -1080,37 +1081,42 @@ class StaffController extends Controller
             $startDate = Carbon::now()->subDays(30)->startOfDay();
         }
 
-        // Get weekly rating trends using calculated ratings
+        // Get reviews with calculated ratings
         $reviews = ReviewNew::withCalculatedRating()
             ->where('staff_id', $staffId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
 
-        // Group by week and calculate average rating
-        $weeklyTrends = $reviews->groupBy(function ($review) {
-            return Carbon::parse($review->created_at)->format('oW'); // Year and week number
-        })->map(function ($weekReviews) {
-            return [
-                'week' => $weekReviews->first()->created_at->format('oW'),
-                'avg_rating' => $weekReviews->avg('calculated_rating')
-            ];
-        })->sortBy('week');
+        // Group by date and calculate average rating per day
+        $reviewsByDate = $reviews->groupBy(function ($review) {
+            return Carbon::parse($review->created_at)->format('Y-m-d');
+        })->map(function ($dayReviews) {
+            return round($dayReviews->avg('calculated_rating'), 2);
+        });
 
+        // Generate all dates in the range
         $ratingData = [];
-        $weekNumber = 1;
+        $currentDate = $startDate->copy();
 
-        foreach ($weeklyTrends as $trend) {
+        while ($currentDate->lte($endDate)) {
+            $dateString = $currentDate->format('Y-m-d');
+
             $ratingData[] = [
-                'name' => 'Week ' . $weekNumber,
-                'rating' => round((float) $trend['avg_rating'], 2)
+                'name' => $dateString,
+                'rating' => (float) ($reviewsByDate->get($dateString) ?? 0)
             ];
-            $weekNumber++;
+
+            $currentDate->addDay();
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Staff rating trends retrieved successfully',
-            'data' => $ratingData
+            'data' => $ratingData,
+            'period' => [
+                'start_date' => $startDate->format('d-m-Y'),
+                'end_date' => $endDate->format('d-m-Y')
+            ]
         ], 200);
     }
 
