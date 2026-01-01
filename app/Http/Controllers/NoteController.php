@@ -96,12 +96,15 @@ class NoteController extends Controller
             'user_id' => 'required|exists:users,id',
         ]);
 
-        $notes = Note::where('user_id', $request->user_id)->get();
+        $query = Note::where('user_id', $request->user_id);
+
+        $notes = retrieve_data($query);
 
         return response()->json([
             'success' => true,
             'message' => 'Notes retrieved successfully',
-            'data' => $notes
+            'meta' => $notes['meta'],
+            'data' => $notes['data'],
         ], 200);
     }
 

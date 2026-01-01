@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BranchMemberController;
 use App\Http\Controllers\BusinessDaysController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomWebhookController;
@@ -321,6 +322,15 @@ Route::middleware(['auth:api'])->group(function () {
         Route::patch('/{id}', [BranchController::class, 'updateBranch']);
         Route::patch('/{id}/toggle-active', [BranchController::class, 'toggleBranchActive']);
         Route::delete('/{id}', [BranchController::class, 'deleteBranches']);
+    });
+
+    // ============================================================================
+    // BranchMemberController – Branch member management (protected, /v1.0/branch-members)
+    // ============================================================================
+    Route::prefix('/v1.0/branch-members')->group(function () {
+        Route::post('/assign', [BranchMemberController::class, 'assignBranchMember']);
+        Route::post('/{id}/unassign', [BranchMemberController::class, 'unassignBranchMember']);
+        Route::get('/', [BranchMemberController::class, 'getAllBranchMembers']);
     });
 
     // ============================================================================

@@ -1636,7 +1636,7 @@
                                                 "avg_rating": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 4.20000000000000017763568394002504646778106689453125
+                                                    "example": 4.2
                                                 },
                                                 "overall_sentiment": {
                                                     "type": "number",
@@ -2694,12 +2694,12 @@
                                                 "lat": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 40.7128000000000014324541552923619747161865234375
+                                                    "example": 40.7128
                                                 },
                                                 "long": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": -74.006000000000000227373675443232059478759765625
+                                                    "example": -74.006
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -2751,6 +2751,582 @@
                                         "message": {
                                             "type": "string",
                                             "example": "You do not own this branch"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branch-members/assign": {
+            "post": {
+                "tags": [
+                    "branch_management"
+                ],
+                "summary": "Assign a user to a branch",
+                "description": "Assigns a user to a specific branch with a defined role. The user and branch must belong to the authenticated user's business.",
+                "operationId": "assignBranchMember",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "branch_id",
+                                    "user_id",
+                                    "role"
+                                ],
+                                "properties": {
+                                    "branch_id": {
+                                        "description": "ID of the branch",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "user_id": {
+                                        "description": "ID of the user to assign",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "role": {
+                                        "description": "Role in the branch",
+                                        "type": "string",
+                                        "enum": [
+                                            "manager",
+                                            "staff"
+                                        ],
+                                        "example": "staff"
+                                    },
+                                    "joining_date": {
+                                        "description": "Date when the user joined the branch",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-01-01"
+                                    },
+                                    "remarks": {
+                                        "description": "Optional remarks about the assignment",
+                                        "type": "string",
+                                        "example": "Assigned via API"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Branch member assigned successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch member assigned successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BranchMember"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "branch_id": [
+                                                    "The branch id field is required."
+                                                ],
+                                                "role": [
+                                                    "Role must be either manager or staff."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Branch or user not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch not found or does not belong to your business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "User already assigned to branch",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User is already an active member of this branch"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to assign branch member"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Database connection failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branch-members/{id}/unassign": {
+            "post": {
+                "tags": [
+                    "branch_management"
+                ],
+                "summary": "Unassign a user from a branch",
+                "description": "Removes a user from a branch by setting the leaving date. The branch member must belong to the authenticated user's business.",
+                "operationId": "unassignBranchMember",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Branch member ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "leaving_date": {
+                                        "description": "Date when the user left the branch",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-01-01"
+                                    },
+                                    "remarks": {
+                                        "description": "Optional remarks about the unassignment",
+                                        "type": "string",
+                                        "example": "Transferred to another branch"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Branch member unassigned successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch member unassigned successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Branch member not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch member not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to unassign branch member"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Database connection failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branch-members": {
+            "get": {
+                "tags": [
+                    "branch_management"
+                ],
+                "summary": "Get all branch members",
+                "description": "Retrieves a paginated list of branch members for the authenticated user's business with optional filtering.",
+                "operationId": "getAllBranchMembers",
+                "parameters": [
+                    {
+                        "name": "branch_id",
+                        "in": "query",
+                        "description": "Filter by specific branch ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "description": "Filter by role",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "manager",
+                                "staff"
+                            ]
+                        },
+                        "example": "staff"
+                    },
+                    {
+                        "name": "active_only",
+                        "in": "query",
+                        "description": "Show only active members (no leaving_date)",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        },
+                        "example": 15
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Branch members retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch members retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BranchMember"
+                                            }
+                                        },
+                                        "links": {
+                                            "properties": {
+                                                "first": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/branch-members?page=1"
+                                                },
+                                                "last": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/branch-members?page=10"
+                                                },
+                                                "prev": {
+                                                    "type": "string",
+                                                    "example": null,
+                                                    "nullable": true
+                                                },
+                                                "next": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/branch-members?page=2",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "from": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "path": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/branch-members"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "to": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
                                         }
                                     },
                                     "type": "object"
@@ -4695,13 +5271,13 @@
                                         "description": "Business latitude coordinate",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 40.7128000000000014324541552923619747161865234375
+                                        "example": 40.7128
                                     },
                                     "longitude": {
                                         "description": "Business longitude coordinate",
                                         "type": "number",
                                         "format": "float",
-                                        "example": -74.006000000000000227373675443232059478759765625
+                                        "example": -74.006
                                     },
                                     "review_distance_limit": {
                                         "description": "Maximum distance (km) to allow reviews",
@@ -6208,7 +6784,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.20000000000000017763568394002504646778106689453125
+                                                        "example": 4.2
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -6942,7 +7518,7 @@
                                                             "average_rating": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 4.70000000000000017763568394002504646778106689453125
+                                                                "example": 4.7
                                                             },
                                                             "total_reviews": {
                                                                 "type": "integer",
@@ -7019,7 +7595,7 @@
                                                             "average_rating": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 2.29999999999999982236431605997495353221893310546875
+                                                                "example": 2.3
                                                             },
                                                             "total_reviews": {
                                                                 "type": "integer",
@@ -7090,7 +7666,7 @@
                                                         "overall_service_rating": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 3.79999999999999982236431605997495353221893310546875
+                                                            "example": 3.8
                                                         },
                                                         "best_performing_service": {
                                                             "type": "string",
@@ -7732,7 +8308,7 @@
                                                         },
                                                         "avg_rating": {
                                                             "type": "number",
-                                                            "example": 4.20000000000000017763568394002504646778106689453125
+                                                            "example": 4.2
                                                         },
                                                         "sentiment_distribution": {
                                                             "properties": {
@@ -7764,7 +8340,7 @@
                                                             "type": "object",
                                                             "example": {
                                                                 "2023-01": 4,
-                                                                "2023-02": 4.20000000000000017763568394002504646778106689453125
+                                                                "2023-02": 4.2
                                                             }
                                                         },
                                                         "trend_direction": {
@@ -7910,7 +8486,7 @@
                                                             "properties": {
                                                                 "value": {
                                                                     "type": "number",
-                                                                    "example": 4.20000000000000017763568394002504646778106689453125
+                                                                    "example": 4.2
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
@@ -7931,7 +8507,7 @@
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
-                                                                    "example": 2.100000000000000088817841970012523233890533447265625
+                                                                    "example": 2.1
                                                                 },
                                                                 "change_type": {
                                                                     "type": "string",
@@ -10343,6 +10919,345 @@
                 ]
             }
         },
+        "/v1.0/notes": {
+            "get": {
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Get all notes for a user",
+                "description": "Retrieve all notes belonging to the specified user",
+                "operationId": "getAllNotes",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notes retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Notes retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Note"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Create a new note",
+                "description": "Create a new note for the specified user",
+                "operationId": "createNote",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title",
+                                    "note_contents",
+                                    "user_id"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "My Note Title"
+                                    },
+                                    "note_contents": {
+                                        "type": "string",
+                                        "example": "This is the content of my note."
+                                    },
+                                    "user_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Note created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Note created successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Note"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/notes/{id}": {
+            "get": {
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Get a specific note by ID",
+                "description": "Retrieve a single note by its ID for the specified user",
+                "operationId": "getNoteById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Note ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Note retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Note retrieved successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Note"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Note not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Update a note",
+                "description": "Update an existing note for the specified user",
+                "operationId": "updateNote",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Note ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title",
+                                    "note_contents",
+                                    "user_id"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Updated Note Title"
+                                    },
+                                    "note_contents": {
+                                        "type": "string",
+                                        "example": "Updated content of my note."
+                                    },
+                                    "user_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Note updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Note updated successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Note"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Note not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/notes/delete/{ids}": {
+            "delete": {
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Delete multiple notes",
+                "description": "Delete multiple notes by comma-separated IDs for the specified user",
+                "operationId": "deleteNotes",
+                "parameters": [
+                    {
+                        "name": "ids",
+                        "in": "path",
+                        "description": "Comma-separated note IDs",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1,2,3"
+                        }
+                    },
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notes deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Notes deleted successfully"
+                                        },
+                                        "deleted_count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid IDs provided"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/notification": {
             "get": {
                 "tags": [
@@ -10980,7 +11895,7 @@
                                                         "avg_cost_per_request": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 0.08500000000000000610622663543836097232997417449951171875
+                                                            "example": 0.085
                                                         },
                                                         "first_request": {
                                                             "type": "string",
@@ -11023,7 +11938,7 @@
                                                             "percentage_of_total": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 33.3299999999999982946974341757595539093017578125
+                                                                "example": 33.33
                                                             }
                                                         },
                                                         "type": "object"
@@ -12652,6 +13567,133 @@
                     },
                     "404": {
                         "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/owner/review-reply": {
+            "patch": {
+                "tags": [
+                    "owner",
+                    "review_management"
+                ],
+                "summary": "Update review reply content",
+                "description": "Allows a business owner to update the reply content for a specific review",
+                "operationId": "reviewReply",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "review_id",
+                                    "reply_content"
+                                ],
+                                "properties": {
+                                    "review_id": {
+                                        "description": "ID of the review to update",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "reply_content": {
+                                        "description": "The reply content to update",
+                                        "type": "string",
+                                        "example": "Thank you for your feedback!"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reply updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review reply updated successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Not the business owner",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Review not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -16215,9 +17257,14 @@
                                     "description",
                                     "rate",
                                     "comment",
-                                    "values"
+                                    "values",
+                                    "platform"
                                 ],
                                 "properties": {
+                                    "platform": {
+                                        "type": "string",
+                                        "example": "web"
+                                    },
                                     "description": {
                                         "type": "string",
                                         "example": "Test"
@@ -16242,6 +17289,23 @@
                                         "type": "integer",
                                         "example": "1"
                                     },
+                                    "business_services": {
+                                        "description": "Array of business services with their area IDs",
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "business_service_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_area_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
                                     "values": {
                                         "type": "array",
                                         "items": {
@@ -16250,9 +17314,13 @@
                                                     "type": "integer",
                                                     "example": 1
                                                 },
-                                                "tag_id": {
-                                                    "type": "integer",
-                                                    "example": 2
+                                                "tag_ids": {
+                                                    "description": "Array of tag IDs (many-to-many relationship)",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    }
                                                 },
                                                 "star_id": {
                                                     "type": "integer",
@@ -16316,7 +17384,8 @@
                                     "description",
                                     "rate",
                                     "comment",
-                                    "values"
+                                    "values",
+                                    "platform"
                                 ],
                                 "properties": {
                                     "guest_full_name": {
@@ -16326,6 +17395,10 @@
                                     "guest_phone": {
                                         "type": "string",
                                         "example": "0177"
+                                    },
+                                    "platform": {
+                                        "type": "string",
+                                        "example": "web"
                                     },
                                     "description": {
                                         "type": "string",
@@ -17768,6 +18841,247 @@
                         }
                     }
                 }
+            }
+        },
+        "/v1.0/reviews": {
+            "get": {
+                "tags": [
+                    "review_management"
+                ],
+                "summary": "Get all reviews",
+                "description": "Retrieve all reviews across all businesses with filtering and pagination - Admin only",
+                "operationId": "getAllReviews",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false
+                    },
+                    {
+                        "name": "is_private",
+                        "in": "query",
+                        "description": "Filter by privacy status (0 for public, 1 for private)",
+                        "required": false
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by review status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "published",
+                                "draft",
+                                "archived"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Sort option",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "newest",
+                                "oldest",
+                                "highest_rating",
+                                "lowest_rating"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Filter reviews from this date",
+                        "required": false
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "Filter reviews until this date",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Reviews retrieved successfully"
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/review-trends/{businessId}": {
+            "get": {
+                "tags": [
+                    "review_management"
+                ],
+                "summary": "Get review trends for a business",
+                "description": "Retrieve review submission trends over time for a specific business with optional date filtering",
+                "operationId": "reviewTrends",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for trends (e.g., 30d, 7d, 1d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "30d"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Review trends retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review trends retrieved successfully"
+                                        },
+                                        "data": {
+                                            "description": "Array of trend data points with dates and counts",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/v1.0/roles": {
@@ -19656,6 +20970,420 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Invalid date range provided"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Staff not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/staffs/{staffId}/rating-trends": {
+            "get": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Get staff rating trends",
+                "description": "Returns rating trends for a specific staff member within the specified date range, grouped by dates.",
+                "operationId": "staffRatingTrends",
+                "parameters": [
+                    {
+                        "name": "staffId",
+                        "in": "path",
+                        "description": "Staff user ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for the trends (DD-MM-YYYY). Defaults to previous month if not provided.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for the trends (DD-MM-YYYY). Defaults to previous month if not provided.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff rating trends retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff rating trends retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "2025-12-01"
+                                                    },
+                                                    "rating": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 4.2
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid date range",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid date range provided"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Staff not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/staffs/{staffId}/reviews": {
+            "get": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Get filtered staff reviews",
+                "description": "Returns reviews for a specific staff member filtered by sentiment (positive, negative, neutral) with pagination.",
+                "operationId": "getStaffReviews",
+                "parameters": [
+                    {
+                        "name": "staffId",
+                        "in": "path",
+                        "description": "Staff user ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "description": "Filter reviews by sentiment",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "positive",
+                                "negative",
+                                "neutral"
+                            ]
+                        },
+                        "example": "positive"
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of reviews per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "have_comment",
+                        "in": "query",
+                        "description": "filter by comment fields if true then only reviews with comments are returned, if false then only reviews without comments are returned",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff reviews retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff reviews retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "description": {
+                                                        "type": "string",
+                                                        "example": "Great service!"
+                                                    },
+                                                    "calculated_rating": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 4.5
+                                                    },
+                                                    "staff": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 12
+                                                            },
+                                                            "first_Name": {
+                                                                "type": "string",
+                                                                "example": "John"
+                                                            },
+                                                            "last_Name": {
+                                                                "type": "string",
+                                                                "example": "Doe"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "links": {
+                                            "properties": {
+                                                "first": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs/12/reviews?page=1"
+                                                },
+                                                "last": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs/12/reviews?page=10"
+                                                },
+                                                "prev": {
+                                                    "type": "string",
+                                                    "example": null,
+                                                    "nullable": true
+                                                },
+                                                "next": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs/12/reviews?page=2",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "from": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "path": {
+                                                    "type": "string",
+                                                    "example": "https://api.example.com/v1.0/staffs/12/reviews"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "to": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid filter",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid filter provided. Valid options: positive, negative, neutral"
                                         }
                                     },
                                     "type": "object"
@@ -23285,6 +25013,11 @@
                                         ],
                                         "example": "branch_manager"
                                     },
+                                    "branch_id": {
+                                        "description": "Branch ID to assign the user to (optional)",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
                                     "post_code": {
                                         "description": "Postal code",
                                         "type": "string",
@@ -23876,6 +25609,11 @@
                                         "description": "User skills",
                                         "type": "string",
                                         "example": "PHP, Laravel"
+                                    },
+                                    "branch_id": {
+                                        "description": "Branch ID to assign the user",
+                                        "type": "integer",
+                                        "example": 1
                                     }
                                 },
                                 "type": "object"
@@ -24098,6 +25836,162 @@
                         "items": {
                             "$ref": "#/components/schemas/StarObject"
                         }
+                    }
+                },
+                "type": "object"
+            },
+            "BranchMember": {
+                "title": "BranchMember",
+                "description": "Branch member assignment model",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "branch_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "manager",
+                            "staff"
+                        ],
+                        "example": "staff"
+                    },
+                    "joining_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-01-01"
+                    },
+                    "leaving_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "remarks": {
+                        "type": "string",
+                        "example": "Assigned via API",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "2026-01-01T00:00:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "2026-01-01T00:00:00Z"
+                    },
+                    "branch": {
+                        "description": "Branch information",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "business_id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Main Branch"
+                            },
+                            "address": {
+                                "type": "string",
+                                "example": "123 Main St"
+                            },
+                            "city": {
+                                "type": "string",
+                                "example": "New York"
+                            },
+                            "country": {
+                                "type": "string",
+                                "example": "USA"
+                            },
+                            "phone": {
+                                "type": "string",
+                                "example": "+1-555-0123"
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email",
+                                "example": "branch@example.com"
+                            },
+                            "is_active": {
+                                "type": "boolean",
+                                "example": true
+                            },
+                            "branch_code": {
+                                "type": "string",
+                                "example": "MAIN001"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "user": {
+                        "description": "User information",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "first_Name": {
+                                "type": "string",
+                                "example": "John"
+                            },
+                            "last_Name": {
+                                "type": "string",
+                                "example": "Doe"
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email",
+                                "example": "john.doe@example.com"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "Note": {
+                "title": "Note",
+                "description": "Note model",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "My Note Title"
+                    },
+                    "note_contents": {
+                        "type": "string",
+                        "example": "This is the content of my note."
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2023-01-01T00:00:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2023-01-01T00:00:00Z"
                     }
                 },
                 "type": "object"
@@ -24470,6 +26364,10 @@
             "description": "branches"
         },
         {
+            "name": "branch_management",
+            "description": "branch_management"
+        },
+        {
             "name": "business_area_management",
             "description": "business_area_management"
         },
@@ -24530,6 +26428,10 @@
             "description": "leaflet"
         },
         {
+            "name": "notes",
+            "description": "notes"
+        },
+        {
             "name": "notification",
             "description": "notification"
         },
@@ -24546,6 +26448,10 @@
             "description": "z.unsed"
         },
         {
+            "name": "review_management",
+            "description": "review_management"
+        },
+        {
             "name": "question_category_management",
             "description": "question_category_management"
         },
@@ -24556,10 +26462,6 @@
         {
             "name": "question_management.client",
             "description": "question_management.client"
-        },
-        {
-            "name": "review_management",
-            "description": "review_management"
         },
         {
             "name": "voice",
