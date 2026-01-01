@@ -1109,10 +1109,15 @@ class StaffController extends Controller
             $currentDate->addDay();
         }
 
+        // Calculate total average rating from daily averages (including days with no reviews)
+        $ratings = collect($ratingData)->pluck('rating');
+        $totalAverageRating = $ratings->isNotEmpty() ? round($ratings->avg(), 2) : 0;
+
         return response()->json([
             'success' => true,
             'message' => 'Staff rating trends retrieved successfully',
             'data' => $ratingData,
+            'total_average_rating' => $totalAverageRating,
             'period' => [
                 'start_date' => $startDate->format('d-m-Y'),
                 'end_date' => $endDate->format('d-m-Y')
