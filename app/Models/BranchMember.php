@@ -15,12 +15,14 @@ class BranchMember extends Model
         'role',
         'joining_date',
         'leaving_date',
+        'is_active',
         'remarks',
     ];
 
     protected $casts = [
         'joining_date' => 'date',
         'leaving_date' => 'date',
+        'is_active' => 'boolean',
     ];
 
     /**

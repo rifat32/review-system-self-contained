@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('role')->default('staff'); // e.g., 'manager', 'staff', 'supervisor'
             $table->date('joining_date')->nullable();
             $table->date('leaving_date')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->text('remarks')->nullable();
             $table->timestamps();
 
