@@ -205,6 +205,7 @@ class AIProcessor
                 'email' => $staff->email,
                 'job_title' => $staff->job_title ?? 'Staff',
                 'rating' => $avgRating,
+                'image' => $staff->image ?? null,
                 'review_count' => $reviews->count(),
                 'sentiment_breakdown' => [
                     'positive' => $reviews->count() > 0
@@ -2291,7 +2292,7 @@ class AIProcessor
 
     public static function getReviewFeed($businessId, $dateRange, $limit = 10)
     {
-        $reviews = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tag', 'value'])
+        $reviews = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tags', 'value'])
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->orderBy('created_at', 'desc')
@@ -2318,9 +2319,9 @@ class AIProcessor
                 'time_ago' => $review->created_at->diffForHumans(),
                 'comment' => $review->comment,
                 'staff_name' => $review->staff?->name,
-'tags' => $review->value->flatMap(function ($value) {
-    return $value->tags->pluck('tag')->all();
-})->filter()->unique()->values()->toArray(),
+                'tags' => $review->value->flatMap(function ($value) {
+                    return $value->tags->pluck('tag')->all();
+                })->filter()->unique()->values()->toArray(),
                 'is_voice' => $review->is_voice_review,
                 'sentiment' =>  self::getSentimentLabel($review->sentiment_score),
                 'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])

@@ -352,64 +352,63 @@ if (!function_exists('getAudioDuration')) {
 }
 
 if (!function_exists('getTopTopic')) {
-    
-/**
- * Helper method to get the top topic from tags
- */
- function getTopTopic($businessId, $startDate, $endDate)
-{
-    // Get tag counts using Eloquent relationships
-    $topTag = Tag::where('business_id', $businessId)
-        ->whereHas('review_values', function ($query) use ($businessId, $startDate, $endDate) {
-            $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
-                $q->where('business_id', $businessId)
-                  ->whereBetween('created_at', [$startDate, $endDate])
-                  ->globalFilters(0, $businessId);
+
+    /**
+     * Helper method to get the top topic from tags
+     */
+    function getTopTopic($businessId, $startDate, $endDate)
+    {
+        // Get tag counts using Eloquent relationships
+        $topTag = Tag::where('business_id', $businessId)
+            ->whereHas('review_values', function ($query) use ($businessId, $startDate, $endDate) {
+                $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
+                    $q->where('business_id', $businessId)
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->globalFilters(0, $businessId);
+                })
+                    ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
             })
-            ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
-        })
-        ->withCount(['review_values' => function ($query) use ($businessId, $startDate, $endDate) {
-            $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
-                $q->where('business_id', $businessId)
-                  ->whereBetween('created_at', [$startDate, $endDate])
-                  ->globalFilters(0, $businessId);
-            })
-            ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
-        }])
-        ->orderByDesc('review_values_count')
-        ->first();
-    
-    if ($topTag && $topTag->review_values_count > 0) {
+            ->withCount(['review_values' => function ($query) use ($businessId, $startDate, $endDate) {
+                $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
+                    $q->where('business_id', $businessId)
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->globalFilters(0, $businessId);
+                })
+                    ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
+            }])
+            ->orderByDesc('review_values_count')
+            ->first();
+
+        if ($topTag && $topTag->review_values_count > 0) {
+            return [
+                'name' => $topTag->name ?? $topTag->tag,
+                'count' => $topTag->review_values_count
+            ];
+        }
+
+        // Fallback: check for common topics from AI analysis
+        $topicCounts = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotNull('topics')
+            ->globalFilters(0, $businessId)
+            ->get()
+            ->pluck('topics')
+            ->flatten()
+            ->countBy()
+            ->sortDesc();
+
+        if ($topicCounts->isNotEmpty()) {
+            return [
+                'name' => $topicCounts->keys()->first() ?? 'Service',
+                'count' => $topicCounts->first()
+            ];
+        }
+
         return [
-            'name' => $topTag->name ?? $topTag->tag,
-            'count' => $topTag->review_values_count
+            'name' => 'Service',
+            'count' => 0
         ];
     }
-    
-    // Fallback: check for common topics from AI analysis
-    $commonTopics = ReviewNew::where('business_id', $businessId)
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->whereNotNull('topics')
-        ->globalFilters(0, $businessId)
-        ->get()
-        ->pluck('topics')
-        ->flatten()
-        ->countBy()
-        ->sortDesc()
-        ->first();
-    
-    if ($commonTopics) {
-        return [
-            'name' => $commonTopics->keys()->first() ?? 'Service',
-            'count' => $commonTopics->first()
-        ];
-    }
-    
-    return [
-        'name' => 'Service',
-        'count' => 0
-    ];
-}
 }
 
 if (!function_exists('analyzeBusinessServicesPerformance')) {
@@ -418,7 +417,7 @@ if (!function_exists('analyzeBusinessServicesPerformance')) {
         // Get all business services for this business
         $businessServices = BusinessService::where('business_id', $businessId)
             ->get(['id', 'name', 'description']);
-        
+
         if ($businessServices->isEmpty()) {
             return [
                 'top_services' => [],
@@ -426,7 +425,7 @@ if (!function_exists('analyzeBusinessServicesPerformance')) {
                 'message' => 'No business services defined'
             ];
         }
-        
+
         // Get reviews within date range with their associated services
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
@@ -434,7 +433,7 @@ if (!function_exists('analyzeBusinessServicesPerformance')) {
             ->with(['business_services', 'value']) // Eager load services and values
             ->withCalculatedRating()
             ->get();
-        
+
         if ($reviews->isEmpty()) {
             return [
                 'top_services' => [],
@@ -442,34 +441,34 @@ if (!function_exists('analyzeBusinessServicesPerformance')) {
                 'message' => 'No reviews available for the selected period'
             ];
         }
-        
+
         $serviceMetrics = [];
-        
+
         foreach ($businessServices as $service) {
             // Find reviews that mention this specific service
             $serviceReviews = $reviews->filter(function ($review) use ($service) {
                 return $review->business_services->contains('id', $service->id);
             });
-            
+
             if ($serviceReviews->isNotEmpty()) {
                 // Calculate average rating for this service
                 $avgRating = round($serviceReviews->avg('calculated_rating'), 2);
                 $totalReviews = $serviceReviews->count();
-                
+
                 // Calculate sentiment for this service
                 $positiveCount = $serviceReviews->where('sentiment_score', '>=', 0.7)->count();
                 $negativeCount = $serviceReviews->where('sentiment_score', '<', 0.4)->count();
                 $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
-                
-               // Get common tags for this service - one-liner approach
-$commonTags = collect($serviceReviews)
-    ->flatMap(fn($review) => $review->value ? $review->value->flatMap(fn($value) => $value->tags) : [])
-    ->pluck('tag')
-    ->countBy()
-    ->sortDesc();
 
-$topTags = $commonTags->keys()->take(3)->toArray();
-                
+                // Get common tags for this service - one-liner approach
+                $commonTags = collect($serviceReviews)
+                    ->flatMap(fn($review) => $review->value ? $review->value->flatMap(fn($value) => $value->tags) : [])
+                    ->pluck('tag')
+                    ->countBy()
+                    ->sortDesc();
+
+                $topTags = $commonTags->keys()->take(3)->toArray();
+
                 // Get sample comments
                 $sampleComments = $serviceReviews->sortByDesc('calculated_rating')
                     ->take(2)
@@ -483,7 +482,7 @@ $topTags = $commonTags->keys()->take(3)->toArray();
                     })
                     ->values()
                     ->toArray();
-                
+
                 $serviceMetrics[$service->id] = [
                     'service_id' => $service->id,
                     'service_name' => $service->name,
@@ -495,15 +494,11 @@ $topTags = $commonTags->keys()->take(3)->toArray();
                     'negative_reviews' => $negativeCount,
                     'top_tags' => $topTags,
                     'sample_comments' => $sampleComments,
-                    'performance_label' => $avgRating >= 4.5 ? 'Excellent' : 
-                                         ($avgRating >= 4.0 ? 'Very Good' : 
-                                         ($avgRating >= 3.5 ? 'Good' : 
-                                         ($avgRating >= 3.0 ? 'Average' : 
-                                         ($avgRating >= 2.0 ? 'Below Average' : 'Poor'))))
+                    'performance_label' => $avgRating >= 4.5 ? 'Excellent' : ($avgRating >= 4.0 ? 'Very Good' : ($avgRating >= 3.5 ? 'Good' : ($avgRating >= 3.0 ? 'Average' : ($avgRating >= 2.0 ? 'Below Average' : 'Poor'))))
                 ];
             }
         }
-        
+
         // Sort by average rating (highest first)
         uasort($serviceMetrics, function ($a, $b) {
             // First by rating, then by number of reviews for tie-breaking
@@ -512,12 +507,12 @@ $topTags = $commonTags->keys()->take(3)->toArray();
             }
             return $b['average_rating'] <=> $a['average_rating'];
         });
-        
+
         // Get services with at least 3 reviews for accurate analysis
         $qualifiedServices = array_filter($serviceMetrics, function ($service) {
             return $service['total_reviews'] >= 3;
         });
-        
+
         // Get top 3 and worst 3
         if (count($qualifiedServices) >= 6) {
             $allServices = array_values($qualifiedServices);
@@ -529,12 +524,12 @@ $topTags = $commonTags->keys()->take(3)->toArray();
             $topServices = array_slice($allServices, 0, min(3, count($allServices)));
             $worstServices = array_slice(array_reverse($allServices), 0, min(3, count($allServices)));
         }
-        
+
         // Calculate overall metrics
         $allServiceRatings = array_column($serviceMetrics, 'average_rating');
-        $overallServiceRating = count($allServiceRatings) > 0 ? 
+        $overallServiceRating = count($allServiceRatings) > 0 ?
             round(array_sum($allServiceRatings) / count($allServiceRatings), 2) : 0;
-        
+
         return [
             'top_services' => array_values($topServices),
             'worst_services' => array_values($worstServices),
