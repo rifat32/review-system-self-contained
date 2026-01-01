@@ -636,7 +636,6 @@ PROMPT;
     ];
 }
 
-   
 
     /**
      * Fallback analysis when OpenAI fails - ensure 0 confidence
