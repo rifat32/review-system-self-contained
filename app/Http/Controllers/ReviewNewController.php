@@ -3386,4 +3386,83 @@ class ReviewNewController extends Controller
             "data" => $result['data']
         ], 200);
     }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/review-trends/{businessId}",
+     *      operationId="reviewTrends",
+     *      tags={"review_management"},
+     *      security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="Get review trends for a business",
+     *      description="Retrieve review submission trends over time for a specific business with optional date filtering",
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          required=true,
+     *          description="Business ID",
+     *          @OA\Schema(type="integer"),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Time period for trends (e.g., 30d, 7d, 1d)",
+     *          @OA\Schema(type="string"),
+     *          example="30d"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Review trends retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Review trends retrieved successfully"),
+     *              @OA\Property(property="data", type="array", @OA\Items(type="object"),
+     *                  description="Array of trend data points with dates and counts"
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="Business not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Business not found")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Forbidden")
+     *          )
+     *      )
+     * )
+     */
+    public function reviewTrends(Request $request, $businessId)
+    {
+        Business::findOrFail($businessId);
+        $reviewsQuery = ReviewNew::where('business_id', $businessId)
+            ->with(['user', 'guest_user', 'survey'])
+            ->withCalculatedRating();
+
+        // GENERATE DATA FOR TRENDS
+        $reviewTrends = getSubmissionsOverTime((clone $reviewsQuery), $request->get('period', '30d'));
+
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review trends retrieved successfully',
+            'data' => $reviewTrends
+        ], 200);
+    }
 }

@@ -136,6 +136,7 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     Route::post('/v1.0/review-new/{businessId}', [ReviewNewController::class, "createReview"]);
     Route::get('/v1.0/reviews', [ReviewNewController::class, 'getAllReviews']);
+    Route::get('/v1.0/review-trends/{businessId}', [ReviewNewController::class, 'reviewTrends']);
 
     // ============================================================================
     // ReportController – v3 dashboard report (protected)
