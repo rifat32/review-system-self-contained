@@ -1636,7 +1636,7 @@
                                                 "avg_rating": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 4.2
+                                                    "example": 4.20000000000000017763568394002504646778106689453125
                                                 },
                                                 "overall_sentiment": {
                                                     "type": "number",
@@ -2694,12 +2694,12 @@
                                                 "lat": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 40.7128
+                                                    "example": 40.7128000000000014324541552923619747161865234375
                                                 },
                                                 "long": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": -74.006
+                                                    "example": -74.006000000000000227373675443232059478759765625
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -3327,6 +3327,779 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/business-ai-modules/{businessId}": {
+            "get": {
+                "tags": [
+                    "business_ai_modules"
+                ],
+                "summary": "Get AI modules configuration for a business",
+                "description": "Retrieve the AI modules configuration for a specific business. If no configuration exists, creates default configuration.",
+                "operationId": "getBusinessAIModules",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "AI modules retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "AI modules retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "language_translation": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "sentiment_analysis": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "emotion_detection": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "abuse_detection": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "explainability": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "category_analysis": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "staff_intelligence": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "service_unit_intelligence": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "business_recommendations": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "alerts": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "datetime",
+                                                    "example": "2025-01-01T12:00:00.000000Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "datetime",
+                                                    "example": "2025-01-15T12:00:00.000000Z"
+                                                },
+                                                "business": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "Name": {
+                                                            "type": "string",
+                                                            "example": "My Restaurant"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Super admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have permission to access AI modules"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "business_ai_modules"
+                ],
+                "summary": "Update AI modules configuration for a business (Super Admin only)",
+                "description": "Update the AI modules configuration for a specific business. Only optional modules can be updated.",
+                "operationId": "updateBusinessAIModules",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "_method",
+                        "in": "query",
+                        "description": "HTTP method override",
+                        "required": true,
+                        "example": "PATCH"
+                    }
+                ],
+                "requestBody": {
+                    "description": "Optional modules configuration (all fields optional)",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "category_analysis": {
+                                        "description": "Enable category analysis module",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "staff_intelligence": {
+                                        "description": "Enable staff intelligence module",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "service_unit_intelligence": {
+                                        "description": "Enable service unit intelligence module",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "business_recommendations": {
+                                        "description": "Enable business recommendations module",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "alerts": {
+                                        "description": "Enable alerts module",
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "AI modules updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "AI modules updated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "language_translation": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "sentiment_analysis": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "emotion_detection": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "abuse_detection": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "explainability": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "category_analysis": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "staff_intelligence": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "service_unit_intelligence": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "business_recommendations": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "alerts": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "datetime",
+                                                    "example": "2025-01-15T12:00:00.000000Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid module names",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid module names provided"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Super admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have permission to update AI modules"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/business-ai-modules/{businessId}/enabled": {
+            "get": {
+                "tags": [
+                    "business_ai_modules"
+                ],
+                "summary": "Get enabled AI modules for a business",
+                "description": "Retrieve the list of enabled AI modules for a specific business. This endpoint can be used by business owners to see their configuration.",
+                "operationId": "getEnabledBusinessAIModules",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Enabled AI modules retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Enabled AI modules retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "enabled_modules": {
+                                                    "properties": {
+                                                        "language_translation": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "sentiment_analysis": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "emotion_detection": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "abuse_detection": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "explainability": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "category_analysis": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "staff_intelligence": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "service_unit_intelligence": {
+                                                            "type": "boolean",
+                                                            "example": false
+                                                        },
+                                                        "business_recommendations": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "alerts": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "business": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "Name": {
+                                                            "type": "string",
+                                                            "example": "My Restaurant"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Business owner access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have permission to access this business AI modules"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/business-ai-modules/{businessId}/token-usage": {
+            "get": {
+                "tags": [
+                    "business_ai_modules"
+                ],
+                "summary": "Get AI token usage statistics for a business",
+                "description": "Retrieve token usage statistics for a specific business over different periods.",
+                "operationId": "getBusinessAITokenUsage",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for statistics",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "month",
+                            "enum": [
+                                "day",
+                                "week",
+                                "month",
+                                "quarter",
+                                "year"
+                            ]
+                        },
+                        "example": "month"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token usage statistics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token usage statistics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "period": {
+                                                    "type": "string",
+                                                    "example": "month"
+                                                },
+                                                "total_prompt_tokens": {
+                                                    "type": "integer",
+                                                    "example": 15000
+                                                },
+                                                "total_completion_tokens": {
+                                                    "type": "integer",
+                                                    "example": 5000
+                                                },
+                                                "total_tokens": {
+                                                    "type": "integer",
+                                                    "example": 20000
+                                                },
+                                                "total_cost": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 12.5
+                                                },
+                                                "total_requests": {
+                                                    "type": "integer",
+                                                    "example": 100
+                                                },
+                                                "avg_tokens_per_request": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 200
+                                                },
+                                                "business": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "Name": {
+                                                            "type": "string",
+                                                            "example": "My Restaurant"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Super admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have permission to access token usage"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
                                         }
                                     },
                                     "type": "object"
@@ -5271,13 +6044,13 @@
                                         "description": "Business latitude coordinate",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 40.7128
+                                        "example": 40.7128000000000014324541552923619747161865234375
                                     },
                                     "longitude": {
                                         "description": "Business longitude coordinate",
                                         "type": "number",
                                         "format": "float",
-                                        "example": -74.006
+                                        "example": -74.006000000000000227373675443232059478759765625
                                     },
                                     "review_distance_limit": {
                                         "description": "Maximum distance (km) to allow reviews",
@@ -6784,7 +7557,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.2
+                                                        "example": 4.20000000000000017763568394002504646778106689453125
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -7518,7 +8291,7 @@
                                                             "average_rating": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 4.7
+                                                                "example": 4.70000000000000017763568394002504646778106689453125
                                                             },
                                                             "total_reviews": {
                                                                 "type": "integer",
@@ -7595,7 +8368,7 @@
                                                             "average_rating": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 2.3
+                                                                "example": 2.29999999999999982236431605997495353221893310546875
                                                             },
                                                             "total_reviews": {
                                                                 "type": "integer",
@@ -7666,7 +8439,7 @@
                                                         "overall_service_rating": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 3.8
+                                                            "example": 3.79999999999999982236431605997495353221893310546875
                                                         },
                                                         "best_performing_service": {
                                                             "type": "string",
@@ -8308,7 +9081,7 @@
                                                         },
                                                         "avg_rating": {
                                                             "type": "number",
-                                                            "example": 4.2
+                                                            "example": 4.20000000000000017763568394002504646778106689453125
                                                         },
                                                         "sentiment_distribution": {
                                                             "properties": {
@@ -8340,7 +9113,7 @@
                                                             "type": "object",
                                                             "example": {
                                                                 "2023-01": 4,
-                                                                "2023-02": 4.2
+                                                                "2023-02": 4.20000000000000017763568394002504646778106689453125
                                                             }
                                                         },
                                                         "trend_direction": {
@@ -8486,7 +9259,7 @@
                                                             "properties": {
                                                                 "value": {
                                                                     "type": "number",
-                                                                    "example": 4.2
+                                                                    "example": 4.20000000000000017763568394002504646778106689453125
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
@@ -8507,7 +9280,7 @@
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
-                                                                    "example": 2.1
+                                                                    "example": 2.100000000000000088817841970012523233890533447265625
                                                                 },
                                                                 "change_type": {
                                                                     "type": "string",
@@ -11895,7 +12668,7 @@
                                                         "avg_cost_per_request": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 0.085
+                                                            "example": 0.08500000000000000610622663543836097232997417449951171875
                                                         },
                                                         "first_request": {
                                                             "type": "string",
@@ -11938,7 +12711,7 @@
                                                             "percentage_of_total": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 33.33
+                                                                "example": 33.3299999999999982946974341757595539093017578125
                                                             }
                                                         },
                                                         "type": "object"
@@ -21100,7 +21873,7 @@
                                                     "rating": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.2
+                                                        "example": 4.20000000000000017763568394002504646778106689453125
                                                     }
                                                 },
                                                 "type": "object"
@@ -26366,6 +27139,10 @@
         {
             "name": "branch_management",
             "description": "branch_management"
+        },
+        {
+            "name": "business_ai_modules",
+            "description": "business_ai_modules"
         },
         {
             "name": "business_area_management",

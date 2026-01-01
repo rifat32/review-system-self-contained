@@ -35,7 +35,7 @@ class BusinessAiModule extends Model
         'alerts' => 'boolean',
     ];
     
-    public function business()
+  public function business()
     {
         return $this->belongsTo(Business::class);
     }

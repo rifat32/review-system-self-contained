@@ -94,6 +94,16 @@ class Business extends Model
         "STRIPE_SECRET"
 
     ];
+
+
+
+    public function aiModules()
+    {
+        return $this->hasOne(BusinessAIModule::class);
+    }
+
+
+
     private function isTrailDateValid($trail_end_date)
     {
         // If date is null, empty, or zero-date → treat as NOT expired

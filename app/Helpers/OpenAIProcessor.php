@@ -2,10 +2,9 @@
 
 namespace App\Helpers;
 
+use App\Models\BusinessAiModule;
 use App\Models\ReviewNew;
 use App\Models\User;
-use App\Models\BusinessArea;
-use App\Models\BusinessService;
 use App\Models\OpenAITokenUsage;
 use Exception;
 use Illuminate\Support\Facades\Http;
@@ -65,12 +64,40 @@ class OpenAIProcessor
     /**
      * Process review with OpenAI
      */
+
+      /**
+     * Get business AI modules with fallback to defaults
+     */
+    private static function getBusinessAIModules(int $businessId): array
+    {
+        try {
+            $aiModules = BusinessAIModule::where('business_id', $businessId)->first();
+            
+            if ($aiModules) {
+                return $aiModules->getEnabledModules();
+            }
+            
+            // Create default if not exists
+            $defaultModules = BusinessAIModule::getDefaultForBusiness($businessId);
+            BusinessAIModule::create($defaultModules);
+            
+            return $defaultModules;
+        } catch (\Exception $e) {
+            Log::error('Failed to get business AI modules', [
+                'business_id' => $businessId,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Return all enabled as fallback
+            return BusinessAiModule::getDefaultForBusiness($businessId);
+        }
+    }
+
+
+
     // In processReviewWithOpenAI method, update caching:
 
-    /**
-     * Process review with OpenAI and track token usage
-     */
-    public static function processReviewWithOpenAI(array $payload): array
+      public static function processReviewWithOpenAI(array $payload, array $enabledModules): array
     {
         $apiKey = config('services.openai.api_key');
         $model = config('services.openai.model', 'gpt-4o-mini');
@@ -80,7 +107,8 @@ class OpenAIProcessor
         }
 
         try {
-            $cacheKey = 'openai_review_' . md5(json_encode($payload));
+            // Include enabled modules in cache key
+            $cacheKey = 'openai_review_' . md5(json_encode($payload) . json_encode($enabledModules));
 
             // Check cache but only for successful results
             if (Cache::has($cacheKey)) {
@@ -89,8 +117,15 @@ class OpenAIProcessor
                 if (!isset($cached['_fallback']) || !$cached['_fallback']) {
                     return $cached;
                 }
-                // If cached result is fallback, continue to get fresh result
             }
+
+            $systemPrompt = self::getSystemPrompt($enabledModules);
+            $userMessage = self::createUserMessage($payload, $enabledModules);
+
+            Log::debug('Sending to OpenAI with modules', [
+                'enabled_modules' => $enabledModules,
+                'text_length' => strlen($payload['review_text'] ?? '')
+            ]);
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
@@ -100,16 +135,16 @@ class OpenAIProcessor
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => $model,
                     'temperature' => 0.2,
-                    'max_tokens' => 1200,
+                    'max_tokens' => 900, // Reduced tokens for disabled modules
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => self::getSystemPrompt()
+                            'content' => $systemPrompt
                         ],
                         [
                             'role' => 'user',
-                            'content' => self::createUserMessage($payload)
+                            'content' => $userMessage
                         ]
                     ]
                 ]);
@@ -135,13 +170,13 @@ class OpenAIProcessor
                 throw new \Exception('Invalid JSON from OpenAI: ' . json_last_error_msg());
             }
 
-            // Extract token usage from response
+            // Extract token usage
             $usage = $data['usage'] ?? [];
             $promptTokens = $usage['prompt_tokens'] ?? 0;
             $completionTokens = $usage['completion_tokens'] ?? 0;
             $totalTokens = $usage['total_tokens'] ?? 0;
 
-            // Track token usage BEFORE adding to metadata
+            // Track token usage
             self::trackTokenUsage(
                 businessId: $payload['business_id'] ?? null,
                 reviewId: $payload['review_id'] ?? null,
@@ -153,6 +188,7 @@ class OpenAIProcessor
                 metadata: [
                     'cache_key' => $cacheKey,
                     'cache_hit' => false,
+                    'enabled_modules' => $enabledModules,
                     'review_text_length' => strlen($payload['review_text'] ?? ''),
                     'has_staff' => !empty($payload['staff_info']),
                     'rating' => $payload['rating'] ?? 0,
@@ -166,6 +202,7 @@ class OpenAIProcessor
                 'tokens_used' => $totalTokens,
                 'prompt_tokens' => $promptTokens,
                 'completion_tokens' => $completionTokens,
+                'enabled_modules' => $enabledModules,
                 'processing_time' => now()->toISOString(),
                 'business_id' => $payload['business_id'] ?? null,
                 'review_id' => $payload['review_id'] ?? null
@@ -173,7 +210,7 @@ class OpenAIProcessor
 
             // Only cache successful (non-fallback) results
             if (!isset($result['_fallback'])) {
-                Cache::put($cacheKey, $result, 3600); // Cache for 1 hour
+                Cache::put($cacheKey, $result, 3600);
             }
 
             return $result;
@@ -183,10 +220,9 @@ class OpenAIProcessor
                 'payload' => substr($payload['review_text'] ?? '', 0, 100)
             ]);
 
-            $fallback = self::getFallbackAnalysis($payload);
+            $fallback = self::getFallbackAnalysis($payload, $enabledModules);
             $fallback['_error'] = $e->getMessage();
 
-            // Don't cache fallback results
             return $fallback;
         }
     }
@@ -258,9 +294,12 @@ class OpenAIProcessor
      * Get system prompt for OpenAI
      */
 
-private static function getSystemPrompt(): string
+  /**
+     * Get system prompt based on enabled modules
+     */
+    private static function getSystemPrompt(array $enabledModules): string
 {
-    return <<<PROMPT
+    $prompt = <<<PROMPT
 You are an AI Experience Intelligence Engine. Analyze customer reviews and return ONLY valid JSON in this exact structure:
 
 {
@@ -282,33 +321,36 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
     "issues_found": ["list", "of", "issues"],
     "severity": "low|medium|high"
   },
-  "themes": [
-    {
-      "topic": "topic name",
-      "type": "complaint|praise|suggestion",
-      "confidence": 0.0 to 1.0,
-      "related_services": [1, 2, 3] // Array of business service IDs this theme relates to
-    }
-  ],
-  "service_analysis": [
-    {
-      "business_service_id": "service id",
-      "business_area_id": "area id",
-      "sentiment": "negative|neutral|positive",
-      "performance_score": 1-10,
-      "key_issues": ["issue1", "issue2"],
-      "strengths": ["strength1", "strength2"]
-    }
-  ],
+  "rating_comment_alignment": {
+    "is_aligned": true|false,
+    "mismatch_type": "positive_rating_negative_comment|negative_rating_positive_comment|neutral_mismatch|none",
+    "confidence": 0.0 to 1.0,
+    "explanation": "Why ratings and comments don't match",
+    "key_contradiction": "specific contradiction found"
+  },
+PROMPT;
+
+    // Add optional modules based on enabledModules array
+    if ($enabledModules['category_analysis'] ?? true) {
+        $prompt .= <<<PROMPT
   "category_analysis": [
     {
       "main_category": "Staff|Service|Food|Ambiance|Cleanliness|Price|Location|Others",
       "sub_category": "specific aspect",
       "sentiment": "negative|neutral|positive",
       "severity": "low|medium|high",
-      "related_services": [1, 2, 3] // Array of related business service IDs
+      "evidence_from_comment": "specific phrase from comment"
     }
   ],
+PROMPT;
+    } else {
+        $prompt .= <<<PROMPT
+  "category_analysis": [],
+PROMPT;
+    }
+
+    if ($enabledModules['staff_intelligence'] ?? true) {
+        $prompt .= <<<PROMPT
   "staff_intelligence": {
     "staff_id": "staff id",
     "staff_name": "staff name",
@@ -321,173 +363,431 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
       "professionalism": 1-5
     },
     "training_recommendations": ["list", "of", "trainings"],
-    "risk_level": "low|medium|high"
+    "risk_level": "low|medium|high",
+    "blame_detected": true|false,
+    "staff_context": "staff vs process issue"
   },
+PROMPT;
+    } else {
+        $prompt .= <<<PROMPT
+  "staff_intelligence": null,
+PROMPT;
+    }
+
+    if ($enabledModules['service_unit_intelligence'] ?? true) {
+        $prompt .= <<<PROMPT
+  "service_unit_intelligence": {
+    "unit_type": "Room|Table|Equipment|Vehicle|Other",
+    "unit_id": "id if available",
+    "issues_detected": [],
+    "maintenance_required": false,
+    "severity": "low|medium|high"
+  },
+PROMPT;
+    } else {
+        $prompt .= <<<PROMPT
+  "service_unit_intelligence": null,
+PROMPT;
+    }
+
+    // NEW: Add area-specific insights section
+    $prompt .= <<<PROMPT
+  "area_insights": [
+    {
+      "area_id": "area identifier",
+      "area_name": "area name",
+      "sentiment": "positive|mixed|negative",
+      "key_issues": ["list", "of", "issues"],
+      "strengths": ["list", "of", "strengths"],
+      "supporting_evidence": "text from comment that supports this"
+    }
+  ],
+PROMPT;
+
+    if ($enabledModules['business_recommendations'] ?? true) {
+        $prompt .= <<<PROMPT
   "business_insights": {
     "root_cause": "main issue identified",
     "repeat_issue_likelihood": "low|medium|high",
     "impact_level": "low|medium|high",
-    "affected_services": [1, 2, 3] // Array of affected business service IDs
+    "affected_areas": ["list", "of", "areas"]
   },
   "recommendations": {
     "business_actions": ["action items"],
     "staff_actions": ["action items"],
     "immediate_actions": ["urgent actions if needed"],
-    "service_specific_recommendations": [
-      {
-        "business_service_id": 1,
-        "recommendations": ["specific actions"]
-      }
-    ]
+    "priority": "high|medium|low"
   },
+PROMPT;
+    } else {
+        $prompt .= <<<PROMPT
+  "business_insights": {
+    "root_cause": "N/A",
+    "repeat_issue_likelihood": "N/A",
+    "impact_level": "N/A",
+    "affected_areas": []
+  },
+  "recommendations": {
+    "business_actions": [],
+    "staff_actions": [],
+    "immediate_actions": [],
+    "priority": "low"
+  },
+PROMPT;
+    }
+
+    if ($enabledModules['alerts'] ?? true) {
+        $prompt .= <<<PROMPT
   "alerts": {
     "triggered": true|false,
-    "type": "critical|warning|info",
+    "type": "critical|warning|insight|info",
     "priority": "high|medium|low",
     "message": "alert message",
-    "affected_services": [1, 2, 3] // Array of affected business service IDs
+    "reason": "why this alert was triggered",
+    "recommended_action": "what should be done"
   },
+PROMPT;
+    } else {
+        $prompt .= <<<PROMPT
+  "alerts": {
+    "triggered": false,
+    "type": "info",
+    "priority": "low",
+    "message": "Alerts module disabled"
+  },
+PROMPT;
+    }
+
+    // NEW: Add flags section for dashboard insights
+    $prompt .= <<<PROMPT
+  "flags": [
+    {
+      "flag_type": "INSIGHT|WARNING|CRITICAL",
+      "severity": "low|medium|high",
+      "reason": "why this is flagged",
+      "recommended_action": "action to take"
+    }
+  ],
+  "staff_impact": {
+    "staff_blame_detected": false,
+    "note": "clarify if issue is about staff or process"
+  },
+PROMPT;
+
+    $prompt .= <<<PROMPT
   "explainability": {
     "decision_basis": ["key factors"],
     "confidence_score": 0.0 to 1.0,
-    "key_factors": ["important elements"]
+    "key_factors": ["important elements"],
+    "why_flagged": "explanation for any flags",
+    "how_decision_was_made": "decision logic explanation"
   },
   "summary": {
     "one_line": "brief summary",
-    "manager_summary": "detailed summary",
-    "customer_sentiment_summary": "sentiment summary"
+    "manager_summary": "detailed summary for managers",
+    "customer_sentiment_summary": "sentiment summary",
+    "overall_assessment": "positive_with_concerns|positive|mixed|negative_with_positives|negative"
   }
 }
 
-ANALYSIS GUIDELINES:
+CRITICAL ANALYSIS GUIDELINES:
 
 1. LANGUAGE: Detect language, translate to English if needed
-2. SENTIMENT: 
-   - "terrible", "awful", "worst" = negative/very_negative
-   - "excellent", "amazing", "best" = positive/very_positive
-   - "average", "okay", "fine" = neutral
-3. EMOTION:
-   - Angry words = anger
-   - Happy words = joy
-   - Disappointed words = sadness
-   - Fearful words = fear
-4. MODERATION: Mark as abusive for hate speech, threats, extreme profanity
-5. THEMES: Extract 2-5 key topics mentioned
-6. SERVICE_ANALYSIS: Analyze each mentioned business service separately
-7. CATEGORY ANALYSIS: Map to business categories
-8. STAFF INTELLIGENCE: Analyze staff performance if mentioned
-9. RECOMMENDATIONS: Provide actionable, specific recommendations for each service
-10. ALERTS: Trigger for safety, legal, or critical issues
-11. MULTIPLE SERVICES: If review mentions multiple services, analyze each one and their relationships
-12. CONFIDENCE: Based on clarity and detail of review
 
-Be accurate, fair, and business-focused. Return ONLY the JSON object.
 PROMPT;
+
+    // Add analysis guidelines only for enabled modules
+    if ($enabledModules['sentiment_analysis'] ?? true) {
+        $prompt .= <<<PROMPT
+2. SENTIMENT & RATING-COMMENT ALIGNMENT:
+   - Check if numeric ratings match the tone of comments
+   - High ratings (4-5) with negative words = "positive_rating_negative_comment"
+   - Low ratings (1-2) with positive words = "negative_rating_positive_comment"
+   - Examples of mismatch detection:
+     * Rating 5, comment "terrible service" = MISMATCH
+     * Rating 1, comment "amazing experience" = MISMATCH
+     * Rating 4, comment "good but could be better" = ALIGNED (constructive feedback)
+   - Provide clear explanation in "rating_comment_alignment.explanation"
+
+PROMPT;
+    }
+
+    if ($enabledModules['emotion_detection'] ?? true) {
+        $prompt .= "\n3. EMOTION DETECTION:\n   - Angry words = anger\n   - Happy words = joy\n   - Disappointed words = sadness\n   - Fearful words = fear\n   - Frustrated words = anger/disgust";
+    }
+
+    if ($enabledModules['abuse_detection'] ?? true) {
+        $prompt .= "\n4. MODERATION: Mark as abusive for hate speech, threats, extreme profanity, personal attacks";
+    }
+
+    if ($enabledModules['category_analysis'] ?? true) {
+        $prompt .= <<<PROMPT
+5. CATEGORY ANALYSIS:
+   - Staff: Behavior, knowledge, attitude, professionalism
+   - Service: Speed, efficiency, wait time, process
+   - Food: Quality, taste, presentation, temperature
+   - Ambiance: Noise, lighting, music, comfort
+   - Cleanliness: Clean, dirty, hygiene, maintenance
+   - Price: Value, expensive, affordable, worth it
+   - Location: Convenience, parking, accessibility
+   - Others: Booking, reservation, website, app
+
+PROMPT;
+    }
+
+    if ($enabledModules['staff_intelligence'] ?? true) {
+        $prompt .= <<<PROMPT
+6. STAFF INTELLIGENCE:
+   - Distinguish between staff behavior vs process issues
+   - Staff blame: "rude staff" = staff issue
+   - Process blame: "slow service" = process issue
+   - If staff mentioned negatively but rating is high, note the contradiction
+   - Set "staff_blame_detected": true only if criticism is directed at staff personally
+
+PROMPT;
+    }
+
+    // NEW: Area insights guidelines
+    $prompt .= <<<PROMPT
+7. AREA INSIGHTS:
+   - Map comments to specific areas mentioned (reception, room, kitchen, etc.)
+   - If multiple areas mentioned, analyze each separately
+   - Example: "reception was great but room was dirty" → two areas with different sentiments
+   - Use "supporting_evidence" to quote specific text from comment
+   - Identify which area is most impacted by negative feedback
+
+PROMPT;
+
+    if ($enabledModules['business_recommendations'] ?? true) {
+        $prompt .= <<<PROMPT
+8. RECOMMENDATIONS:
+   - Be specific and actionable
+   - Link recommendations to specific areas/issues
+   - For rating-comment mismatches: Suggest investigating hidden issues
+   - Example: "Review reception staffing during peak hours"
+
+PROMPT;
+    }
+
+    if ($enabledModules['alerts'] ?? true) {
+        $prompt .= <<<PROMPT
+9. ALERTS & FLAGS:
+   - "insight" flag for: High ratings with negative comments
+   - "warning" flag for: Repeated issues in same area
+   - "critical" flag for: Safety issues, abusive content
+   - For mismatches: Use "INSIGHT" flag type with "medium" severity
+   - Include clear "reason" and "recommended_action"
+
+PROMPT;
+    }
+
+    $prompt .= <<<PROMPT
+
+BUSINESS-SPECIFIC ANALYSIS RULES:
+
+1. RATING-COMMENT CONTRADICTIONS:
+   - Always check if the comment contradicts the numeric rating
+   - A rating of 4/5 with words like "terrible", "awful", "unacceptable" = MISMATCH
+   - Explain the contradiction clearly for business owners
+
+2. AREA-SPECIFIC FEEDBACK:
+   - Identify which business area is being discussed
+   - Separate staff performance from area/process issues
+   - Example: "Staff were polite but wait time was long" → Staff: positive, Process: negative
+
+3. FAIR STAFF ASSESSMENT:
+   - Don't blame staff for process issues
+   - "Long wait time" = process issue, not staff issue
+   - "Rude staff" = staff issue
+   - Set "staff_blame_detected" accordingly
+
+4. ACTIONABLE INSIGHTS:
+   - Provide insights that managers can act on
+   - If mismatch found, suggest investigating the specific issue mentioned
+   - Example: "Customer rated 5 stars but mentioned long wait time → Investigate reception staffing"
+
+5. DASHBOARD-FRIENDLY OUTPUT:
+   - Structure data so it can be displayed in dashboards
+   - Use clear categories and labels
+   - Include evidence from comments to support decisions
+
+Return ONLY the JSON object. Be accurate, fair, and business-focused. For disabled modules, return minimal/empty data as specified.
+PROMPT;
+
+    return $prompt;
+}
+    /**
+     * Create user message for OpenAI
+     */
+   
+  private static function createUserMessage(array $payload, array $enabledModules): string
+{
+    $text = $payload['review_text'] ?? '';
+    $rating = $payload['rating'] ?? 0;
+    $staffInfo = $payload['staff_info'] ?? null;
+    
+    $message = "REVIEW TO ANALYZE:\n";
+    $message .= "Text: \"{$text}\"\n";
+    $message .= "Overall Rating: {$rating}/5\n";
+
+    // Include question ratings if available
+    if (!empty($payload['question_ratings'])) {
+        $message .= "\nQUESTION RATINGS:\n";
+        foreach ($payload['question_ratings'] as $qRating) {
+            $message .= "- {$qRating['question_text']}: {$qRating['rating']}/{$qRating['scale']}\n";
+        }
+    }
+
+    // Only include staff info if staff_intelligence module is enabled
+    if (($enabledModules['staff_intelligence'] ?? true) && $staffInfo) {
+        $message .= "\nStaff Mentioned: " . ($staffInfo['staff_name'] ?? 'Unknown') . " (ID: " . ($staffInfo['staff_id'] ?? '') . ")\n";
+    }
+
+    // Add business services/areas if available
+    if (!empty($payload['business_services'])) {
+        $message .= "\nBUSINESS AREAS/SERVICES MENTIONED:\n";
+        foreach ($payload['business_services'] as $service) {
+            $message .= "- {$service['business_service_name']} (Area: {$service['business_area_name']})\n";
+        }
+    }
+
+    $message .= "\nANALYSIS INSTRUCTIONS:\n";
+    $message .= "1. Check if ratings and comments align\n";
+    $message .= "2. High ratings (4-5) with negative comments should be flagged as misaligned\n";
+    $message .= "3. Provide explanation for any mismatch\n";
+    $message .= "4. Identify which specific area/issue is mentioned negatively\n";
+
+    return $message;
 }
 
     /**
-     * Create user message for OpenAI
-     */
-    /**
-     * Create user message for OpenAI
-     */
-    private static function createUserMessage(array $payload): string
-    {
-        $text = $payload['review_text'] ?? '';
-        $rating = $payload['rating'] ?? 0;
-        $staffInfo = $payload['staff_info'] ?? null;
-        $businessServices = $payload['business_services'] ?? []; // Changed from serviceInfo
-
-        $message = "REVIEW TO ANALYZE:\n";
-        $message .= "Text: \"{$text}\"\n";
-        $message .= "Rating: {$rating}/5\n";
-
-        if ($staffInfo) {
-            $message .= "Staff Mentioned: " . ($staffInfo['staff_name'] ?? 'Unknown') . " (ID: " . ($staffInfo['staff_id'] ?? '') . ")\n";
-        }
-
-        // Add information about multiple business services
-        if (!empty($businessServices)) {
-            $message .= "\nBUSINESS SERVICES MENTIONED:\n";
-            foreach ($businessServices as $index => $service) {
-                $message .= sprintf(
-                    "%d. %s (Service ID: %d) - Area: %s (Area ID: %d)\n",
-                    $index + 1,
-                    $service['business_service_name'] ?? 'Unknown',
-                    $service['business_service_id'] ?? 0,
-                    $service['business_area_name'] ?? 'Unknown',
-                    $service['business_area_id'] ?? 0
-                );
-            }
-        }
-
-        $message .= "\nPlease analyze this review comprehensively, considering all mentioned business services.";
-
-        return $message;
-    }
-
-    /**
      * Create payload from ReviewNew model
      */
-    /**
-     * Create payload from ReviewNew model
-     */
+   
     public static function createPayloadFromReview(ReviewNew $review): array
-    {
-        $text = $review->raw_text ?? $review->comment ?? '';
-
-        // Get staff info
-        $staffInfo = null;
-        if ($review->staff_id) {
-            $staff = User::find($review->staff_id);
-            if ($staff) {
-                $staffInfo = [
-                    'staff_id' => $review->staff_id,
-                    'staff_name' => trim($staff->first_Name . ' ' . $staff->last_Name),
-                    'job_title' => $staff->job_title ?? ''
+{
+    $text = $review->raw_text ?? $review->comment ?? '';
+    
+    // Get question ratings if this is a survey review
+    $questionRatings = [];
+    if ($review->survey_id && $review->value) {
+        foreach ($review->value as $value) {
+            if ($value->question_id && $value->rating) {
+                $questionRatings[] = [
+                    'question_id' => $value->question_id,
+                    'question_text' => $value->question->question_text ?? 'Question',
+                    'rating' => $value->rating,
+                    'scale' => 5, // Assuming 5-point scale, adjust as needed
+                    'category' => $value->question->category ?? 'General'
                 ];
             }
         }
+    }
 
-        // Get business services with their areas
-        $business_services = [];
-
-        foreach ($review->review_business_services as $review_business_service) {
-            $business_services[] = [
-                'business_service_id' => $review_business_service->business_service_id,
-                'business_service_name' => $review_business_service->business_service->name ?? 'Unknown Service',
-                'business_area_id' => $review_business_service->business_area_id ?? null,
-                'business_area_name' => $review_business_service->business_area->area_name ?? 'Unknown Area',
+    // Get staff info
+    $staffInfo = null;
+    if ($review->staff_id) {
+        $staff = User::find($review->staff_id);
+        if ($staff) {
+            $staffInfo = [
+                'staff_id' => $review->staff_id,
+                'staff_name' => trim($staff->first_Name . ' ' . $staff->last_Name),
+                'job_title' => $staff->job_title ?? ''
             ];
         }
+    }
 
-
-        return [
-            'review_text' => $text,
-            'rating' => $review->rate ?? 0,
-            'staff_info' => $staffInfo,
-            'business_services' => $business_services, // Changed from service_info to business_services (array)
-            'review_id' => $review->id,
-            'business_id' => $review->business_id,
-            'metadata' => [
-                'source' => $review->source ?? 'platform',
-                'language' => $review->language,
-                'review_type' => $review->review_type ?? 'text',
-                'is_voice' => $review->is_voice_review ?? false,
-                'submitted_at' => $review->responded_at ?? now()->toISOString(),
-                'branch_id' => $review->branch_id
-            ]
+    // Get business services with their areas
+    $business_services = [];
+    foreach ($review->review_business_services as $review_business_service) {
+        $business_services[] = [
+            'business_service_id' => $review_business_service->business_service_id,
+            'business_service_name' => $review_business_service->business_service->name ?? 'Unknown Service',
+            'business_area_id' => $review_business_service->business_area_id ?? null,
+            'business_area_name' => $review_business_service->business_area->area_name ?? 'Unknown Area',
         ];
     }
 
+    return [
+        'review_text' => $text,
+        'rating' => $review->rate ?? 0,
+        'question_ratings' => $questionRatings, // Added this
+        'staff_info' => $staffInfo,
+        'business_services' => $business_services,
+        'review_id' => $review->id,
+        'business_id' => $review->business_id,
+        'metadata' => [
+            'source' => $review->source ?? 'platform',
+            'language' => $review->language,
+            'review_type' => $review->review_type ?? 'text',
+            'is_voice' => $review->is_voice_review ?? false,
+            'submitted_at' => $review->responded_at ?? now()->toISOString(),
+            'branch_id' => $review->branch_id
+        ]
+    ];
+}
+
+/**
+ * Extract rating-comment mismatch insights
+ */
+public static function extractMismatchInsights(array $aiResult, ReviewNew $review): array
+{
+    $mismatchData = $aiResult['rating_comment_alignment'] ?? null;
+    
+    if (!$mismatchData || $mismatchData['is_aligned']) {
+        return [
+            'has_mismatch' => false,
+            'should_flag' => false
+        ];
+    }
+
+    // Calculate average rating from question ratings if available
+    $avgRating = $review->rate ?? 0;
+    if ($review->reviewValues && $review->reviewValues->count() > 0) {
+        $sum = 0;
+        $count = 0;
+        foreach ($review->reviewValues as $value) {
+            if ($value->rating) {
+                $sum += $value->rating;
+                $count++;
+            }
+        }
+        if ($count > 0) {
+            $avgRating = $sum / $count;
+        }
+    }
+
+    // Determine flag type based on mismatch
+    $shouldFlag = false;
+    $flagType = 'none';
+    
+    if ($mismatchData['mismatch_type'] === 'positive_rating_negative_comment' && $avgRating >= 3.5) {
+        $shouldFlag = true;
+        $flagType = 'insight'; // Soft flag for high rating + negative comment
+    } elseif ($mismatchData['mismatch_type'] === 'negative_rating_positive_comment' && $avgRating <= 2.5) {
+        $shouldFlag = true;
+        $flagType = 'warning';
+    }
+
+    return [
+        'has_mismatch' => true,
+        'mismatch_type' => $mismatchData['mismatch_type'],
+        'is_aligned' => $mismatchData['is_aligned'],
+        'explanation' => $mismatchData['explanation'] ?? '',
+        'confidence' => $mismatchData['confidence'] ?? 0.0,
+        'should_flag' => $shouldFlag,
+        'flag_type' => $flagType,
+        'average_rating' => $avgRating
+    ];
+}
     /**
      * Analyze a review and save results to database
      */
+
     // In analyzeReview method, add debugging:
 
     public static function analyzeReview(ReviewNew $review, bool $forceReprocess = false): array
     {
-        // If already processed and not forcing reprocess, return current data
         if ($review->is_ai_processed && !$forceReprocess) {
             return [
                 'status' => 'already_processed',
@@ -502,33 +802,21 @@ PROMPT;
 
         try {
             $payload = self::createPayloadFromReview($review);
-
-            Log::debug('Analyzing review', [
+            $businessId = $review->business_id;
+            
+            // Get enabled modules for this business
+            $enabledModules = self::getBusinessAIModules($businessId);
+            
+            Log::debug('Analyzing review with modules', [
                 'review_id' => $review->id,
-                'text_length' => strlen($payload['review_text'] ?? ''),
-                'has_staff' => !empty($payload['staff_info'])
+                'business_id' => $businessId,
+                'enabled_modules' => $enabledModules
             ]);
 
-            $openAIResult = self::processReviewWithOpenAI($payload);
-
-            // Check if fallback was used
-            if (isset($openAIResult['_fallback']) && $openAIResult['_fallback']) {
-                Log::warning('Using fallback analysis for review', [
-                    'review_id' => $review->id,
-                    'error' => $openAIResult['_error'] ?? 'unknown'
-                ]);
-            } else {
-                Log::info('OpenAI analysis successful for review', [
-                    'review_id' => $review->id,
-                    'confidence' => $openAIResult['explainability']['confidence_score'] ?? 0
-                ]);
-            }
+            $openAIResult = self::processReviewWithOpenAI($payload, $enabledModules);
 
             // Convert to database format
-            $dbData = self::convertForDatabase($openAIResult, $review);
-
-
-
+            $dbData = self::convertForDatabase($openAIResult, $review, $enabledModules);
 
             // Update the review
             $review->fill($dbData);
@@ -537,33 +825,29 @@ PROMPT;
             Log::info('Review analysis completed', [
                 'review_id' => $review->id,
                 'sentiment' => $dbData['sentiment_label'] ?? 'unknown',
-                'confidence' => $dbData['ai_confidence'] ?? 0
+                'modules_used' => $enabledModules
             ]);
 
             return array_merge($dbData, [
-                'openai_result' => $openAIResult,
                 'status' => 'success',
                 'message' => 'Analysis completed successfully',
-                "dbDataaaaaaaaaaaaaaaaaa" => $dbData
-
+                'enabled_modules' => $enabledModules
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to analyze review', [
                 'review_id' => $review->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
 
-            // Return fallback analysis
+            // Get enabled modules for fallback
+            $enabledModules = self::getBusinessAIModules($review->business_id);
             $payload = self::createPayloadFromReview($review);
-            $fallback = self::getFallbackAnalysis($payload);
-            $dbData = self::convertForDatabase($fallback, $review);
-
+            $fallback = self::getFallbackAnalysis($payload, $enabledModules);
+            $dbData = self::convertForDatabase($fallback, $review, $enabledModules);
 
             // Update the review
             $review->fill($dbData);
             $review->save();
-
 
             return array_merge($dbData, [
                 'status' => 'fallback',
@@ -573,74 +857,389 @@ PROMPT;
         }
     }
 
-    // In OpenAIProcessor class, update the convertForDatabase method:
-
-   private static function convertForDatabase(array $aiResult, ReviewNew $review): array
+    private static function extractIssuesFromExplanation(string $explanation): array
 {
-    // Get sentiment data
-    $sentimentScore = $aiResult['sentiment']['score'] ?? 0.0;
-    $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
+    $issues = [];
+    
+    // Common patterns in explanations
+    $patterns = [
+        '/wait.*time/i' => 'Wait Time',
+        '/slow.*service/i' => 'Slow Service',
+        '/rude|impolite|unprofessional/i' => 'Staff Behavior',
+        '/dirty|clean|hygiene/i' => 'Cleanliness',
+        '/expensive|price|cost/i' => 'Pricing',
+        '/noisy|loud|quiet/i' => 'Noise Level',
+        '/broken|damaged|not working/i' => 'Maintenance',
+        '/disorganised|chaotic|messy/i' => 'Organization',
+        '/cold|hot|temperature/i' => 'Temperature',
+        '/small|cramped|space/i' => 'Space/Size',
+        '/crowded|busy|packed/i' => 'Crowding',
+        '/late|delay|on time/i' => 'Timeliness',
+        '/mistake|error|wrong/i' => 'Accuracy',
+        '/quality|standard/i' => 'Quality',
+        '/staff.*attitude/i' => 'Staff Attitude',
+        '/food.*quality/i' => 'Food Quality',
+        '/service.*speed/i' => 'Service Speed'
+    ];
+    
+    foreach ($patterns as $pattern => $issue) {
+        if (preg_match($pattern, $explanation)) {
+            $issues[] = $issue;
+        }
+    }
+    
+    return array_unique($issues);
+}
 
-    // Convert score from -1..1 to 0..1
-    $sentimentNormalized = ($sentimentScore + 1) / 2;
+private static function generateMismatchRecommendations(
+    int $mismatchCount, 
+    int $totalReviews, 
+    array $commonIssues, 
+    array $affectedAreas,
+    string $mostCommonType
+): array {
+    $recommendations = [];
+    $mismatchPercentage = $totalReviews > 0 ? ($mismatchCount / $totalReviews) * 100 : 0;
+    
+    if ($mismatchPercentage > 15) {
+        $recommendations[] = [
+            'priority' => 'high',
+            'title' => 'High Rate of Hidden Issues',
+            'description' => "{$mismatchPercentage}% of reviews show rating-comment mismatch. Customers may be hesitant to give low ratings.",
+            'action' => 'Review survey design and encourage honest feedback'
+        ];
+    }
+    
+    if (!empty($commonIssues)) {
+        $topIssue = array_key_first($commonIssues);
+        $issueCount = $commonIssues[$topIssue];
+        
+        $recommendations[] = [
+            'priority' => 'medium',
+            'title' => 'Common Hidden Issue: ' . $topIssue,
+            'description' => "Mentioned {$issueCount} times in mismatched reviews",
+            'action' => 'Investigate and address ' . strtolower($topIssue)
+        ];
+    }
+    
+    if (!empty($affectedAreas)) {
+        $topArea = array_key_first($affectedAreas);
+        
+        $recommendations[] = [
+            'priority' => 'medium',
+            'title' => 'Area Needing Attention: ' . $topArea,
+            'description' => 'Most frequently mentioned in mismatched feedback',
+            'action' => 'Conduct focused review of ' . $topArea . ' operations'
+        ];
+    }
+    
+    if ($mostCommonType === 'positive_rating_negative_comment') {
+        $recommendations[] = [
+            'priority' => 'low',
+            'title' => 'Customer Rating Behavior',
+            'description' => 'Customers giving high ratings but mentioning issues',
+            'action' => 'Consider adding "What could we improve?" as a follow-up question'
+        ];
+    }
+    
+    if (count($recommendations) === 0) {
+        $recommendations[] = [
+            'priority' => 'low',
+            'title' => 'Monitor Mismatch Patterns',
+            'description' => 'Current mismatch levels are within acceptable range',
+            'action' => 'Continue monitoring for patterns'
+        ];
+    }
+    
+    return $recommendations;
+}
 
-    // Get confidence - check multiple possible locations
-    $confidence = 0.0;
-    if (isset($aiResult['explainability']['confidence_score'])) {
-        $confidence = $aiResult['explainability']['confidence_score'];
-    } elseif (isset($aiResult['confidence_score'])) {
-        $confidence = $aiResult['confidence_score'];
-    } elseif (isset($aiResult['_metadata']['confidence'])) {
-        $confidence = $aiResult['_metadata']['confidence'];
-    } else {
-        // Default confidence based on whether we have a proper response
-        $confidence = isset($aiResult['_fallback']) ? 0.0 : 0.8; // Default to 80% for OpenAI responses
+public static function getMismatchInsightsForDashboard(int $businessId, $startDate, $endDate): array
+{
+    $reviews = ReviewNew::where('business_id', $businessId)
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->where('rating_comment_mismatch', true)
+        ->where('is_ai_processed', true)
+        ->with(['reviewValues.question', 'staff', 'review_business_services.business_service', 'review_business_services.business_area'])
+        ->get();
+
+    if ($reviews->isEmpty()) {
+        return [
+            'has_data' => false,
+            'message' => 'No rating-comment mismatches detected in this period'
+        ];
     }
 
-    // Get emotion
-    $emotion = $aiResult['emotion']['primary'] ?? 'neutral';
+    $totalReviews = ReviewNew::where('business_id', $businessId)
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->count();
 
-    // Extract key phrases
-    $keyPhrases = [];
-    foreach ($aiResult['themes'] ?? [] as $theme) {
-        if (!empty($theme['topic'])) {
-            $keyPhrases[] = $theme['topic'];
+    $mismatchByType = [
+        'positive_rating_negative_comment' => 0,
+        'negative_rating_positive_comment' => 0,
+        'neutral_mismatch' => 0
+    ];
+
+    $commonIssues = [];
+    $affectedAreas = [];
+    $staffInvolved = [];
+    $sampleReviews = [];
+    $ratingPatterns = [];
+
+    foreach ($reviews as $review) {
+        $insights = json_decode($review->mismatch_insights ?? '{}', true);
+        $mismatchType = $insights['mismatch_type'] ?? 'unknown';
+        
+        if (isset($mismatchByType[$mismatchType])) {
+            $mismatchByType[$mismatchType]++;
+        }
+
+        // Track rating pattern
+        $avgRating = $review->rate ?? 0;
+        if ($avgRating > 0) {
+            $ratingKey = floor($avgRating) . '_stars';
+            $ratingPatterns[$ratingKey] = ($ratingPatterns[$ratingKey] ?? 0) + 1;
+        }
+
+        // Extract common issues
+        $explanation = $insights['explanation'] ?? '';
+        if ($explanation) {
+            $issues = self::extractIssuesFromExplanation($explanation);
+            foreach ($issues as $issue) {
+                $commonIssues[$issue] = ($commonIssues[$issue] ?? 0) + 1;
+            }
+        }
+
+        // Track affected areas
+        foreach ($review->review_business_services as $service) {
+            $areaName = $service->business_area_name ?? 'Unknown';
+            $affectedAreas[$areaName] = ($affectedAreas[$areaName] ?? 0) + 1;
+        }
+
+        // Track staff involvement
+        if ($review->staff_id) {
+            $staffName = $review->staff->name ?? 'Unknown Staff';
+            $staffInvolved[$staffName] = ($staffInvolved[$staffName] ?? 0) + 1;
+        }
+
+        // Collect sample reviews for display
+        if (count($sampleReviews) < 5) {
+            $sampleReviews[] = [
+                'id' => $review->id,
+                'rating' => $review->rate,
+                'comment' => substr($review->comment ?? '', 0, 150) . '...',
+                'mismatch_type' => $mismatchType,
+                'explanation' => substr($explanation, 0, 100) . '...',
+                'date' => $review->created_at->format('M d, Y')
+            ];
         }
     }
 
-    // Extract topics
-    $topics = array_map(function ($theme) {
-        return $theme['topic'] ?? '';
-    }, $aiResult['themes'] ?? []);
+    arsort($commonIssues);
+    arsort($affectedAreas);
+    arsort($staffInvolved);
 
-    // Extract service analysis
-    $serviceAnalysis = $aiResult['service_analysis'] ?? [];
+    $totalMismatches = array_sum($mismatchByType);
+    $mostCommonType = array_keys($mismatchByType, max($mismatchByType))[0] ?? 'none';
+
+    // Generate recommendations
+    $recommendations = self::generateMismatchRecommendations(
+        $totalMismatches,
+        $totalReviews,
+        $commonIssues,
+        $affectedAreas,
+        $mostCommonType
+    );
 
     return [
+        'has_data' => true,
+        'summary' => [
+            'total_mismatches' => $totalMismatches,
+            'total_reviews' => $totalReviews,
+            'mismatch_percentage' => $totalReviews > 0 ? round(($totalMismatches / $totalReviews) * 100, 1) : 0,
+            'most_common_type' => $mostCommonType,
+            'description' => $mostCommonType === 'positive_rating_negative_comment' 
+                ? "Customers are giving high ratings but mentioning issues in comments"
+                : "Rating patterns suggest potential rating inflation or other issues"
+        ],
+        'breakdown' => [
+            'by_type' => $mismatchByType,
+            'by_rating' => $ratingPatterns,
+            'common_issues' => array_slice($commonIssues, 0, 10, true),
+            'affected_areas' => array_slice($affectedAreas, 0, 5, true),
+            'staff_involved' => array_slice($staffInvolved, 0, 5, true)
+        ],
+        'trend_analysis' => [
+            'primary_issue' => !empty($commonIssues) ? array_key_first($commonIssues) : 'None detected',
+            'most_affected_area' => !empty($affectedAreas) ? array_key_first($affectedAreas) : 'General',
+            'risk_level' => ($totalMismatches / max(1, $totalReviews)) > 0.2 ? 'High' : 'Medium',
+            'customer_trend' => $mostCommonType === 'positive_rating_negative_comment' 
+                ? 'Customers hesitant to give low ratings'
+                : 'Inconsistent feedback patterns'
+        ],
+        'recommendations' => $recommendations,
+        'sample_reviews' => $sampleReviews,
+        'date_range' => [
+            'start' => $startDate,
+            'end' => $endDate
+        ]
+    ];
+}
+
+private static function extractCommonMismatchIssues($mismatchReviews)
+{
+    $issues = [];
+    
+    foreach ($mismatchReviews as $review) {
+        $insights = json_decode($review->mismatch_insights ?? '{}', true);
+        $explanation = $insights['explanation'] ?? '';
+        
+        if (empty($explanation)) continue;
+        
+        // Extract common keywords from explanation
+        $keywords = [
+            'wait' => 'Wait Time',
+            'slow' => 'Slow Service',
+            'rude' => 'Rudeness',
+            'dirty' => 'Cleanliness',
+            'expensive' => 'Pricing',
+            'noisy' => 'Noise',
+            'broken' => 'Maintenance',
+            'disorganised' => 'Organization',
+            'unprofessional' => 'Professionalism',
+            'cold' => 'Temperature/Food',
+            'hot' => 'Temperature',
+            'small' => 'Size/Space',
+            'crowded' => 'Crowding',
+            'late' => 'Timeliness',
+            'mistake' => 'Accuracy'
+        ];
+        
+        foreach ($keywords as $keyword => $label) {
+            if (stripos($explanation, $keyword) !== false) {
+                $issues[$label] = ($issues[$label] ?? 0) + 1;
+            }
+        }
+    }
+    
+    arsort($issues);
+    return $issues;
+}
+
+// In your existing AIProcessor class, add this method:
+/**
+ * Get rating mismatch alert for dashboard
+ */
+public static function getRatingMismatchAlert($reviews, $businessId = null, $dateRange = null)
+{
+    if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+        $reviews = $reviews->get();
+    }
+
+    $mismatchCount = $reviews->where('rating_comment_mismatch', true)->count();
+    $totalCount = $reviews->count();
+    
+    if ($mismatchCount == 0) {
+        return null;
+    }
+
+    $percentage = $totalCount > 0 ? round(($mismatchCount / $totalCount) * 100) : 0;
+    
+    // Get common issues from mismatched reviews
+    $commonIssues = self::extractCommonMismatchIssues($reviews->where('rating_comment_mismatch', true));
+    
+    return [
+        'type' => 'insight',
+        'title' => 'Hidden Issues Detected',
+        'message' => "{$percentage}% of positive reviews contain negative comments",
+        'severity' => $percentage > 20 ? 'medium' : 'low',
+        'count' => $mismatchCount,
+        'percentage' => $percentage,
+        'common_issues' => array_slice($commonIssues, 0, 3),
+        'recommendation' => 'Review flagged comments for hidden operational issues',
+        'icon' => '⚠️',
+        'link' => $businessId ? route('dashboard.mismatch.insights', ['business' => $businessId, 'start_date' => $dateRange['start'] ?? null, 'end_date' => $dateRange['end'] ?? null]) : null
+    ];
+}
+     /**
+     * Convert AI result to database format considering enabled modules
+     */
+    private static function convertForDatabase(array $aiResult, ReviewNew $review, array $enabledModules): array
+    {
+        // Get sentiment data
+        $sentimentScore = $aiResult['sentiment']['score'] ?? 0.0;
+        $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
+        $sentimentNormalized = ($sentimentScore + 1) / 2;
+
+        // Get confidence
+        $confidence = $aiResult['explainability']['confidence_score'] ?? 0.0;
+
+        // Get emotion
+        $emotion = $aiResult['emotion']['primary'] ?? 'neutral';
+
+        // Extract key phrases only if enabled
+        $keyPhrases = [];
+        if (!empty($aiResult['themes'])) {
+            foreach ($aiResult['themes'] ?? [] as $theme) {
+                if (!empty($theme['topic'])) {
+                    $keyPhrases[] = $theme['topic'];
+                }
+            }
+        }
+
+        // Extract topics
+        $topics = array_map(function ($theme) {
+            return $theme['topic'] ?? '';
+        }, $aiResult['themes'] ?? []);
+
+      
+           // Extract mismatch insights
+    $mismatchInsights = self::extractMismatchInsights($aiResult, $review);
+    
+    // Prepare data based on enabled modules
+    $dbData = [
         'sentiment_score' => $sentimentNormalized,
-        'sentiment' => $aiResult['sentiment'],
-        'sentiment_label' => $sentimentLabel, // Use OpenAI's label directly
+        'sentiment' => $aiResult['sentiment'] ?? ['label' => 'neutral', 'score' => 0],
+        'sentiment_label' => $sentimentLabel,
         'emotion' => $emotion,
         'key_phrases' => json_encode(array_slice($keyPhrases, 0, 5)),
         'topics' => json_encode(array_slice($topics, 0, 5)),
         'moderation_results' => json_encode($aiResult['moderation'] ?? []),
-        'ai_suggestions' => json_encode($aiResult['recommendations'] ?? []),
-        'staff_suggestions' => json_encode($aiResult['staff_intelligence']['training_recommendations'] ?? []),
         'language' => $aiResult['language']['detected'] ?? 'en',
         'openai_raw_response' => json_encode($aiResult),
         'is_ai_processed' => true,
         'is_abusive' => $aiResult['moderation']['is_abusive'] ?? false,
         'ai_confidence' => $confidence,
         'summary' => $aiResult['summary']['one_line'] ?? '',
-        'service_analysis' => !empty($serviceAnalysis) ? json_encode($serviceAnalysis) : null // NEW: Store service analysis
+        // Add mismatch data
+        'rating_comment_mismatch' => $mismatchInsights['has_mismatch'] ?? false,
+        'mismatch_insights' => json_encode($mismatchInsights),
     ];
-}
+
+    // Add flag to review if mismatch detected
+    if ($mismatchInsights['should_flag'] ?? false) {
+        $dbData['status'] = 'flagged';
+        $dbData['flag_type'] = $mismatchInsights['flag_type'] ?? 'insight';
+        $dbData['flag_reason'] = $mismatchInsights['explanation'] ?? 'Rating-comment mismatch detected';
+    }
+
+        // Add optional fields only if modules are enabled
+        if ($enabledModules['staff_intelligence'] && isset($aiResult['staff_intelligence'])) {
+            $dbData['staff_suggestions'] = json_encode($aiResult['staff_intelligence']['training_recommendations'] ?? []);
+        }
+
+        if ($enabledModules['business_recommendations'] && isset($aiResult['recommendations'])) {
+            $dbData['ai_suggestions'] = json_encode($aiResult['recommendations'] ?? []);
+        }
+
+        return $dbData;
+    }
 
 
     /**
      * Fallback analysis when OpenAI fails - ensure 0 confidence
      */
-    private static function getFallbackAnalysis(array $payload): array
+     private static function getFallbackAnalysis(array $payload, array $enabledModules): array
     {
         $text = $payload['review_text'] ?? '';
         $rating = $payload['rating'] ?? 0;
@@ -657,7 +1256,8 @@ PROMPT;
             $sentimentScore = -0.8;
         }
 
-        return [
+        // Base result with required modules
+        $result = [
             'language' => [
                 'detected' => 'en',
                 'translated_text' => $text
@@ -677,28 +1277,9 @@ PROMPT;
                 'severity' => 'low'
             ],
             'themes' => [],
-            'category_analysis' => [],
-            'staff_intelligence' => null,
-            'service_unit_intelligence' => null,
-            'business_insights' => [
-                'root_cause' => 'Unable to analyze',
-                'repeat_issue_likelihood' => 'low',
-                'impact_level' => 'low'
-            ],
-            'recommendations' => [
-                'business_actions' => [],
-                'staff_actions' => [],
-                'immediate_actions' => []
-            ],
-            'alerts' => [
-                'triggered' => false,
-                'type' => 'info',
-                'priority' => 'low',
-                'message' => 'Fallback analysis used'
-            ],
             'explainability' => [
                 'decision_basis' => ['Fallback rating-based analysis'],
-                'confidence_score' => 0.0, // Always 0 for fallback
+                'confidence_score' => 0.0,
                 'key_factors' => ['rating']
             ],
             'summary' => [
@@ -708,11 +1289,126 @@ PROMPT;
             ],
             '_fallback' => true
         ];
+
+        // Add optional modules based on enabledModules
+        $result['category_analysis'] = $enabledModules['category_analysis'] ? [] : null;
+        $result['staff_intelligence'] = $enabledModules['staff_intelligence'] ? null : null;
+        $result['service_unit_intelligence'] = $enabledModules['service_unit_intelligence'] ? null : null;
+        
+        if ($enabledModules['business_recommendations']) {
+            $result['business_insights'] = [
+                'root_cause' => 'Unable to analyze',
+                'repeat_issue_likelihood' => 'low',
+                'impact_level' => 'low'
+            ];
+            $result['recommendations'] = [
+                'business_actions' => [],
+                'staff_actions' => [],
+                'immediate_actions' => []
+            ];
+        }
+        
+        if ($enabledModules['alerts']) {
+            $result['alerts'] = [
+                'triggered' => false,
+                'type' => 'info',
+                'priority' => 'low',
+                'message' => 'Fallback analysis used'
+            ];
+        }
+
+        return $result;
     }
 
 
+ /**
+     * Get token usage statistics for a business
+     */
+  public static function getTokenUsageStatistics(int $businessId, string $period = 'month')
+    {
+        $query = OpenAITokenUsage::where('business_id', $businessId);
+        
+        $dateField = match($period) {
+            'day' => now()->subDay(),
+            'week' => now()->subWeek(),
+            'month' => now()->subMonth(),
+            'quarter' => now()->subQuarter(),
+            'year' => now()->subYear(),
+            default => now()->subMonth()
+        };
+        
+        $query->where('created_at', '>=', $dateField);
+        
+        $stats = $query->selectRaw('
+            SUM(prompt_tokens) as total_prompt_tokens,
+            SUM(completion_tokens) as total_completion_tokens,
+            SUM(total_tokens) as total_tokens,
+            SUM(estimated_cost) as total_cost,
+            COUNT(*) as total_requests,
+            AVG(total_tokens) as avg_tokens_per_request
+        ')->first();
+        
+        return [
+            'period' => $period,
+            'total_prompt_tokens' => $stats->total_prompt_tokens ?? 0,
+            'total_completion_tokens' => $stats->total_completion_tokens ?? 0,
+            'total_tokens' => $stats->total_tokens ?? 0,
+            'total_cost' => $stats->total_cost ?? 0,
+            'total_requests' => $stats->total_requests ?? 0,
+            'avg_tokens_per_request' => $stats->avg_tokens_per_request ?? 0,
+        ];
+    }
 
-
+      /**
+     * Update business AI modules
+     */
+     /**
+     * Update business AI modules
+     */
+    public static function updateBusinessAIModules(int $businessId, array $modules): bool
+    {
+        try {
+            $aiModule = BusinessAIModule::firstOrNew(['business_id' => $businessId]);
+            
+            // Only update optional modules (required modules are always true)
+            $updatableModules = [
+                'category_analysis',
+                'staff_intelligence',
+                'service_unit_intelligence',
+                'business_recommendations',
+                'alerts'
+            ];
+            
+            foreach ($updatableModules as $module) {
+                if (isset($modules[$module])) {
+                    $aiModule->$module = (bool) $modules[$module];
+                }
+            }
+            
+            // Ensure required modules are always true
+            $aiModule->language_translation = true;
+            $aiModule->sentiment_analysis = true;
+            $aiModule->emotion_detection = true;
+            $aiModule->abuse_detection = true;
+            $aiModule->explainability = true;
+            
+            $aiModule->save();
+            
+            Log::info('Business AI modules updated', [
+                'business_id' => $businessId,
+                'modules' => $modules
+            ]);
+            
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to update business AI modules', [
+                'business_id' => $businessId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return false;
+        }
+    }
     /**
      * Legacy compatibility method
      */
