@@ -89,6 +89,12 @@ class User extends Authenticatable
         return $this->hasMany(ReviewNew::class, 'staff_id', 'id');
     }
 
+
+    public function branch(): HasOne
+    {
+        return $this->hasOne(BranchMember::class, 'user_id', 'id');
+    }
+
     /**
      * Scope a query to filter users based on search criteria
      *

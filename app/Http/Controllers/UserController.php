@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\BranchMember;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -552,8 +553,7 @@ class UserController extends Controller
      *              @OA\Property(property="last_Name", type="string", example="Doe", description="User's last name"),
      *              @OA\Property(property="email", type="string", format="email", example="john.manager@yopmail.com", description="User's email address"),
      *              @OA\Property(property="phone", type="string", example="+1234567890", description="User's phone number"),
-     *              @OA\Property(property="role", type="string", enum={"branch_manager", "business_staff"}, example="branch_manager", description="User role"),
-     *              @OA\Property(property="post_code", type="string", example="12345", description="Postal code"),
+     *              @OA\Property(property="role", type="string", enum={"branch_manager", "business_staff"}, example="branch_manager", description="User role"),              @OA\Property(property="branch_id", type="integer", example=1, description="Branch ID to assign the user to (optional)"),     *              @OA\Property(property="post_code", type="string", example="12345", description="Postal code"),
      *              @OA\Property(property="Address", type="string", example="123 Main St", description="User's address"),
      *              @OA\Property(property="door_no", type="string", example="Apt 4B", description="Door number"),
      *              @OA\Property(property="date_of_birth", type="string", format="date", example="1990-01-01", description="Date of birth"),
@@ -790,7 +790,8 @@ class UserController extends Controller
      *              @OA\Property(property="image", type="string", example="path/to/image.jpg", description="Profile image path"),
      *              @OA\Property(property="job_title", type="string", example="Manager", description="Job title"),
      *              @OA\Property(property="join_date", type="string", format="date", example="2023-01-01", description="Join date"),
-     *              @OA\Property(property="skills", type="string", example="PHP, Laravel", description="User skills")
+     *              @OA\Property(property="skills", type="string", example="PHP, Laravel", description="User skills"),
+     *              @OA\Property(property="branch_id", type="integer", example=1, description="Branch ID to assign the user")
      *          )
      *      ),
      *      @OA\Response(
@@ -873,6 +874,26 @@ class UserController extends Controller
 
         // Save the user
         $user->save();
+
+        // Create branch member if branch_id is provided
+        if (!empty($validatedData['branch_id'])) {
+            $branchMemberRole = '';
+            if ($validatedData['role'] === User::USER_ROLE['BRANCH_MANAGER']) {
+                $branchMemberRole = 'manager';
+            } elseif ($validatedData['role'] === User::USER_ROLE['BUSINESS_STAFF']) {
+                $branchMemberRole = 'staff';
+            }
+
+            if ($branchMemberRole) {
+                BranchMember::create([
+                    'branch_id' => $validatedData['branch_id'],
+                    'user_id' => $user->id,
+                    'role' => $branchMemberRole,
+                    'joining_date' => $validatedData['join_date'] ?? now()->toDateString(),
+                    'remarks' => 'Added via user creation',
+                ]);
+            }
+        }
 
         // Return success response
         return response()->json([

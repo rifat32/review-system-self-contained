@@ -30,6 +30,7 @@ class UserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', new UniqueEmail($this->route('id'))],
             'phone' => 'nullable|string|max:20',
             'role' => 'required|string|in:branch_manager,business_staff',
+            'branch_id' => 'required|exists:branches,id',
             'post_code' => 'nullable|string|max:10',
             'Address' => 'nullable|string|max:255',
             'door_no' => 'nullable|string|max:50',
