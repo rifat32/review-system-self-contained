@@ -26,7 +26,7 @@ class NoteController extends Controller
      * @OA\Post(
      *      path="/v1.0/notes",
      *      operationId="createNote",
-     *      tags={"Notes"},
+     *      tags={"notes"},
      *      summary="Create a new note",
      *      description="Create a new note for the specified user",
      *      security={{"bearerAuth": {}}},
@@ -68,7 +68,7 @@ class NoteController extends Controller
      * @OA\Get(
      *      path="/v1.0/notes",
      *      operationId="getAllNotes",
-     *      tags={"Notes"},
+     *      tags={"notes"},
      *      summary="Get all notes for a user",
      *      description="Retrieve all notes belonging to the specified user",
      *      security={{"bearerAuth": {}}},
@@ -109,7 +109,7 @@ class NoteController extends Controller
      * @OA\Get(
      *      path="/v1.0/notes/{id}",
      *      operationId="getNoteById",
-     *      tags={"Notes"},
+     *      tags={"notes"},
      *      summary="Get a specific note by ID",
      *      description="Retrieve a single note by its ID for the specified user",
      *      security={{"bearerAuth": {}}},
@@ -165,7 +165,7 @@ class NoteController extends Controller
      * @OA\Put(
      *      path="/v1.0/notes/{id}",
      *      operationId="updateNote",
-     *      tags={"Notes"},
+     *      tags={"notes"},
      *      summary="Update a note",
      *      description="Update an existing note for the specified user",
      *      security={{"bearerAuth": {}}},
@@ -227,7 +227,7 @@ class NoteController extends Controller
      * @OA\Delete(
      *      path="/v1.0/notes/delete/{ids}",
      *      operationId="deleteNotes",
-     *      tags={"Notes"},
+     *      tags={"notes"},
      *      summary="Delete multiple notes",
      *      description="Delete multiple notes by comma-separated IDs for the specified user",
      *      security={{"bearerAuth": {}}},

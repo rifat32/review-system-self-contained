@@ -1162,6 +1162,14 @@ class StaffController extends Controller
      *     @OA\Schema(type="integer", minimum=1)
      *   ),
      *
+     *   @OA\Parameter(
+     *     name="have_comment",
+     *     in="query",
+     *     required=false,
+     *     description="filter by comment fields if true then only reviews with comments are returned, if false then only reviews without comments are returned",
+     *     @OA\Schema(type="boolean")
+     *   ),
+     *
      *   @OA\Response(
      *     response=200,
      *     description="Staff reviews retrieved successfully",
@@ -1272,6 +1280,13 @@ class StaffController extends Controller
         $query = ReviewNew::with('staff')
             ->where('staff_id', $staffId)
             ->where('business_id', $businessId)
+            ->when($request->has('have_comment'), function ($query) use ($request) {
+                if ($request->boolean('have_comment')) {
+                    $query->whereNotNull('comment');
+                } else {
+                    $query->whereNull('comment');
+                }
+            })
             ->withCalculatedRating();
 
         // Apply filter based on calculated_rating
