@@ -981,7 +981,7 @@ class StaffController extends Controller
      *     name="start_date",
      *     in="query",
      *     required=false,
-     *     description="Start date for the trends (DD-MM-YYYY). Defaults to 30 days ago if not provided.",
+     *     description="Start date for the trends (DD-MM-YYYY). Defaults to previous month if not provided.",
      *     @OA\Schema(type="string")
      *   ),
      *
@@ -989,7 +989,7 @@ class StaffController extends Controller
      *     name="end_date",
      *     in="query",
      *     required=false,
-     *     description="End date for the trends (DD-MM-YYYY). Defaults to today if not provided.",
+     *     description="End date for the trends (DD-MM-YYYY). Defaults to previous month if not provided.",
      *     @OA\Schema(type="string")
      *   ),
      *
@@ -1062,7 +1062,7 @@ class StaffController extends Controller
             ], 404);
         }
 
-        // Get start and end dates, default to last 30 days if not provided
+        // Get start and end dates, default to previous month if not provided
         $startDateInput = $request->query('start_date');
         $endDateInput = $request->query('end_date');
 
@@ -1109,15 +1109,34 @@ class StaffController extends Controller
             $currentDate->addDay();
         }
 
-        // Calculate total average rating from daily averages (including days with no reviews)
-        $ratings = collect($ratingData)->pluck('rating');
-        $totalAverageRating = $ratings->isNotEmpty() ? round($ratings->avg(), 2) : 0;
+        // Calculate total average rating from all reviews (total rating / number of submissions)
+        $currentAverage = $reviews->isNotEmpty() ? round($reviews->avg('calculated_rating'), 2) : 0;
+
+        // Calculate previous period (same duration before current period)
+        $durationDays = $startDate->diffInDays($endDate) + 1;
+        $previousEnd = $startDate->copy()->subDay();
+        $previousStart = $previousEnd->copy()->subDays($durationDays - 1);
+
+        $previousReviews = ReviewNew::withCalculatedRating()
+            ->where('staff_id', $staffId)
+            ->whereBetween('created_at', [$previousStart, $previousEnd])
+            ->get();
+
+        $previousAverage = $previousReviews->isNotEmpty() ? round($previousReviews->avg('calculated_rating'), 2) : 0;
+
+        $difference = round($currentAverage - $previousAverage, 2);
+        $percentageChange = $previousAverage > 0 ? round((($currentAverage - $previousAverage) / $previousAverage) * 100, 2) : 0;
 
         return response()->json([
             'success' => true,
             'message' => 'Staff rating trends retrieved successfully',
             'data' => $ratingData,
-            'total_average_rating' => $totalAverageRating,
+            'rating' => [
+                'current' => $currentAverage,
+                'previous' => $previousAverage,
+                'difference' => $difference,
+                'percentage_change' => $percentageChange
+            ],
             'period' => [
                 'start_date' => $startDate->format('d-m-Y'),
                 'end_date' => $endDate->format('d-m-Y')
