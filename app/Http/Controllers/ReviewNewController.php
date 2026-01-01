@@ -1508,17 +1508,17 @@ class ReviewNewController extends Controller
                     if ($starTag->question_id == $question->id) {
                         $tag = $starTag->tag;
 
-                        // Calculate 'count' (Total reviews for this 
+                        // Calculate 'count' (Total reviews for this
 
-                      // Fixed: Join through pivot table for 
-$tagCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-    ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
-    ->where([
-        "review_news.business_id" => $businessId,
-        "question_id" => $question->id,
-        "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
-        "review_news." . $idColumnToFilter => $filterValue,
-    ]);
+                        // Fixed: Join through pivot table for
+                        $tagCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
+                            ->where([
+                                "review_news.business_id" => $businessId,
+                                "question_id" => $question->id,
+                                "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
+                                "review_news." . $idColumnToFilter => $filterValue,
+                            ]);
 
 
 
@@ -1535,19 +1535,19 @@ $tagCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.revi
                             }
                         }
 
-                        // Calculate 'total' (Total reviews for this 
+                        // Calculate 'total' (Total reviews for this
 
 
-                      // Fixed: Join through pivot table for many-to-many relationship
-$tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-    ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
-    ->where([
-        "review_news.business_id" => $businessId,
-        "question_id" => $question->id,
-        "star_id" => $star->id,
-        "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
-        "review_news." . $idColumnToFilter => $filterValue,
-    ]);
+                        // Fixed: Join through pivot table for many-to-many relationship
+                        $tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
+                            ->where([
+                                "review_news.business_id" => $businessId,
+                                "question_id" => $question->id,
+                                "star_id" => $star->id,
+                                "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
+                                "review_news." . $idColumnToFilter => $filterValue,
+                            ]);
 
 
                         $tagTotalQuery = $applyDateRangeScope($tagTotalQuery);
@@ -2257,17 +2257,17 @@ $tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.revi
                     if ($starTag->question_id == $question->id) {
                         $tag = $starTag->tag;
 
-                        // Tag 'count' (Total reviews for this tag on 
-                       // Fixed: Join through pivot table for many-to-many relationship
-$tagCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-    ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
-    ->where([
-        "review_news.business_id" => $businessId,
-        "question_id" => $question->id,
-        "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
-        "review_news." . $primaryIdColumn => $filterValue,
-        "review_news." . $secondaryIdColumn => $secondaryFilterValue,
-    ]);
+                        // Tag 'count' (Total reviews for this tag on
+                        // Fixed: Join through pivot table for many-to-many relationship
+                        $tagCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
+                            ->where([
+                                "review_news.business_id" => $businessId,
+                                "question_id" => $question->id,
+                                "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
+                                "review_news." . $primaryIdColumn => $filterValue,
+                                "review_news." . $secondaryIdColumn => $secondaryFilterValue,
+                            ]);
                         $tagCount = $applyDateRangeScope($tagCountQuery)->count();
 
                         if ($tagCount > 0) {
@@ -2279,17 +2279,17 @@ $tagCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.revi
                         }
 
                         // Tag 'total' (Total reviews for this tag AND specific star by this entity)
-                       // Fixed: Join through pivot table for many-to-many relationship
-$tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
-    ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
-    ->where([
-        "review_news.business_id" => $businessId,
-        "question_id" => $question->id,
-        "star_id" => $star->id,
-        "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
-        "review_news." . $primaryIdColumn => $filterValue,
-        "review_news." . $secondaryIdColumn => $secondaryFilterValue,
-    ]);
+                        // Fixed: Join through pivot table for many-to-many relationship
+                        $tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                            ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
+                            ->where([
+                                "review_news.business_id" => $businessId,
+                                "question_id" => $question->id,
+                                "star_id" => $star->id,
+                                "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
+                                "review_news." . $primaryIdColumn => $filterValue,
+                                "review_news." . $secondaryIdColumn => $secondaryFilterValue,
+                            ]);
 
                         $tagTotal = $applyDateRangeScope($tagTotalQuery)->count();
 
@@ -3313,6 +3313,7 @@ $tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.revi
 
         $query = ReviewNew::with([
             "value.question",
+            "value.tags",
             "value",
             "user",
             "guest_user",
