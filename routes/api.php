@@ -20,6 +20,7 @@ use App\Http\Controllers\BusinessAreaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\LeafletController;
+use App\Http\Controllers\NoteController;
 use App\Http\Controllers\OpenAITokenReportController;
 use App\Http\Controllers\QuestionCategoryController;
 use App\Http\Controllers\QuestionController;
@@ -426,6 +427,15 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/openai-tokens/report', [OpenAITokenReportController::class, 'getTokenUsageReport']);
 
     Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [DashboardController::class, 'getOverallDashboardData']);
+
+    // ============================================================================
+    // NoteController – Notes management
+    // ============================================================================
+    Route::post('/v1.0/notes', [NoteController::class, 'createNote']);
+    Route::get('/v1.0/notes', [NoteController::class, 'getAllNotes']);
+    Route::get('/v1.0/notes/{id}', [NoteController::class, 'getNoteById']);
+    Route::put('/v1.0/notes/{id}', [NoteController::class, 'updateNote']);
+    Route::delete('/v1.0/notes/delete/{ids}', [NoteController::class, 'deleteNotes']);
 });
 
 // ============================================================================
