@@ -750,7 +750,8 @@ class ReviewNewController extends Controller
      *      @OA\RequestBody(
      *          required=true,
      *          @OA\JsonContent(
-     *              required={"description","rate","comment","values"},
+     *              required={"description","rate","comment","values", "platform"},
+     *              @OA\Property(property="platform", type="string", example="web"),
      *              @OA\Property(property="description", type="string", example="Test"),
      *              @OA\Property(property="rate", type="string", example="2.5"),
      *              @OA\Property(property="comment", type="string", example="Not good"),
@@ -792,6 +793,7 @@ class ReviewNewController extends Controller
     {
 
         $request->validate([
+            'platform' => ['required', 'string', 'in:web,app'],
             'description' => 'nullable|string',
             'rate' => 'required|numeric|min:1|max:5',
             'staff_id' => 'nullable|exists:users,id',
@@ -887,9 +889,10 @@ class ReviewNewController extends Controller
      *      @OA\RequestBody(
      *          required=true,
      *          @OA\JsonContent(
-     *              required={"guest_full_name","guest_phone","description","rate","comment","values"},
+     *              required={"guest_full_name","guest_phone","description","rate","comment","values","platform"},
      *              @OA\Property(property="guest_full_name", type="string", example="Rifat"),
      *              @OA\Property(property="guest_phone", type="string", example="0177"),
+     *              @OA\Property(property="platform", type="string", example="web"),
      *              @OA\Property(property="description", type="string", example="Test"),
      *              @OA\Property(property="rate", type="string", example="2.5"),
      *              @OA\Property(property="comment", type="string", example="Not good"),
@@ -933,6 +936,7 @@ class ReviewNewController extends Controller
     public function storeReviewByGuest($businessId, Request $request)
     {
         $request->validate([
+            'platform' => ['required', 'string', 'in:web,app'],
             'guest_full_name' => 'nullable|string',
             'guest_phone' => 'nullable|string',
             'description' => 'nullable|string',

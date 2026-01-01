@@ -11,6 +11,9 @@ class ReviewNew extends Model
 {
     use HasFactory;
 
+    const PLATFORM_WEB = 'web';
+    const PLATFORM_APP = 'app';
+
     protected $fillable = [
 
         'survey_id',
@@ -53,7 +56,8 @@ class ReviewNew extends Model
         "sentiment_label",
         'openai_raw_response',
         "is_abusive",
-        "summary"
+        "summary",
+        'platform'
 
     ];
 
@@ -67,6 +71,14 @@ class ReviewNew extends Model
         'is_voice_review' => 'boolean',
         'transcription_metadata' => 'array',
     ];
+
+    public function setPlatformAttribute($value)
+    {
+        if (!in_array($value, [self::PLATFORM_WEB, self::PLATFORM_APP])) {
+            throw new \InvalidArgumentException("Invalid platform value: $value. Allowed values are: " . self::PLATFORM_WEB . ", " . self::PLATFORM_APP);
+        }
+        $this->attributes['platform'] = $value;
+    }
 
     protected static function boot()
     {
@@ -154,16 +166,16 @@ class ReviewNew extends Model
     public function scopeGlobalFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
         return $query
-        ->when(request()->filled('is_overall'), function ($q) {
+            ->when(request()->filled('is_overall'), function ($q) {
                 $q->when(request()->boolean('is_overall'), function ($q) {
                     $q->where('review_news.is_overall', 1);
                 }, function ($q) {
                     $q->where('review_news.is_overall', 0);
                 });
             })
-        ->when(request()->has('staff_id'), function ($q) {
-            $q->where('review_news.staff_id', request()->input('staff_id'));
-        })
+            ->when(request()->has('staff_id'), function ($q) {
+                $q->where('review_news.staff_id', request()->input('staff_id'));
+            })
             ->when($show_published_only, function ($q) use ($businessId, $is_staff_review) {
                 $q->whereMeetsThreshold($businessId, $is_staff_review);
             })
@@ -278,7 +290,7 @@ class ReviewNew extends Model
     }
 
 
-     public function scopeWhereDoesNotMeetsThreshold($query, $businessId, $is_staff_review = 0)
+    public function scopeWhereDoesNotMeetsThreshold($query, $businessId, $is_staff_review = 0)
     {
         // Get threshold rating
         $business = Business::find($businessId);
