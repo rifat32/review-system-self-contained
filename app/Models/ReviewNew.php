@@ -57,9 +57,12 @@ class ReviewNew extends Model
         'openai_raw_response',
         "is_abusive",
         "summary",
-        'platform'
+        'platform',
+        "rating_comment_mismatch",
+        "mismatch_insights"
 
     ];
+
 
 
     protected $casts = [
