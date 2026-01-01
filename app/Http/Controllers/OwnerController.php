@@ -8,9 +8,7 @@ use App\Http\Requests\OwnerRequest;
 
 use App\Mail\NotifyMail;
 
-use App\Models\Business;
-
-use App\Models\User;
+use App\Models\ReviewNew;
 use App\Services\BusinessService;
 use App\Services\UserService;
 use Exception;
@@ -239,7 +237,7 @@ class OwnerController extends Controller
      *            @OA\Property(property="is_review_slider", type="boolean", example=false),
      *            @OA\Property(property="review_only", type="boolean", example=true),
      *            @OA\Property(property="is_branch", type="boolean", example=true),
-     * 
+     *
      *            @OA\Property(property="header_image", type="string", example="/header_image/default.png"),
      *            @OA\Property(property="primary_color", type="string", example="#FF0000"),
      *            @OA\Property(property="secondary_color", type="string", example="#00FF00"),
@@ -1408,7 +1406,7 @@ class OwnerController extends Controller
      *     security={{"bearerAuth": {}}},
      *     summary="Update authenticated user's profile",
      *     description="Allows a user to update their own profile information including password (with old password verification)",
-     *    
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -1424,7 +1422,7 @@ class OwnerController extends Controller
      *             @OA\Property(property="old_password", type="string", example="oldPassword123", description="Required only if changing password", nullable=true)
      *         )
      *     ),
-     *     
+     *
      *     @OA\Response(response=200, description="Profile updated successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
@@ -1513,6 +1511,76 @@ class OwnerController extends Controller
             'success' => true,
             'message' => 'User updated successfully',
             'data'    => $updatedUser
+        ], 200);
+    }
+
+    /**
+     * @OA\Patch(
+     *     path="/v1.0/owner/review-reply",
+     *     operationId="reviewReply",
+     *     tags={"owner", "review_management"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Update review reply content",
+     *     description="Allows a business owner to update the reply content for a specific review",
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"review_id", "reply_content"},
+     *             @OA\Property(property="review_id", type="integer", example=1, description="ID of the review to update"),
+     *             @OA\Property(property="reply_content", type="string", example="Thank you for your feedback!", description="The reply content to update")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=200, description="Reply updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Review reply updated successfully")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string"))
+     *     ),
+     *     @OA\Response(response=403, description="Forbidden - Not the business owner",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string"))
+     *     ),
+     *     @OA\Response(response=404, description="Review not found",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string"))
+     *     ),
+     *     @OA\Response(response=422, description="Validation error",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string"))
+     *     ),
+     *     @OA\Response(response=400, description="Bad Request")
+     * )
+     */
+    public function reviewReply(Request $request)
+    {
+        // Validate input
+        $validated = $request->validate([
+            'review_id' => 'required|integer|exists:review_news,id',
+            'reply_content' => 'required|string',
+        ]);
+
+        // Get authenticated user
+        $user = $request->user();
+
+        // Find the review
+        $review = ReviewNew::find($validated['review_id']);
+
+        // Check if the user owns the business associated with the review
+        if ($review->business_id !== $user->business_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Review does not belong to your business.'
+            ], 403);
+        }
+
+        // Update only the reply_content
+        $review->update(['reply_content' => $validated['reply_content']]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review reply updated successfully'
         ], 200);
     }
 }
