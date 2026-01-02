@@ -455,7 +455,8 @@ class StaffController extends Controller
         try {
             $businessId =  auth()->user()->business->id;
 
-            $query = User::filterStaff($businessId);
+            $query = User::with("branches")
+            ->filterStaff($businessId);
 
             $staff = retrieve_data($query);
 

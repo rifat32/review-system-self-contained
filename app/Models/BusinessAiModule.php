@@ -75,20 +75,44 @@ class BusinessAiModule extends Model
     /**
      * Get default configuration for a business
      */
-    public static function getDefaultForBusiness(int $businessId): array
-    {
-        return [
-            'business_id' => $businessId,
-            'language_translation' => true,
-            'sentiment_analysis' => true,
-            'emotion_detection' => true,
-            'abuse_detection' => true,
-            'explainability' => true,
-            'category_analysis' => true,
-            'staff_intelligence' => true,
-            'service_unit_intelligence' => true,
-            'business_recommendations' => true,
-            'alerts' => true,
-        ];
-    }
+    // public static function getDefaultForBusiness(int $businessId): array
+    // {
+    //     return [
+    //         'business_id' => $businessId,
+    //         'language_translation' => true,
+    //         'sentiment_analysis' => true,
+    //         'emotion_detection' => true,
+    //         'abuse_detection' => true,
+    //         'explainability' => true,
+    //         'category_analysis' => true,
+    //         'staff_intelligence' => true,
+    //         'service_unit_intelligence' => true,
+    //         'business_recommendations' => true,
+    //         'alerts' => true,
+    //     ];
+    // }
+/**
+ * Get default configuration for a business
+ */
+public static function getDefaultForBusiness(int $businessId): array
+{
+    return [
+        'business_id' => $businessId,
+        'language_translation' => true,  // Required
+        'sentiment_analysis' => true,    // Required
+        'emotion_detection' => true,     // Required
+        'abuse_detection' => true,       // Required
+        'explainability' => true,        // Required
+        
+        // Optional modules - DISABLED by default
+        'category_analysis' => false,
+        'staff_intelligence' => false,
+        'service_unit_intelligence' => false,
+        'business_recommendations' => false,
+        'alerts' => false,
+    ];
+}
+
+
+
 }

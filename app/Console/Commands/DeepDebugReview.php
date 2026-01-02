@@ -44,7 +44,8 @@ class DeepDebugReview extends Command
         // Step 2: Call OpenAI directly
         $this->info("\n🔄 Step 2: Calling OpenAI Directly");
         try {
-            $openAIResult = OpenAIProcessor::processReviewWithOpenAI($payload);
+             $enabledModules = OpenAIProcessor::getBusinessAIModules($review->business_id);
+            $openAIResult = OpenAIProcessor::processReviewWithOpenAI($payload, $enabledModules, $enabledModules);
             
             if (isset($openAIResult['_fallback']) && $openAIResult['_fallback']) {
                 $this->error("❌ USING FALLBACK!");

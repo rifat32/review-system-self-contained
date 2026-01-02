@@ -69,7 +69,8 @@ class TestAIProcessing extends Command
             ];
             
             try {
-                $result = OpenAIProcessor::processReviewWithOpenAI($payload);
+                    $enabledModules = OpenAIProcessor::getBusinessAIModules(1);
+                $result = OpenAIProcessor::processReviewWithOpenAI($payload, $enabledModules, $enabledModules);
                 
                 $this->displayResults($result);
                 

@@ -77,7 +77,8 @@ class ProcessAIReviews extends Command
             if ($this->option('test')) {
                 $this->fileWrite("TEST MODE: Analyzing review without saving\n");
                 $payload = OpenAIProcessor::createPayloadFromReview($review);
-                $result = OpenAIProcessor::processReviewWithOpenAI($payload);
+                $enabledModules = OpenAIProcessor::getBusinessAIModules($review->business_id);
+                $result = OpenAIProcessor::processReviewWithOpenAI($payload, $enabledModules);
                 
                 $this->fileWrite("\n✅ OpenAI Analysis Results:\n");
                 $this->fileWrite("   Sentiment: " . ($result['sentiment']['label'] ?? 'N/A') . "\n");
@@ -198,7 +199,10 @@ class ProcessAIReviews extends Command
                     // Test mode
                     $this->fileWrite("Testing review #{$review->id}\n");
                     $payload = OpenAIProcessor::createPayloadFromReview($review);
-                    $result = OpenAIProcessor::processReviewWithOpenAI($payload);
+
+                    $enabledModules = OpenAIProcessor::getBusinessAIModules($review->business_id);
+                    $result = OpenAIProcessor::processReviewWithOpenAI($payload, $enabledModules);
+
                     $tokens = $result['_metadata']['tokens_used'] ?? 0;
                     $totalTokens += $tokens;
                     

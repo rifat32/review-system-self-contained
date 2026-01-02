@@ -95,6 +95,17 @@ class User extends Authenticatable
         return $this->hasOne(BranchMember::class, 'user_id', 'id');
     }
 
+  public function branches()
+{
+    return $this->hasManyThrough(
+        Branch::class,       // Target model
+        BranchMember::class, // Intermediate model
+        'user_id',           // Foreign key on intermediate table
+        'id',               // Foreign key on target table
+        'id',               // Local key on this model
+        'branch_id'         // Local key on intermediate table
+    );
+}
     /**
      * Scope a query to filter users based on search criteria
      *

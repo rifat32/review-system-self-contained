@@ -29,7 +29,8 @@ class ReviewNew extends Model
         'staff_id',
         'order_no',
         "status",
-        'source',
+      
+
         'responded_at',
         'review_type',
         'topic_id',
@@ -57,7 +58,7 @@ class ReviewNew extends Model
         'openai_raw_response',
         "is_abusive",
         "summary",
-        'platform',
+        'source',
         "rating_comment_mismatch",
         "mismatch_insights"
 
@@ -75,12 +76,12 @@ class ReviewNew extends Model
         'transcription_metadata' => 'array',
     ];
 
-    public function setPlatformAttribute($value)
+    public function setSourceAttribute($value)
     {
         if (!in_array($value, [self::PLATFORM_WEB, self::PLATFORM_APP])) {
             throw new \InvalidArgumentException("Invalid platform value: $value. Allowed values are: " . self::PLATFORM_WEB . ", " . self::PLATFORM_APP);
         }
-        $this->attributes['platform'] = $value;
+        $this->attributes['source'] = $value;
     }
 
     protected static function boot()

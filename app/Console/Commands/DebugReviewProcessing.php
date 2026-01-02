@@ -43,7 +43,10 @@ class DebugReviewProcessing extends Command
         // Test OpenAI directly
         $this->info("\n🔄 Testing OpenAI API...");
         try {
-            $result = OpenAIProcessor::processReviewWithOpenAI($payload);
+
+             $enabledModules = OpenAIProcessor::getBusinessAIModules($review->business_id);
+             
+            $result = OpenAIProcessor::processReviewWithOpenAI($payload, $enabledModules, $enabledModules);
             
             if (isset($result['_fallback']) && $result['_fallback']) {
                 $this->error("❌ USING FALLBACK ANALYSIS");

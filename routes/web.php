@@ -50,17 +50,32 @@ Route::get('/reviews', function () {
         "data" => ReviewNew::whereNotNull("raw_text")->select(
             'id',
             'raw_text',
-            'moderation_results',
-            'sentiment_score',
-            'topics',
-            'ai_suggestions',
-            'staff_suggestions',
-            'emotion',
-            'key_phrases',
-            'is_ai_processed',
-            'staff_id',
-            'created_at',
-            'updated_at'
+             'sentiment_score',
+    'sentiment',
+    'emotion',
+    'key_phrases',
+    'topics',
+    'moderation_results',
+    'ai_suggestions',
+    'staff_suggestions',
+    'language',
+    'ai_confidence',
+    'sentiment_label',
+    'openai_raw_response',
+    'summary',
+    'rating_comment_mismatch',
+    'mismatch_insights',
+    'topic_id',
+    'transcription_metadata',
+    'branch_id',
+    'is_ai_processed',
+    'is_abusive',
+    'staff_id',
+    'created_at',
+    'updated_at',
+
+
+
         )->get()
     ]);
 });
@@ -114,7 +129,6 @@ Route::get('/change-password', function () {
 Route::get("/swagger-login", [SwaggerLoginController::class, "login"])->name("login.view");
 Route::post("/swagger-login", [SwaggerLoginController::class, "passUser"]);
 
-
 // SETUP PROJECT
 Route::get("/setup", [SetupController::class, "setup"]);
 
@@ -128,7 +142,6 @@ Route::get('/activity-log', [SetupController::class, "getActivityLogs"])->name("
 Route::get('/custom-test-api', function () {
     return view("test_api_custom");
 })->name("custom_api_test");
-
 
 // EMAIL VERIFICATION LINK
 Route::get("/activate/{token}", function (Request $request, $token) {
@@ -174,15 +187,8 @@ Route::get("/activate/{token}", function (Request $request, $token) {
     return view('mail.dynamic_mail', ["html_content" => $html_final]);
 });
 
-
-
-
-
 Route::get("/test-pdf", [TestController::class, "testReport"]);
 Route::get("/test-pdf2", [TestController::class, "testReport2"]);
-
-
-
 
 Route::get("/orders/redirect-to-stripe", [StripeController::class, "redirectUserToStripe"]);
 

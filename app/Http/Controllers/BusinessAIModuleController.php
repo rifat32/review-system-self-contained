@@ -4,16 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Helpers\OpenAIProcessor;
 use App\Models\Business;
-use App\Models\BusinessAIModule;
+use App\Models\BusinessAiModule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class BusinessAIModuleController extends Controller
+class BusinessAiModuleController extends Controller
 {
     /**
      * @OA\Get(
      *     path="/v1.0/business-ai-modules/{businessId}",
-     *     operationId="getBusinessAIModules",
+     *     operationId="getBusinessAiModules",
      *     tags={"business_ai_modules"},
      *     security={
      *         {"bearerAuth": {}}
@@ -90,7 +90,7 @@ class BusinessAIModuleController extends Controller
      *     )
      * )
      */
-    public function getBusinessAIModules($businessId, Request $request)
+    public function getBusinessAiModules($businessId, Request $request)
     {
         // CHECK SUPER ADMIN PERMISSION
         if (!$request->user()->hasRole("superadmin")) {
@@ -111,9 +111,9 @@ class BusinessAIModuleController extends Controller
 
         try {
             // GET OR CREATE AI MODULES CONFIGURATION
-            $aiModules = BusinessAIModule::firstOrCreate(
+            $aiModules = BusinessAiModule::firstOrCreate(
                 ['business_id' => $businessId],
-                BusinessAIModule::getDefaultForBusiness($businessId)
+                BusinessAiModule::getDefaultForBusiness($businessId)
             );
 
             // LOAD BUSINESS RELATIONSHIP
@@ -141,7 +141,7 @@ class BusinessAIModuleController extends Controller
     /**
      * @OA\Patch(
      *     path="/v1.0/business-ai-modules/{businessId}",
-     *     operationId="updateBusinessAIModules",
+     *     operationId="updateBusinessAiModules",
      *     tags={"business_ai_modules"},
      *     security={
      *         {"bearerAuth": {}}
@@ -250,7 +250,7 @@ class BusinessAIModuleController extends Controller
      *     )
      * )
      */
-    public function updateBusinessAIModules($businessId, Request $request)
+    public function updateBusinessAiModules($businessId, Request $request)
     {
         // CHECK SUPER ADMIN PERMISSION
         if (!$request->user()->hasRole("superadmin")) {
@@ -297,7 +297,7 @@ class BusinessAIModuleController extends Controller
 
         try {
             // UPDATE BUSINESS AI MODULES USING HELPER
-            $result = OpenAIProcessor::updateBusinessAIModules($businessId, $validated);
+            $result = OpenAIProcessor::updateBusinessAiModules($businessId, $validated);
 
             if (!$result) {
                 return response()->json([
@@ -307,7 +307,7 @@ class BusinessAIModuleController extends Controller
             }
 
             // GET UPDATED CONFIGURATION
-            $aiModules = BusinessAIModule::where('business_id', $businessId)->first();
+            $aiModules = BusinessAiModule::where('business_id', $businessId)->first();
 
             return response()->json([
                 "success" => true,
@@ -331,7 +331,7 @@ class BusinessAIModuleController extends Controller
     /**
      * @OA\Get(
      *     path="/v1.0/business-ai-modules/{businessId}/enabled",
-     *     operationId="getEnabledBusinessAIModules",
+     *     operationId="getEnabledBusinessAiModules",
      *     tags={"business_ai_modules"},
      *     security={
      *         {"bearerAuth": {}}
@@ -409,7 +409,7 @@ class BusinessAIModuleController extends Controller
      *     )
      * )
      */
-    public function getEnabledBusinessAIModules($businessId, Request $request)
+    public function getEnabledBusinessAiModules($businessId, Request $request)
     {
         // CHECK IF BUSINESS EXISTS
         $business = Business::find($businessId);
@@ -433,9 +433,9 @@ class BusinessAIModuleController extends Controller
 
         try {
             // GET OR CREATE AI MODULES CONFIGURATION
-            $aiModules = BusinessAIModule::firstOrCreate(
+            $aiModules = BusinessAiModule::firstOrCreate(
                 ['business_id' => $businessId],
-                BusinessAIModule::getDefaultForBusiness($businessId)
+                BusinessAiModule::getDefaultForBusiness($businessId)
             );
 
             // LOAD BUSINESS RELATIONSHIP

@@ -19,6 +19,13 @@ class CreateReviewValueNewsTable extends Migration
             $table->unsignedBigInteger("star_id");
             $table->unsignedBigInteger("tag_id");
             $table->unsignedBigInteger("review_id");
+
+            $table->foreign('question_id')->references('id')->on('questions')->onDelete('restrict');
+            $table->foreign('star_id')->references('id')->on('stars')->onDelete('restrict');
+            $table->foreign('tag_id')->references('id')->on('tags')->onDelete('restrict');
+            
+            $table->foreign('review_id')->references('id')->on('review_news')->onDelete('cascade');
+
             $table->timestamps();
         });
     }
