@@ -30,10 +30,6 @@ class Notification extends Model
         "read_at" => "datetime",
     ];
 
-    protected $hidden = [
-        "created_at",
-        "updated_at",
-    ];
 
     public function receiver(): BelongsTo
     {

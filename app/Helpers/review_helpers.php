@@ -556,11 +556,14 @@ if (!function_exists('applyFilters')) {
         }
 
         // Score range filter
-        if (!empty($filters['min_score'])) {
-            $query->where('calculated_rating', '>=', $filters['min_score']);
-        }
-        if (!empty($filters['max_score'])) {
-            $query->where('calculated_rating', '<=', $filters['max_score']);
+        if (!empty($filters['min_score']) || !empty($filters['max_score'])) {
+            $query->withCalculatedRating();
+            if (!empty($filters['min_score'])) {
+                $query->having('calculated_rating', '>=', $filters['min_score']);
+            }
+            if (!empty($filters['max_score'])) {
+                $query->having('calculated_rating', '<=', $filters['max_score']);
+            }
         }
 
         // Labels filter (using sentiment field)
