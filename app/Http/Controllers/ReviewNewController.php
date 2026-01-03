@@ -3304,6 +3304,27 @@ class ReviewNewController extends Controller
      *          example=1
      *      ),
      *      @OA\Parameter(
+     *          name="staff_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by specific staff ID",
+     *          @OA\Schema(
+     *              type="integer"
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="has_staff",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by presence of staff reference (1 = has staff, 0 = no staff)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0,1}
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
      *          name="topics",
      *          in="query",
      *          required=false,
@@ -3409,6 +3430,22 @@ class ReviewNewController extends Controller
             } elseif ($meetsThreshold == 0) {
                 $query->whereDoesNotMeetsThreshold($businessId);
             }
+        }
+
+        // Apply staff presence filter (has_staff=1 => has staff, 0 => no staff)
+        if ($request->has('has_staff')) {
+            $hasStaff = (int) $request->input('has_staff');
+            if ($hasStaff === 1) {
+                $query->whereNotNull('staff_id');
+            } elseif ($hasStaff === 0) {
+                $query->whereNull('staff_id');
+            }
+        }
+
+        // Apply specific staff filter
+        if ($request->has('staff_id') && !empty($request->staff_id)) {
+            $staffId = (int) $request->input('staff_id');
+            $query->where('staff_id', $staffId);
         }
 
         // Apply topics filter

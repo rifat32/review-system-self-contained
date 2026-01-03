@@ -19904,6 +19904,30 @@
                         "example": 1
                     },
                     {
+                        "name": "staff_id",
+                        "in": "query",
+                        "description": "Filter reviews by specific staff ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "has_staff",
+                        "in": "query",
+                        "description": "Filter reviews by presence of staff reference (1 = has staff, 0 = no staff)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "example": 1
+                    },
+                    {
                         "name": "topics",
                         "in": "query",
                         "description": "Filter reviews by topic",
