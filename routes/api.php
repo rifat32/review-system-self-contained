@@ -82,7 +82,7 @@ Route::post('/v1.0/auth/check-user-email', [AuthController::class, "checkUserEma
 Route::middleware(['auth:api'])->group(function () {
 
 
-    
+
 
     // =====================================================================================
     // SUPER ADMIN ROUTES (no "superadmin" in the URL; all under /v1.0; access via middleware)
@@ -92,15 +92,15 @@ Route::middleware(['auth:api'])->group(function () {
     Route::middleware(['superadmin'])->group(function () {
 
         // Business AI Modules Routes
-Route::group(['prefix' => 'v1.0'], function () {
-    // Super admin routes
-    Route::get('/business-ai-modules/{businessId}', [BusinessAIModuleController::class, 'getBusinessAIModules']);
-    Route::patch('/business-ai-modules/{businessId}', [BusinessAIModuleController::class, 'updateBusinessAIModules']);
-    Route::get('/business-ai-modules/{businessId}/token-usage', [BusinessAIModuleController::class, 'getBusinessAITokenUsage']);
-    
-    // Business owner routes (can view but not modify)
-    Route::get('/business-ai-modules/{businessId}/enabled', [BusinessAIModuleController::class, 'getEnabledBusinessAIModules']);
-});
+        Route::group(['prefix' => 'v1.0'], function () {
+            // Super admin routes
+            Route::get('/business-ai-modules/{businessId}', [BusinessAIModuleController::class, 'getBusinessAIModules']);
+            Route::patch('/business-ai-modules/{businessId}', [BusinessAIModuleController::class, 'updateBusinessAIModules']);
+            Route::get('/business-ai-modules/{businessId}/token-usage', [BusinessAIModuleController::class, 'getBusinessAITokenUsage']);
+
+            // Business owner routes (can view but not modify)
+            Route::get('/business-ai-modules/{businessId}/enabled', [BusinessAIModuleController::class, 'getEnabledBusinessAIModules']);
+        });
         // -------------------------------------------------------------------------
         // SuperAdminReportController – Dashboard Reports (Super Admin)
         // -------------------------------------------------------------------------

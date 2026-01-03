@@ -2,7 +2,7 @@
 
 namespace App\Helpers;
 
-use App\Models\BusinessAiModule;
+use App\Models\BusinessAIModule;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Models\OpenAITokenUsage;
@@ -90,7 +90,7 @@ class OpenAIProcessor
             ]);
 
             // Return all enabled as fallback
-            return BusinessAiModule::getDefaultForBusiness($businessId);
+            return BusinessAIModule::getDefaultForBusiness($businessId);
         }
     }
 
@@ -98,520 +98,521 @@ class OpenAIProcessor
 
     // In processReviewWithOpenAI method, update caching:
 
-public static function processReviewWithOpenAI(array $payload, array $enabledModules): array
-{
-    $apiKey = config('services.openai.api_key');
-    $model = config('services.openai.model', 'gpt-4o-mini');
+    public static function processReviewWithOpenAI(array $payload, array $enabledModules): array
+    {
+        $apiKey = config('services.openai.api_key');
+        $model = config('services.openai.model', 'gpt-4o-mini');
 
-    if (empty($apiKey)) {
-        throw new \Exception('OpenAI API key not configured');
-    }
-
-    try {
-        // Include enabled modules in cache key
-        $cacheKey = 'openai_review_' . md5(json_encode($payload) . json_encode($enabledModules));
-
-        // Check cache but only for successful results
-        if (Cache::has($cacheKey)) {
-            $cached = Cache::get($cacheKey);
-            // Only return if not fallback
-            if (!isset($cached['_fallback']) || !$cached['_fallback']) {
-                return $cached;
-            }
+        if (empty($apiKey)) {
+            throw new \Exception('OpenAI API key not configured');
         }
 
-        $systemPrompt = self::getSystemPrompt($enabledModules);
-        $userMessage = self::createUserMessage($payload, $enabledModules);
+        try {
+            // Include enabled modules in cache key
+            $cacheKey = 'openai_review_' . md5(json_encode($payload) . json_encode($enabledModules));
 
-        // Calculate dynamic max_tokens based on enabled modules
-        // $dynamicMaxTokens = self::calculateDynamicMaxTokens($enabledModules, strlen($payload['review_text'] ?? ''));
-
-         $dynamicMaxTokens = 2500;
-
-        Log::debug('Sending to OpenAI with modules', [
-            'enabled_modules' => $enabledModules,
-            'text_length' => strlen($payload['review_text'] ?? ''),
-            'system_prompt_length' => strlen($systemPrompt),
-            'user_message_length' => strlen($userMessage),
-            'dynamic_max_tokens' => $dynamicMaxTokens,
-            'estimated_completion_tokens' => self::estimateCompletionTokens($enabledModules, $payload)
-        ]);
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
-            'Content-Type' => 'application/json',
-        ])
-            ->timeout(60)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => $model,
-                'temperature' => 0.1,
-                'max_tokens' => $dynamicMaxTokens, // Dynamic based on modules
-                'response_format' => ['type' => 'json_object'],
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => $systemPrompt
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => $userMessage
-                    ]
-                ]
-            ]);
-
-        if ($response->failed()) {
-            Log::error('OpenAI API failed', [
-                'status' => $response->status(),
-                'error' => $response->body(),
-                'headers' => $response->headers()
-            ]);
-            throw new \Exception('OpenAI API error: ' . $response->status());
-        }
-
-        $data = $response->json();
-        
-        // Log the full response structure for debugging
-        Log::debug('OpenAI API response structure', [
-            'has_choices' => isset($data['choices']),
-            'choices_count' => isset($data['choices']) ? count($data['choices']) : 0,
-            'has_finish_reason' => isset($data['choices'][0]['finish_reason']),
-            'finish_reason' => $data['choices'][0]['finish_reason'] ?? null,
-            'has_usage' => isset($data['usage']),
-            'total_tokens' => $data['usage']['total_tokens'] ?? 0,
-            'completion_tokens' => $data['usage']['completion_tokens'] ?? 0,
-            'prompt_tokens' => $data['usage']['prompt_tokens'] ?? 0,
-            'max_tokens_used_percentage' => $dynamicMaxTokens > 0 ? round(($data['usage']['completion_tokens'] ?? 0) / $dynamicMaxTokens * 100, 1) : 0
-        ]);
-        
-        $content = $data['choices'][0]['message']['content'] ?? '';
-
-        if (empty($content)) {
-            Log::error('Empty content from OpenAI', [
-                'data_structure' => array_keys($data),
-                'choices_structure' => isset($data['choices']) ? array_keys($data['choices'][0] ?? []) : []
-            ]);
-            throw new \Exception('No content in OpenAI response');
-        }
-
-        // Log the raw content length for debugging
-        Log::debug('OpenAI raw content stats', [
-            'content_length' => strlen($content),
-            'content_preview_begin' => substr($content, 0, 100),
-            'content_preview_end' => substr($content, -100),
-            'content_has_newlines' => str_contains($content, "\n") ? 'yes' : 'no',
-            'content_has_tabs' => str_contains($content, "\t") ? 'yes' : 'no'
-        ]);
-
-        // Check if response was truncated
-        $finishReason = $data['choices'][0]['finish_reason'] ?? null;
-        if ($finishReason === 'length') {
-            Log::warning('OpenAI response likely truncated due to token limit', [
-                'finish_reason' => $finishReason,
-                'completion_tokens' => $data['usage']['completion_tokens'] ?? 0,
-                'max_tokens' => $dynamicMaxTokens,
-                'content_ends_with' => substr($content, -50)
-            ]);
-            
-            // Try to fix truncated JSON
-            $content = self::fixTruncatedJson($content);
-        }
-
-        // Clean the content before JSON parsing
-        $cleanedContent = self::cleanJsonContent($content);
-        
-        // Check if content was truncated
-        if (strlen($content) < 100) {
-            Log::warning('Content may be truncated', [
-                'original_length' => strlen($content),
-                'finish_reason' => $finishReason
-            ]);
-        }
-
-        // Try to parse JSON
-        $result = json_decode($cleanedContent, true);
-        
-        // If parsing fails, try with error detection
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::error('JSON parsing failed initial attempt', [
-                'error' => json_last_error_msg(),
-                'error_code' => json_last_error(),
-                'finish_reason' => $finishReason,
-                'content_sample_start' => substr($cleanedContent, 0, 200),
-                'content_sample_end' => substr($cleanedContent, -200),
-                'content_full_length' => strlen($cleanedContent)
-            ]);
-            
-            // Try to fix common JSON issues
-            $fixedContent = self::fixCommonJsonIssues($cleanedContent);
-            $result = json_decode($fixedContent, true);
-            
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                // Last attempt: extract JSON from string
-                $extractedJson = self::extractJsonFromString($cleanedContent);
-                $result = json_decode($extractedJson, true);
-                
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    // Log the problematic content
-                    $errorLine = self::findJsonErrorLine($cleanedContent);
-                    throw new \Exception('Invalid JSON from OpenAI: ' . json_last_error_msg() . 
-                        ' (Code: ' . json_last_error() . ') at approximately position: ' . $errorLine . 
-                        ' (Finish reason: ' . $finishReason . ')');
+            // Check cache but only for successful results
+            if (Cache::has($cacheKey)) {
+                $cached = Cache::get($cacheKey);
+                // Only return if not fallback
+                if (!isset($cached['_fallback']) || !$cached['_fallback']) {
+                    return $cached;
                 }
             }
-        }
 
-        // Validate required fields
-        if (!isset($result['sentiment']) || !isset($result['sentiment']['label'])) {
-            Log::warning('Missing required fields in OpenAI response', [
-                'has_sentiment' => isset($result['sentiment']),
-                'has_sentiment_label' => isset($result['sentiment']['label']),
-                'result_keys' => array_keys($result)
-            ]);
-        }
+            $systemPrompt = self::getSystemPrompt($enabledModules);
+            $userMessage = self::createUserMessage($payload, $enabledModules);
 
-        // Extract token usage
-        $usage = $data['usage'] ?? [];
-        $promptTokens = $usage['prompt_tokens'] ?? 0;
-        $completionTokens = $usage['completion_tokens'] ?? 0;
-        $totalTokens = $usage['total_tokens'] ?? 0;
+            // Calculate dynamic max_tokens based on enabled modules
+            // $dynamicMaxTokens = self::calculateDynamicMaxTokens($enabledModules, strlen($payload['review_text'] ?? ''));
 
-        // Track token usage
-        self::trackTokenUsage(
-            businessId: $payload['business_id'] ?? null,
-            reviewId: $payload['review_id'] ?? null,
-            branchId: $payload['metadata']['branch_id'] ?? null,
-            model: $model,
-            promptTokens: $promptTokens,
-            completionTokens: $completionTokens,
-            totalTokens: $totalTokens,
-            metadata: [
-                'cache_key' => $cacheKey,
-                'cache_hit' => false,
+            $dynamicMaxTokens = 2500;
+
+            Log::debug('Sending to OpenAI with modules', [
                 'enabled_modules' => $enabledModules,
-                'review_text_length' => strlen($payload['review_text'] ?? ''),
-                'has_staff' => !empty($payload['staff_info']),
-                'rating' => $payload['rating'] ?? 0,
-                'source' => $payload['metadata']['source'] ?? 'web',
-                'response_length' => strlen($content),
+                'text_length' => strlen($payload['review_text'] ?? ''),
+                'system_prompt_length' => strlen($systemPrompt),
+                'user_message_length' => strlen($userMessage),
+                'dynamic_max_tokens' => $dynamicMaxTokens,
+                'estimated_completion_tokens' => self::estimateCompletionTokens($enabledModules, $payload)
+            ]);
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])
+                ->timeout(60)
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => $model,
+                    'temperature' => 0.1,
+                    'max_tokens' => $dynamicMaxTokens, // Dynamic based on modules
+                    'response_format' => ['type' => 'json_object'],
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => $systemPrompt
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $userMessage
+                        ]
+                    ]
+                ]);
+
+            if ($response->failed()) {
+                Log::error('OpenAI API failed', [
+                    'status' => $response->status(),
+                    'error' => $response->body(),
+                    'headers' => $response->headers()
+                ]);
+                throw new \Exception('OpenAI API error: ' . $response->status());
+            }
+
+            $data = $response->json();
+
+            // Log the full response structure for debugging
+            Log::debug('OpenAI API response structure', [
+                'has_choices' => isset($data['choices']),
+                'choices_count' => isset($data['choices']) ? count($data['choices']) : 0,
+                'has_finish_reason' => isset($data['choices'][0]['finish_reason']),
+                'finish_reason' => $data['choices'][0]['finish_reason'] ?? null,
+                'has_usage' => isset($data['usage']),
+                'total_tokens' => $data['usage']['total_tokens'] ?? 0,
+                'completion_tokens' => $data['usage']['completion_tokens'] ?? 0,
+                'prompt_tokens' => $data['usage']['prompt_tokens'] ?? 0,
+                'max_tokens_used_percentage' => $dynamicMaxTokens > 0 ? round(($data['usage']['completion_tokens'] ?? 0) / $dynamicMaxTokens * 100, 1) : 0
+            ]);
+
+            $content = $data['choices'][0]['message']['content'] ?? '';
+
+            if (empty($content)) {
+                Log::error('Empty content from OpenAI', [
+                    'data_structure' => array_keys($data),
+                    'choices_structure' => isset($data['choices']) ? array_keys($data['choices'][0] ?? []) : []
+                ]);
+                throw new \Exception('No content in OpenAI response');
+            }
+
+            // Log the raw content length for debugging
+            Log::debug('OpenAI raw content stats', [
+                'content_length' => strlen($content),
+                'content_preview_begin' => substr($content, 0, 100),
+                'content_preview_end' => substr($content, -100),
+                'content_has_newlines' => str_contains($content, "\n") ? 'yes' : 'no',
+                'content_has_tabs' => str_contains($content, "\t") ? 'yes' : 'no'
+            ]);
+
+            // Check if response was truncated
+            $finishReason = $data['choices'][0]['finish_reason'] ?? null;
+            if ($finishReason === 'length') {
+                Log::warning('OpenAI response likely truncated due to token limit', [
+                    'finish_reason' => $finishReason,
+                    'completion_tokens' => $data['usage']['completion_tokens'] ?? 0,
+                    'max_tokens' => $dynamicMaxTokens,
+                    'content_ends_with' => substr($content, -50)
+                ]);
+
+                // Try to fix truncated JSON
+                $content = self::fixTruncatedJson($content);
+            }
+
+            // Clean the content before JSON parsing
+            $cleanedContent = self::cleanJsonContent($content);
+
+            // Check if content was truncated
+            if (strlen($content) < 100) {
+                Log::warning('Content may be truncated', [
+                    'original_length' => strlen($content),
+                    'finish_reason' => $finishReason
+                ]);
+            }
+
+            // Try to parse JSON
+            $result = json_decode($cleanedContent, true);
+
+            // If parsing fails, try with error detection
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::error('JSON parsing failed initial attempt', [
+                    'error' => json_last_error_msg(),
+                    'error_code' => json_last_error(),
+                    'finish_reason' => $finishReason,
+                    'content_sample_start' => substr($cleanedContent, 0, 200),
+                    'content_sample_end' => substr($cleanedContent, -200),
+                    'content_full_length' => strlen($cleanedContent)
+                ]);
+
+                // Try to fix common JSON issues
+                $fixedContent = self::fixCommonJsonIssues($cleanedContent);
+                $result = json_decode($fixedContent, true);
+
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    // Last attempt: extract JSON from string
+                    $extractedJson = self::extractJsonFromString($cleanedContent);
+                    $result = json_decode($extractedJson, true);
+
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        // Log the problematic content
+                        $errorLine = self::findJsonErrorLine($cleanedContent);
+                        throw new \Exception('Invalid JSON from OpenAI: ' . json_last_error_msg() .
+                            ' (Code: ' . json_last_error() . ') at approximately position: ' . $errorLine .
+                            ' (Finish reason: ' . $finishReason . ')');
+                    }
+                }
+            }
+
+            // Validate required fields
+            if (!isset($result['sentiment']) || !isset($result['sentiment']['label'])) {
+                Log::warning('Missing required fields in OpenAI response', [
+                    'has_sentiment' => isset($result['sentiment']),
+                    'has_sentiment_label' => isset($result['sentiment']['label']),
+                    'result_keys' => array_keys($result)
+                ]);
+            }
+
+            // Extract token usage
+            $usage = $data['usage'] ?? [];
+            $promptTokens = $usage['prompt_tokens'] ?? 0;
+            $completionTokens = $usage['completion_tokens'] ?? 0;
+            $totalTokens = $usage['total_tokens'] ?? 0;
+
+            // Track token usage
+            self::trackTokenUsage(
+                businessId: $payload['business_id'] ?? null,
+                reviewId: $payload['review_id'] ?? null,
+                branchId: $payload['metadata']['branch_id'] ?? null,
+                model: $model,
+                promptTokens: $promptTokens,
+                completionTokens: $completionTokens,
+                totalTokens: $totalTokens,
+                metadata: [
+                    'cache_key' => $cacheKey,
+                    'cache_hit' => false,
+                    'enabled_modules' => $enabledModules,
+                    'review_text_length' => strlen($payload['review_text'] ?? ''),
+                    'has_staff' => !empty($payload['staff_info']),
+                    'rating' => $payload['rating'] ?? 0,
+                    'source' => $payload['metadata']['source'] ?? 'web',
+                    'response_length' => strlen($content),
+                    'finish_reason' => $finishReason,
+                    'max_tokens_setting' => $dynamicMaxTokens,
+                    'token_usage_percentage' => $dynamicMaxTokens > 0 ? round(($completionTokens / $dynamicMaxTokens) * 100, 1) : 0
+                ]
+            );
+
+            // Add metadata to result
+            $result['_metadata'] = [
+                'model' => $model,
+                'tokens_used' => $totalTokens,
+                'prompt_tokens' => $promptTokens,
+                'completion_tokens' => $completionTokens,
+                'enabled_modules' => $enabledModules,
+                'processing_time' => now()->toISOString(),
+                'business_id' => $payload['business_id'] ?? null,
+                'review_id' => $payload['review_id'] ?? null,
                 'finish_reason' => $finishReason,
                 'max_tokens_setting' => $dynamicMaxTokens,
                 'token_usage_percentage' => $dynamicMaxTokens > 0 ? round(($completionTokens / $dynamicMaxTokens) * 100, 1) : 0
-            ]
-        );
+            ];
 
-        // Add metadata to result
-        $result['_metadata'] = [
-            'model' => $model,
-            'tokens_used' => $totalTokens,
-            'prompt_tokens' => $promptTokens,
-            'completion_tokens' => $completionTokens,
-            'enabled_modules' => $enabledModules,
-            'processing_time' => now()->toISOString(),
-            'business_id' => $payload['business_id'] ?? null,
-            'review_id' => $payload['review_id'] ?? null,
-            'finish_reason' => $finishReason,
-            'max_tokens_setting' => $dynamicMaxTokens,
-            'token_usage_percentage' => $dynamicMaxTokens > 0 ? round(($completionTokens / $dynamicMaxTokens) * 100, 1) : 0
+            // Only cache successful (non-fallback) results
+            if (!isset($result['_fallback'])) {
+                Cache::put($cacheKey, $result, 3600);
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('OpenAI processing failed', [
+                'error' => $e->getMessage(),
+                'error_trace' => substr($e->getTraceAsString(), 0, 500),
+                'payload_text' => substr($payload['review_text'] ?? '', 0, 100),
+                'payload_length' => strlen($payload['review_text'] ?? ''),
+                'business_id' => $payload['business_id'] ?? null,
+                'enabled_modules' => $enabledModules
+            ]);
+
+            $fallback = self::getFallbackAnalysis($payload, $enabledModules);
+            $fallback['_error'] = $e->getMessage();
+            $fallback['_error_type'] = 'openai_json_parse';
+            $fallback['_metadata'] = [
+                'error' => $e->getMessage(),
+                'processing_time' => now()->toISOString(),
+                'enabled_modules' => $enabledModules
+            ];
+
+            return $fallback;
+        }
+    }
+
+
+
+    /**
+     * Calculate dynamic max_tokens based on enabled modules
+     */
+
+    private static function calculateDynamicMaxTokens(array $enabledModules, int $reviewTextLength): int
+    {
+        // Base tokens for required modules - INCREASED
+        $baseTokens = 1000; // Increased from 500
+
+        // Add tokens for each enabled optional module
+        $moduleTokens = [
+            'category_analysis' => 300,
+            'staff_intelligence' => 400,
+            'service_unit_intelligence' => 200,
+            'business_recommendations' => 500,
+            'alerts' => 200,
         ];
 
-        // Only cache successful (non-fallback) results
-        if (!isset($result['_fallback'])) {
-            Cache::put($cacheKey, $result, 3600);
+        foreach ($moduleTokens as $module => $tokenCost) {
+            if ($enabledModules[$module] ?? false) {
+                $baseTokens += $tokenCost;
+            }
         }
 
-        return $result;
-    } catch (\Exception $e) {
-        Log::error('OpenAI processing failed', [
-            'error' => $e->getMessage(),
-            'error_trace' => substr($e->getTraceAsString(), 0, 500),
-            'payload_text' => substr($payload['review_text'] ?? '', 0, 100),
-            'payload_length' => strlen($payload['review_text'] ?? ''),
-            'business_id' => $payload['business_id'] ?? null,
-            'enabled_modules' => $enabledModules
+        // Adjust based on review text length (longer reviews need more analysis)
+        $textLengthFactor = ceil($reviewTextLength / 100) * 100; // Increased from 50
+        $baseTokens += $textLengthFactor;
+
+        // Add safety margin
+        $baseTokens = ceil($baseTokens * 1.3); // Increased from 1.2 to 1.3
+
+        // Cap at model limits but ensure minimum
+        $maxTokens = max(1500, min($baseTokens, 4000)); // Minimum 1500 tokens
+
+        Log::debug('Calculated dynamic max_tokens', [
+            'base_tokens' => $baseTokens,
+            'enabled_modules' => $enabledModules,
+            'review_text_length' => $reviewTextLength,
+            'text_length_factor' => $textLengthFactor,
+            'final_max_tokens' => $maxTokens
         ]);
 
-        $fallback = self::getFallbackAnalysis($payload, $enabledModules);
-        $fallback['_error'] = $e->getMessage();
-        $fallback['_error_type'] = 'openai_json_parse';
-        $fallback['_metadata'] = [
-            'error' => $e->getMessage(),
-            'processing_time' => now()->toISOString(),
-            'enabled_modules' => $enabledModules
-        ];
-
-        return $fallback;
+        return (int) $maxTokens;
     }
-}
 
+    /**
+     * Estimate completion tokens needed
+     */
 
+    private static function estimateCompletionTokens(array $enabledModules, array $payload): int
+    {
+        $estimate = 800; // Increased from 500 (base for required modules)
 
-/**
- * Calculate dynamic max_tokens based on enabled modules
- */
-
-private static function calculateDynamicMaxTokens(array $enabledModules, int $reviewTextLength): int
-{
-    // Base tokens for required modules - INCREASED
-    $baseTokens = 1000; // Increased from 500
-    
-    // Add tokens for each enabled optional module
-    $moduleTokens = [
-        'category_analysis' => 300,
-        'staff_intelligence' => 400,
-        'service_unit_intelligence' => 200,
-        'business_recommendations' => 500,
-        'alerts' => 200,
-    ];
-    
-    foreach ($moduleTokens as $module => $tokenCost) {
-        if ($enabledModules[$module] ?? false) {
-            $baseTokens += $tokenCost;
+        if ($enabledModules['category_analysis'] ?? false) {
+            $estimate += 300;
         }
-    }
-    
-    // Adjust based on review text length (longer reviews need more analysis)
-    $textLengthFactor = ceil($reviewTextLength / 100) * 100; // Increased from 50
-    $baseTokens += $textLengthFactor;
-    
-    // Add safety margin
-    $baseTokens = ceil($baseTokens * 1.3); // Increased from 1.2 to 1.3
-    
-    // Cap at model limits but ensure minimum
-    $maxTokens = max(1500, min($baseTokens, 4000)); // Minimum 1500 tokens
-    
-    Log::debug('Calculated dynamic max_tokens', [
-        'base_tokens' => $baseTokens,
-        'enabled_modules' => $enabledModules,
-        'review_text_length' => $reviewTextLength,
-        'text_length_factor' => $textLengthFactor,
-        'final_max_tokens' => $maxTokens
-    ]);
-    
-    return (int) $maxTokens;
-}
 
-/**
- * Estimate completion tokens needed
- */
-
-private static function estimateCompletionTokens(array $enabledModules, array $payload): int
-{
-    $estimate = 800; // Increased from 500 (base for required modules)
-    
-    if ($enabledModules['category_analysis'] ?? false) {
-        $estimate += 300;
-    }
-    
-    if ($enabledModules['staff_intelligence'] ?? false && !empty($payload['staff_info'])) {
-        $estimate += 400;
-    }
-    
-    if ($enabledModules['business_recommendations'] ?? false) {
-        $estimate += 500;
-    }
-    
-    // Longer reviews need more tokens
-    $reviewLength = strlen($payload['review_text'] ?? '');
-    $estimate += ceil($reviewLength * 0.8); // Increased factor
-    
-    return $estimate;
-}
-
-/**
- * Fix truncated JSON response
- */
-private static function fixTruncatedJson(string $content): string
-{
-    // Remove trailing incomplete structures
-    $content = rtrim($content);
-    
-    // Check if JSON ends with incomplete object
-    if (substr($content, -1) !== '}') {
-        // Find the last complete closing brace
-        $lastBracePos = strrpos($content, '}');
-        if ($lastBracePos !== false) {
-            $content = substr($content, 0, $lastBracePos + 1);
-        } else {
-            // No closing brace found, try to close it
-            $content .= '}';
+        if ($enabledModules['staff_intelligence'] ?? false && !empty($payload['staff_info'])) {
+            $estimate += 400;
         }
+
+        if ($enabledModules['business_recommendations'] ?? false) {
+            $estimate += 500;
+        }
+
+        // Longer reviews need more tokens
+        $reviewLength = strlen($payload['review_text'] ?? '');
+        $estimate += ceil($reviewLength * 0.8); // Increased factor
+
+        return $estimate;
     }
-    
-    // Check for incomplete arrays
-    if (substr_count($content, '[') > substr_count($content, ']')) {
-        $content .= ']';
+
+    /**
+     * Fix truncated JSON response
+     */
+    private static function fixTruncatedJson(string $content): string
+    {
+        // Remove trailing incomplete structures
+        $content = rtrim($content);
+
+        // Check if JSON ends with incomplete object
+        if (substr($content, -1) !== '}') {
+            // Find the last complete closing brace
+            $lastBracePos = strrpos($content, '}');
+            if ($lastBracePos !== false) {
+                $content = substr($content, 0, $lastBracePos + 1);
+            } else {
+                // No closing brace found, try to close it
+                $content .= '}';
+            }
+        }
+
+        // Check for incomplete arrays
+        if (substr_count($content, '[') > substr_count($content, ']')) {
+            $content .= ']';
+        }
+
+        // Check for incomplete strings
+        $openQuotes = substr_count($content, '"');
+        if ($openQuotes % 2 !== 0) {
+            // Odd number of quotes, close the last string
+            $content .= '"';
+        }
+
+        // Remove trailing commas before closing braces
+        $content = preg_replace('/,\s*([\]}])/', '$1', $content);
+
+        return $content;
     }
-    
-    // Check for incomplete strings
-    $openQuotes = substr_count($content, '"');
-    if ($openQuotes % 2 !== 0) {
-        // Odd number of quotes, close the last string
-        $content .= '"';
-    }
-    
-    // Remove trailing commas before closing braces
-    $content = preg_replace('/,\s*([\]}])/', '$1', $content);
-    
-    return $content;
-}
 
 
-/**
- * Fix common JSON issues in OpenAI responses
- */
-private static function fixCommonJsonIssues(string $content): string
-{
-    // Remove any leading/trailing whitespace
-    $content = trim($content);
-    
-    // Check if content starts and ends with braces
-    if (substr($content, 0, 1) !== '{' || substr($content, -1) !== '}') {
-        // Try to find JSON object in the string
+    /**
+     * Fix common JSON issues in OpenAI responses
+     */
+    private static function fixCommonJsonIssues(string $content): string
+    {
+        // Remove any leading/trailing whitespace
+        $content = trim($content);
+
+        // Check if content starts and ends with braces
+        if (substr($content, 0, 1) !== '{' || substr($content, -1) !== '}') {
+            // Try to find JSON object in the string
+            $startPos = strpos($content, '{');
+            $endPos = strrpos($content, '}');
+
+            if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
+                $content = substr($content, $startPos, $endPos - $startPos + 1);
+            }
+        }
+
+        // Remove trailing commas before closing braces/brackets
+        $content = preg_replace('/,\s*([}\]])/', '$1', $content);
+
+        // Fix unquoted property names
+        $content = preg_replace_callback('/([{,]\s*)(\w+)(\s*:\s*)/', function ($matches) {
+            return $matches[1] . '"' . $matches[2] . '"' . $matches[3];
+        }, $content);
+
+        // Fix unescaped quotes in strings
+        $content = preg_replace_callback('/:\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"/', function ($matches) {
+            $value = $matches[1];
+            // Only fix if there are unescaped quotes
+            if (preg_match('/(?<!\\\\)"/', $value)) {
+                $value = str_replace('"', '\"', $value);
+            }
+            return ': "' . $value . '"';
+        }, $content);
+
+        // Fix truncated boolean values - CORRECTED: preg_replace_callback
+        $content = preg_replace_callback('/:\s*(tru|fals|nul)\b/', function ($matches) {
+            $value = $matches[1];
+            if ($value === 'tru') return ': true';
+            if ($value === 'fals') return ': false';
+            if ($value === 'nul') return ': null';
+            return $matches[0];
+        }, $content);
+
+        // Fix truncated strings - CORRECTED: preg_replace_callback
+        $content = preg_replace_callback('/:\s*"([^"]*)$/', function ($matches) {
+            // If we have an unterminated string, close it
+            return ': "' . $matches[1] . '"';
+        }, $content);
+
+        // Ensure proper escaping of special characters
+        $content = str_replace(
+            ["\n", "\r", "\t"],
+            ["\\n", "\\r", "\\t"],
+            $content
+        );
+
+        return $content;
+    }
+
+    /**
+     * Extract JSON from a string that might have other text
+     */
+    private static function extractJsonFromString(string $content): string
+    {
+        // Try to find the JSON object
         $startPos = strpos($content, '{');
         $endPos = strrpos($content, '}');
-        
+
+        if ($startPos === false || $endPos === false || $endPos <= $startPos) {
+            // Try arrays too
+            $startPos = strpos($content, '[');
+            $endPos = strrpos($content, ']');
+        }
+
         if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
-            $content = substr($content, $startPos, $endPos - $startPos + 1);
-        }
-    }
-    
-    // Remove trailing commas before closing braces/brackets
-    $content = preg_replace('/,\s*([}\]])/', '$1', $content);
-    
-    // Fix unquoted property names
-    $content = preg_replace_callback('/([{,]\s*)(\w+)(\s*:\s*)/', function($matches) {
-        return $matches[1] . '"' . $matches[2] . '"' . $matches[3];
-    }, $content);
-    
-    // Fix unescaped quotes in strings
-    $content = preg_replace_callback('/:\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"/', function($matches) {
-        $value = $matches[1];
-        // Only fix if there are unescaped quotes
-        if (preg_match('/(?<!\\\\)"/', $value)) {
-            $value = str_replace('"', '\"', $value);
-        }
-        return ': "' . $value . '"';
-    }, $content);
-    
-    // Fix truncated boolean values - CORRECTED: preg_replace_callback
-    $content = preg_replace_callback('/:\s*(tru|fals|nul)\b/', function($matches) {
-        $value = $matches[1];
-        if ($value === 'tru') return ': true';
-        if ($value === 'fals') return ': false';
-        if ($value === 'nul') return ': null';
-        return $matches[0];
-    }, $content);
-    
-    // Fix truncated strings - CORRECTED: preg_replace_callback
-    $content = preg_replace_callback('/:\s*"([^"]*)$/', function($matches) {
-        // If we have an unterminated string, close it
-        return ': "' . $matches[1] . '"';
-    }, $content);
-    
-    // Ensure proper escaping of special characters
-    $content = str_replace(
-        ["\n", "\r", "\t"],
-        ["\\n", "\\r", "\\t"],
-        $content
-    );
-    
-    return $content;
-}
+            $json = substr($content, $startPos, $endPos - $startPos + 1);
 
-/**
- * Extract JSON from a string that might have other text
- */
-private static function extractJsonFromString(string $content): string
-{
-    // Try to find the JSON object
-    $startPos = strpos($content, '{');
-    $endPos = strrpos($content, '}');
-    
-    if ($startPos === false || $endPos === false || $endPos <= $startPos) {
-        // Try arrays too
-        $startPos = strpos($content, '[');
-        $endPos = strrpos($content, ']');
-    }
-    
-    if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
-        $json = substr($content, $startPos, $endPos - $startPos + 1);
-        
-        // Validate it looks like JSON
-        $firstChar = substr($json, 0, 1);
-        $lastChar = substr($json, -1);
-        
-        if (($firstChar === '{' && $lastChar === '}') || 
-            ($firstChar === '[' && $lastChar === ']')) {
-            return $json;
-        }
-    }
-    
-    // If we can't extract, return empty object
-    return '{}';
-}
+            // Validate it looks like JSON
+            $firstChar = substr($json, 0, 1);
+            $lastChar = substr($json, -1);
 
-/**
- * Find approximate line of JSON error
- */
-private static function findJsonErrorLine(string $content): string
-{
-    $lines = explode("\n", $content);
-    $position = 0;
-    
-    foreach ($lines as $lineNum => $line) {
-        $testJson = implode("\n", array_slice($lines, 0, $lineNum + 1));
-        if (json_decode($testJson) === null && json_last_error() !== JSON_ERROR_NONE) {
-            // Try to find character position in line
-            $testPosition = 0;
-            while ($testPosition < strlen($line)) {
-                $testCharJson = substr($line, 0, $testPosition + 1);
-                if (json_decode('{' . $testCharJson) === null) {
-                    return 'Line ' . ($lineNum + 1) . ', Char ' . ($testPosition + 1);
-                }
-                $testPosition++;
+            if (($firstChar === '{' && $lastChar === '}') ||
+                ($firstChar === '[' && $lastChar === ']')
+            ) {
+                return $json;
             }
-            return 'Line ' . ($lineNum + 1);
         }
+
+        // If we can't extract, return empty object
+        return '{}';
     }
-    
-    return 'Unknown position';
-}
 
-/**
- * Clean JSON content from OpenAI response
- */
-private static function cleanJsonContent(string $content): string
-{
-    // Remove any leading/trailing whitespace and control characters
-    $content = trim($content);
+    /**
+     * Find approximate line of JSON error
+     */
+    private static function findJsonErrorLine(string $content): string
+    {
+        $lines = explode("\n", $content);
+        $position = 0;
 
-    // Remove any markdown code blocks if present
-    $content = preg_replace('/^```json\s*/', '', $content);
-    $content = preg_replace('/\s*```$/', '', $content);
-    $content = preg_replace('/^```\s*/', '', $content); // Also remove non-json code blocks
+        foreach ($lines as $lineNum => $line) {
+            $testJson = implode("\n", array_slice($lines, 0, $lineNum + 1));
+            if (json_decode($testJson) === null && json_last_error() !== JSON_ERROR_NONE) {
+                // Try to find character position in line
+                $testPosition = 0;
+                while ($testPosition < strlen($line)) {
+                    $testCharJson = substr($line, 0, $testPosition + 1);
+                    if (json_decode('{' . $testCharJson) === null) {
+                        return 'Line ' . ($lineNum + 1) . ', Char ' . ($testPosition + 1);
+                    }
+                    $testPosition++;
+                }
+                return 'Line ' . ($lineNum + 1);
+            }
+        }
 
-    // Replace escaped unicode characters
-    $content = str_replace(
-        ['\u201c', '\u201d', '\u2018', '\u2019', '\u2026', '\u2014'],
-        ['"', '"', "'", "'", '...', '-'],
-        $content
-    );
+        return 'Unknown position';
+    }
 
-    // Remove any BOM (Byte Order Mark)
-    $content = str_replace("\xEF\xBB\xBF", '', $content);
+    /**
+     * Clean JSON content from OpenAI response
+     */
+    private static function cleanJsonContent(string $content): string
+    {
+        // Remove any leading/trailing whitespace and control characters
+        $content = trim($content);
 
-    // Remove other control characters except newlines, tabs, and returns
-    $content = preg_replace('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $content);
+        // Remove any markdown code blocks if present
+        $content = preg_replace('/^```json\s*/', '', $content);
+        $content = preg_replace('/\s*```$/', '', $content);
+        $content = preg_replace('/^```\s*/', '', $content); // Also remove non-json code blocks
 
-    // Normalize line endings
-    $content = str_replace(["\r\n", "\r"], "\n", $content);
+        // Replace escaped unicode characters
+        $content = str_replace(
+            ['\u201c', '\u201d', '\u2018', '\u2019', '\u2026', '\u2014'],
+            ['"', '"', "'", "'", '...', '-'],
+            $content
+        );
 
-    // Fix common formatting issues
-    $content = preg_replace('/\s+/', ' ', $content); // Replace multiple spaces with single space
-    
-    return $content;
-}
-   
+        // Remove any BOM (Byte Order Mark)
+        $content = str_replace("\xEF\xBB\xBF", '', $content);
+
+        // Remove other control characters except newlines, tabs, and returns
+        $content = preg_replace('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $content);
+
+        // Normalize line endings
+        $content = str_replace(["\r\n", "\r"], "\n", $content);
+
+        // Fix common formatting issues
+        $content = preg_replace('/\s+/', ' ', $content); // Replace multiple spaces with single space
+
+        return $content;
+    }
+
 
     /**
      * Sanitize JSON string when initial parsing fails
@@ -646,7 +647,7 @@ private static function cleanJsonContent(string $content): string
         return $content;
     }
 
-    
+
     /**
      * Track token usage in database
      */
@@ -707,13 +708,13 @@ private static function cleanJsonContent(string $content): string
         return $inputCost + $outputCost;
     }
 
-  
-   /**
- * Get system prompt based on enabled modules
- */
-private static function getSystemPrompt(array $enabledModules): string
-{
-    $prompt = <<<PROMPT
+
+    /**
+     * Get system prompt based on enabled modules
+     */
+    private static function getSystemPrompt(array $enabledModules): string
+    {
+        $prompt = <<<PROMPT
 You are an AI Experience Intelligence Engine. Analyze customer reviews and return ONLY valid JSON in this exact structure:
 
 {
@@ -744,9 +745,9 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
   },
 PROMPT;
 
-    // Add optional modules based on enabledModules array
-    if ($enabledModules['category_analysis'] ?? true) {
-        $prompt .= <<<PROMPT
+        // Add optional modules based on enabledModules array
+        if ($enabledModules['category_analysis'] ?? true) {
+            $prompt .= <<<PROMPT
   "category_analysis": [
     {
       "main_category": "Staff|Service|Food|Ambiance|Cleanliness|Price|Location|Others",
@@ -757,14 +758,14 @@ PROMPT;
     }
   ],
 PROMPT;
-    } else {
-        $prompt .= <<<PROMPT
+        } else {
+            $prompt .= <<<PROMPT
   "category_analysis": [],
 PROMPT;
-    }
+        }
 
-    if ($enabledModules['staff_intelligence'] ?? true) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['staff_intelligence'] ?? true) {
+            $prompt .= <<<PROMPT
   "staff_intelligence": {
     "staff_id": "staff id",
     "staff_name": "staff name",
@@ -782,14 +783,14 @@ PROMPT;
     "staff_context": "staff vs process issue"
   },
 PROMPT;
-    } else {
-        $prompt .= <<<PROMPT
+        } else {
+            $prompt .= <<<PROMPT
   "staff_intelligence": null,
 PROMPT;
-    }
+        }
 
-    if ($enabledModules['service_unit_intelligence'] ?? true) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['service_unit_intelligence'] ?? true) {
+            $prompt .= <<<PROMPT
   "service_unit_intelligence": {
     "unit_type": "Room|Table|Equipment|Vehicle|Other",
     "unit_id": "id if available",
@@ -798,14 +799,14 @@ PROMPT;
     "severity": "low|medium|high"
   },
 PROMPT;
-    } else {
-        $prompt .= <<<PROMPT
+        } else {
+            $prompt .= <<<PROMPT
   "service_unit_intelligence": null,
 PROMPT;
-    }
+        }
 
-    // NEW: Add area-specific insights section
-    $prompt .= <<<PROMPT
+        // NEW: Add area-specific insights section
+        $prompt .= <<<PROMPT
   "area_insights": [
     {
       "area_id": "area identifier",
@@ -818,8 +819,8 @@ PROMPT;
   ],
 PROMPT;
 
-    if ($enabledModules['business_recommendations'] ?? true) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['business_recommendations'] ?? true) {
+            $prompt .= <<<PROMPT
   "business_insights": {
     "root_cause": "main issue identified",
     "repeat_issue_likelihood": "low|medium|high",
@@ -833,8 +834,8 @@ PROMPT;
     "priority": "high|medium|low"
   },
 PROMPT;
-    } else {
-        $prompt .= <<<PROMPT
+        } else {
+            $prompt .= <<<PROMPT
   "business_insights": {
     "root_cause": "N/A",
     "repeat_issue_likelihood": "N/A",
@@ -848,10 +849,10 @@ PROMPT;
     "priority": "low"
   },
 PROMPT;
-    }
+        }
 
-    if ($enabledModules['alerts'] ?? true) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['alerts'] ?? true) {
+            $prompt .= <<<PROMPT
   "alerts": {
     "triggered": true|false,
     "type": "critical|warning|insight|info",
@@ -861,8 +862,8 @@ PROMPT;
     "recommended_action": "what should be done"
   },
 PROMPT;
-    } else {
-        $prompt .= <<<PROMPT
+        } else {
+            $prompt .= <<<PROMPT
   "alerts": {
     "triggered": false,
     "type": "info",
@@ -870,10 +871,10 @@ PROMPT;
     "message": "Alerts module disabled"
   },
 PROMPT;
-    }
+        }
 
-    // NEW: Add flags section for dashboard insights
-    $prompt .= <<<PROMPT
+        // NEW: Add flags section for dashboard insights
+        $prompt .= <<<PROMPT
   "flags": [
     {
       "flag_type": "INSIGHT|WARNING|CRITICAL",
@@ -888,7 +889,7 @@ PROMPT;
   },
 PROMPT;
 
-    $prompt .= <<<PROMPT
+        $prompt .= <<<PROMPT
   "explainability": {
     "decision_basis": ["key factors"],
     "confidence_score": 0.0 to 1.0,
@@ -910,9 +911,9 @@ CRITICAL ANALYSIS GUIDELINES:
 
 PROMPT;
 
-    // Add analysis guidelines only for enabled modules
-    if ($enabledModules['sentiment_analysis'] ?? true) {
-        $prompt .= <<<PROMPT
+        // Add analysis guidelines only for enabled modules
+        if ($enabledModules['sentiment_analysis'] ?? true) {
+            $prompt .= <<<PROMPT
 2. SENTIMENT & RATING-COMMENT ALIGNMENT:
    - Check if numeric ratings match the tone of comments
    - High ratings (4-5) with negative words = "positive_rating_negative_comment"
@@ -924,18 +925,18 @@ PROMPT;
    - Provide clear explanation in "rating_comment_alignment.explanation"
 
 PROMPT;
-    }
+        }
 
-    if ($enabledModules['emotion_detection'] ?? true) {
-        $prompt .= "\n3. EMOTION DETECTION:\n   - Angry words = anger\n   - Happy words = joy\n   - Disappointed words = sadness\n   - Fearful words = fear\n   - Frustrated words = anger/disgust";
-    }
+        if ($enabledModules['emotion_detection'] ?? true) {
+            $prompt .= "\n3. EMOTION DETECTION:\n   - Angry words = anger\n   - Happy words = joy\n   - Disappointed words = sadness\n   - Fearful words = fear\n   - Frustrated words = anger/disgust";
+        }
 
-    if ($enabledModules['abuse_detection'] ?? true) {
-        $prompt .= "\n4. MODERATION: Mark as abusive for hate speech, threats, extreme profanity, personal attacks";
-    }
+        if ($enabledModules['abuse_detection'] ?? true) {
+            $prompt .= "\n4. MODERATION: Mark as abusive for hate speech, threats, extreme profanity, personal attacks";
+        }
 
-    if ($enabledModules['category_analysis'] ?? true) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['category_analysis'] ?? true) {
+            $prompt .= <<<PROMPT
 5. CATEGORY ANALYSIS:
    - Staff: Behavior, knowledge, attitude, professionalism
    - Service: Speed, efficiency, wait time, process
@@ -947,10 +948,10 @@ PROMPT;
    - Others: Booking, reservation, website, app
 
 PROMPT;
-    }
+        }
 
-    if ($enabledModules['staff_intelligence'] ?? true) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['staff_intelligence'] ?? true) {
+            $prompt .= <<<PROMPT
 6. STAFF INTELLIGENCE:
    - Distinguish between staff behavior vs process issues
    - Staff blame: "rude staff" = staff issue
@@ -959,10 +960,10 @@ PROMPT;
    - Set "staff_blame_detected": true only if criticism is directed at staff personally
 
 PROMPT;
-    }
+        }
 
-    // NEW: Area insights guidelines
-    $prompt .= <<<PROMPT
+        // NEW: Area insights guidelines
+        $prompt .= <<<PROMPT
 7. AREA INSIGHTS:
    - Map comments to specific areas mentioned (reception, room, kitchen, etc.)
    - If multiple areas mentioned, analyze each separately
@@ -972,8 +973,8 @@ PROMPT;
 
 PROMPT;
 
-    if ($enabledModules['business_recommendations'] ?? true) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['business_recommendations'] ?? true) {
+            $prompt .= <<<PROMPT
 8. RECOMMENDATIONS:
    - Be specific and actionable
    - Link recommendations to specific areas/issues
@@ -981,10 +982,10 @@ PROMPT;
    - Example: "Review reception staffing during peak hours"
 
 PROMPT;
-    }
+        }
 
-    if ($enabledModules['alerts'] ?? true) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['alerts'] ?? true) {
+            $prompt .= <<<PROMPT
 9. ALERTS & FLAGS:
    - "insight" flag for: High ratings with negative comments
    - "warning" flag for: Repeated issues in same area
@@ -993,9 +994,9 @@ PROMPT;
    - Include clear "reason" and "recommended_action"
 
 PROMPT;
-    }
+        }
 
-    $prompt .= <<<PROMPT
+        $prompt .= <<<PROMPT
 
 BUSINESS-SPECIFIC ANALYSIS RULES:
 
@@ -1060,36 +1061,36 @@ TOKEN MANAGEMENT GUIDANCE FOR ENABLED MODULES:
 
 PROMPT;
 
-    // Add token guidance for each enabled module
-    if ($enabledModules['category_analysis'] ?? false) {
-        $prompt .= <<<PROMPT
+        // Add token guidance for each enabled module
+        if ($enabledModules['category_analysis'] ?? false) {
+            $prompt .= <<<PROMPT
 - CATEGORY ANALYSIS: Include 2-3 main categories with evidence. Focus on the most significant categories mentioned in the review. For each category, provide specific evidence from the comment.
 
 PROMPT;
-    }
+        }
 
-    if ($enabledModules['staff_intelligence'] ?? false) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['staff_intelligence'] ?? false) {
+            $prompt .= <<<PROMPT
 - STAFF INTELLIGENCE: Include soft skill scores and specific recommendations if applicable. If staff is mentioned positively, highlight their strengths. If mentioned negatively, provide constructive feedback.
 
 PROMPT;
-    }
+        }
 
-    if ($enabledModules['business_recommendations'] ?? false) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['business_recommendations'] ?? false) {
+            $prompt .= <<<PROMPT
 - BUSINESS RECOMMENDATIONS: Provide 2-3 actionable recommendations per area. Focus on the most critical issues first. Make recommendations specific and implementable.
 
 PROMPT;
-    }
+        }
 
-    if ($enabledModules['alerts'] ?? false) {
-        $prompt .= <<<PROMPT
+        if ($enabledModules['alerts'] ?? false) {
+            $prompt .= <<<PROMPT
 - ALERTS: Trigger alerts only for significant issues. Use appropriate priority levels. Provide clear recommended actions.
 
 PROMPT;
-    }
+        }
 
-    $prompt .= <<<PROMPT
+        $prompt .= <<<PROMPT
 
 EFFICIENT TOKEN USAGE STRATEGIES:
 1. Keep explanations concise but meaningful
@@ -1114,8 +1115,8 @@ IMPORTANT REMINDER: The system has calculated appropriate token allocation for a
 Return ONLY the JSON object. Be accurate, fair, and business-focused. For disabled modules, return minimal/empty data as specified.
 PROMPT;
 
-    return $prompt;
-}
+        return $prompt;
+    }
     /**
      * Create user message for OpenAI
      */

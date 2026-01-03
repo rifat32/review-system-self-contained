@@ -622,6 +622,10 @@
                                                     "type": "string",
                                                     "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
                                                 },
+                                                "branch_count": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
                                                 "permissions": {
                                                     "type": "array",
                                                     "items": {
@@ -948,7 +952,7 @@
         "/v1.0/user": {
             "get": {
                 "tags": [
-                    "auth"
+                    "z.unused"
                 ],
                 "summary": "Get authenticated user details",
                 "description": "Retrieve the currently authenticated user's information including business, roles, and permissions",
@@ -1636,7 +1640,7 @@
                                                 "avg_rating": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 4.20000000000000017763568394002504646778106689453125
+                                                    "example": 4.2
                                                 },
                                                 "overall_sentiment": {
                                                     "type": "number",
@@ -2694,12 +2698,12 @@
                                                 "lat": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 40.7128000000000014324541552923619747161865234375
+                                                    "example": 40.7128
                                                 },
                                                 "long": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": -74.006000000000000227373675443232059478759765625
+                                                    "example": -74.006
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -3349,7 +3353,7 @@
                 ],
                 "summary": "Get AI modules configuration for a business",
                 "description": "Retrieve the AI modules configuration for a specific business. If no configuration exists, creates default configuration.",
-                "operationId": "getBusinessAIModules",
+                "operationId": "getBusinessAiModules",
                 "parameters": [
                     {
                         "name": "businessId",
@@ -3528,7 +3532,7 @@
                 ],
                 "summary": "Update AI modules configuration for a business (Super Admin only)",
                 "description": "Update the AI modules configuration for a specific business. Only optional modules can be updated.",
-                "operationId": "updateBusinessAIModules",
+                "operationId": "updateBusinessAiModules",
                 "parameters": [
                     {
                         "name": "businessId",
@@ -3779,7 +3783,7 @@
                 ],
                 "summary": "Get enabled AI modules for a business",
                 "description": "Retrieve the list of enabled AI modules for a specific business. This endpoint can be used by business owners to see their configuration.",
-                "operationId": "getEnabledBusinessAIModules",
+                "operationId": "getEnabledBusinessAiModules",
                 "parameters": [
                     {
                         "name": "businessId",
@@ -6044,13 +6048,13 @@
                                         "description": "Business latitude coordinate",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 40.7128000000000014324541552923619747161865234375
+                                        "example": 40.7128
                                     },
                                     "longitude": {
                                         "description": "Business longitude coordinate",
                                         "type": "number",
                                         "format": "float",
-                                        "example": -74.006000000000000227373675443232059478759765625
+                                        "example": -74.006
                                     },
                                     "review_distance_limit": {
                                         "description": "Maximum distance (km) to allow reviews",
@@ -7557,7 +7561,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.20000000000000017763568394002504646778106689453125
+                                                        "example": 4.2
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -8291,7 +8295,7 @@
                                                             "average_rating": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 4.70000000000000017763568394002504646778106689453125
+                                                                "example": 4.7
                                                             },
                                                             "total_reviews": {
                                                                 "type": "integer",
@@ -8368,7 +8372,7 @@
                                                             "average_rating": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 2.29999999999999982236431605997495353221893310546875
+                                                                "example": 2.3
                                                             },
                                                             "total_reviews": {
                                                                 "type": "integer",
@@ -8439,7 +8443,7 @@
                                                         "overall_service_rating": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 3.79999999999999982236431605997495353221893310546875
+                                                            "example": 3.8
                                                         },
                                                         "best_performing_service": {
                                                             "type": "string",
@@ -8574,6 +8578,194 @@
                                                 },
                                                 "date_range": {
                                                     "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/insights-overview": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get insights overview data",
+                "description": "Get top issues, performance by branch, performance by area, and top performing staff",
+                "operationId": "getInsightsOverview",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "query",
+                        "description": "Business ID",
+                        "required": true,
+                        "example": "1"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period (last_30_days, last_7_days, this_month, last_month)",
+                        "required": false,
+                        "example": "last_30_days"
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Custom start date (d-m-Y format)",
+                        "required": false,
+                        "example": "01-01-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "Custom end date (d-m-Y format)",
+                        "required": false,
+                        "example": "31-01-2025"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Insights overview retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "top_issues": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "issue": {
+                                                                "type": "string",
+                                                                "example": "Wait Time"
+                                                            },
+                                                            "percentage": {
+                                                                "type": "integer",
+                                                                "example": 15
+                                                            },
+                                                            "count": {
+                                                                "type": "integer",
+                                                                "example": 45
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "performance_by_branch": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Downtown"
+                                                            },
+                                                            "rating": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 4.8
+                                                            },
+                                                            "review_count": {
+                                                                "type": "integer",
+                                                                "example": 120
+                                                            },
+                                                            "branch_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "performance_by_area": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Dining Area"
+                                                            },
+                                                            "rating": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 4.5
+                                                            },
+                                                            "review_count": {
+                                                                "type": "integer",
+                                                                "example": 80
+                                                            },
+                                                            "area_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "business_service_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "business_service_name": {
+                                                                "type": "string",
+                                                                "example": "Restaurant Service"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "top_performing_staff": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "staff_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Sarah J."
+                                                            },
+                                                            "role": {
+                                                                "type": "string",
+                                                                "example": "Server"
+                                                            },
+                                                            "area": {
+                                                                "type": "string",
+                                                                "example": "Downtown"
+                                                            },
+                                                            "rating": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 5
+                                                            },
+                                                            "review_count": {
+                                                                "type": "integer",
+                                                                "example": 12
+                                                            },
+                                                            "image": {
+                                                                "type": "string",
+                                                                "example": "https://example.com/image.jpg",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
                                                 }
                                             },
                                             "type": "object"
@@ -9081,7 +9273,7 @@
                                                         },
                                                         "avg_rating": {
                                                             "type": "number",
-                                                            "example": 4.20000000000000017763568394002504646778106689453125
+                                                            "example": 4.2
                                                         },
                                                         "sentiment_distribution": {
                                                             "properties": {
@@ -9113,7 +9305,7 @@
                                                             "type": "object",
                                                             "example": {
                                                                 "2023-01": 4,
-                                                                "2023-02": 4.20000000000000017763568394002504646778106689453125
+                                                                "2023-02": 4.2
                                                             }
                                                         },
                                                         "trend_direction": {
@@ -9259,7 +9451,7 @@
                                                             "properties": {
                                                                 "value": {
                                                                     "type": "number",
-                                                                    "example": 4.20000000000000017763568394002504646778106689453125
+                                                                    "example": 4.2
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
@@ -9280,7 +9472,7 @@
                                                                 },
                                                                 "change": {
                                                                     "type": "number",
-                                                                    "example": 2.100000000000000088817841970012523233890533447265625
+                                                                    "example": 2.1
                                                                 },
                                                                 "change_type": {
                                                                     "type": "string",
@@ -12668,7 +12860,7 @@
                                                         "avg_cost_per_request": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 0.08500000000000000610622663543836097232997417449951171875
+                                                            "example": 0.085
                                                         },
                                                         "first_request": {
                                                             "type": "string",
@@ -12711,7 +12903,7 @@
                                                             "percentage_of_total": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 33.3299999999999982946974341757595539093017578125
+                                                                "example": 33.33
                                                             }
                                                         },
                                                         "type": "object"
@@ -18031,10 +18223,10 @@
                                     "rate",
                                     "comment",
                                     "values",
-                                    "platform"
+                                    "source"
                                 ],
                                 "properties": {
-                                    "platform": {
+                                    "source": {
                                         "type": "string",
                                         "example": "web"
                                     },
@@ -18158,7 +18350,7 @@
                                     "rate",
                                     "comment",
                                     "values",
-                                    "platform"
+                                    "source"
                                 ],
                                 "properties": {
                                     "guest_full_name": {
@@ -18169,7 +18361,7 @@
                                         "type": "string",
                                         "example": "0177"
                                     },
-                                    "platform": {
+                                    "source": {
                                         "type": "string",
                                         "example": "web"
                                     },
@@ -19683,6 +19875,81 @@
                         "in": "query",
                         "description": "Filter reviews until this date",
                         "required": false
+                    },
+                    {
+                        "name": "sentiment_score",
+                        "in": "query",
+                        "description": "Filter reviews by sentiment score",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "very_positive",
+                                "positive",
+                                "neutral",
+                                "negative",
+                                "very_negative"
+                            ]
+                        },
+                        "example": "positive"
+                    },
+                    {
+                        "name": "meets_threshold",
+                        "in": "query",
+                        "description": "Filter reviews by threshold status (1 for reviews that meet threshold, 0 for reviews that don't meet threshold)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "staff_id",
+                        "in": "query",
+                        "description": "Filter reviews by specific staff ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "branch_id",
+                        "in": "query",
+                        "description": "Filter reviews by branch ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "has_staff",
+                        "in": "query",
+                        "description": "Filter reviews by presence of staff reference (1 = has staff, 0 = no staff)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "topics",
+                        "in": "query",
+                        "description": "Filter reviews by topic",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "food quality"
                     }
                 ],
                 "responses": {
@@ -21873,7 +22140,7 @@
                                                     "rating": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.20000000000000017763568394002504646778106689453125
+                                                        "example": 4.2
                                                     }
                                                 },
                                                 "type": "object"
@@ -27133,6 +27400,10 @@
             "description": "auth"
         },
         {
+            "name": "z.unused",
+            "description": "z.unused"
+        },
+        {
             "name": "branches",
             "description": "branches"
         },
@@ -27179,10 +27450,6 @@
         {
             "name": "Reports",
             "description": "Reports"
-        },
-        {
-            "name": "z.unused",
-            "description": "z.unused"
         },
         {
             "name": "email_management.feed_genius",

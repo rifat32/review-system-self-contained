@@ -3281,6 +3281,69 @@ class ReviewNewController extends Controller
      *          required=false,
      *          description="Filter reviews until this date"
      *      ),
+     *      @OA\Parameter(
+     *          name="sentiment_score",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by sentiment score",
+     *          @OA\Schema(
+     *              type="string",
+     *              enum={"very_positive", "positive", "neutral", "negative", "very_negative"}
+     *          ),
+     *          example="positive"
+     *      ),
+     *      @OA\Parameter(
+     *          name="meets_threshold",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by threshold status (1 for reviews that meet threshold, 0 for reviews that don't meet threshold)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0, 1}
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="staff_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by specific staff ID",
+     *          @OA\Schema(
+     *              type="integer"
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="branch_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by branch ID",
+     *          @OA\Schema(
+     *              type="integer"
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="has_staff",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by presence of staff reference (1 = has staff, 0 = no staff)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0,1}
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="topics",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by topic",
+     *          @OA\Schema(
+     *              type="string"
+     *          ),
+     *          example="food quality"
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
@@ -3353,6 +3416,59 @@ class ReviewNewController extends Controller
             $endDate = Carbon::createFromFormat('d-m-Y', $request->end_date);
             $query->whereDate('created_at', '<=', $endDate);
         }
+        if ($request->has('sentiment_score') && !empty($request->sentiment_score)) {
+            $sentiment_score = $request->sentiment_score;
+
+            if ($sentiment_score === 'very_positive') {
+                $query->where('sentiment_score', '>=', 0.8);
+            } elseif ($sentiment_score === 'positive') {
+                $query->where('sentiment_score', '>=', 0.6)->where('sentiment_score', '<', 0.8);
+            } elseif ($sentiment_score === 'neutral') {
+                $query->where('sentiment_score', '>=', 0.4)->where('sentiment_score', '<', 0.6);
+            } elseif ($sentiment_score === 'negative') {
+                $query->where('sentiment_score', '>=', 0.2)->where('sentiment_score', '<', 0.4);
+            } elseif ($sentiment_score === 'very_negative') {
+                $query->where('sentiment_score', '<', 0.2);
+            }
+        }
+
+        // Apply threshold filter
+        if ($request->has('meets_threshold')) {
+            $meetsThreshold = $request->input('meets_threshold');
+            if ($meetsThreshold == 1) {
+                $query->whereMeetsThreshold($businessId);
+            } elseif ($meetsThreshold == 0) {
+                $query->whereDoesNotMeetsThreshold($businessId);
+            }
+        }
+
+        // Apply staff presence filter (has_staff=1 => has staff, 0 => no staff)
+        if ($request->has('has_staff')) {
+            $hasStaff = (int) $request->input('has_staff');
+            if ($hasStaff === 1) {
+                $query->whereNotNull('staff_id');
+            } elseif ($hasStaff === 0) {
+                $query->whereNull('staff_id');
+            }
+        }
+
+        // Apply specific staff filter
+        if ($request->has('staff_id') && !empty($request->staff_id)) {
+            $staffId = (int) $request->input('staff_id');
+            $query->where('staff_id', $staffId);
+        }
+
+        // Apply branch filter
+        if ($request->has('branch_id') && !empty($request->branch_id)) {
+            $branchId = (int) $request->input('branch_id');
+            $query->where('branch_id', $branchId);
+        }
+
+        // Apply topics filter
+        if ($request->has('topics') && !empty($request->topics)) {
+            $topic = $request->input('topics');
+            $query->whereJsonContains('topics', $topic);
+        }
 
         // Sorting logic
         $sortBy = $request->get('sort_by', 'newest');
@@ -3365,7 +3481,7 @@ class ReviewNewController extends Controller
                 $query->orderBy('created_at', 'asc');
                 break;
             case 'highest_rating':
-                // ISNULL returns 1 for null, 0 for not null.
+                // IS NULL returns 1 for null, 0 for not null.
                 // Ordering by it first ensures nulls go to the bottom.
                 $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating DESC');
                 break;
