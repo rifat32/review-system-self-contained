@@ -685,6 +685,129 @@ public function getStaffPerformanceAnalysis(Request $request)
         'data' => $performanceAnalysis
     ], 200);
 }
+
+/**
+ * @OA\Get(
+ *      path="/v1.0/dashboard/insights-overview",
+ *      operationId="getInsightsOverview",
+ *      tags={"dashboard_management"},
+ *      summary="Get insights overview data",
+ *      description="Get top issues, performance by branch, performance by area, and top performing staff",
+ *      @OA\Parameter(
+ *         name="businessId",
+ *         in="query",
+ *         description="Business ID",
+ *         required=true,
+ *         example="1"
+ *      ),
+ *      @OA\Parameter(
+ *         name="period",
+ *         in="query",
+ *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
+ *         required=false,
+ *         example="last_30_days"
+ *      ),
+ *      @OA\Parameter(
+ *         name="start_date",
+ *         in="query",
+ *         description="Custom start date (d-m-Y format)",
+ *         required=false,
+ *         example="01-01-2025"
+ *      ),
+ *      @OA\Parameter(
+ *         name="end_date",
+ *         in="query",
+ *         description="Custom end date (d-m-Y format)",
+ *         required=false,
+ *         example="31-01-2025"
+ *      ),
+ *      security={
+ *          {"bearerAuth": {}}
+ *      },
+ *      @OA\Response(
+ *          response=200,
+ *          description="Successful operation",
+ *          @OA\JsonContent(
+ *              @OA\Property(property="success", type="boolean", example=true),
+ *              @OA\Property(property="message", type="string", example="Insights overview retrieved successfully"),
+ *              @OA\Property(property="data", type="object",
+ *                  @OA\Property(property="top_issues", type="array",
+ *                      @OA\Items(type="object",
+ *                          @OA\Property(property="issue", type="string", example="Wait Time"),
+ *                          @OA\Property(property="percentage", type="integer", example=15),
+ *                          @OA\Property(property="count", type="integer", example=45)
+ *                      )
+ *                  ),
+ *                  @OA\Property(property="performance_by_branch", type="array",
+ *                      @OA\Items(type="object",
+ *                          @OA\Property(property="name", type="string", example="Downtown"),
+ *                          @OA\Property(property="rating", type="number", format="float", example=4.8),
+ *                          @OA\Property(property="review_count", type="integer", example=120),
+ *                          @OA\Property(property="branch_id", type="integer", example=1)
+ *                      )
+ *                  ),
+ *                  @OA\Property(property="performance_by_area", type="array",
+ *                      @OA\Items(type="object",
+ *                          @OA\Property(property="name", type="string", example="Dining Area"),
+ *                          @OA\Property(property="rating", type="number", format="float", example=4.5),
+ *                          @OA\Property(property="review_count", type="integer", example=80),
+ *                          @OA\Property(property="area_id", type="integer", example=1),
+ *                          @OA\Property(property="business_service_id", type="integer", example=1),
+ *                          @OA\Property(property="business_service_name", type="string", example="Restaurant Service")
+ *                      )
+ *                  ),
+ *                  @OA\Property(property="top_performing_staff", type="array",
+ *                      @OA\Items(type="object",
+ *                          @OA\Property(property="staff_id", type="integer", example=1),
+ *                          @OA\Property(property="name", type="string", example="Sarah J."),
+ *                          @OA\Property(property="role", type="string", example="Server"),
+ *                          @OA\Property(property="area", type="string", example="Downtown"),
+ *                          @OA\Property(property="rating", type="number", format="float", example=5.0),
+ *                          @OA\Property(property="review_count", type="integer", example=12),
+ *                          @OA\Property(property="image", type="string", nullable=true, example="https://example.com/image.jpg")
+ *                      )
+ *                  )
+ *              )
+ *          )
+ *      )
+ * )
+ */
+public function getInsightsOverview(Request $request)
+{
+    $request->validate([
+        'businessId' => 'required|integer|exists:businesses,id',
+        'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
+        'start_date' => 'nullable|date_format:d-m-Y',
+        'end_date' => 'nullable|date_format:d-m-Y'
+    ]);
+
+    $businessId = $request->input('businessId');
+
+    // Get date range - using existing function
+    if ($request->has('start_date') && $request->has('end_date')) {
+        $dateRange = [
+            'start' => Carbon::parse($request->input('start_date'))->startOfDay(),
+            'end' => Carbon::parse($request->input('end_date'))->endOfDay()
+        ];
+    } else {
+        $period = $request->input('period', 'last_30_days');
+        $dateRange = getDateRangeByPeriod($period);
+    }
+
+    // Get insights overview data
+    $insightsData = AIProcessor::getInsightsOverview($businessId, $dateRange);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Insights overview retrieved successfully',
+        'data' => $insightsData
+    ], 200);
+}
+
+
+
+
+
     /**
      * @OA\Get(
      *      path="/v1.0/dashboard/overview",

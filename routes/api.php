@@ -159,7 +159,7 @@ Route::group(['prefix' => 'v1.0'], function () {
 
     Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
 
-
+    Route::get('/v1.0/dashboard/insights-overview', [DashboardController::class, "getInsightsOverview"]);
     Route::get('/v1.0/dashboard/monthly-trends', [DashboardController::class, "getMonthlyTrends"]);
 
     Route::get('/v1.0/dashboard/top-worst-services', [DashboardController::class, "getTopWorstServices"]);
