@@ -938,7 +938,6 @@ class StaffController extends Controller
             ], 404);
         }
 
-        // Get date range from query parameter
         // Get period dates
         $period = $request->query('date_range', 'last_30_days');
 
