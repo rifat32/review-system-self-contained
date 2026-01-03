@@ -428,7 +428,7 @@ class DashboardTestSeeder extends Seeder
                 'survey_id' => $survey->id,
                 'description' => 'Dining Experience Review',
                 'business_id' => $business->id,
-                'rate' => $rating,
+
                 'user_id' => $userId,
                 'guest_id' => $guestId,
                 'comment' => $comment,

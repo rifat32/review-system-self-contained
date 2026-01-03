@@ -23,7 +23,7 @@ class CreateReviewRequest extends FormRequest
     {
         return [
             'description' => 'required|string|max:255',
-            // 'rate' => 'nullable|numeric|min:1|max:5',
+     
             'comment' => 'nullable|string',
             'values' => 'required|array|min:1',
             'values.*.question_id' => 'required|integer|exists:questions,id',

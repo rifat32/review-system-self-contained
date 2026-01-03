@@ -559,10 +559,10 @@ if (!function_exists('applyFilters')) {
 
         // Score range filter
         if (!empty($filters['min_score'])) {
-            $query->where('rate', '>=', $filters['min_score']);
+            $query->where('calculated_rating', '>=', $filters['min_score']);
         }
         if (!empty($filters['max_score'])) {
-            $query->where('rate', '<=', $filters['max_score']);
+            $query->where('calculated_rating', '<=', $filters['max_score']);
         }
 
         // Labels filter (using sentiment field)

@@ -18,7 +18,8 @@ return new class extends Migration
             $table->string('description')->nullable();
             $table->unsignedBigInteger('business_id');
             $table->foreign('business_id')->references('id')->on('businesses')->onDelete('cascade');
-            $table->decimal('rate', 3, 1)->nullable();
+
+
             $table->unsignedBigInteger('user_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->unsignedBigInteger('guest_id')->nullable();

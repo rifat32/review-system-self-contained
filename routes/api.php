@@ -374,7 +374,7 @@ Route::middleware(['auth:api'])->group(function () {
     // ReviewNewController – Values/filters/tags/stars/reporting (protected)
     // ============================================================================
     Route::get('/v1.0/review-new/values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValue"]);
-    Route::post('/review-new/reviewvalue/{businessId}/{rate}', [ReviewNewController::class, "store"]);
+ 
     Route::get('/review-new/getvalues/{businessId}', [ReviewNewController::class, "getreviewvalueById"]);
 
     Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [DashboardController::class, "getAverages"]);

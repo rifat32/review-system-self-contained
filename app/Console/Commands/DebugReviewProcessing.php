@@ -27,7 +27,7 @@ class DebugReviewProcessing extends Command
         // Show review data
         $this->info("📝 Review Data:");
         $this->info("   Text: " . ($review->raw_text ?? $review->comment ?? 'No text'));
-        $this->info("   Rating: " . ($review->rate ?? 'No rating'));
+        $this->info("   Rating: " . ($review->calculated_rating ?? 'No rating'));
         $this->info("   Staff ID: " . ($review->staff_id ?? 'None'));
         $this->info("   Business Area: " . ($review->business_area_id ?? 'None'));
         $this->info("   Already Processed: " . ($review->is_ai_processed ? 'Yes' : 'No'));

@@ -321,30 +321,7 @@ class ReviewNewController extends Controller
 
 
 
-    // ##################################################
-    // This method is to store   ReviewValue
-    // ##################################################
 
-    public function store($businessId, $rate, Request $request)
-    {
-
-        ReviewValue::where([
-            "business_id" => $businessId,
-            "rate" => $rate
-        ])
-            ->delete();
-
-        $reviewValues = $request->reviewvalue;
-        $raviewValue_array = [];
-        foreach ($reviewValues as $reviewValue) {
-            $reviewValue["business_id"] = $businessId;
-            $reviewValue["rate"] = $rate;
-            $createdReviewValue =  ReviewValue::create($reviewValue);
-            array_push($raviewValue_array, $createdReviewValue);
-        }
-
-        return response($raviewValue_array, 201);
-    }
     // ##################################################
     // This method is to get   ReviewValue
     // ##################################################
@@ -795,7 +772,6 @@ class ReviewNewController extends Controller
         $request->validate([
             'source' => ['required', 'string', 'in:web,app'],
             'description' => 'nullable|string',
-            'rate' => 'required|numeric|min:1|max:5',
             'staff_id' => 'nullable|exists:users,id',
             "branch_id" => 'nullable|exists:branches,id',
             'comment' => 'nullable|string',
@@ -822,7 +798,6 @@ class ReviewNewController extends Controller
             'survey_id' => $request->survey_id,
             'description' => $request->description,
             'business_id' => $businessId,
-            'rate' => null,
             'user_id' => $request->user()->id,
             'comment' => $raw_text,
             'raw_text' => $raw_text,
@@ -940,7 +915,6 @@ class ReviewNewController extends Controller
             'guest_full_name' => 'nullable|string',
             'guest_phone' => 'nullable|string',
             'description' => 'nullable|string',
-            'rate' => 'required|numeric|min:1|max:5',
             'staff_id' => 'nullable|exists:users,id',
             'branch_id' => 'nullable|exists:branches,id',
             'comment' => 'nullable|string',
@@ -1007,7 +981,6 @@ class ReviewNewController extends Controller
             'survey_id' => $request->survey_id,
             'description' => $request->description,
             'business_id' => $businessId,
-            'rate' => null,
             'guest_id' => $guest->id,
             'comment' => $raw_text,
             'raw_text' => $raw_text,

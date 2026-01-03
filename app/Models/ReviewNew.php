@@ -19,7 +19,6 @@ class ReviewNew extends Model
         'survey_id',
         'description',
         'business_id',
-        'rate',
         'user_id',
         'comment',
         'guest_id',

@@ -1338,7 +1338,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
         return $reviews->sortByDesc('created_at')
             ->take($limit)
             ->map(function ($review) {
-                $rating = $review->calculated_rating ?? $review->rate;
+                $rating = $review->calculated_rating;
 
                 return [
                     'id' => $review->id,
@@ -1939,7 +1939,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
                     'comment' => $review->comment,
                     'sentiment_score' => $review->sentiment_score,
                     'date' => $review->created_at->diffForHumans(),
-                    'rating' => $review->rate
+                    'rating' => $review->calculated_rating
                 ];
             })->values()->toArray(),
             'constructive' => $constructiveReviews->map(function ($review) {
@@ -1948,7 +1948,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
                     'comment' => $review->comment,
                     'sentiment_score' => $review->sentiment_score,
                     'date' => $review->created_at->diffForHumans(),
-                    'rating' => $review->rate
+                    'rating' => $review->calculated_rating
                 ];
             })->values()->toArray(),
             'neutral' => $negativeReviews->map(function ($review) {
@@ -1957,7 +1957,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
                     'comment' => $review->comment,
                     'sentiment_score' => $review->sentiment_score,
                     'date' => $review->created_at->diffForHumans(),
-                    'rating' => $review->rate
+                    'rating' => $review->calculated_rating
                 ];
             })->values()->toArray()
         ];
@@ -2024,8 +2024,8 @@ public static function extractSkillGapsFromSuggestions($suggestions)
 
             // Get rating and sentiment
             $rating = is_array($review)
-                ? ($review['rate'] ?? 0)
-                : ($review->rate ?? 0);
+                ? ($review['calculated_rating'] ?? 0)
+                : ($review->calculated_rating ?? 0);
 
             $sentiment = is_array($review)
                 ? ($review['sentiment_score'] ?? 0)
@@ -2083,7 +2083,7 @@ public static function extractSkillGapsFromSuggestions($suggestions)
                 return [
                     'review_id' => $review->id,
                     'user_name' => $userName,
-                    'rating' => $review->rate,
+                    'rating' => $review->calculated_rating,
                     'comment' => $review->comment,
                     'submission_date' => $review->created_at->diffForHumans(),
                     'exact_date' => $review->created_at->format('d-m-Y H:i:s'),

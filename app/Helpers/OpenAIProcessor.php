@@ -1211,7 +1211,7 @@ PROMPT;
 
         return [
             'review_text' => $text,
-            'rating' => $review->rate ?? 0,
+            'rating' => $review->calculated_rating ?? 0,
             'question_ratings' => $questionRatings, // Added this
             'staff_info' => $staffInfo,
             'business_services' => $business_services,
@@ -1243,7 +1243,7 @@ PROMPT;
         }
 
         // Calculate average rating from question ratings if available
-        $avgRating = $review->rate ?? 0;
+        $avgRating = $review->calculated_rating ?? 0;
         if ($review->reviewValues && $review->reviewValues->count() > 0) {
             $sum = 0;
             $count = 0;
@@ -1506,7 +1506,7 @@ PROMPT;
             }
 
             // Track rating pattern
-            $avgRating = $review->rate ?? 0;
+            $avgRating = $review->calculated_rating ?? 0;
             if ($avgRating > 0) {
                 $ratingKey = floor($avgRating) . '_stars';
                 $ratingPatterns[$ratingKey] = ($ratingPatterns[$ratingKey] ?? 0) + 1;
@@ -1537,7 +1537,7 @@ PROMPT;
             if (count($sampleReviews) < 5) {
                 $sampleReviews[] = [
                     'id' => $review->id,
-                    'rating' => $review->rate,
+                    'rating' => $review->calculated_rating,
                     'comment' => substr($review->comment ?? '', 0, 150) . '...',
                     'mismatch_type' => $mismatchType,
                     'explanation' => substr($explanation, 0, 100) . '...',
