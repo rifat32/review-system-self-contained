@@ -2,7 +2,7 @@
 
 namespace App\Helpers;
 
-use App\Models\BusinessAIModule;
+use App\Models\BusinessAiModule;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Models\OpenAITokenUsage;
@@ -68,19 +68,19 @@ class OpenAIProcessor
     /**
      * Get business AI modules with fallback to defaults
      */
-    public static function getBusinessAIModules(int $businessId): array
+    public static function getBusinessAiModules(int $businessId): array
     {
         try {
 
-            $aiModules = BusinessAIModule::where('business_id', $businessId)->first();
+            $aiModules = BusinessAiModule::where('business_id', $businessId)->first();
 
             if ($aiModules) {
                 return $aiModules->getEnabledModules();
             }
 
             // Create default if not exists
-            $defaultModules = BusinessAIModule::getDefaultForBusiness($businessId);
-            BusinessAIModule::create($defaultModules);
+            $defaultModules = BusinessAiModule::getDefaultForBusiness($businessId);
+            BusinessAiModule::create($defaultModules);
 
             return $defaultModules;
         } catch (\Exception $e) {
@@ -90,7 +90,7 @@ class OpenAIProcessor
             ]);
 
             // Return all enabled as fallback
-            return BusinessAIModule::getDefaultForBusiness($businessId);
+            return BusinessAiModule::getDefaultForBusiness($businessId);
         }
     }
 
@@ -1313,7 +1313,7 @@ PROMPT;
             $businessId = $review->business_id;
 
             // Get enabled modules for this business
-            $enabledModules = self::getBusinessAIModules($businessId);
+            $enabledModules = self::getBusinessAiModules($businessId);
 
             Log::debug('Analyzing review with modules', [
                 'review_id' => $review->id,
@@ -1351,7 +1351,7 @@ PROMPT;
 
 
             // Get enabled modules for fallback
-            $enabledModules = self::getBusinessAIModules($review->business_id);
+            $enabledModules = self::getBusinessAiModules($review->business_id);
             $payload = self::createPayloadFromReview($review);
             $fallback = self::getFallbackAnalysis($payload, $enabledModules);
             $dbData = self::convertForDatabase($fallback, $review, $enabledModules);
@@ -1876,10 +1876,10 @@ PROMPT;
     /**
      * Update business AI modules
      */
-    public static function updateBusinessAIModules(int $businessId, array $modules): bool
+    public static function updateBusinessAiModules(int $businessId, array $modules): bool
     {
         try {
-            $aiModule = BusinessAIModule::firstOrNew(['business_id' => $businessId]);
+            $aiModule = BusinessAiModule::firstOrNew(['business_id' => $businessId]);
 
             // Only update optional modules (required modules are always true)
             $updatableModules = [
