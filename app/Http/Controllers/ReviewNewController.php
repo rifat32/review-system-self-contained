@@ -3292,6 +3292,17 @@ class ReviewNewController extends Controller
      *          ),
      *          example="positive"
      *      ),
+     *      @OA\Parameter(
+     *          name="meets_threshold",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by threshold status (1 for reviews that meet threshold, 0 for reviews that don't meet threshold)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0, 1}
+     *          ),
+     *          example=1
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
@@ -3377,6 +3388,16 @@ class ReviewNewController extends Controller
                 $query->where('sentiment_score', '>=', 0.2)->where('sentiment_score', '<', 0.4);
             } elseif ($sentiment_score === 'very_negative') {
                 $query->where('sentiment_score', '<', 0.2);
+            }
+        }
+
+        // Apply threshold filter
+        if ($request->has('meets_threshold')) {
+            $meetsThreshold = $request->input('meets_threshold');
+            if ($meetsThreshold == 1) {
+                $query->whereMeetsThreshold($businessId);
+            } elseif ($meetsThreshold == 0) {
+                $query->whereDoesNotMeetsThreshold($businessId);
             }
         }
 
