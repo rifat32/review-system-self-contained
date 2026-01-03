@@ -3303,6 +3303,16 @@ class ReviewNewController extends Controller
      *          ),
      *          example=1
      *      ),
+     *      @OA\Parameter(
+     *          name="topics",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by topic",
+     *          @OA\Schema(
+     *              type="string"
+     *          ),
+     *          example="food quality"
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
@@ -3399,6 +3409,12 @@ class ReviewNewController extends Controller
             } elseif ($meetsThreshold == 0) {
                 $query->whereDoesNotMeetsThreshold($businessId);
             }
+        }
+
+        // Apply topics filter
+        if ($request->has('topics') && !empty($request->topics)) {
+            $topic = $request->input('topics');
+            $query->whereJsonContains('topics', $topic);
         }
 
         // Sorting logic

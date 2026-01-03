@@ -19902,6 +19902,16 @@
                             ]
                         },
                         "example": 1
+                    },
+                    {
+                        "name": "topics",
+                        "in": "query",
+                        "description": "Filter reviews by topic",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "food quality"
                     }
                 ],
                 "responses": {
