@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\BusinessArea;
 use App\Models\ReviewNew;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -2496,271 +2497,270 @@ class AIProcessor
 
     // Add these methods to your AIProcessor class
 
-/**
- * Get insights overview data for dashboard
- */
-public static function getInsightsOverview($businessId, $dateRange)
-{
-    // Get all reviews for the period
-    $reviews = ReviewNew::where('business_id', $businessId)
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->globalFilters(0, $businessId)
-        ->withCalculatedRating()
-        ->get();
-
-    // 1. Top Issues - Use existing findCommonIssues method
-    $topIssues = self::extractTopIssuesFromReviews($reviews);
-
-    // 2. Performance by Branch
-    $performanceByBranch = self::getPerformanceByBranch($businessId, $dateRange);
-
-    // 3. Performance by Area (BusinessArea)
-    $performanceByArea = self::getPerformanceByArea($businessId, $dateRange);
-
-    // 4. Top Performing Staff
-    $topPerformingStaff = self::getTopPerformingStaffFromTopWorst($businessId, $dateRange);
-
-    return [
-        'top_issues' => $topIssues,
-        'performance_by_branch' => $performanceByBranch,
-        'performance_by_area' => $performanceByArea,
-        'top_performing_staff' => $topPerformingStaff
-    ];
-}
-
-/**
- * Extract top issues from reviews using existing findCommonIssues method
- */
-public static function extractTopIssuesFromReviews($reviews)
-{
-    if ($reviews->isEmpty()) {
-        return [
-            ['issue' => 'No data', 'percentage' => 0]
-        ];
-    }
-
-    // Use the existing findCommonIssues method
-    $commonIssues = self::findCommonIssues($reviews);
-    
-    // Calculate percentages
-    $totalReviews = $reviews->count();
-    $issuesWithPercentages = [];
-    
-    foreach (array_slice($commonIssues, 0, 5) as $issue) {
-        $percentage = $totalReviews > 0 ? round(($issue['count'] / $totalReviews) * 100) : 0;
-        
-        $issuesWithPercentages[] = [
-            'issue' => $issue['topic'] ?? 'General',
-            'percentage' => $percentage,
-            'count' => $issue['count']
-        ];
-    }
-
-    // Return top 3 issues
-    return array_slice($issuesWithPercentages, 0, 3);
-}
-
-/**
- * Get performance by branch
- */
-public static function getPerformanceByBranch($businessId, $dateRange)
-{
-    // Get all branches for this business
-    $branches = Branch::where('business_id', $businessId)
-        ->where('is_active', true)
-        ->get();
-
-    $performanceData = [];
-
-    foreach ($branches as $branch) {
-        // Get branch performance
+    /**
+     * Get insights overview data for dashboard
+     */
+    public static function getInsightsOverview($businessId, $dateRange)
+    {
+        // Get all reviews for the period
         $reviews = ReviewNew::where('business_id', $businessId)
-            ->where('branch_id', $branch->id)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->globalFilters(0, $businessId)
             ->withCalculatedRating()
             ->get();
 
-        if ($reviews->isNotEmpty()) {
-            // Use existing method to calculate branch summary
-            $branchSummary = self::calculateBranchSummary($reviews);
-            
-            $performanceData[] = [
-                'name' => $branch->name,
-                'rating' => $branchSummary['average_rating'] ?? 0,
-                'review_count' => $branchSummary['total_reviews'] ?? 0,
-                'branch_id' => $branch->id
-            ];
-        }
+        // 1. Top Issues - Use existing findCommonIssues method
+        $topIssues = self::extractTopIssuesFromReviews($reviews);
+
+        // 2. Performance by Branch
+        $performanceByBranch = self::getPerformanceByBranch($businessId, $dateRange);
+
+        // 3. Performance by Area (BusinessArea)
+        $performanceByArea = self::getPerformanceByArea($businessId, $dateRange);
+
+        // 4. Top Performing Staff
+        $topPerformingStaff = self::getTopPerformingStaffFromTopWorst($businessId, $dateRange);
+
+        return [
+            'top_issues' => $topIssues,
+            'performance_by_branch' => $performanceByBranch,
+            'performance_by_area' => $performanceByArea,
+            'top_performing_staff' => $topPerformingStaff
+        ];
     }
 
-    // Sort by rating (highest first)
-    usort($performanceData, function($a, $b) {
-        return $b['rating'] <=> $a['rating'];
-    });
+    /**
+     * Extract top issues from reviews using existing findCommonIssues method
+     */
+    public static function extractTopIssuesFromReviews($reviews)
+    {
+        if ($reviews->isEmpty()) {
+            return [
+                ['issue' => 'No data', 'percentage' => 0]
+            ];
+        }
 
-    // Return top 3 branches
-    return array_slice($performanceData, 0, 3);
-}
+        // Use the existing findCommonIssues method
+        $commonIssues = self::findCommonIssues($reviews);
 
-/**
- * Get performance by area (BusinessArea)
- */
-public static function getPerformanceByArea($businessId, $dateRange)
-{
-    // Get areas with their reviews through the pivot table
-    $areasWithReviews = ReviewNew::where('business_id', $businessId)
-        ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-        ->globalFilters(0, $businessId)
-        ->withCalculatedRating()
-        ->whereHas('review_business_services', function($query) {
-            $query->whereNotNull('business_area_id');
-        })
-        ->with(['review_business_services.business_service.business_areas'])
-        ->get();
+        // Calculate percentages
+        $totalReviews = $reviews->count();
+        $issuesWithPercentages = [];
 
-    // Group reviews by area
-    $areaReviews = [];
+        foreach (array_slice($commonIssues, 0, 5) as $issue) {
+            $percentage = $totalReviews > 0 ? round(($issue['count'] / $totalReviews) * 100) : 0;
 
-    foreach ($areasWithReviews as $review) {
-        foreach ($review->review_business_services as $service) {
-            if ($service->business_area_id) {
-                // Get the area through the business service
-                if ($service->business_service && $service->business_service->business_areas) {
-                    foreach ($service->business_service->business_areas as $area) {
-                        if ($area->id == $service->business_area_id) {
-                            if (!isset($areaReviews[$area->id])) {
-                                $areaReviews[$area->id] = [
-                                    'area' => $area,
-                                    'reviews' => [],
-                                    'ratings' => []
-                                ];
+            $issuesWithPercentages[] = [
+                'issue' => $issue['topic'] ?? 'General',
+                'percentage' => $percentage,
+                'count' => $issue['count']
+            ];
+        }
+
+        // Return top 3 issues
+        return array_slice($issuesWithPercentages, 0, 3);
+    }
+
+    /**
+     * Get performance by branch
+     */
+    public static function getPerformanceByBranch($businessId, $dateRange)
+    {
+        // Get all branches for this business
+        $branches = Branch::where('business_id', $businessId)
+            ->where('is_active', true)
+            ->get();
+
+        $performanceData = [];
+
+        foreach ($branches as $branch) {
+            // Get branch performance
+            $reviews = ReviewNew::where('business_id', $businessId)
+                ->where('branch_id', $branch->id)
+                ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+                ->globalFilters(0, $businessId)
+                ->withCalculatedRating()
+                ->get();
+
+            if ($reviews->isNotEmpty()) {
+                // Use existing method to calculate branch summary
+                $branchSummary = self::calculateBranchSummary($reviews);
+
+                $performanceData[] = [
+                    'name' => $branch->name,
+                    'rating' => $branchSummary['average_rating'] ?? 0,
+                    'review_count' => $branchSummary['total_reviews'] ?? 0,
+                    'branch_id' => $branch->id
+                ];
+            }
+        }
+
+        // Sort by rating (highest first)
+        usort($performanceData, function ($a, $b) {
+            return $b['rating'] <=> $a['rating'];
+        });
+
+        // Return top 3 branches
+        return array_slice($performanceData, 0, 3);
+    }
+
+    /**
+     * Get performance by area (BusinessArea)
+     */
+    public static function getPerformanceByArea($businessId, $dateRange)
+    {
+        // Get areas with their reviews through the pivot table
+        $areasWithReviews = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->globalFilters(0, $businessId)
+            ->withCalculatedRating()
+            ->whereHas('review_business_services', function ($query) {
+                $query->whereNotNull('business_area_id');
+            })
+            ->with(['review_business_services.business_service.business_areas'])
+            ->get();
+
+        // Group reviews by area
+        $areaReviews = [];
+
+        foreach ($areasWithReviews as $review) {
+            foreach ($review->review_business_services as $service) {
+                if ($service->business_area_id) {
+                    // Get the area through the business service
+                    if ($service->business_service && $service->business_service->business_areas) {
+                        foreach ($service->business_service->business_areas as $area) {
+                            if ($area->id == $service->business_area_id) {
+                                if (!isset($areaReviews[$area->id])) {
+                                    $areaReviews[$area->id] = [
+                                        'area' => $area,
+                                        'reviews' => [],
+                                        'ratings' => []
+                                    ];
+                                }
+                                $areaReviews[$area->id]['reviews'][] = $review;
+                                $areaReviews[$area->id]['ratings'][] = $review->calculated_rating ?? 0;
                             }
-                            $areaReviews[$area->id]['reviews'][] = $review;
-                            $areaReviews[$area->id]['ratings'][] = $review->calculated_rating ?? 0;
                         }
                     }
                 }
             }
         }
-    }
 
-    $performanceData = [];
+        $performanceData = [];
 
-    foreach ($areaReviews as $areaData) {
-        $area = $areaData['area'];
-        $reviews = $areaData['reviews'];
-        $ratings = $areaData['ratings'];
-        
-        if (count($ratings) > 0) {
-            $avgRating = round(array_sum($ratings) / count($ratings), 1);
-            
-            $performanceData[] = [
-                'name' => $area->area_name,
-                'rating' => $avgRating,
-                'review_count' => count($reviews),
-                'area_id' => $area->id,
-                'business_service_id' => $area->business_service_id,
-                'business_service_name' => $area->business_service->name ?? 'Unknown'
-            ];
-        }
-    }
+        foreach ($areaReviews as $areaData) {
+            $area = $areaData['area'];
+            $reviews = $areaData['reviews'];
+            $ratings = $areaData['ratings'];
 
-    // If no area data found via pivot, try direct query
-    if (empty($performanceData)) {
-        $areas = BusinessArea::where('business_id', $businessId)
-            ->where('is_active', true)
-            ->with(['business_service'])
-            ->get();
+            if (count($ratings) > 0) {
+                $avgRating = round(array_sum($ratings) / count($ratings), 1);
 
-        foreach ($areas as $area) {
-            // Count reviews for this area
-            $reviewCount = ReviewNew::where('business_id', $businessId)
-                ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-                ->whereHas('review_business_services', function($query) use ($area) {
-                    $query->where('business_area_id', $area->id);
-                })
-                ->globalFilters(0, $businessId)
-                ->withCalculatedRating()
-                ->count();
-
-            // Get average rating for this area
-            $reviewsForArea = ReviewNew::where('business_id', $businessId)
-                ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-                ->whereHas('review_business_services', function($query) use ($area) {
-                    $query->where('business_area_id', $area->id);
-                })
-                ->globalFilters(0, $businessId)
-                ->withCalculatedRating()
-                ->get();
-
-            if ($reviewsForArea->isNotEmpty()) {
-                $avgRating = round($reviewsForArea->avg('calculated_rating'), 1);
-                
                 $performanceData[] = [
                     'name' => $area->area_name,
                     'rating' => $avgRating,
-                    'review_count' => $reviewCount,
+                    'review_count' => count($reviews),
                     'area_id' => $area->id,
                     'business_service_id' => $area->business_service_id,
                     'business_service_name' => $area->business_service->name ?? 'Unknown'
                 ];
             }
         }
+
+        // If no area data found via pivot, try direct query
+        if (empty($performanceData)) {
+            $areas = BusinessArea::where('business_id', $businessId)
+                ->where('is_active', true)
+                ->with(['business_service'])
+                ->get();
+
+            foreach ($areas as $area) {
+                // Count reviews for this area
+                $reviewCount = ReviewNew::where('business_id', $businessId)
+                    ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+                    ->whereHas('review_business_services', function ($query) use ($area) {
+                        $query->where('business_area_id', $area->id);
+                    })
+                    ->globalFilters(0, $businessId)
+                    ->withCalculatedRating()
+                    ->count();
+
+                // Get average rating for this area
+                $reviewsForArea = ReviewNew::where('business_id', $businessId)
+                    ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+                    ->whereHas('review_business_services', function ($query) use ($area) {
+                        $query->where('business_area_id', $area->id);
+                    })
+                    ->globalFilters(0, $businessId)
+                    ->withCalculatedRating()
+                    ->get();
+
+                if ($reviewsForArea->isNotEmpty()) {
+                    $avgRating = round($reviewsForArea->avg('calculated_rating'), 1);
+
+                    $performanceData[] = [
+                        'name' => $area->area_name,
+                        'rating' => $avgRating,
+                        'review_count' => $reviewCount,
+                        'area_id' => $area->id,
+                        'business_service_id' => $area->business_service_id,
+                        'business_service_name' => $area->business_service->name ?? 'Unknown'
+                    ];
+                }
+            }
+        }
+
+        // Sort by rating (highest first)
+        usort($performanceData, function ($a, $b) {
+            return $b['rating'] <=> $a['rating'];
+        });
+
+        // Return top 3 areas
+        return array_slice($performanceData, 0, 3);
     }
 
-    // Sort by rating (highest first)
-    usort($performanceData, function($a, $b) {
-        return $b['rating'] <=> $a['rating'];
-    });
+    /**
+     * Get top performing staff using existing getTopWorstStaff method
+     */
+    public static function getTopPerformingStaffFromTopWorst($businessId, $dateRange)
+    {
+        // Use existing getTopWorstStaff method
+        $staffAnalysis = self::getTopWorstStaff($businessId, $dateRange, 3, 'rating');
 
-    // Return top 3 areas
-    return array_slice($performanceData, 0, 3);
-}
+        if (empty($staffAnalysis['top_staff'])) {
+            return [];
+        }
 
-/**
- * Get top performing staff using existing getTopWorstStaff method
- */
-public static function getTopPerformingStaffFromTopWorst($businessId, $dateRange)
-{
-    // Use existing getTopWorstStaff method
-    $staffAnalysis = self::getTopWorstStaff($businessId, $dateRange, 3, 'rating');
-    
-    if (empty($staffAnalysis['top_staff'])) {
-        return [];
+        $topStaff = [];
+
+        foreach ($staffAnalysis['top_staff'] as $staff) {
+            // Get staff details
+            $staffUser = User::with("branches")
+                ->where('id', $staff['staff_id'])
+                ->first();
+            if (!$staffUser) continue;
+
+
+
+            // Format name to "First L." format
+            $name = $staffUser->name;
+            $nameParts = explode(' ', $name);
+            $formattedName = $nameParts[0] . ' ' .
+                (isset($nameParts[1]) ? substr($nameParts[1], 0, 1) . '.' : '');
+
+            $topStaff[] = [
+                'staff_id' => $staff['staff_id'],
+                'name' => $formattedName,
+                'role' => $staffUser->job_title ?? 'Staff',
+                'branches' => $staffUser->branches,
+                'rating' => round($staff['avg_rating'], 1),
+                'review_count' => $staff['review_count'] ?? 0,
+                'image' => $staffUser->image ?? null
+            ];
+        }
+
+        return $topStaff;
     }
-
-    $topStaff = [];
-    
-    foreach ($staffAnalysis['top_staff'] as $staff) {
-        // Get staff details
-        $staffUser = User::
-        with("branches")
-        ->where('id', $staff['staff_id'])
-        ->first();
-        if (!$staffUser) continue;
-
-       
-
-        // Format name to "First L." format
-        $name = $staffUser->name;
-        $nameParts = explode(' ', $name);
-        $formattedName = $nameParts[0] . ' ' . 
-            (isset($nameParts[1]) ? substr($nameParts[1], 0, 1) . '.' : '');
-
-        $topStaff[] = [
-            'staff_id' => $staff['staff_id'],
-            'name' => $formattedName,
-            'role' => $staffUser->job_title ?? 'Staff',
-            'branches' => $staffUser->branches,  
-            'rating' => round($staff['avg_rating'], 1),
-            'review_count' => $staff['review_count'] ?? 0,
-            'image' => $staffUser->image ?? null
-        ];
-    }
-
-    return $topStaff;
-}
 
 
     public static function getTopWorstStaff($businessId, $dateRange, $limit = 3, $criteria = 'rating')
