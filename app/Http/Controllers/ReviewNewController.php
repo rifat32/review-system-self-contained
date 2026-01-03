@@ -3314,6 +3314,16 @@ class ReviewNewController extends Controller
      *          example=1
      *      ),
      *      @OA\Parameter(
+     *          name="branch_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by branch ID",
+     *          @OA\Schema(
+     *              type="integer"
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
      *          name="has_staff",
      *          in="query",
      *          required=false,
@@ -3446,6 +3456,12 @@ class ReviewNewController extends Controller
         if ($request->has('staff_id') && !empty($request->staff_id)) {
             $staffId = (int) $request->input('staff_id');
             $query->where('staff_id', $staffId);
+        }
+
+        // Apply branch filter
+        if ($request->has('branch_id') && !empty($request->branch_id)) {
+            $branchId = (int) $request->input('branch_id');
+            $query->where('branch_id', $branchId);
         }
 
         // Apply topics filter
