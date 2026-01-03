@@ -2615,10 +2615,6 @@ class ReviewNewController extends Controller
     public function getAverageRatingClient($businessId, Request $request)
     {
         $query = ReviewNew::where('business_id', $businessId)
-            ->where(function ($q) {
-                $q->where('is_private', 0)
-                    ->orWhereNull('is_private');
-            })
             ->globalFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating();
@@ -2823,17 +2819,6 @@ class ReviewNewController extends Controller
             ->globalFilters(1, $businessId)
 
             ->where("business_id", $businessId)
-            ->when($request->has('is_private'), function ($q) use ($request) {
-                $isPrivate = $request->input('is_private');
-                if ($isPrivate == 0) {
-                    $q->where(function ($subQ) {
-                        $subQ->where('is_private', 0)
-                            ->orWhereNull('is_private');
-                    });
-                } else {
-                    $q->where('is_private', $isPrivate);
-                }
-            })
             ->withCalculatedRating();
 
         // Sorting logic
@@ -3255,12 +3240,6 @@ class ReviewNewController extends Controller
      *          description="Items per page"
      *      ),
      *      @OA\Parameter(
-     *          name="is_private",
-     *          in="query",
-     *          required=false,
-     *          description="Filter by privacy status (0 for public, 1 for private)"
-     *      ),
-     *      @OA\Parameter(
      *          name="status",
      *          in="query",
      *          required=false,
@@ -3400,18 +3379,6 @@ class ReviewNewController extends Controller
             ->withCalculatedRating();
 
 
-        // Apply privacy filter
-        if ($request->has('is_private')) {
-            $isPrivate = $request->input('is_private');
-            if ($isPrivate == 0) {
-                $query->where(function ($subQ) {
-                    $subQ->where('is_private', 0)
-                        ->orWhereNull('is_private');
-                });
-            } else {
-                $query->where('is_private', $isPrivate);
-            }
-        }
 
         // Apply status filter
         if ($request->has('status') && !empty($request->status)) {

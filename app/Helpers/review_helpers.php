@@ -338,7 +338,6 @@ if (!function_exists('storeReviewValues')) {
             }
 
             if ($averageRating >= $business->threshold_rating) {
-                $review->is_private = 0;
                 $review->save();
 
                 // Send notification only to branch manager
@@ -365,7 +364,6 @@ if (!function_exists('storeReviewValues')) {
                     ]);
                 }
             } else {
-                $review->is_private = 1;
                 $review->save();
 
                 // Send notification to both business owner and branch manager
