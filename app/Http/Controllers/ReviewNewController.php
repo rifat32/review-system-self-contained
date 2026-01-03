@@ -3281,6 +3281,17 @@ class ReviewNewController extends Controller
      *          required=false,
      *          description="Filter reviews until this date"
      *      ),
+     *      @OA\Parameter(
+     *          name="sentiment_score",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by sentiment score",
+     *          @OA\Schema(
+     *              type="string",
+     *              enum={"very_positive", "positive", "neutral", "negative", "very_negative"}
+     *          ),
+     *          example="positive"
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
@@ -3353,6 +3364,21 @@ class ReviewNewController extends Controller
             $endDate = Carbon::createFromFormat('d-m-Y', $request->end_date);
             $query->whereDate('created_at', '<=', $endDate);
         }
+        if ($request->has('sentiment_score') && !empty($request->sentiment_score)) {
+            $sentiment_score = $request->sentiment_score;
+
+            if ($sentiment_score === 'very_positive') {
+                $query->where('sentiment_score', '>=', 0.8);
+            } elseif ($sentiment_score === 'positive') {
+                $query->where('sentiment_score', '>=', 0.6)->where('sentiment_score', '<', 0.8);
+            } elseif ($sentiment_score === 'neutral') {
+                $query->where('sentiment_score', '>=', 0.4)->where('sentiment_score', '<', 0.6);
+            } elseif ($sentiment_score === 'negative') {
+                $query->where('sentiment_score', '>=', 0.2)->where('sentiment_score', '<', 0.4);
+            } elseif ($sentiment_score === 'very_negative') {
+                $query->where('sentiment_score', '<', 0.2);
+            }
+        }
 
         // Sorting logic
         $sortBy = $request->get('sort_by', 'newest');
@@ -3365,7 +3391,7 @@ class ReviewNewController extends Controller
                 $query->orderBy('created_at', 'asc');
                 break;
             case 'highest_rating':
-                // ISNULL returns 1 for null, 0 for not null.
+                // IS NULL returns 1 for null, 0 for not null.
                 // Ordering by it first ensures nulls go to the bottom.
                 $query->orderByRaw('ISNULL(calculated_rating) ASC, calculated_rating DESC');
                 break;
