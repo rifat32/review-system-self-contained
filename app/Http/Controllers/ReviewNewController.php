@@ -2861,6 +2861,44 @@ class ReviewNewController extends Controller
 
         $result = retrieve_data($query);
 
+        // Mask user name for private reviews: set first_Name to "Anonymous" and last_Name to null
+        if ($result['data'] instanceof \Illuminate\Support\Collection) {
+            $result['data'] = $result['data']->map(function ($review) {
+                if (!empty($review->is_private) && isset($review->user) && $review->user) {
+                    if (is_object($review->user)) {
+                        $review->user->first_Name = 'Anonymous';
+                        $review->user->last_Name = null;
+                    } elseif (is_array($review->user)) {
+                        $review->user['first_Name'] = 'Anonymous';
+                        $review->user['last_Name'] = null;
+                    }
+                }
+                return $review;
+            });
+        } else {
+            foreach ($result['data'] as $key => $review) {
+                $isPrivate = is_object($review) ? (bool)($review->is_private ?? false) : (bool)($review['is_private'] ?? false);
+                if ($isPrivate) {
+                    if (is_object($review) && isset($review->user) && $review->user) {
+                        if (is_object($review->user)) {
+                            $review->user->first_Name = 'Anonymous';
+                            $review->user->last_Name = null;
+                        } elseif (is_array($review->user)) {
+                            $review->user['first_Name'] = 'Anonymous';
+                            $review->user['last_Name'] = null;
+                        }
+                        $result['data'][$key] = $review;
+                    } elseif (is_array($review) && isset($review['user']) && $review['user']) {
+                        if (is_array($review['user'])) {
+                            $review['user']['first_Name'] = 'Anonymous';
+                            $review['user']['last_Name'] = null;
+                            $result['data'][$key] = $review;
+                        }
+                    }
+                }
+            }
+        }
+
         return response([
             "success" => true,
             "message" => "Reviews retrieved successfully",
