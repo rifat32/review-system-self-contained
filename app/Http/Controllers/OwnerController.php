@@ -1577,7 +1577,10 @@ class OwnerController extends Controller
         }
 
         // Update only the reply_content
-        $review->update(['reply_content' => $validated['reply_content']]);
+        $review->update([
+            'reply_content' => $validated['reply_content'],
+            'responded_at' => now()
+        ]);
 
         return response()->json([
             'success' => true,
