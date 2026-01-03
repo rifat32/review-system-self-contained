@@ -622,6 +622,10 @@
                                                     "type": "string",
                                                     "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
                                                 },
+                                                "branch_count": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
                                                 "permissions": {
                                                     "type": "array",
                                                     "items": {
@@ -948,7 +952,7 @@
         "/v1.0/user": {
             "get": {
                 "tags": [
-                    "auth"
+                    "z.unused"
                 ],
                 "summary": "Get authenticated user details",
                 "description": "Retrieve the currently authenticated user's information including business, roles, and permissions",
@@ -27396,6 +27400,10 @@
             "description": "auth"
         },
         {
+            "name": "z.unused",
+            "description": "z.unused"
+        },
+        {
             "name": "branches",
             "description": "branches"
         },
@@ -27442,10 +27450,6 @@
         {
             "name": "Reports",
             "description": "Reports"
-        },
-        {
-            "name": "z.unused",
-            "description": "z.unused"
         },
         {
             "name": "email_management.feed_genius",

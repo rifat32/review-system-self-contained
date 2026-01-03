@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use App\Models\Branch;
 
 class AuthController extends Controller
 {
@@ -272,6 +273,7 @@ class AuthController extends Controller
      *                  @OA\Property(property="image", type="string", example="/images/user.jpg"),
      *                  @OA\Property(property="job_title", type="string", example="Manager"),
      *                  @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."),
+     *                  @OA\Property(property="branch_count", type="integer", example=3),
      *                  @OA\Property(
      *                      property="permissions",
      *                      type="array",
@@ -442,6 +444,8 @@ class AuthController extends Controller
         $user = User::with('business', 'roles')->find($user->id);
         $user->token = $user->createToken('authToken')->accessToken;
         $user->permissions = $user->getAllPermissions()->pluck('name');
+        // Add branch_count for user's business (0 if no business)
+        $user->branch_count = $user->business_id ? Branch::where('business_id', $user->business_id)->count() : 0;
 
         return response()->json([
             'success' => true,
@@ -707,7 +711,7 @@ class AuthController extends Controller
      * @OA\Get(
      *      path="/v1.0/user",
      *      operationId="getAllUser",
-     *      tags={"auth"},
+     *      tags={"z.unused"},
      *      security={{"bearerAuth": {}}},
      *      summary="Get authenticated user details",
      *      description="Retrieve the currently authenticated user's information including business, roles, and permissions",
