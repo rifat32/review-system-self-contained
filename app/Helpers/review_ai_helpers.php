@@ -412,7 +412,7 @@ if (!function_exists('getTopTopic')) {
 }
 
 if (!function_exists('analyzeBusinessServicesPerformance')) {
-    function analyzeBusinessServicesPerformance($businessId, $dateRange)
+    function analyzeBusinessServicesPerformance($businessId, $dateRange = null)
     {
         // Get all business services for this business
         $businessServices = BusinessService::where('business_id', $businessId)
@@ -428,7 +428,7 @@ if (!function_exists('analyzeBusinessServicesPerformance')) {
 
         // Get reviews within date range with their associated services
         $reviews = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->when($dateRange, fn($q) => $q->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
             ->globalFilters(0, $businessId)
             ->with(['business_services', 'value']) // Eager load services and values
             ->withCalculatedRating()
@@ -540,10 +540,10 @@ if (!function_exists('analyzeBusinessServicesPerformance')) {
                 'overall_service_rating' => $overallServiceRating,
                 'best_performing_service' => !empty($topServices) ? $topServices[0]['service_name'] : 'N/A',
                 'worst_performing_service' => !empty($worstServices) ? $worstServices[0]['service_name'] : 'N/A',
-                'period' => [
-                    'start' => $dateRange['start']->format('Y-m-d'),
-                    'end' => $dateRange['end']->format('Y-m-d')
-                ]
+                'period' => $dateRange ? [
+                    'start_date' => $dateRange['start'] ? $dateRange['start']->format('d-m-Y') : null,
+                    'end_date' => $dateRange['end'] ? $dateRange['end']->format('d-m-Y') : null
+                ] : null
             ]
         ];
     }

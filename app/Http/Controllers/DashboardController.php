@@ -524,7 +524,7 @@ class DashboardController extends Controller
     {
         $request->validate([
             'businessId' => 'required|integer|exists:businesses,id',
-            'period' => 'required|in:last_30_days,last_7_days,this_month,last_month',
+            'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
             'min_reviews' => 'nullable|integer|min:1',
             'is_overall' => 'nullable|in:0,1'
         ]);
@@ -532,8 +532,8 @@ class DashboardController extends Controller
         $businessId = $request->input('businessId');
 
         // Get date range from period
-        $period = $request->input('period', 'last_30_days');
-        $dateRange = getDateRangeByPeriod($period);
+        $period = $request->input('period');
+        $dateRange = $period ? getDateRangeByPeriod($period) : null;
 
         // Analyze services performance
         $servicesAnalysis = analyzeBusinessServicesPerformance($businessId, $dateRange);
@@ -1096,7 +1096,11 @@ class DashboardController extends Controller
             ],
             'new_reviews' => [
                 'count' => $newReviewsThisWeek,
-                'from_period' => 'this week'
+                'from_period' => 'this week',
+                'date_range' => [
+                    'start_date' => $weekStart->format('d-m-Y'),
+                    'end_date' => $weekEnd->format('d-m-Y')
+                ]
             ],
             'all_sentiment' => [
                 'status' => $sentiment_status,
