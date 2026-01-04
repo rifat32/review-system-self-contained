@@ -11468,19 +11468,20 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "current_password",
                                     "new_password"
                                 ],
                                 "properties": {
                                     "current_password": {
+                                        "description": "Required for non-superadmin users, optional for superadmin",
                                         "type": "string",
                                         "format": "password",
-                                        "example": "OldOrNewPassword123"
+                                        "example": "OldPassword123",
+                                        "nullable": true
                                     },
                                     "new_password": {
                                         "type": "string",
                                         "format": "password",
-                                        "example": "OldOrNewPassword123"
+                                        "example": "NewPassword123"
                                     },
                                     "user_id": {
                                         "description": "Target user ID. If not provided, authenticated user is used.",
@@ -15381,6 +15382,20 @@
                         "required": false,
                         "schema": {
                             "type": "boolean"
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "is_default",
+                        "in": "query",
+                        "description": "Filter by default status",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "enum": [
+                                true,
+                                false
+                            ]
                         },
                         "example": true
                     },
@@ -19827,12 +19842,6 @@
                         "name": "per_page",
                         "in": "query",
                         "description": "Items per page",
-                        "required": false
-                    },
-                    {
-                        "name": "is_private",
-                        "in": "query",
-                        "description": "Filter by privacy status (0 for public, 1 for private)",
                         "required": false
                     },
                     {
@@ -24344,6 +24353,20 @@
                                 "false"
                             ],
                             "example": "1"
+                        }
+                    },
+                    {
+                        "name": "is_default",
+                        "in": "query",
+                        "description": "Filter by default status (true for default tags, false for business-specific tags).",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "enum": [
+                                true,
+                                false
+                            ],
+                            "example": true
                         }
                     }
                 ],
