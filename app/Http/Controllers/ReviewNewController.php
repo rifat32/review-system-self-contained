@@ -3358,6 +3358,20 @@ class ReviewNewController extends Controller
      */
     public function getAllReviews(Request $request)
     {
+        // Validate request parameters
+        $request->validate([
+            'start_date' => 'nullable|date_format:d-m-Y',
+            'end_date' => 'nullable|date_format:d-m-Y',
+            'status' => 'nullable|string|in:published,draft,archived',
+            'sort_by' => 'nullable|string|in:newest,oldest,highest_rating,lowest_rating',
+            'sentiment_score' => 'nullable|string|in:very_positive,positive,neutral,negative,very_negative',
+            'meets_threshold' => 'nullable|integer|in:0,1',
+            'staff_id' => 'nullable|integer',
+            'branch_id' => 'nullable|integer',
+            'has_staff' => 'nullable|integer|in:0,1',
+            'topics' => 'nullable|string'
+        ]);
+
         // Check if user is admin/superadmin
         // if (!$request->user()->hasRole(['superadmin', 'admin'])) {
         //     return response([
