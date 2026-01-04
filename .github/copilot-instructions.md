@@ -1,5 +1,86 @@
 # GitHub Copilot Instructions
 
+## Codebase Overview
+
+This is a Laravel-based SaaS review management system where businesses collect, analyze, and manage customer reviews through customizable surveys. Key features include AI-powered sentiment analysis, voice review transcription, multi-branch support, staff performance tracking, and comprehensive dashboards.
+
+**Core Entities:**
+
+-   `Business`: Main tenant with branding, settings, subscriptions
+-   `ReviewNew`: Customer reviews (text/voice) with AI processing metadata
+-   `Survey`: Customizable review forms with questions and star ratings
+-   `Branch`: Business locations with staff assignments
+-   `User`: Staff members with role-based permissions
+
+**Data Flow:** Surveys → Reviews → AI Processing → Analytics/Dashboard
+
+## Architecture
+
+**Backend:** Laravel 11 with Passport OAuth, Spatie Permissions
+**AI Integration:** OpenAI GPT-4 for text analysis, HuggingFace for additional processing
+**Storage:** MySQL with JSON fields for flexible metadata (topics, moderation results)
+**Queue:** Database/Redis queues for async AI processing
+**APIs:** RESTful with Swagger documentation, versioned under `/v1.0/`
+
+**Key Directories:**
+
+-   `app/Models/`: Eloquent models with relationships
+-   `app/Http/Controllers/`: API controllers with Swagger annotations
+-   `app/Helpers/`: AI processing logic (AIProcessor.php - 3k+ lines)
+-   `database/migrations/`: Schema evolution (50+ migrations)
+-   `routes/api.php`: Organized with middleware groups (auth, superadmin, etc.)
+
+## Key Patterns
+
+**AI Processing:**
+
+-   Reviews processed asynchronously via queues
+-   Sentiment scores: 0.0-1.0 mapped to labels (very_positive ≥0.8, positive ≥0.6, etc.)
+-   Topics stored as JSON arrays for flexible filtering
+-   Voice reviews transcribed using OpenAI Whisper
+
+**Authentication:**
+
+-   Business owners create accounts, invite staff
+-   Roles: superadmin (system-wide), business owners/managers/employees
+-   API uses `auth:api` middleware, business-scoped queries
+
+**Filtering Logic:**
+
+-   Complex query builders in controllers (ReviewNewController::getAllReviews)
+-   Date ranges, sentiment ranges, staff/branch filters
+-   JSON column queries for topics: `whereJsonContains('topics', $topic)`
+
+**Response Format:**
+
+-   Consistent JSON: `{"success": true, "message": "...", "data": {...}}`
+-   Error responses with appropriate HTTP codes
+
+## Development Workflow
+
+**Setup:**
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan passport:install
+```
+
+**Testing:** PHPUnit with Feature/Unit suites, in-memory DB for speed
+**Queues:** `php artisan queue:work` for processing AI jobs
+**API Docs:** `php artisan l5-swagger:generate` for OpenAPI spec
+**Exports:** Maatwebsite Excel for CSV/PDF generation
+
+**Common Commands:**
+
+-   `php artisan tinker` for model testing
+-   `php artisan migrate:status` to check migration state
+-   `composer run post-autoload-dump` after dependency changes
+
+---
+
 ## Commit Message Format for API Filter Additions
 
 When adding new query parameters or filters to API endpoints, always generate commit messages using this structured format:
@@ -61,20 +142,6 @@ topics=food quality - Filter reviews that contain the specified topic in their t
 
 ```
 This filter allows users to quickly find reviews related to specific topics like "food quality", "staff service", "cleanliness", or "ambiance", useful for targeted review analysis and management.
-```
-
-### Git Commit Command Format
-
-When combining for git commit, use:
-
-```bash
-git commit -m "[Title]
-
-new parameters: [parameter]=[value] - [description]
-
-example: [API path]?[parameter]=[value]
-
-description: [detailed explanation]"
 ```
 
 ### Additional Rules
