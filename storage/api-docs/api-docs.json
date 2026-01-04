@@ -8235,21 +8235,16 @@
                         "in": "query",
                         "description": "Time period (last_30_days, last_7_days, this_month, last_month)",
                         "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month"
+                            ]
+                        },
                         "example": "last_30_days"
-                    },
-                    {
-                        "name": "start_date",
-                        "in": "query",
-                        "description": "Custom start date (d-m-Y format)",
-                        "required": false,
-                        "example": "01-01-2025"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "Custom end date (d-m-Y format)",
-                        "required": false,
-                        "example": "31-01-2025"
                     },
                     {
                         "name": "min_reviews",
@@ -8257,6 +8252,13 @@
                         "description": "Minimum reviews required for a service to be included",
                         "required": false,
                         "example": "3"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "0 for survey-specific, 1 for overall analysis",
+                        "required": false,
+                        "example": "0"
                     }
                 ],
                 "responses": {
@@ -8507,6 +8509,15 @@
                         "in": "query",
                         "description": "Time period (last_30_days, last_7_days, this_month, last_month)",
                         "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month"
+                            ]
+                        },
                         "example": "last_30_days"
                     },
                     {
@@ -8617,6 +8628,15 @@
                         "in": "query",
                         "description": "Time period (last_30_days, last_7_days, this_month, last_month)",
                         "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month"
+                            ]
+                        },
                         "example": "last_30_days"
                     },
                     {
