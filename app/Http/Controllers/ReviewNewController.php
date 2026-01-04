@@ -3398,15 +3398,31 @@ class ReviewNewController extends Controller
 
         // Apply date range filters
         if ($request->filled('start_date')) {
-            $start = trim($request->start_date);  // ✅ prevents "Trailing data"
-            $startDate = Carbon::createFromFormat('d-m-Y', $start)->startOfDay();
-            $query->where('created_at', '>=', $startDate);
+            try {
+                $start = trim($request->start_date);
+                $startDate = Carbon::parse($start);
+                $query->where('created_at', '>=', $startDate);
+            } catch (\Exception $e) {
+                return response([
+                    "success" => false,
+                    "message" => "Invalid start_date format. Expected format: d-m-Y (e.g., 01-12-2025)",
+                    "error" => $e->getMessage()
+                ], 400);
+            }
         }
 
         if ($request->filled('end_date')) {
-            $end = trim($request->end_date);      // ✅ prevents "Trailing data"
-            $endDate = Carbon::createFromFormat('d-m-Y', $end)->endOfDay();
-            $query->where('created_at', '<=', $endDate);
+            try {
+                $end = trim($request->end_date);
+                $endDate = Carbon::parse($end);
+                $query->where('created_at', '<=', $endDate);
+            } catch (\Exception $e) {
+                return response([
+                    "success" => false,
+                    "message" => "Invalid end_date format. Expected format: d-m-Y (e.g., 31-12-2025)",
+                    "error" => $e->getMessage()
+                ], 400);
+            }
         }
 
         if ($request->has('sentiment_score') && !empty($request->sentiment_score)) {

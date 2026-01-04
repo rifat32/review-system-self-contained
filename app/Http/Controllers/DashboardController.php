@@ -1379,10 +1379,11 @@ class DashboardController extends Controller
         $data = [
             'branch' => [
                 'id' => $branch->id,
-                'code' => $branch->code ?? 'BRN-' . str_pad($branch->id, 5, '0', STR_PAD_LEFT),
+                'code' => $branch->code,
                 'name' => $branch->name,
                 'status' => $branch->is_active ? 'Active' : 'Inactive',
                 'location' => $branch->location,
+                'is_default' => $branch->is_default,
                 'manager_id' => $branch->manager_id,
                 'manager_name' => $branch->manager ? $branch->manager->name : 'Not assigned',
                 'business_id' => $businessId,
