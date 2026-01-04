@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -31,7 +32,7 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         // setup roles
-        $roles = config("setup-config.roles");
+        $roles = array_values(User::USER_ROLE);
         foreach ($roles as $roleName) {
             Role::updateOrCreate(
                 [

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -16,8 +17,8 @@ class SuperAdminMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-       
-        if (!$request->user()->hasRole("superadmin")) {
+
+        if (!$request->user()->hasRole(User::USER_ROLE['SUPER_ADMIN'])) {
             return response()->json(["message" => "You are not a super admin", 401]);
         }
         return $next($request);

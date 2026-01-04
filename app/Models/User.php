@@ -16,6 +16,15 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, HasRoles, Billable;
 
     protected $guard_name = 'api';
+
+    const USER_ROLE = [
+        'SUPER_ADMIN' => 'superadmin',
+        'BUSINESS_OWNER' => 'business_owner',
+        'BRANCH_MANAGER' => 'branch_manager',
+        'BUSINESS_STAFF' => 'business_staff',
+        'CUSTOMER' => 'customer',
+    ];
+
     protected $fillable = [
         'first_Name',
         'last_Name',
@@ -57,12 +66,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    const USER_ROLE = [
-        'SUPER_ADMIN' => 'superadmin',
-        'BUSINESS_OWNER' => 'business_owner',
-        'BRANCH_MANAGER' => 'branch_manager',
-        'BUSINESS_STAFF' => 'business_staff',
-    ];
+
 
     public function business(): HasOne
     {
@@ -95,17 +99,17 @@ class User extends Authenticatable
         return $this->hasOne(BranchMember::class, 'user_id', 'id');
     }
 
-  public function branches()
-{
-    return $this->hasManyThrough(
-        Branch::class,       // Target model
-        BranchMember::class, // Intermediate model
-        'user_id',           // Foreign key on intermediate table
-        'id',               // Foreign key on target table
-        'id',               // Local key on this model
-        'branch_id'         // Local key on intermediate table
-    );
-}
+    public function branches()
+    {
+        return $this->hasManyThrough(
+            Branch::class,       // Target model
+            BranchMember::class, // Intermediate model
+            'user_id',           // Foreign key on intermediate table
+            'id',               // Foreign key on target table
+            'id',               // Local key on this model
+            'branch_id'         // Local key on intermediate table
+        );
+    }
     /**
      * Scope a query to filter users based on search criteria
      *
