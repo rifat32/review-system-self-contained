@@ -3325,6 +3325,17 @@ class ReviewNewController extends Controller
      *          example=1
      *      ),
      *      @OA\Parameter(
+     *          name="is_overall",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by overall status (1 = overall reviews, 0 = non-overall reviews, not specified = all reviews)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0,1}
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
      *          name="topics",
      *          in="query",
      *          required=false,
@@ -3386,14 +3397,18 @@ class ReviewNewController extends Controller
         }
 
         // Apply date range filters
-        if ($request->has('start_date') && !empty($request->start_date)) {
-            $startDate = Carbon::createFromFormat('d-m-Y', $request->start_date);
-            $query->whereDate('created_at', '>=', $startDate);
+        if ($request->filled('start_date')) {
+            $start = trim($request->start_date);  // ✅ prevents "Trailing data"
+            $startDate = Carbon::createFromFormat('d-m-Y', $start)->startOfDay();
+            $query->where('created_at', '>=', $startDate);
         }
-        if ($request->has('end_date') && !empty($request->end_date)) {
-            $endDate = Carbon::createFromFormat('d-m-Y', $request->end_date);
-            $query->whereDate('created_at', '<=', $endDate);
+
+        if ($request->filled('end_date')) {
+            $end = trim($request->end_date);      // ✅ prevents "Trailing data"
+            $endDate = Carbon::createFromFormat('d-m-Y', $end)->endOfDay();
+            $query->where('created_at', '<=', $endDate);
         }
+
         if ($request->has('sentiment_score') && !empty($request->sentiment_score)) {
             $sentiment_score = $request->sentiment_score;
 
@@ -3440,6 +3455,17 @@ class ReviewNewController extends Controller
         if ($request->has('branch_id') && !empty($request->branch_id)) {
             $branchId = (int) $request->input('branch_id');
             $query->where('branch_id', $branchId);
+        }
+
+        // Apply is_overall filter
+        if ($request->has('is_overall')) {
+            $isOverall = (int) $request->input('is_overall');
+            if ($isOverall === 1) {
+                $query->where('is_overall', 1);
+            } elseif ($isOverall === 0) {
+                $query->where('is_overall', 0);
+            }
+            // If not 0 or 1, or not specified, show all (no filter applied)
         }
 
         // Apply topics filter
