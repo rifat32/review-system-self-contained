@@ -427,21 +427,8 @@ class DashboardController extends Controller
      *         in="query",
      *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
      *         required=false,
-     *         example="last_30_days"
-     *      ),
-     *      @OA\Parameter(
-     *         name="start_date",
-     *         in="query",
-     *         description="Custom start date (d-m-Y format)",
-     *         required=false,
-     *         example="01-01-2025"
-     *      ),
-     *      @OA\Parameter(
-     *         name="end_date",
-     *         in="query",
-     *         description="Custom end date (d-m-Y format)",
-     *         required=false,
-     *         example="31-01-2025"
+     *         example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month"})
      *      ),
      *      @OA\Parameter(
      *         name="min_reviews",
@@ -449,6 +436,13 @@ class DashboardController extends Controller
      *         description="Minimum reviews required for a service to be included",
      *         required=false,
      *         example="3"
+     *      ),
+     *      @OA\Parameter(
+     *         name="is_overall",
+     *         in="query",
+     *         description="0 for survey-specific, 1 for overall analysis",
+     *         required=false,
+     *         example="0"
      *      ),
      *      security={
      *          {"bearerAuth": {}}
@@ -531,22 +525,15 @@ class DashboardController extends Controller
         $request->validate([
             'businessId' => 'required|integer|exists:businesses,id',
             'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
-            'start_date' => 'nullable|date_format:d-m-Y',
-            'end_date' => 'nullable|date_format:d-m-Y',
-            'min_reviews' => 'nullable|integer|min:1'
+            'min_reviews' => 'nullable|integer|min:1',
+            'is_overall' => 'nullable|in:0,1'
         ]);
 
         $businessId = $request->input('businessId');
-        // Get date range
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $dateRange = [
-                'start' => Carbon::createFromFormat('d-m-Y', $request->input('start_date'))->startOfDay(),
-                'end' => Carbon::createFromFormat('d-m-Y', $request->input('end_date'))->endOfDay()
-            ];
-        } else {
-            $period = $request->input('period', 'last_30_days');
-            $dateRange = getDateRangeByPeriod($period);
-        }
+
+        // Get date range from period
+        $period = $request->input('period');
+        $dateRange = $period ? getDateRangeByPeriod($period) : null;
 
         // Analyze services performance
         $servicesAnalysis = analyzeBusinessServicesPerformance($businessId, $dateRange);
@@ -594,7 +581,8 @@ class DashboardController extends Controller
      *         in="query",
      *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
      *         required=false,
-     *         example="last_30_days"
+     *         example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month"})
      *      ),
      *      @OA\Parameter(
      *         name="start_date",
@@ -705,7 +693,8 @@ class DashboardController extends Controller
      *         in="query",
      *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
      *         required=false,
-     *         example="last_30_days"
+     *         example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month"})
      *      ),
      *      @OA\Parameter(
      *         name="start_date",
@@ -1107,7 +1096,11 @@ class DashboardController extends Controller
             ],
             'new_reviews' => [
                 'count' => $newReviewsThisWeek,
-                'from_period' => 'this week'
+                'from_period' => 'this week',
+                'date_range' => [
+                    'start_date' => $weekStart->format('d-m-Y'),
+                    'end_date' => $weekEnd->format('d-m-Y')
+                ]
             ],
             'all_sentiment' => [
                 'status' => $sentiment_status,
@@ -1386,10 +1379,11 @@ class DashboardController extends Controller
         $data = [
             'branch' => [
                 'id' => $branch->id,
-                'code' => $branch->code ?? 'BRN-' . str_pad($branch->id, 5, '0', STR_PAD_LEFT),
+                'code' => $branch->code,
                 'name' => $branch->name,
                 'status' => $branch->is_active ? 'Active' : 'Inactive',
                 'location' => $branch->location,
+                'is_default' => $branch->is_default,
                 'manager_id' => $branch->manager_id,
                 'manager_name' => $branch->manager ? $branch->manager->name : 'Not assigned',
                 'business_id' => $businessId,
@@ -1966,7 +1960,8 @@ class DashboardController extends Controller
      *          in="query",
      *          required=false,
      *          description="Period: last_30_days, last_7_days, this_month, last_month",
-     *          example="last_30_days"
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month"})
      *      ),
      *      @OA\Response(
      *          response=200,

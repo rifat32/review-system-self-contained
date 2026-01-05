@@ -78,7 +78,8 @@ class Business extends Model
         //
         'guest_survey_id',
         'registered_user_survey_id',
-        'default_color_threshold'
+        'default_color_threshold',
+        'default_branch_id'
 
 
     ];
@@ -203,6 +204,11 @@ class Business extends Model
     public function branches()
     {
         return $this->hasMany(Branch::class);
+    }
+
+    public function defaultBranch()
+    {
+        return $this->belongsTo(Branch::class, 'default_branch_id');
     }
 
 

@@ -213,8 +213,10 @@ class AuthController extends Controller
                 // Create user
                 $user = User::create($payload_data);
 
+                $user->assignRole(User::USER_ROLE['CUSTOMER']);
+
                 // Load relationships for consistent response
-                $user = User::with(['business', 'roles'])->find($user->id);
+                $user = User::with(['roles'])->find($user->id);
 
                 // Generate access token
                 $user->token = $user->createToken('authToken')->accessToken;

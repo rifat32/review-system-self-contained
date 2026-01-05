@@ -325,6 +325,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/restaurants/tables/{businessId}', [BusinessController::class, "getRestaurantTableByBusinessId"]);
     Route::delete('/v1.0/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurantIdForceDelete"]);
     Route::patch('/v1.0/business/upload-image/{businessId}', [BusinessController::class, "uploadRestaurantImage"]);
+    Route::patch('/v1.0/business/default-branch', [BusinessController::class, "updateDefaultBranch"]);
 
     // ============================================================================
     // BranchController – Branch CRUD (protected, /v1.0/branches)
@@ -374,7 +375,7 @@ Route::middleware(['auth:api'])->group(function () {
     // ReviewNewController – Values/filters/tags/stars/reporting (protected)
     // ============================================================================
     Route::get('/v1.0/review-new/values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValue"]);
- 
+
     Route::get('/review-new/getvalues/{businessId}', [ReviewNewController::class, "getreviewvalueById"]);
 
     Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [DashboardController::class, "getAverages"]);

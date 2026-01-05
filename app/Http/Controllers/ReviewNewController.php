@@ -3325,6 +3325,17 @@ class ReviewNewController extends Controller
      *          example=1
      *      ),
      *      @OA\Parameter(
+     *          name="is_overall",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by overall status (1 = overall reviews, 0 = non-overall reviews, not specified = all reviews)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0,1}
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
      *          name="topics",
      *          in="query",
      *          required=false,
@@ -3386,14 +3397,34 @@ class ReviewNewController extends Controller
         }
 
         // Apply date range filters
-        if ($request->has('start_date') && !empty($request->start_date)) {
-            $startDate = Carbon::createFromFormat('d-m-Y', $request->start_date);
-            $query->whereDate('created_at', '>=', $startDate);
+        if ($request->filled('start_date')) {
+            try {
+                $start = trim($request->start_date);
+                $startDate = Carbon::parse($start);
+                $query->where('created_at', '>=', $startDate);
+            } catch (\Exception $e) {
+                return response([
+                    "success" => false,
+                    "message" => "Invalid start_date format. Expected format: d-m-Y (e.g., 01-12-2025)",
+                    "error" => $e->getMessage()
+                ], 400);
+            }
         }
-        if ($request->has('end_date') && !empty($request->end_date)) {
-            $endDate = Carbon::createFromFormat('d-m-Y', $request->end_date);
-            $query->whereDate('created_at', '<=', $endDate);
+
+        if ($request->filled('end_date')) {
+            try {
+                $end = trim($request->end_date);
+                $endDate = Carbon::parse($end);
+                $query->where('created_at', '<=', $endDate);
+            } catch (\Exception $e) {
+                return response([
+                    "success" => false,
+                    "message" => "Invalid end_date format. Expected format: d-m-Y (e.g., 31-12-2025)",
+                    "error" => $e->getMessage()
+                ], 400);
+            }
         }
+
         if ($request->has('sentiment_score') && !empty($request->sentiment_score)) {
             $sentiment_score = $request->sentiment_score;
 
@@ -3440,6 +3471,17 @@ class ReviewNewController extends Controller
         if ($request->has('branch_id') && !empty($request->branch_id)) {
             $branchId = (int) $request->input('branch_id');
             $query->where('branch_id', $branchId);
+        }
+
+        // Apply is_overall filter
+        if ($request->has('is_overall')) {
+            $isOverall = (int) $request->input('is_overall');
+            if ($isOverall === 1) {
+                $query->where('is_overall', 1);
+            } elseif ($isOverall === 0) {
+                $query->where('is_overall', 0);
+            }
+            // If not 0 or 1, or not specified, show all (no filter applied)
         }
 
         // Apply topics filter

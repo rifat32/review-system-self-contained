@@ -244,18 +244,20 @@ class ForgotPasswordController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"current_password","new_password"},
+     *             required={"new_password"},
      *             @OA\Property(
      *                 property="current_password",
      *                 type="string",
      *                 format="password",
-     *                 example="OldOrNewPassword123"
+     *                 nullable=true,
+     *                 description="Required for non-superadmin users, optional for superadmin",
+     *                 example="OldPassword123"
      *             ),
      *             @OA\Property(
      *                 property="new_password",
      *                 type="string",
      *                 format="password",
-     *                 example="OldOrNewPassword123"
+     *                 example="NewPassword123"
      *             ),
      *             @OA\Property(
      *                 property="user_id",
@@ -285,17 +287,23 @@ class ForgotPasswordController extends Controller
             ], 401);
         }
 
-        $requestPayload = $request->validate([
-            "current_password"          => "required|string|min:6",
-            "new_password"  => "required|string|min:6",
-            "user_id"           => "nullable|integer|exists:users,id"
-        ]);
+        // Conditional validation: current_password required only for non-superadmin
+        $validationRules = [
+            "new_password" => "required|string|min:6",
+            "user_id" => "required|integer|exists:users,id"
+        ];
 
-        // Determine target user id: provided user_id or fallback to authenticated user
-        $targetUserId = $requestPayload["user_id"] ?? $authUser->id;
+        if (!$authUser->hasRole('superadmin')) {
+            $validationRules["current_password"] = "required|string|min:6";
+        } else {
+            $validationRules["current_password"] = "nullable|string|min:6";
+        }
+
+        $requestPayload = $request->validate($validationRules);
+
 
         // Fetch target user
-        $targetUser = User::find($targetUserId);
+        $targetUser = User::find($requestPayload["user_id"]);
         if (!$targetUser) {
             return response()->json([
                 "success" => false,
@@ -303,9 +311,8 @@ class ForgotPasswordController extends Controller
             ], 404);
         }
 
-        // NOTE: Your existing logic checks the provided password against the stored hash.
-        // Keeping that behavior intact:
-        if (!Hash::check($request->current_password, $targetUser->password)) {
+        // NOTE: Skip current password check for superadmin, otherwise verify it
+        if (!$authUser->hasRole('superadmin') && !Hash::check($request->current_password, $targetUser->password)) {
             return response()->json([
                 "success" => false,
                 "message" => "Invalid password"

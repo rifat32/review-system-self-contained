@@ -754,6 +754,114 @@ class BusinessController extends Controller
             "business" => $business
         ], 200);
     }
+
+    // ##################################################
+    // This method is to update default branch
+    // ##################################################
+    /**
+     * @OA\Patch(
+     *     path="/v1.0/business/default-branch",
+     *     operationId="updateDefaultBranch",
+     *     tags={"business"},
+     *     security={
+     *         {"bearerAuth": {}}
+     *     },
+     *     summary="Update default branch for the authenticated user's business",
+     *     description="Update the default branch ID for the business owned by the authenticated user. The business is determined by the user's ownership.",
+
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="default_branch_id", type="integer", nullable=true, example=1, description="ID of the default branch (null to remove default branch)")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Default branch updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Default branch updated successfully"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="Name", type="string", example="My Restaurant"),
+     *                 @OA\Property(property="default_branch_id", type="integer", nullable=true, example=1)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated")
+     *         )
+     *     ),
+
+     *     @OA\Response(
+     *         response=404,
+     *         description="Business or branch not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Business not found")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation failed",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Validation failed"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+    public function updateDefaultBranch(Request $request)
+    {
+        // Validate request
+        $request->validate([
+            'default_branch_id' => 'nullable|integer|exists:branches,id'
+        ]);
+
+        // Get the authenticated user
+        $user = $request->user();
+
+        // Find business owned by this user
+        $business = Business::where('OwnerID', $user->id)->first();
+
+        if (!$business) {
+            return response()->json([
+                "success" => false,
+                "message" => "Business not found"
+            ], 404);
+        }
+
+        // If default_branch_id is provided, ensure it belongs to this business
+        if ($request->filled('default_branch_id')) {
+            $branch = $business->branches()->find($request->default_branch_id);
+            if (!$branch) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "Branch not found or does not belong to this business"
+                ], 404);
+            }
+        }
+
+        // Update only the default_branch_id field
+        $business->update([
+            'default_branch_id' => $request->default_branch_id
+        ]);
+
+        // Return success response
+        return response()->json([
+            "success" => true,
+            "message" => "Default branch updated successfully",
+            "data" => $business->only(['id', 'Name', 'default_branch_id'])
+        ], 200);
+    }
+
     // ##################################################
     // This method is to get business by id
     // ##################################################

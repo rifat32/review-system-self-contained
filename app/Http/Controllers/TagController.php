@@ -141,6 +141,14 @@ class TagController extends Controller
      *     @OA\Schema(type="string", enum={"0","1","true","false"}, example="1")
      *   ),
      *
+     *   @OA\Parameter(
+     *     name="is_default",
+     *     in="query",
+     *     required=false,
+     *     description="Filter by default status (true for default tags, false for business-specific tags).",
+     *     @OA\Schema(type="boolean", enum={true, false}, example=true)
+     *   ),
+     *
      *   @OA\Response(
      *     response=200,
      *     description="OK",
@@ -179,11 +187,14 @@ class TagController extends Controller
         $request->validate([
             'business_id' => ['nullable', 'integer', new ValidBusiness()],
             'is_active'   => ['nullable', 'in:0,1,true,false'],
+            'is_default'  => ['nullable', 'boolean'],
         ]);
 
         $tags = Tag::query()
             ->when($request->filled('business_id'), fn($q) => $q->where('business_id', $request->integer('business_id')))
             ->orWhere(["business_id" => NULL, "is_default" => 1])
+            ->when($request->has('is_active'), fn($q) => $q->where('is_active', $request->boolean('is_active')))
+            ->when($request->has('is_default'), fn($q) => $q->where('is_default', $request->boolean('is_default')))
             ->latest()
             ->get();
 
@@ -1286,7 +1297,7 @@ class TagController extends Controller
         }
 
 
-     $review_value_tag_exists =   DB::table("review_value_tag")
+        $review_value_tag_exists =   DB::table("review_value_tag")
             ->where(["tag_id" => $id])
             ->exists();
 
@@ -1296,7 +1307,7 @@ class TagController extends Controller
                 'message' => 'Tag is associated with review values and cannot be deleted.'
             ], 403);
         }
-       
+
 
 
 

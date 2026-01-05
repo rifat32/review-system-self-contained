@@ -39,7 +39,7 @@ class SuperAdminSeeder extends Seeder
             }
 
             // Assign superadmin role to the user
-            $user->assignRole('superadmin');
+            $user->assignRole(User::USER_ROLE['SUPER_ADMIN']);
         }
     }
 }

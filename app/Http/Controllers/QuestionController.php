@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 use Exception;
+
 /**
  * Global OpenAPI component schemas used across controllers.
  *
@@ -92,6 +93,14 @@ class QuestionController extends Controller
      *          description="Filter by active status",
      *          example=true,
      *          @OA\Schema(type="boolean")
+     *      ),
+     *      @OA\Parameter(
+     *          name="is_default",
+     *          in="query",
+     *          required=false,
+     *          description="Filter by default status",
+     *          example=true,
+     *          @OA\Schema(type="boolean", enum={true, false})
      *      ),
      *      @OA\Parameter(
      *          name="is_user",
@@ -220,6 +229,7 @@ class QuestionController extends Controller
 
         // Apply all filters
         $query->when($request->has('is_active'), fn($q) => $q->where('is_active', $request->boolean('is_active')))
+            ->when($request->has('is_default'), fn($q) => $q->where('is_default', $request->boolean('is_default')))
             ->when($request->boolean('is_user'), fn($q) => $q->where('show_in_user', true))
             ->when($request->boolean('exclude_user'), fn($q) => $q->where('show_in_user', false))
             ->when($request->boolean('is_guest_user'), fn($q) => $q->where('show_in_guest_user', true))
@@ -1306,16 +1316,15 @@ class QuestionController extends Controller
                 if ($starTag->question_id == $question->id) {
                     $data["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
 
-            // Fixed: Use whereHas with tags relationship 
-$data["stars"][$key2]["tags"][$key3]["tag_count"] = ReviewValueNew::where([
-    "question_id" => $question->id,
-    "star_id" => $questionStar->star->id,
-])
-->whereHas('tags', function ($query) use ($starTag) {
-    $query->where('tags.id', $starTag->tag->id);
-})
-->count();
-
+                    // Fixed: Use whereHas with tags relationship
+                    $data["stars"][$key2]["tags"][$key3]["tag_count"] = ReviewValueNew::where([
+                        "question_id" => $question->id,
+                        "star_id" => $questionStar->star->id,
+                    ])
+                        ->whereHas('tags', function ($query) use ($starTag) {
+                            $query->where('tags.id', $starTag->tag->id);
+                        })
+                        ->count();
                 }
             }
         }
@@ -1348,18 +1357,15 @@ $data["stars"][$key2]["tags"][$key3]["tag_count"] = ReviewValueNew::where([
                         $data[$key1]["stars"][$key2]["tags"][$key3] = json_decode(json_encode($starTag->tag), true);
 
 
-    // Fixed: Use whereHas with tags relationship (many-to-many)
-$data[$key1]["stars"][$key2]["tags"][$key3]["tag_count"] = ReviewValueNew::where([
-    "question_id" => $question->id,
-    "star_id" => $questionStar->star->id,
-])
-->whereHas('tags', function ($query) use ($starTag) {
-    $query->where('tags.id', $starTag->tag->id);
-})
-->count();
-
-
-
+                        // Fixed: Use whereHas with tags relationship (many-to-many)
+                        $data[$key1]["stars"][$key2]["tags"][$key3]["tag_count"] = ReviewValueNew::where([
+                            "question_id" => $question->id,
+                            "star_id" => $questionStar->star->id,
+                        ])
+                            ->whereHas('tags', function ($query) use ($starTag) {
+                                $query->where('tags.id', $starTag->tag->id);
+                            })
+                            ->count();
                     }
                 }
             }
