@@ -21,8 +21,23 @@ class CreateNotificationsTable extends Migration
             $table->string("sender_type")->nullable();
             $table->string("message")->nullable();
             $table->string("title")->nullable();
+            
+            $table->string('type')->nullable();
+            $table->timestamp('read_at')->nullable();
+            $table->string('link')->nullable();
+            $table->enum('priority', ['low', 'normal', 'high',])->default('normal');
 
-            $table->string("status")->nullable();
+            $table->enum("status", ['read', 'unread'])->default("unread")->nullable();
+
+            $table->unsignedBigInteger("entity_id");
+            $table->json("entity_ids")->nullable();
+            // 
+            $table->foreign('business_id')->references('id')->on('businesses')->onDelete('cascade');
+            $table->foreign('receiver_id')->references('id')->on('users')->onDelete('cascade');
+
+
+
+
             $table->timestamps();
         });
     }

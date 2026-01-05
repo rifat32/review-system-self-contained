@@ -72,11 +72,24 @@ return new class extends Migration
             $table->decimal('longitude', 11, 8)->nullable();
             $table->integer('review_distance_limit')->default(100);
             $table->decimal('threshold_rating', 3, 1)->default(3.0);
+
             $table->json('review_labels')->nullable();
+
             $table->unsignedBigInteger('guest_survey_id')->nullable();
+
             $table->unsignedBigInteger('registered_user_survey_id')->nullable();
+
             $table->boolean('enable_detailed_survey')->default(false);
+
             $table->json('export_settings')->nullable();
+
+
+            $table->json('default_color_threshold')->nullable();
+            
+
+            $table->foreign('OwnerID')->references('id')->on('users')->onDelete('cascade');
+
+            $table->boolean('is_branch')->default(false);
 
             $table->softDeletes();
             $table->timestamps();

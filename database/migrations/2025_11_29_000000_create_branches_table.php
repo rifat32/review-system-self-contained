@@ -18,6 +18,21 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
+            $table->foreignId('manager_id')->nullable()->constrained('users')->onDelete('set null');
+
+              $table->string('street')->nullable();
+            $table->string('door_no')->nullable();
+            $table->string('city')->nullable();
+            $table->string('country')->nullable();
+            $table->string('postcode')->nullable();
+
+               $table->boolean('is_active')->default(true);
+            $table->boolean('is_geo_enabled')->default(false);
+            $table->string('branch_code')->nullable();
+            $table->string('lat', 10)->nullable();
+            $table->string('long', 11)->nullable();
+            
+            $table->boolean('is_default')->default(false);
             $table->timestamps();
         });
     }

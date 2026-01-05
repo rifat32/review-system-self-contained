@@ -12,11 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('branches', function (Blueprint $table) {
-            $table->boolean('is_active')->default(true);
-            $table->boolean('is_geo_enabled')->default(false);
-            $table->string('branch_code')->nullable();
-            $table->string('lat', 10)->nullable();
-            $table->string('long', 11)->nullable();
+         
         });
     }
 

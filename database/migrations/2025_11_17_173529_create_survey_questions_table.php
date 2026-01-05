@@ -22,6 +22,9 @@ class CreateSurveyQuestionsTable extends Migration
             $table->unsignedBigInteger('question_id');
             $table->foreign('question_id')->references('id')->on('questions')->onDelete('cascade');
 
+             $table->integer('order_no')->nullable();
+             
+
             $table->timestamps();
         });
     }

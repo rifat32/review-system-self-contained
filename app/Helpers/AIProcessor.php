@@ -20,25 +20,20 @@ class AIProcessor
     /**
      * Get sentiment label from score - CORRECTED VERSION
      */
-    public static function getSentimentLabel(?float $score): string
-    {
-        if ($score === null) return 'neutral';
-
-        // Ensure score is between 0 and 1
-        $score = max(0, min(1, $score));
-
-        // Debug: Check what score we're getting
-        if (app()->environment('local')) {
-            Log::debug('getSentimentLabel called', ['score' => $score]);
-        }
-
-        if ($score >= 0.8) return 'very_positive';
-        if ($score >= 0.6) return 'positive';
-        if ($score >= 0.4) return 'neutral';
-        if ($score >= 0.2) return 'negative';
-        return 'very_negative';
-    }
-
+public static function getSentimentLabel(?float $score): string
+{
+    if ($score === null) return 'neutral';
+    
+    // Ensure score is in 0-1 range
+    $score = max(0, min(1, (float)$score));
+    
+    // Map to labels
+    if ($score >= 0.8) return 'very_positive';
+    if ($score >= 0.6) return 'positive';
+    if ($score >= 0.4) return 'neutral';
+    if ($score >= 0.2) return 'negative';
+    return 'very_negative';
+}
 
 
     public static  function getTopMentionedStaff($positiveReviews)
@@ -120,9 +115,10 @@ private static function extractRecommendedTraining($suggestions)
                 ? round($reviews->avg('calculated_rating'), 1)
                 : 0;
 
-            // Calculate sentiment metrics
-            $positiveReviews = $reviews->where('calculated_rating', '>=', 4)->count();
-            $negativeReviews = $reviews->where('calculated_rating', '<=', 2)->count();
+           // Use sentiment_score:
+$positiveReviews = $reviews->where('sentiment_score', '>=', 0.6)->count();
+$negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
+
             $neutralReviews = $reviews->whereBetween('calculated_rating', [2.1, 3.9])->count();
 
             $staff_suggestions = $reviews->pluck('staff_suggestions')->flatten()->unique();

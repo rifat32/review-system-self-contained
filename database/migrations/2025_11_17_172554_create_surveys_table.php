@@ -15,6 +15,7 @@ return new class extends Migration
     {
         Schema::create('surveys', function (Blueprint $table) {
             $table->id();
+
             $table->string('name');
             $table->unsignedBigInteger('business_id');
             $table->foreign('business_id')->references('id')->on('businesses')->onDelete('cascade');
@@ -23,6 +24,9 @@ return new class extends Migration
 
             // Added field from alteration
             $table->integer('order_no')->default(0);
+            $table->boolean('is_active')->default(true);
+
+            
 
             $table->timestamps();
         });

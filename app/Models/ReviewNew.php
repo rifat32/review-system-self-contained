@@ -73,6 +73,7 @@ class ReviewNew extends Model
         'staff_suggestions' => 'array',
         'is_voice_review' => 'boolean',
         'transcription_metadata' => 'array',
+        'sentiment_score' => 'float',
     ];
 
     public function setSourceAttribute($value)
@@ -259,6 +260,26 @@ class ReviewNew extends Model
             ) as calculated_rating
         ');
     }
+
+    // ReviewNews.php (Model)
+
+public function review_values()
+{
+    return $this->hasMany(ReviewValueNew::class, 'review_id');
+}
+
+public function getCalculatedRatingAttribute()
+{
+    return round(
+        $this->review_values()
+            ->join('stars', 'review_value_news.star_id', '=', 'stars.id')
+            ->distinct('stars.value')
+            ->avg('stars.value') ?? 0,
+        1
+    );
+}
+
+
 
     public function scopeWhereMeetsThreshold($query, $businessId, $is_staff_review = 0)
     {

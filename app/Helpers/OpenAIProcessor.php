@@ -170,6 +170,7 @@ class OpenAIProcessor
 
             $data = $response->json();
 
+
             // Log the full response structure for debugging
             Log::debug('OpenAI API response structure', [
                 'has_choices' => isset($data['choices']),
@@ -229,6 +230,46 @@ class OpenAIProcessor
 
             // Try to parse JSON
             $result = json_decode($cleanedContent, true);
+
+            // In OpenAIProcessor::processReviewWithOpenAI() method
+            // After this line:
+            $result = json_decode($cleanedContent, true);
+
+            // Add this validation check:
+            if (isset($payload['rating']) && isset($result['sentiment']['score'])) {
+                $rating = $payload['rating'];
+                $sentimentScore = $result['sentiment']['score'];
+                $sentimentLabel = $result['sentiment']['label'] ?? 'unknown';
+
+                // Flag severe mismatches
+                if ($rating >= 4 && $sentimentScore <= -0.5) {
+                    Log::warning('SEVERE RATING-SENTIMENT MISMATCH', [
+                        'review_id' => $payload['review_id'] ?? 'unknown',
+                        'rating' => $rating,
+                        'sentiment_score' => $sentimentScore,
+                        'sentiment_label' => $sentimentLabel,
+                        'rating_comment_alignment' => $result['rating_comment_alignment']['is_aligned'] ?? 'unknown',
+                        'mismatch_type' => $result['rating_comment_alignment']['mismatch_type'] ?? 'unknown'
+                    ]);
+                }
+
+                // Also check for other anomalies
+                if ($rating <= 2 && $sentimentScore >= 0.5) {
+                    Log::warning('LOW RATING WITH POSITIVE SENTIMENT', [
+                        'review_id' => $payload['review_id'] ?? 'unknown',
+                        'rating' => $rating,
+                        'sentiment_score' => $sentimentScore,
+                        'sentiment_label' => $sentimentLabel
+                    ]);
+                }
+            }
+
+            // After parsing the OpenAI result
+            Log::debug('OpenAI parsed sentiment', [
+                'sentiment_score' => $result['sentiment']['score'] ?? null,
+                'sentiment_label' => $result['sentiment']['label'] ?? null,
+                'review_preview' => substr($payload['review_text'] ?? '', 0, 50)
+            ]);
 
             // If parsing fails, try with error detection
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -724,8 +765,8 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
   },
   "sentiment": {
     "label": "very_negative|negative|neutral|positive|very_positive",
-    "score": -1.0 to 1.0
-  },
+    "score": -1.0 to 1.0  
+},
   "emotion": {
     "primary": "joy|sadness|anger|fear|surprise|disgust|neutral",
     "intensity": "low|medium|high"
@@ -1209,9 +1250,11 @@ PROMPT;
             ];
         }
 
+        $avgRating = $review->calculated_rating;
+
         return [
             'review_text' => $text,
-            'rating' => $review->calculated_rating ?? 0,
+            'rating' => $avgRating,
             'question_ratings' => $questionRatings, // Added this
             'staff_info' => $staffInfo,
             'business_services' => $business_services,
@@ -1243,20 +1286,9 @@ PROMPT;
         }
 
         // Calculate average rating from question ratings if available
-        $avgRating = $review->calculated_rating ?? 0;
-        if ($review->reviewValues && $review->reviewValues->count() > 0) {
-            $sum = 0;
-            $count = 0;
-            foreach ($review->reviewValues as $value) {
-                if ($value->rating) {
-                    $sum += $value->rating;
-                    $count++;
-                }
-            }
-            if ($count > 0) {
-                $avgRating = $sum / $count;
-            }
-        }
+        $avgRating = $review->calculated_rating;
+
+
 
         // Determine flag type based on mismatch
         $shouldFlag = false;
@@ -1471,7 +1503,7 @@ PROMPT;
             ->whereBetween('created_at', [$startDate, $endDate])
             ->where('rating_comment_mismatch', true)
             ->where('is_ai_processed', true)
-            ->with(['reviewValues.question', 'staff', 'review_business_services.business_service', 'review_business_services.business_area'])
+            ->with(['value.question', 'staff', 'review_business_services.business_service', 'review_business_services.business_area'])
             ->get();
 
         if ($reviews->isEmpty()) {
@@ -1506,7 +1538,9 @@ PROMPT;
             }
 
             // Track rating pattern
-            $avgRating = $review->calculated_rating ?? 0;
+            $avgRating = $review->calculated_rating;
+
+
             if ($avgRating > 0) {
                 $ratingKey = floor($avgRating) . '_stars';
                 $ratingPatterns[$ratingKey] = ($ratingPatterns[$ratingKey] ?? 0) + 1;
@@ -1533,11 +1567,13 @@ PROMPT;
                 $staffInvolved[$staffName] = ($staffInvolved[$staffName] ?? 0) + 1;
             }
 
+            $avgRating = $review->calculated_rating;
+
             // Collect sample reviews for display
             if (count($sampleReviews) < 5) {
                 $sampleReviews[] = [
                     'id' => $review->id,
-                    'rating' => $review->calculated_rating,
+                    'rating' => $avgRating,
                     'comment' => substr($review->comment ?? '', 0, 150) . '...',
                     'mismatch_type' => $mismatchType,
                     'explanation' => substr($explanation, 0, 100) . '...',
@@ -1677,10 +1713,28 @@ PROMPT;
      */
     private static function convertForDatabase(array $aiResult, ReviewNew $review, array $enabledModules): array
     {
-        // Get sentiment data
-        $sentimentScore = $aiResult['sentiment']['score'] ?? 0.0;
-        $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
-        $sentimentNormalized = ($sentimentScore + 1) / 2;
+   
+        // Get raw score from OpenAI (-1 to 1)
+    $rawScore = $aiResult['sentiment']['score'] ?? 0.0;
+    $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
+    $dbSentimentScore = ($rawScore + 1) / 2;
+    
+    Log::debug('Score conversion debug', [
+        'raw_score' => $rawScore,
+        'db_score' => $dbSentimentScore,
+        'sentiment_label' => $sentimentLabel,
+        'score_type' => gettype($dbSentimentScore)
+    ]);
+
+    // Validate range
+if ($rawScore < -1 || $rawScore > 1) {
+    Log::warning('Invalid sentiment score from OpenAI', [
+        'score' => $rawScore,
+        'review_id' => $review->id
+    ]);
+    $rawScore = max(-1, min(1, $rawScore));
+}
+
 
         // Get confidence
         $confidence = $aiResult['explainability']['confidence_score'] ?? 0.0;
@@ -1709,9 +1763,9 @@ PROMPT;
 
         // Prepare data based on enabled modules
         $dbData = [
-            'sentiment_score' => $sentimentNormalized,
-            'sentiment' => $aiResult['sentiment'] ?? ['label' => 'neutral', 'score' => 0],
+            'sentiment_score' => $dbSentimentScore, // Store as float, not string
             'sentiment_label' => $sentimentLabel,
+            'sentiment' => $aiResult['sentiment'] ?? ['label' => 'neutral', 'score' => 0],
             'emotion' => $emotion,
             'key_phrases' => json_encode(array_slice($keyPhrases, 0, 5)),
             'topics' => json_encode(array_slice($topics, 0, 5)),
