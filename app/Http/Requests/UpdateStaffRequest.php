@@ -30,8 +30,9 @@ class UpdateStaffRequest extends FormRequest
             'job_title'     => ['nullable', 'string', 'max:255'],
             'image'         => ['nullable', 'string', 'max:255'],
             'role'          => ['nullable', 'string', Rule::in(['business_staff'])],
-            'skills'     => 'required|string|max:255',
-            'join_date'     => 'required|string|max:255',
+            "branch_id"    => ['nullable', 'integer', 'exists:branches,id'],
+            // 'skills'     => 'required|string|max:255',
+            // 'join_date'     => 'required|string|max:255',
         ];
     }
 }

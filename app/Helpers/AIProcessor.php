@@ -20,20 +20,20 @@ class AIProcessor
     /**
      * Get sentiment label from score - CORRECTED VERSION
      */
-public static function getSentimentLabel(?float $score): string
-{
-    if ($score === null) return 'neutral';
-    
-    // Ensure score is in 0-1 range
-    $score = max(0, min(1, (float)$score));
-    
-    // Map to labels
-    if ($score >= 0.8) return 'very_positive';
-    if ($score >= 0.6) return 'positive';
-    if ($score >= 0.4) return 'neutral';
-    if ($score >= 0.2) return 'negative';
-    return 'very_negative';
-}
+    public static function getSentimentLabel(?float $score): string
+    {
+        if ($score === null) return 'neutral';
+
+        // Ensure score is in 0-1 range
+        $score = max(0, min(1, (float)$score));
+
+        // Map to labels
+        if ($score >= 0.8) return 'very_positive';
+        if ($score >= 0.6) return 'positive';
+        if ($score >= 0.4) return 'neutral';
+        if ($score >= 0.2) return 'negative';
+        return 'very_negative';
+    }
 
 
     public static  function getTopMentionedStaff($positiveReviews)
@@ -63,20 +63,20 @@ public static function getSentimentLabel(?float $score): string
         return $result;
     }
 
-private static function extractRecommendedTraining($suggestions)
-{
-    // First get skill gaps
-    $skillGaps = self::extractSkillGapsFromSuggestions($suggestions);
-    
-    // If we have skill gaps, use the first one
-    if (!empty($skillGaps)) {
-        return $skillGaps[0] . ' Training';
-    }
-    
-    return 'General Training';
-}
+    private static function extractRecommendedTraining($suggestions)
+    {
+        // First get skill gaps
+        $skillGaps = self::extractSkillGapsFromSuggestions($suggestions);
 
-   
+        // If we have skill gaps, use the first one
+        if (!empty($skillGaps)) {
+            return $skillGaps[0] . ' Training';
+        }
+
+        return 'General Training';
+    }
+
+
     public static function getStaffPerformanceSnapshot($businessId, $dateRange, ?int $staffId = null)
     {
         // Base query for staff reviews WITH calculated rating
@@ -115,9 +115,9 @@ private static function extractRecommendedTraining($suggestions)
                 ? round($reviews->avg('calculated_rating'), 1)
                 : 0;
 
-           // Use sentiment_score:
-$positiveReviews = $reviews->where('sentiment_score', '>=', 0.6)->count();
-$negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
+            // Use sentiment_score:
+            $positiveReviews = $reviews->where('sentiment_score', '>=', 0.6)->count();
+            $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
 
             $neutralReviews = $reviews->whereBetween('calculated_rating', [2.1, 3.9])->count();
 
@@ -127,6 +127,7 @@ $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
                 'id' => $currentStaffId,
                 'name' => $staff->name,
                 'email' => $staff->email,
+                "branches"=> $staff->branches->pluck('name')->toArray(),
                 'job_title' => $staff->job_title ?? 'Staff',
                 'rating' => $avgRating,
                 'image' => $staff->image ?? null,
@@ -185,87 +186,87 @@ $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)->count();
         ];
     }
 
-public static function extractSkillGapsFromSuggestions($suggestions)
-{
-    if (empty($suggestions)) {
-        return [];
+    public static function extractSkillGapsFromSuggestions($suggestions)
+    {
+        if (empty($suggestions)) {
+            return [];
+        }
+
+        // Convert to collection and filter out empty/null values
+        $suggestions = collect($suggestions)
+            ->filter(function ($suggestion) {
+                if (is_string($suggestion)) {
+                    // Remove empty JSON strings like "[]" or empty strings
+                    $clean = trim($suggestion);
+                    if ($clean === '[]' || $clean === '' || $clean === '""') {
+                        return false;
+                    }
+
+                    // If it's a JSON array string, decode it
+                    if (str_starts_with($clean, '[') && str_ends_with($clean, ']')) {
+                        $decoded = json_decode($clean, true);
+                        return !empty($decoded) && is_array($decoded);
+                    }
+                }
+                return !empty($suggestion);
+            })
+            ->flatMap(function ($suggestion) {
+                // Handle JSON array strings
+                if (is_string($suggestion) && str_starts_with($suggestion, '[')) {
+                    $decoded = json_decode($suggestion, true);
+                    return $decoded ?: [];
+                }
+                return [$suggestion];
+            })
+            ->filter()
+            ->map(fn($s) => trim($s))
+            ->unique();
+
+        if ($suggestions->isEmpty()) {
+            return [];
+        }
+
+        // Extract skill names from training suggestions
+        $skillGaps = $suggestions
+            ->map(function ($suggestion) {
+                $clean = strtolower(trim($suggestion));
+
+                // Map common training phrases to skills
+                $skillMap = [
+                    '/customer service/' => 'Customer Service',
+                    '/empathy/' => 'Empathy',
+                    '/communication/' => 'Communication',
+                    '/professionalism/' => 'Professionalism',
+                    '/conflict resolution/' => 'Conflict Resolution',
+                    '/food handling/' => 'Food Safety',
+                    '/safety training/' => 'Safety',
+                    '/time management/' => 'Time Management',
+                    '/teamwork/' => 'Teamwork',
+                    '/leadership/' => 'Leadership'
+                ];
+
+                foreach ($skillMap as $pattern => $skill) {
+                    if (preg_match($pattern, $clean)) {
+                        return $skill;
+                    }
+                }
+
+                // If it's a general training suggestion, extract the skill
+                if (preg_match('/(.+?)\s+training/i', $clean, $matches)) {
+                    return ucwords(trim($matches[1]));
+                }
+
+                // Return original with proper capitalization
+                return ucwords($clean);
+            })
+            ->filter(fn($skill) => !empty($skill) && $skill !== 'General Training')
+            ->reject(fn($skill) => in_array($skill, ['[]', '""', '""', 'General']))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        return $skillGaps;
     }
-    
-    // Convert to collection and filter out empty/null values
-    $suggestions = collect($suggestions)
-        ->filter(function ($suggestion) {
-            if (is_string($suggestion)) {
-                // Remove empty JSON strings like "[]" or empty strings
-                $clean = trim($suggestion);
-                if ($clean === '[]' || $clean === '' || $clean === '""') {
-                    return false;
-                }
-                
-                // If it's a JSON array string, decode it
-                if (str_starts_with($clean, '[') && str_ends_with($clean, ']')) {
-                    $decoded = json_decode($clean, true);
-                    return !empty($decoded) && is_array($decoded);
-                }
-            }
-            return !empty($suggestion);
-        })
-        ->flatMap(function ($suggestion) {
-            // Handle JSON array strings
-            if (is_string($suggestion) && str_starts_with($suggestion, '[')) {
-                $decoded = json_decode($suggestion, true);
-                return $decoded ?: [];
-            }
-            return [$suggestion];
-        })
-        ->filter()
-        ->map(fn($s) => trim($s))
-        ->unique();
-    
-    if ($suggestions->isEmpty()) {
-        return [];
-    }
-    
-    // Extract skill names from training suggestions
-    $skillGaps = $suggestions
-        ->map(function ($suggestion) {
-            $clean = strtolower(trim($suggestion));
-            
-            // Map common training phrases to skills
-            $skillMap = [
-                '/customer service/' => 'Customer Service',
-                '/empathy/' => 'Empathy',
-                '/communication/' => 'Communication',
-                '/professionalism/' => 'Professionalism',
-                '/conflict resolution/' => 'Conflict Resolution',
-                '/food handling/' => 'Food Safety',
-                '/safety training/' => 'Safety',
-                '/time management/' => 'Time Management',
-                '/teamwork/' => 'Teamwork',
-                '/leadership/' => 'Leadership'
-            ];
-            
-            foreach ($skillMap as $pattern => $skill) {
-                if (preg_match($pattern, $clean)) {
-                    return $skill;
-                }
-            }
-            
-            // If it's a general training suggestion, extract the skill
-            if (preg_match('/(.+?)\s+training/i', $clean, $matches)) {
-                return ucwords(trim($matches[1]));
-            }
-            
-            // Return original with proper capitalization
-            return ucwords($clean);
-        })
-        ->filter(fn($skill) => !empty($skill) && $skill !== 'General Training')
-        ->reject(fn($skill) => in_array($skill, ['[]', '""', '""', 'General']))
-        ->unique()
-        ->values()
-        ->toArray();
-    
-    return $skillGaps;
-}
     public static   function extractOpportunitiesFromSuggestions($suggestions)
     {
         return collect($suggestions)

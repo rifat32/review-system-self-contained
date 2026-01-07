@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Http\Requests\UserRequest;
+use App\Models\BranchMember;
 
 class UserController extends Controller
 {
@@ -873,6 +874,14 @@ class UserController extends Controller
 
         // Save the user
         $user->save();
+
+        if(!empty($validatedData["branch_id"])){
+        BranchMember::create([
+            'user_id' => $user->id,
+            'branch_id' => $validatedData["branch_id"],
+        ]);
+
+        }
 
         // Return success response
         return response()->json([

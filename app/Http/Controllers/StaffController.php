@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\AIProcessor;
 use App\Http\Requests\StaffRequest;
 use App\Http\Requests\UpdateStaffRequest;
+use App\Models\BranchMember;
 use App\Models\ReviewNew;
 use App\Models\User;
 use Exception;
@@ -250,6 +251,15 @@ class StaffController extends Controller
             $request_payload = $request->validated();
 
             $user->update($request_payload);
+
+             if(!empty($request_payload["branch_id"])){
+               BranchMember::where('user_id', $user->id)->delete(); 
+        BranchMember::create([
+            'user_id' => $user->id,
+            'branch_id' => $request_payload["branch_id"],
+        ]);
+
+        }
 
             DB::commit();
             return response()->json([
@@ -951,12 +961,16 @@ class StaffController extends Controller
 
         $dateRange = getDateRangeByPeriod($period);
         // Get staff performance using existing staff suggestions
-        $staffPerformance = AIProcessor::getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
+        $data["staff_performance"] = AIProcessor::getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
+
+        $staff = User::with("branches")->find($staffId);
+
+        $data['staff'] = $staff;
 
         return response()->json([
             'success' => true,
             'message' => 'Staff performance report retrieved successfully',
-            'data' => $staffPerformance
+            'data' => $data
         ], 200);
     }
 
