@@ -2,7 +2,13 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -38,4 +44,232 @@ class Handler extends ExceptionHandler
             //
         });
     }
+
+    /**
+     * Render an exception into an HTTP response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Throwable  $e
+     * @return \Symfony\Component\HttpFoundation\Response
+     *
+     * @throws \Throwable
+     */
+    public function render($request, Throwable $e)
+    {
+        // Check if request expects JSON response (API calls)
+        if ($request->expectsJson()) {
+            return $this->handleApiException($request, $e);
+        }
+
+        return parent::render($request, $e);
+    }
+
+    /**
+     * Handle API exceptions with standardized JSON response
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Throwable  $e
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function handleApiException($request, Throwable $e)
+    {
+        $statusCode = $this->getStatusCode($e);
+        $message = $this->getMessage($e, $request);
+        $errors = $this->getErrors($e, $request);
+
+        $response = [
+            'success' => false,
+            'statusCode' => $statusCode,
+            'message' => $message,
+            'errors' => $errors,
+        ];
+
+        // Add additional debug information for development environment
+        if (config('app.debug') && config('app.env') !== 'production') {
+            $response['debug'] = [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTrace(),
+            ];
+        }
+
+        return response()->json($response, $statusCode);
+    }
+
+    /**
+     * Get HTTP status code from exception
+     *
+     * @param  \Throwable  $e
+     * @return int
+     */
+    protected function getStatusCode(Throwable $e): int
+    {
+        if ($e instanceof ValidationException) {
+            return 422;
+        }
+
+        if ($e instanceof AuthenticationException) {
+            return 401;
+        }
+
+        if ($e instanceof ModelNotFoundException) {
+            return 404;
+        }
+
+        if ($e instanceof NotFoundHttpException) {
+            return 404;
+        }
+
+        if ($e instanceof MethodNotAllowedHttpException) {
+            return 405;
+        }
+
+        if ($e instanceof HttpException) {
+            return $e->getStatusCode();
+        }
+
+        // Default to 500 for unknown exceptions
+        return 500;
+    }
+
+    /**
+     * Get error message from exception
+     *
+     * @param  \Throwable  $e
+     * @param  \Illuminate\Http\Request  $request
+     * @return string
+     */
+    protected function getMessage(Throwable $e, $request): string
+    {
+        if ($e instanceof ValidationException) {
+            return 'Validation failed';
+        }
+
+        if ($e instanceof AuthenticationException) {
+            return 'Unauthenticated';
+        }
+
+        if ($e instanceof ModelNotFoundException) {
+            $model = $this->getModelName($e);
+            return "Resource not found: {$model}";
+        }
+
+        if ($e instanceof NotFoundHttpException) {
+            $endpoint = $request->path();
+            return "Endpoint not found: {$endpoint}";
+        }
+
+        if ($e instanceof MethodNotAllowedHttpException) {
+            $method = $request->method();
+            $endpoint = $request->path();
+            return "Method not allowed: {$method} {$endpoint}";
+        }
+
+        // Return exception message or generic message for production
+        if (config('app.debug') && config('app.env') !== 'production') {
+            return $e->getMessage() ?: 'Server error occurred';
+        }
+
+        return 'Server error occurred';
+    }
+
+    /**
+     * Get detailed errors from exception
+     *
+     * @param  \Throwable  $e
+     * @param  \Illuminate\Http\Request  $request
+     * @return array|null
+     */
+    protected function getErrors(Throwable $e, $request): ?array
+    {
+        // Validation errors
+        if ($e instanceof ValidationException) {
+            return $e->errors();
+        }
+
+        // Model not found - include model and ID if available
+        if ($e instanceof ModelNotFoundException) {
+            $errors = [
+                'resource' => $this->getModelName($e),
+            ];
+
+            // Try to extract the ID from the exception message or request
+            if (preg_match('/\[(\d+)\]/', $e->getMessage(), $matches)) {
+                $errors['id'] = $matches[1];
+            }
+
+            return $errors;
+        }
+
+        // Not found endpoint - include requested URL
+        if ($e instanceof NotFoundHttpException) {
+            return [
+                'endpoint' => $request->path(),
+                'url' => $request->fullUrl(),
+            ];
+        }
+
+        // Method not allowed - include method and allowed methods
+        if ($e instanceof MethodNotAllowedHttpException) {
+            $allowedMethods = $e->getHeaders()['Allow'] ?? 'Unknown';
+            return [
+                'method' => $request->method(),
+                'endpoint' => $request->path(),
+                'allowed_methods' => explode(', ', $allowedMethods),
+            ];
+        }
+
+        // For development, include exception message in errors
+        if (config('app.debug') && config('app.env') !== 'production') {
+            return [
+                'message' => $e->getMessage(),
+                'endpoint' => $request->path(),
+                'method' => $request->method(),
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract model name from ModelNotFoundException
+     *
+     * @param  \Illuminate\Database\Eloquent\ModelNotFoundException  $e
+     * @return string
+     */
+    protected function getModelName(ModelNotFoundException $e): string
+    {
+        $model = $e->getModel();
+
+        // Get just the class name without namespace
+        if ($model) {
+            $parts = explode('\\', $model);
+            return end($parts);
+        }
+
+        return 'Resource';
+    }
+
+    /**
+     * Convert an authentication exception into a response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Auth\AuthenticationException  $exception
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    protected function unauthenticated($request, AuthenticationException $exception)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 401,
+                'message' => 'Unauthenticated',
+                'errors' => null,
+            ], 401);
+        }
+
+        return redirect()->guest(route('login'));
+    }
 }
+
