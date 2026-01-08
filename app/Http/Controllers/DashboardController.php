@@ -10,9 +10,11 @@ use App\Models\ReviewNew;
 use App\Models\Survey;
 use App\Models\Tag;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Validation\ValidationException;
 
 class DashboardController extends Controller
 {
@@ -1033,7 +1035,8 @@ class DashboardController extends Controller
 
             foreach ($staffGroups as $staffId => $reviewsArray) {
                 $staff = User::find($staffId);
-                if (!$staff || count($reviewsArray) < 3) continue; // Skip staff with less than 3 reviews
+                if (!$staff || count($reviewsArray) < 3)
+                    continue; // Skip staff with less than 3 reviews
 
                 $totalRating = 0;
                 $totalReviews = count($reviewsArray);
@@ -1501,7 +1504,7 @@ class DashboardController extends Controller
             "success" => true,
             "message" => "Staff comparison data retrieved successfully",
             "data" => [
-                'business_id' => (int)$businessId,
+                'business_id' => (int) $businessId,
                 'business_name' => $business->name,
                 'comparison' => [
                     'rating_gap' => $ratingGap,
@@ -1722,7 +1725,7 @@ class DashboardController extends Controller
             'success' => true,
             'message' => 'Staff dashboard report retrieved successfully',
             'data' => [
-                'business_id' => (int)$businessId,
+                'business_id' => (int) $businessId,
                 'business_name' => $business->name,
                 'period' => $period,
                 'overall_metrics' => $overallMetrics,
@@ -1841,7 +1844,7 @@ class DashboardController extends Controller
             'success' => true,
             'message' => 'Review analytics retrieved successfully',
             'data' => [
-                'business_id' => (int)$businessId,
+                'business_id' => (int) $businessId,
                 'business_name' => $business->name,
                 'filters_applied' => $filterSummary,
                 'performance_overview' => $performance_overview,
@@ -2033,6 +2036,143 @@ class DashboardController extends Controller
                 'review_feed' => $reviewFeed,
                 'filters' => $filters
             ]
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/metrics",
+     *      operationId="getDashboardMetrics",
+     *      tags={"dashboard_management"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get dashboard metrics for authenticated user's business",
+     *      description="Get comprehensive dashboard metrics data with AI insights and analytics for the authenticated user's business",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Dashboard metrics retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="avg_overall_rating", type="object",
+     *                      @OA\Property(property="value", type="number", example=4.2),
+     *                      @OA\Property(property="change", type="number", example=5.0, nullable=true),
+     *                      @OA\Property(property="previous_value", type="number", example=4.0),
+     *                      @OA\Property(property="calculated_from", type="string", example="review_value_news (via calculated_rating)"),
+     *                      @OA\Property(property="review_count", type="integer", example=150)
+     *                  ),
+     *                  @OA\Property(property="ai_sentiment_score", type="object",
+     *                      @OA\Property(property="value", type="number", example=7.5),
+     *                      @OA\Property(property="max", type="integer", example=10),
+     *                      @OA\Property(property="change", type="number", example=3.2, nullable=true),
+     *                      @OA\Property(property="review_count", type="integer", example=150)
+     *                  ),
+     *                  @OA\Property(property="total_reviews", type="object",
+     *                      @OA\Property(property="value", type="integer", example=150),
+     *                      @OA\Property(property="change", type="number", example=25.0, nullable=true)
+     *                  ),
+     *                  @OA\Property(property="positive_negative_ratio", type="object",
+     *                      @OA\Property(property="positive", type="integer", example=70),
+     *                      @OA\Property(property="negative", type="integer", example=15),
+     *                      @OA\Property(property="positive_count", type="integer", example=105),
+     *                      @OA\Property(property="negative_count", type="integer", example=22),
+     *                      @OA\Property(property="review_count", type="integer", example=150)
+     *                  ),
+     *                  @OA\Property(property="staff_linked_reviews", type="object",
+     *                      @OA\Property(property="percentage", type="integer", example=60),
+     *                      @OA\Property(property="count", type="integer", example=90),
+     *                      @OA\Property(property="total", type="integer", example=150),
+     *                      @OA\Property(property="review_count", type="integer", example=150)
+     *                  ),
+     *                  @OA\Property(property="voice_reviews", type="object",
+     *                      @OA\Property(property="percentage", type="integer", example=25),
+     *                      @OA\Property(property="count", type="integer", example=38),
+     *                      @OA\Property(property="total", type="integer", example=150),
+     *                      @OA\Property(property="review_count", type="integer", example=150)
+     *                  ),
+     *                  @OA\Property(property="rating_distribution", type="object",
+     *                      @OA\Property(property="5_star", type="integer", example=75),
+     *                      @OA\Property(property="4_star", type="integer", example=45),
+     *                      @OA\Property(property="3_star", type="integer", example=20),
+     *                      @OA\Property(property="2_star", type="integer", example=7),
+     *                      @OA\Property(property="1_star", type="integer", example=3)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad Request - Invalid period",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Validation failed"),
+     *              @OA\Property(property="errors", type="object",
+     *                  @OA\Property(property="period", type="array", @OA\Items(type="string", example="Invalid period. Only allowed: last_30_days, last_7_days, this_month, last_month, all_time"))
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User has no business",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="User does not have an associated business"),
+     *              @OA\Property(property="data", type="null")
+     *          )
+     *      )
+     * )
+     */
+    public function getDashboardMetrics(Request $request)
+    {
+        // Get business_id from authenticated user
+        $user = auth()->user();
+
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+
+        $filterable_fields = [
+            "last_30_days",
+            "last_7_days",
+            "this_month",
+            "last_month",
+            "all_time"
+        ];
+
+        if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
+            throw ValidationException::withMessages([
+                'period' => 'Invalid period. Only allowed: ' . implode(', ', $filterable_fields)
+            ]);
+
+        }
+        $period = $request->get('period', 'last_30_days');
+
+        // Get period dates
+        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+
+        // Calculate metrics using existing methods
+        $metrics = calculateDashboardMetrics($businessId, $dateRange);
+
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dashboard metrics retrieved successfully',
+            'data' => $metrics
         ], 200);
     }
 

@@ -454,6 +454,10 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [DashboardController::class, 'getOverallDashboardData']);
 
+    // Get dashboard metrics for authenticated user's business (no businessId parameter required)
+    Route::get('/v1.0/dashboard/metrics', [DashboardController::class, 'getDashboardMetrics']);
+
+
     // ============================================================================
     // NoteController – Notes management
     // ============================================================================

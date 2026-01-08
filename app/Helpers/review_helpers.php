@@ -113,9 +113,11 @@ if (!function_exists('extractTagsBreakdown')) {
     {
         // Get all tags with their mention counts
         $tags = Tag::where('business_id', $businessId)
-            ->withCount(['review_values' => function ($query) use ($dateRange) {
-                $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
-            }])
+            ->withCount([
+                'review_values' => function ($query) use ($dateRange) {
+                    $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
+                }
+            ])
             ->orderByDesc('review_values_count')
             ->get();
 
@@ -166,11 +168,13 @@ if (!function_exists('extractTagsBreakdown')) {
             'all_tags_count' => $tags->count(),
             'visualization_data' => [
                 'labels' => $topTags->pluck('tag')->toArray(),
-                'datasets' => [[
-                    'data' => $topTags->pluck('percentage')->toArray(),
-                    'backgroundColor' => $topTags->pluck('color')->toArray(),
-                    'borderWidth' => 1
-                ]]
+                'datasets' => [
+                    [
+                        'data' => $topTags->pluck('percentage')->toArray(),
+                        'backgroundColor' => $topTags->pluck('color')->toArray(),
+                        'borderWidth' => 1
+                    ]
+                ]
             ]
         ];
     }
@@ -213,88 +217,104 @@ if (!function_exists('formatPeriodDisplay')) {
 
 
 if (!function_exists('calculateDashboardMetrics')) {
-    function calculateDashboardMetrics($businessId, $dateRange)
+    function calculateDashboardMetrics($businessId, $dateRange = null)
     {
         // Get current period reviews WITH calculated rating
-        $reviews = ReviewNew::globalFilters(0, $businessId)
+        $reviewsQuery = ReviewNew::globalFilters(0, $businessId)
             ->where('business_id', $businessId)
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-            ->withCalculatedRating()
-            ->globalFilters(0, $businessId)
-            ->get();
+            ->withCalculatedRating();
 
-        // Get previous period reviews WITH calculated rating
-        $previousReviews = ReviewNew::globalFilters(0, $businessId)
-            ->where('business_id', $businessId)
-            ->whereBetween('created_at', [
-                $dateRange['start']->copy()->subDays(30),
-                $dateRange['end']->copy()->subDays(30)
-            ])
-            ->globalFilters(0, $businessId)
-            ->withCalculatedRating()
+        // Apply date filter only if dateRange is provided
+        if ($dateRange !== null) {
+            $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
 
-            ->get();
+        $reviews = $reviewsQuery->get();
+
+        // Get previous period reviews WITH calculated rating (only if dateRange provided)
+        $previousReviews = collect();
+        $previousAvgRating = 0;
+        $previousTotal = 0;
+        $previous_sentiment_score = 0;
+
+        if ($dateRange !== null) {
+            $previousReviews = ReviewNew::globalFilters(0, $businessId)
+                ->where('business_id', $businessId)
+                ->whereBetween('created_at', [
+                    $dateRange['start']->copy()->subDays(30),
+                    $dateRange['end']->copy()->subDays(30)
+                ])
+                ->globalFilters(0, $businessId)
+                ->withCalculatedRating()
+                ->get();
+
+            $previousTotal = $previousReviews->count();
+
+            // Calculate previous period ratings FROM calculated_rating field
+            $previousAvgRating = $previousReviews->isNotEmpty()
+                ? round($previousReviews->avg('calculated_rating'), 1)
+                : 0;
+
+            // Calculate sentiment scores (still from ReviewNew)
+            $previous_sentiment_score = $previousReviews->avg('sentiment_score') ?? 0;
+        }
 
         $total = $reviews->count();
-        $previousTotal = $previousReviews->count();
 
         // Calculate current period ratings FROM calculated_rating field
         $currentAvgRating = $reviews->isNotEmpty()
             ? round($reviews->avg('calculated_rating'), 1)
             : 0;
 
-        // Calculate previous period ratings FROM calculated_rating field
-        $previousAvgRating = $previousReviews->isNotEmpty()
-            ? round($previousReviews->avg('calculated_rating'), 1)
-            : 0;
-
         // Calculate sentiment scores (still from ReviewNew)
         $current_sentiment_score = $reviews->avg('sentiment_score') ?? 0;
-        $previous_sentiment_score = $previousReviews->avg('sentiment_score') ?? 0;
 
         // Calculate positive/negative counts based on calculated_rating
         $positiveReviewsCount = $reviews->where('calculated_rating', '>=', 4)->count();
         $negativeReviewsCount = $reviews->where('calculated_rating', '<=', 2)->count();
 
-
-
         return [
             'avg_overall_rating' => [
                 'value' => $currentAvgRating,
-                'change' => calculatePercentageChange(
+                'change' => $dateRange !== null ? calculatePercentageChange(
                     $currentAvgRating,
                     $previousAvgRating
-                ),
+                ) : null,
                 'previous_value' => $previousAvgRating,
-                'calculated_from' => 'review_value_news (via calculated_rating)'
+                'calculated_from' => 'review_value_news (via calculated_rating)',
+                'review_count' => $total
             ],
             'ai_sentiment_score' => [
                 'value' => round($current_sentiment_score * 10, 1),
                 'max' => 10,
-                'change' => calculatePercentageChange(
+                'change' => $dateRange !== null ? calculatePercentageChange(
                     $current_sentiment_score,
                     $previous_sentiment_score
-                )
+                ) : null,
+                'review_count' => $total
             ],
             'total_reviews' => [
                 'value' => $total,
-                'change' => calculatePercentageChange($total, $previousTotal)
+                'change' => $dateRange !== null ? calculatePercentageChange($total, $previousTotal) : null
             ],
             'positive_negative_ratio' => [
                 'positive' => $total > 0 ? round(($positiveReviewsCount / $total) * 100) : 0,
                 'negative' => $total > 0 ? round(($negativeReviewsCount / $total) * 100) : 0,
                 'positive_count' => $positiveReviewsCount,
-                'negative_count' => $negativeReviewsCount
+                'negative_count' => $negativeReviewsCount,
+                'review_count' => $total
             ],
             'staff_linked_reviews' => [
                 'percentage' => $total > 0 ? round(($reviews->whereNotNull('staff_id')->count() / $total) * 100) : 0,
                 'count' => $reviews->whereNotNull('staff_id')->count(),
-                'total' => $total
+                'total' => $total,
+                'review_count' => $total
             ],
             'voice_reviews' => [
                 'percentage' => $total > 0 ? round(($reviews->where('is_voice_review', true)->count() / $total) * 100) : 0,
                 'count' => $reviews->where('is_voice_review', true)->count(),
-                'total' => $total
+                'total' => $total,
+                'review_count' => $total
             ],
             'rating_distribution' => [
                 '5_star' => $reviews->where('calculated_rating', '>=', 4.5)->count(),
