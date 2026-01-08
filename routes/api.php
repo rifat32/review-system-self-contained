@@ -247,6 +247,8 @@ Route::middleware(['auth:api'])->group(function () {
     // StaffController – CRUD + image upload (protected)
     // ============================================================================
     Route::get('/v1.0/staffs', [StaffController::class, 'getAllStaffs']);
+    Route::get('/v1.0/staffs/metrics', [StaffController::class, 'getStaffMetrics']);
+    Route::get('/v1.0/staffs/compliment-ratio', [StaffController::class, 'getComplimentRatio']);
     Route::get('/v1.0/staffs/{id}', [StaffController::class, 'getStaffById']);
     Route::post('/v1.0/staffs', [StaffController::class, 'createStaff']);
     Route::patch('/v1.0/staffs/{id}', [StaffController::class, 'updateStaff']);

@@ -22,21 +22,26 @@ class AIProcessor
      */
     public static function getSentimentLabel(?float $score): string
     {
-        if ($score === null) return 'neutral';
+        if ($score === null)
+            return 'neutral';
 
         // Ensure score is in 0-1 range
-        $score = max(0, min(1, (float)$score));
+        $score = max(0, min(1, (float) $score));
 
         // Map to labels
-        if ($score >= 0.8) return 'very_positive';
-        if ($score >= 0.6) return 'positive';
-        if ($score >= 0.4) return 'neutral';
-        if ($score >= 0.2) return 'negative';
+        if ($score >= 0.8)
+            return 'very_positive';
+        if ($score >= 0.6)
+            return 'positive';
+        if ($score >= 0.4)
+            return 'neutral';
+        if ($score >= 0.2)
+            return 'negative';
         return 'very_negative';
     }
 
 
-    public static  function getTopMentionedStaff($positiveReviews)
+    public static function getTopMentionedStaff($positiveReviews)
     {
         $staffMentions = [];
 
@@ -105,10 +110,12 @@ class AIProcessor
         $groupedReviews = $staffReviews->groupBy('staff_id');
 
         foreach ($groupedReviews as $currentStaffId => $reviews) {
-            if ($reviews->count() < 3) continue;
+            if ($reviews->count() < 3)
+                continue;
 
             $staff = $reviews->first()->staff;
-            if (!$staff) continue;
+            if (!$staff)
+                continue;
 
             // Calculate average rating FROM calculated_rating field
             $avgRating = $reviews->isNotEmpty()
@@ -127,7 +134,7 @@ class AIProcessor
                 'id' => $currentStaffId,
                 'name' => $staff->name,
                 'email' => $staff->email,
-                "branches"=> $staff->branches->pluck('name')->toArray(),
+                "branches" => $staff->branches->pluck('name')->toArray(),
                 'job_title' => $staff->job_title ?? 'Staff',
                 'rating' => $avgRating,
                 'image' => $staff->image ?? null,
@@ -267,7 +274,7 @@ class AIProcessor
 
         return $skillGaps;
     }
-    public static   function extractOpportunitiesFromSuggestions($suggestions)
+    public static function extractOpportunitiesFromSuggestions($suggestions)
     {
         return collect($suggestions)
             ->filter(fn($s) => stripos($s, 'add') !== false || stripos($s, 'highlight') !== false)
@@ -279,24 +286,28 @@ class AIProcessor
     {
         // Calculate average rating from calculated_rating field (much faster)
         if ($reviews->isEmpty()) {
-            return [[
-                'prediction' => 'No reviews available for prediction.',
-                'estimated_impact' => 'N/A'
-            ]];
+            return [
+                [
+                    'prediction' => 'No reviews available for prediction.',
+                    'estimated_impact' => 'N/A'
+                ]
+            ];
         }
 
         // Use calculated_rating directly from the query results
         $avgRating = $reviews->avg('calculated_rating') ?? 0;
         $predictedIncrease = max(0, 5 - $avgRating) * 0.05;
 
-        return [[
-            'prediction' => 'Improving identified issues could boost overall rating.',
-            'estimated_impact' => '+' . round($predictedIncrease, 2) . ' points',
-            'current_avg_rating' => round($avgRating, 1),
-            'potential_new_rating' => round(min(5, $avgRating + $predictedIncrease), 1)
-        ]];
+        return [
+            [
+                'prediction' => 'Improving identified issues could boost overall rating.',
+                'estimated_impact' => '+' . round($predictedIncrease, 2) . ' points',
+                'current_avg_rating' => round($avgRating, 1),
+                'potential_new_rating' => round(min(5, $avgRating + $predictedIncrease), 1)
+            ]
+        ];
     }
-    public static  function transcribeAudio($filePath)
+    public static function transcribeAudio($filePath)
     {
         try {
             $api_key = env('HF_API_KEY');
@@ -321,15 +332,15 @@ class AIProcessor
             ]);
 
             $result = curl_exec($ch);
-            $error  = curl_error($ch);
+            $error = curl_error($ch);
             $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
             // Log full CURL response
             \Log::info("HF Whisper API Response", [
                 'http_status' => $status,
-                'curl_error'  => $error,
-                'raw_result'  => $result
+                'curl_error' => $error,
+                'raw_result' => $result
             ]);
 
             if ($error) {
@@ -351,7 +362,7 @@ class AIProcessor
         }
     }
 
-    public static  function getAiInsightsPanel($businessId, $dateRange)
+    public static function getAiInsightsPanel($businessId, $dateRange)
     {
         // Get reviews WITH calculated rating in one query
         $reviews = ReviewNew::where('business_id', $businessId)
@@ -459,7 +470,8 @@ class AIProcessor
 
         foreach ($groupedReviews as $staffId => $reviews) {
             $staff = User::find($staffId);
-            if (!$staff) continue;
+            if (!$staff)
+                continue;
 
             // Manual calculations
             $totalRating = 0;
@@ -499,7 +511,7 @@ class AIProcessor
         return array_slice($staffPerformance, 0, 3);
     }
 
-    public static  function extractBranchTopics($reviews)
+    public static function extractBranchTopics($reviews)
     {
         $topicCounts = [];
 
@@ -649,7 +661,8 @@ class AIProcessor
 
         foreach ($branchesData as $branchData) {
             $totalReviews = $branchData['metrics']['total_reviews'];
-            if ($totalReviews === 0) continue;
+            if ($totalReviews === 0)
+                continue;
 
             // Calculate complaints percentage (negative sentiment reviews)
             $negativeReviews = 0;
@@ -811,7 +824,7 @@ class AIProcessor
             'response_rate' => calculateResponseRate($reviews)
         ];
     }
-    public static  function extractTopTopic($reviews)
+    public static function extractTopTopic($reviews)
     {
         $topicCounts = [];
 
@@ -993,7 +1006,8 @@ class AIProcessor
         $results = [];
 
         foreach ($reviews as $review) {
-            if (empty($review->comment)) continue;
+            if (empty($review->comment))
+                continue;
 
             $comment = strtolower(trim($review->comment));
 
@@ -1031,9 +1045,10 @@ class AIProcessor
     /**
      * Find peak review times
      */
-    public static  function findPeakReviewTimes($reviews)
+    public static function findPeakReviewTimes($reviews)
     {
-        if ($reviews->isEmpty()) return null;
+        if ($reviews->isEmpty())
+            return null;
 
         $hourlyCounts = array_fill(0, 24, 0);
 
@@ -1085,7 +1100,8 @@ class AIProcessor
 
         // Enhanced staff praise detection
         $staffPraise = $positiveReviews->filter(function ($review) {
-            if (empty($review->comment)) return false;
+            if (empty($review->comment))
+                return false;
 
             $text = strtolower(trim($review->comment));
 
@@ -1244,7 +1260,7 @@ class AIProcessor
     /**
      * Get recent reviews for display
      */
-    public static  function getRecentReviews($reviews, $limit = 5)
+    public static function getRecentReviews($reviews, $limit = 5)
     {
         return $reviews->sortByDesc('created_at')
             ->take($limit)
@@ -1295,7 +1311,8 @@ class AIProcessor
 
         foreach ($groupedReviews as $staffId => $reviews) {
             $staff = User::find($staffId);
-            if (!$staff) continue;
+            if (!$staff)
+                continue;
 
             // Calculate average manually from the reviews collection
             $totalRating = 0;
@@ -1316,7 +1333,8 @@ class AIProcessor
             $avgRating = $reviewCount > 0 ? $totalRating / $reviewCount : 0;
 
             // Skip staff with very few reviews
-            if ($reviewCount < 3) continue;
+            if ($reviewCount < 3)
+                continue;
 
             $staffPerformance[] = [
                 'staff_id' => $staffId,
@@ -1339,14 +1357,20 @@ class AIProcessor
 
         return array_slice($staffPerformance, 0, $limit);
     }
-    public static    function getStaffEvaluation($avgRating, $reviewCount)
+    public static function getStaffEvaluation($avgRating, $reviewCount)
     {
-        if ($reviewCount < 3) return 'Insufficient Data';
-        if ($avgRating >= 4.5) return 'Top Performer';
-        if ($avgRating >= 4.0) return 'Excellent';
-        if ($avgRating >= 3.5) return 'Good';
-        if ($avgRating >= 3.0) return 'Consistent';
-        if ($avgRating >= 2.0) return 'Needs Improvement';
+        if ($reviewCount < 3)
+            return 'Insufficient Data';
+        if ($avgRating >= 4.5)
+            return 'Top Performer';
+        if ($avgRating >= 4.0)
+            return 'Excellent';
+        if ($avgRating >= 3.5)
+            return 'Good';
+        if ($avgRating >= 3.0)
+            return 'Consistent';
+        if ($avgRating >= 2.0)
+            return 'Needs Improvement';
         return 'Critical Attention';
     }
 
@@ -1400,7 +1424,7 @@ class AIProcessor
         return null;
     }
 
-    public static  function calculateStaffRatingTrend($reviews)
+    public static function calculateStaffRatingTrend($reviews)
     {
         if ($reviews->count() < 4) {
             return 'insufficient_data';
@@ -1427,7 +1451,7 @@ class AIProcessor
 
 
 
-    public static  function calculateStaffMetricsFromReviewValue($reviews, $staffUser)
+    public static function calculateStaffMetricsFromReviewValue($reviews, $staffUser)
     {
         $totalReviews = $reviews->count();
 
@@ -1484,7 +1508,7 @@ class AIProcessor
             'notable_reviews' => $notableReviews
         ];
     }
-    public static  function extractTopicsFromReviews($reviews)
+    public static function extractTopicsFromReviews($reviews)
     {
         $allTopics = [];
 
@@ -1499,7 +1523,7 @@ class AIProcessor
         arsort($allTopics);
         return $allTopics;
     }
-    public static  function calculatePerformanceByCategory($reviews)
+    public static function calculatePerformanceByCategory($reviews)
     {
         $categories = [
             'friendliness' => ['friendly', 'polite', 'rude', 'attitude', 'nice'],
@@ -1536,7 +1560,7 @@ class AIProcessor
 
         return $performance;
     }
-    public static  function getNotableReviews($reviews, $limit = 2)
+    public static function getNotableReviews($reviews, $limit = 2)
     {
         return $reviews->whereNotNull('comment')
             ->where('comment', '!=', '')
@@ -1562,17 +1586,31 @@ class AIProcessor
             return "Both have similar positive sentiment";
         }
     }
-    public static   function getPreviousPeriodReviews($businessId, $period)
+    public static function getPreviousPeriodReviews($businessId, $period = null)
     {
+        // If period is null or all_time, return reviews without date filtering
+        if ($period === null) {
+            return ReviewNew::where('business_id', $businessId)
+                ->whereNotNull('staff_id')
+                ->whereNotNull('sentiment_score')
+                ->globalFilters(0, $businessId)
+                ->withCalculatedRating()
+                ->get();
+        }
+
         $startDate = match ($period) {
-            'last_week' => Carbon::now()->subWeek()->startOfWeek(),
-            'last_quarter' => Carbon::now()->subQuarter()->startOfQuarter(),
-            default => Carbon::now()->subMonth()->startOfMonth() // last_month
+            'this_week' => Carbon::now()->subWeek()->startOfWeek(),
+            'this_month' => Carbon::now()->subMonth()->startOfMonth(),
+            'last_week' => Carbon::now()->subWeeks(2)->startOfWeek(),
+            'last_month' => Carbon::now()->subMonths(2)->startOfMonth(),
+            default => Carbon::now()->subMonth()->startOfMonth()
         };
 
         $endDate = match ($period) {
-            'last_week' => Carbon::now()->subWeek()->endOfWeek(),
-            'last_quarter' => Carbon::now()->subQuarter()->endOfQuarter(),
+            'this_week' => Carbon::now()->subWeek()->endOfWeek(),
+            'this_month' => Carbon::now()->subMonth()->endOfMonth(),
+            'last_week' => Carbon::now()->subWeeks(2)->endOfWeek(),
+            'last_month' => Carbon::now()->subMonths(2)->endOfMonth(),
             default => Carbon::now()->subMonth()->endOfMonth()
         };
 
@@ -1580,16 +1618,12 @@ class AIProcessor
             ->whereNotNull('staff_id')
             ->whereNotNull('sentiment_score')
             ->globalFilters(0, $businessId)
-
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
-
-
             ->withCalculatedRating()
-
             ->get();
     }
-    public static    function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
+    public static function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
     {
         // Calculate current period average rating from calculated_rating field
         $currentAvgRating = $currentReviews->isNotEmpty()
@@ -1643,7 +1677,7 @@ class AIProcessor
         $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
         return round(($positiveReviews / $reviews->count()) * 100);
     }
-    public static  function extractStaffTopics($staffReviews)
+    public static function extractStaffTopics($staffReviews)
     {
         $allTopics = [];
 
@@ -1706,7 +1740,8 @@ class AIProcessor
 
         foreach ($staffGroups as $staffId => $reviewsArray) {
             $staff = User::find($staffId);
-            if (!$staff) continue;
+            if (!$staff)
+                continue;
 
             $totalRating = 0;
             $totalReviews = count($reviewsArray);
@@ -1783,7 +1818,7 @@ class AIProcessor
 
 
 
-    public static  function calculatePerformanceOverviewFromReviewValue($reviews)
+    public static function calculatePerformanceOverviewFromReviewValue($reviews)
     {
         if ($reviews instanceof Builder) {
             $reviews = $reviews->get(); // convert to Collection
@@ -1829,7 +1864,7 @@ class AIProcessor
             // 'survey_reviews_count' => $reviews->whereNotNull('survey_id')->count()
         ];
     }
-    public static  function getReviewSamples($reviews, $limit = 2)
+    public static function getReviewSamples($reviews, $limit = 2)
     {
         $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)
             ->sortByDesc('created_at')
@@ -1905,7 +1940,8 @@ class AIProcessor
                 ? ($review['created_at'] ?? null)
                 : ($review->created_at ?? null);
 
-            if (!$createdAt) continue;
+            if (!$createdAt)
+                continue;
 
             $reviewDate = Carbon::parse($createdAt);
             if ($reviewDate->between($startDate, $endDate)) {
@@ -1921,7 +1957,8 @@ class AIProcessor
                 ? ($review['created_at'] ?? null)
                 : ($review->created_at ?? null);
 
-            if (!$createdAt) continue;
+            if (!$createdAt)
+                continue;
 
             $periodKey = Carbon::parse($createdAt)->format($groupFormat);
 
@@ -1984,7 +2021,7 @@ class AIProcessor
 
 
 
-    public static  function getRecentSubmissions($reviews, $limit = 5)
+    public static function getRecentSubmissions($reviews, $limit = 5)
     {
         return $reviews->sortByDesc('created_at')
             ->take($limit)
@@ -1999,7 +2036,7 @@ class AIProcessor
                     'submission_date' => $review->created_at->diffForHumans(),
                     'exact_date' => $review->created_at->format('d-m-Y H:i:s'),
                     'is_guest' => !is_null($review->guest_id),
-                    'is_overall' => (bool)$review->is_overall,
+                    'is_overall' => (bool) $review->is_overall,
                     'sentiment_score' => $review->sentiment_score,
                     'survey_name' => $review->survey ? $review->survey->name : null,
                     'staff_name' => $review->staff ? $review->staff->name : null,
@@ -2009,7 +2046,7 @@ class AIProcessor
             ->values()
             ->toArray();
     }
-    public static   function getRatingGapMessage($gap)
+    public static function getRatingGapMessage($gap)
     {
         if ($gap > 0) {
             return "Staff A is performing better";
@@ -2019,7 +2056,7 @@ class AIProcessor
             return "Both staff are performing equally";
         }
     }
-    public static  function getRecommendedTraining($reviews)
+    public static function getRecommendedTraining($reviews)
     {
         $trainingRecommendations = [];
 
@@ -2069,7 +2106,7 @@ class AIProcessor
 
         return $trainingRecommendations;
     }
-    public static   function analyzeSkillGaps($reviews)
+    public static function analyzeSkillGaps($reviews)
     {
         $strengths = [];
         $improvement_areas = [];
@@ -2111,7 +2148,7 @@ class AIProcessor
             'improvement_areas' => array_values($improvement_areas)
         ];
     }
-    public static   function calculateCustomerTone($reviews)
+    public static function calculateCustomerTone($reviews)
     {
         $toneMetrics = [
             'friendliness' => ['friendly', 'nice', 'kind', 'pleasant', 'warm'],
@@ -2144,7 +2181,7 @@ class AIProcessor
 
         return $results;
     }
-    public static   function calculateSentimentDistribution($reviews)
+    public static function calculateSentimentDistribution($reviews)
     {
         $total = $reviews->count();
 
@@ -2162,7 +2199,7 @@ class AIProcessor
             'negative' => round(($negative / $total) * 100)
         ];
     }
-    public static   function calculateComplimentRatio($reviews)
+    public static function calculateComplimentRatio($reviews)
     {
         $totalReviews = $reviews->count();
 
@@ -2202,7 +2239,8 @@ class AIProcessor
 
         foreach ($staffGroups as $staffId => $reviewsArray) {
             $staff = User::find($staffId);
-            if (!$staff) continue;
+            if (!$staff)
+                continue;
 
             $totalRating = 0;
             $totalSentiment = 0;
@@ -2260,7 +2298,8 @@ class AIProcessor
         $negativeCount = $reviews->where('sentiment_score', '<', 0.4)->count();
         $total = $reviews->count();
 
-        if ($total == 0) return 'No reviews to analyze.';
+        if ($total == 0)
+            return 'No reviews to analyze.';
 
         $positivePercent = round(($positiveCount / $total) * 100);
         $negativePercent = round(($negativeCount / $total) * 100);
@@ -2269,7 +2308,7 @@ class AIProcessor
             "Common themes include staff friendliness, service speed, and occasional cleanliness concerns.";
     }
 
-    public static  function extractIssuesFromSuggestions($suggestions)
+    public static function extractIssuesFromSuggestions($suggestions)
     {
         $issues = collect($suggestions)
             ->filter(fn($s) => stripos($s, 'consider') !== false || stripos($s, 'implement') !== false)
@@ -2280,10 +2319,12 @@ class AIProcessor
             ->take(3)
             ->values();
 
-        return $issues->isEmpty() ? [[
-            'issue' => 'No major issues detected.',
-            'mention_count' => 0
-        ]] : $issues->toArray();
+        return $issues->isEmpty() ? [
+            [
+                'issue' => 'No major issues detected.',
+                'mention_count' => 0
+            ]
+        ] : $issues->toArray();
     }
 
 
@@ -2320,7 +2361,7 @@ class AIProcessor
                     return $value->tags->pluck('tag')->all();
                 })->filter()->unique()->values()->toArray(),
                 'is_voice' => $review->is_voice_review,
-                'sentiment' =>  self::getSentimentLabel($review->sentiment_score),
+                'sentiment' => self::getSentimentLabel($review->sentiment_score),
                 'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])
             ];
         });
@@ -2732,7 +2773,8 @@ class AIProcessor
             $staffUser = User::with("branches")
                 ->where('id', $staff['staff_id'])
                 ->first();
-            if (!$staffUser) continue;
+            if (!$staffUser)
+                continue;
 
 
 
@@ -2788,7 +2830,8 @@ class AIProcessor
 
         foreach ($groupedReviews as $staffId => $reviews) {
             $staff = User::find($staffId);
-            if (!$staff) continue;
+            if (!$staff)
+                continue;
 
             // Manual calculations
             $totalRating = 0;
@@ -2823,7 +2866,8 @@ class AIProcessor
             $avgSentiment = $reviewCount > 0 ? $totalSentiment / $reviewCount : 0;
 
             // Only include staff with at least 3 reviews for meaningful analysis
-            if ($reviewCount < 3) continue;
+            if ($reviewCount < 3)
+                continue;
 
             // Calculate additional metrics
             $sentimentPercentage = $reviewCount > 0 ? round(($positiveCount / $reviewCount) * 100) : 0;
@@ -2914,7 +2958,8 @@ class AIProcessor
         $praise = [];
 
         foreach ($reviews as $review) {
-            if (empty($review->comment)) continue;
+            if (empty($review->comment))
+                continue;
 
             $text = strtolower($review->comment);
 
@@ -3104,7 +3149,8 @@ class AIProcessor
         $complaints = [];
 
         foreach ($reviews as $review) {
-            if (empty($review->comment)) continue;
+            if (empty($review->comment))
+                continue;
 
             $text = strtolower($review->comment);
 

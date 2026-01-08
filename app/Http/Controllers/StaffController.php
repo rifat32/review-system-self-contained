@@ -9,6 +9,7 @@ use App\Models\BranchMember;
 use App\Models\ReviewNew;
 use App\Models\User;
 use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -1346,6 +1347,168 @@ class StaffController extends Controller
             'message' => 'Staff reviews retrieved successfully',
             'data' => $reviews['data'],
             'meta' => $reviews['meta']
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/staffs/metrics",
+     *      operationId="getStaffMetrics",
+     *      tags={"staff_management"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get staff metrics for authenticated user's business",
+     *      description="Retrieve staff performance metrics including averages, totals, and trends",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Filter period (default: last_month)",
+     *          example="last_month",
+     *         @OA\Schema(type="string", enum={"this_week", "this_month", "last_week", "last_month"})
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Staff metrics retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="total_reviews", type="integer", example=150),
+     *                  @OA\Property(property="average_rating", type="number", format="float", example=4.2),
+     *                  @OA\Property(property="total_staff", type="integer", example=25),
+     *                  @OA\Property(property="trend", type="object",
+     *                      @OA\Property(property="rating_change", type="number", format="float", example=5.5),
+     *                      @OA\Property(property="review_change", type="number", format="float", example=12.3)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User has no business",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="User does not have an associated business")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Validation Error - Invalid period",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Validation failed"),
+     *              @OA\Property(property="errors", type="object",
+     *                  @OA\Property(property="period", type="array", @OA\Items(type="string", example="Invalid period. Only allowed: this_week, this_month, last_week, last_month"))
+     *              )
+     *          )
+     *      )
+     * )
+     */
+    public function getStaffMetrics(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+
+        // Validate filter parameter
+        $allowedFilters = ['this_week', 'this_month', 'last_week', 'last_month'];
+        $period = $request->get('period');
+
+        if (!in_array($period, $allowedFilters)) {
+            throw ValidationException::withMessages([
+                'period' => 'Invalid period. Only allowed: ' . implode(', ', $allowedFilters)
+            ]);
+        }
+
+
+        $currentReviews = ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->globalFilters(0, $businessId)
+            ->withCalculatedRating()
+            ->get();
+
+
+        $previousReviews = getPreviousPeriodReviews($businessId, $period);
+
+        // Calculate overall metrics
+        $overallMetrics = calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Staff metrics retrieved successfully',
+            'data' => $overallMetrics
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/staffs/compliment-ratio",
+     *      operationId="getStaffComplimentRatio",
+     *      tags={"staff_management"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get staff compliment ratio for authenticated user's business",
+     *      description="Retrieve compliment ratio showing positive vs negative feedback for staff",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Compliment ratio retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="total_reviews", type="integer", example=150),
+     *                  @OA\Property(property="positive_count", type="integer", example=120),
+     *                  @OA\Property(property="negative_count", type="integer", example=30),
+     *                  @OA\Property(property="compliment_ratio", type="number", format="float", example=80.0),
+     *                  @OA\Property(property="sentiment_label", type="string", example="Excellent")
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User has no business",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="User does not have an associated business")
+     *          )
+     *      )
+     * )
+     */
+    public function getComplimentRatio(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+
+        $currentReviews = ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->globalFilters(0, $businessId)
+            ->withCalculatedRating()
+            ->get();
+
+        $complimentRatio = calculateComplimentRatio($currentReviews);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Compliment ratio retrieved successfully',
+            'data' => $complimentRatio
         ], 200);
     }
 }
