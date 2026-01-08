@@ -145,7 +145,7 @@ class User extends Authenticatable
     public function scopeFilterStaff($query, $businessId)
     {
         return $query->where('business_id', $businessId)
-            ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
+            ->whereHas('roles', fn($r) => $r->whereIn('name', ['business_staff', 'branch_manager']))
             ->when(request()->filled('search_key'), function ($qq) {
                 $s = request()->input('search_key');
                 $qq->where(function ($w) use ($s) {
@@ -191,7 +191,7 @@ class User extends Authenticatable
                 $query_param = '='; // Default value for the comparison operator.
                 $min_count = 1;     // Minimum booking count.
                 $max_count = 1;     // Maximum booking count (for regular customers).
-
+    
                 if ($frequency == "New") {
                     // For new customers, the count should be exactly 1.
                     $query_param = '=';

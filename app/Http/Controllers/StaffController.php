@@ -116,7 +116,7 @@ class StaffController extends Controller
 
 
             $request_payload['password'] = Hash::make($request_payload['password']);
-            $request_payload['business_id'] =  auth()->user()->business->id;
+            $request_payload['business_id'] = auth()->user()->business->id;
 
 
             $user = User::create($request_payload);
@@ -252,14 +252,14 @@ class StaffController extends Controller
 
             $user->update($request_payload);
 
-             if(!empty($request_payload["branch_id"])){
-               BranchMember::where('user_id', $user->id)->delete(); 
-        BranchMember::create([
-            'user_id' => $user->id,
-            'branch_id' => $request_payload["branch_id"],
-        ]);
+            if (!empty($request_payload["branch_id"])) {
+                BranchMember::where('user_id', $user->id)->delete();
+                BranchMember::create([
+                    'user_id' => $user->id,
+                    'branch_id' => $request_payload["branch_id"],
+                ]);
 
-        }
+            }
 
             DB::commit();
             return response()->json([
@@ -463,10 +463,10 @@ class StaffController extends Controller
     public function getAllStaffs(Request $request)
     {
         try {
-            $businessId =  auth()->user()->business->id;
+            $businessId = auth()->user()->business->id;
 
             $query = User::with("branches")
-            ->filterStaff($businessId);
+                ->filterStaff($businessId);
 
             $staff = retrieve_data($query);
 
@@ -938,7 +938,7 @@ class StaffController extends Controller
 
         // Validate staff exists and belongs to the business
         $staff = User::where('business_id', $businessId)
-            ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
+            // ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
             ->find($staffId);
 
         if (!$staff) {

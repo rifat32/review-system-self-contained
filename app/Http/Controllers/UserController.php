@@ -76,7 +76,7 @@ class UserController extends Controller
     public function getCustomerReportSuperadmin(Request $request)
     {
 
-        $userQuery =  User::where([
+        $userQuery = User::where([
             "type" => "customer"
         ]);
 
@@ -175,7 +175,7 @@ class UserController extends Controller
 
     public function getOwnerReport(Request $request)
     {
-        $userQuery =  User::with(["business", "roles"])->where([
+        $userQuery = User::with(["business", "roles"])->where([
             "type" => "business_Owner"
         ]);
         if (!empty($request->search_term)) {
@@ -498,7 +498,7 @@ class UserController extends Controller
         }
 
         // Build query for users in the same business
-        $userQuery = User::with('roles')->where('business_id', $business_id);
+        $userQuery = User::with(['roles', 'branches'])->where('business_id', $business_id);
 
         // Filter by role - if no role specified, show only staff and manager roles
         if (request()->filled('role')) {
@@ -875,11 +875,11 @@ class UserController extends Controller
         // Save the user
         $user->save();
 
-        if(!empty($validatedData["branch_id"])){
-        BranchMember::create([
-            'user_id' => $user->id,
-            'branch_id' => $validatedData["branch_id"],
-        ]);
+        if (!empty($validatedData["branch_id"])) {
+            BranchMember::create([
+                'user_id' => $user->id,
+                'branch_id' => $validatedData["branch_id"],
+            ]);
 
         }
 
