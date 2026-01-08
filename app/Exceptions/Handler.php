@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
@@ -9,6 +10,8 @@ use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -113,6 +116,10 @@ class Handler extends ExceptionHandler
             return 401;
         }
 
+        if ($e instanceof AuthorizationException) {
+            return 403;
+        }
+
         if ($e instanceof ModelNotFoundException) {
             return 404;
         }
@@ -123,6 +130,14 @@ class Handler extends ExceptionHandler
 
         if ($e instanceof MethodNotAllowedHttpException) {
             return 405;
+        }
+
+        if ($e instanceof NotAcceptableHttpException) {
+            return 406;
+        }
+
+        if ($e instanceof ConflictHttpException) {
+            return 409;
         }
 
         if ($e instanceof HttpException) {
@@ -150,6 +165,10 @@ class Handler extends ExceptionHandler
             return 'Unauthenticated';
         }
 
+        if ($e instanceof AuthorizationException) {
+            return 'Unauthorized: ' . ($e->getMessage() ?: 'You do not have permission to perform this action');
+        }
+
         if ($e instanceof ModelNotFoundException) {
             $model = $this->getModelName($e);
             return "Resource not found: {$model}";
@@ -164,6 +183,14 @@ class Handler extends ExceptionHandler
             $method = $request->method();
             $endpoint = $request->path();
             return "Method not allowed: {$method} {$endpoint}";
+        }
+
+        if ($e instanceof NotAcceptableHttpException) {
+            return 'Not acceptable: The requested format is not supported';
+        }
+
+        if ($e instanceof ConflictHttpException) {
+            return 'Conflict: ' . ($e->getMessage() ?: 'The request conflicts with the current state');
         }
 
         // Return exception message or generic message for production
@@ -186,6 +213,14 @@ class Handler extends ExceptionHandler
         // Validation errors
         if ($e instanceof ValidationException) {
             return $e->errors();
+        }
+
+        // Authorization error - include action attempted
+        if ($e instanceof AuthorizationException) {
+            return [
+                'action' => $request->path(),
+                'message' => $e->getMessage() ?: 'You do not have permission to perform this action',
+            ];
         }
 
         // Model not found - include model and ID if available
@@ -217,6 +252,24 @@ class Handler extends ExceptionHandler
                 'method' => $request->method(),
                 'endpoint' => $request->path(),
                 'allowed_methods' => explode(', ', $allowedMethods),
+            ];
+        }
+
+        // Not acceptable - include accept headers
+        if ($e instanceof NotAcceptableHttpException) {
+            return [
+                'endpoint' => $request->path(),
+                'requested_format' => $request->header('Accept'),
+                'supported_formats' => ['application/json'],
+            ];
+        }
+
+        // Conflict - include conflict details
+        if ($e instanceof ConflictHttpException) {
+            return [
+                'endpoint' => $request->path(),
+                'message' => $e->getMessage() ?: 'Resource conflict detected',
+                'method' => $request->method(),
             ];
         }
 
