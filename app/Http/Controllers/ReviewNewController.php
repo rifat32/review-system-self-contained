@@ -1,27 +1,19 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\GuestUser;
 use App\Models\Question;
-use App\Models\QuestionStar;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\ReviewValue;
 use App\Models\Survey;
 use App\Models\ReviewValueNew;
 use App\Models\Star;
-
 use App\Models\User;
-
 use Exception;
-
 use Illuminate\Http\Request;
-
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class ReviewNewController extends Controller
@@ -231,25 +223,20 @@ class ReviewNewController extends Controller
                 'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to transcribe audio file. Please try again.',
-                'error' => env('APP_DEBUG') ? $e->getMessage() : null
-            ], 500);
+        } catch (Exception $e) {
+            throw $e;
         }
     }
 
 
-// ##################################################
+    // ##################################################
 // Get Overall Business Dashboard Data
 // ##################################################
 
 
 
 
-// ##################################################
+    // ##################################################
 // Update Business Settings
 // ##################################################
 
@@ -422,7 +409,7 @@ class ReviewNewController extends Controller
             "business_id" => $businessId
         ];
 
-        $createdReviewValue =  ReviewValue::create($reviewValue);
+        $createdReviewValue = ReviewValue::create($reviewValue);
 
 
 
@@ -502,7 +489,7 @@ class ReviewNewController extends Controller
      */
 
 
-    public function  filterReviews($businessId, $rate, $start, $end, Request $request)
+    public function filterReviews($businessId, $rate, $start, $end, Request $request)
     {
         // with
         $reviewValues = ReviewNew::where([
@@ -573,7 +560,7 @@ class ReviewNewController extends Controller
      *     )
      */
 
-    public function  reviewByBusinessId($businessId, Request $request)
+    public function reviewByBusinessId($businessId, Request $request)
     {
         // with
         $reviewValue = ReviewNew::with("value")->where([
@@ -706,7 +693,7 @@ class ReviewNewController extends Controller
         return response($data, 200);
     }
 
-  // ##################################################
+    // ##################################################
 // Updated createReview method with audio support
 // ##################################################
 
@@ -843,7 +830,7 @@ class ReviewNewController extends Controller
         return response($responseData, 201);
     }
 
-// ##################################################
+    // ##################################################
 // Updated storeReviewByGuest method with audio support
 // ##################################################
 
@@ -988,7 +975,7 @@ class ReviewNewController extends Controller
             "is_overall" => $request->is_overall ?? 0,
             "staff_id" => $request->staff_id ?? null,
             "branch_id" => $request->branch_id ?? null,
-            "is_voice_review" => $request->is_voice_review  ? true : false,
+            "is_voice_review" => $request->is_voice_review ? true : false,
             "is_ai_processed" => 0,
             "business_area_id" => $request->business_area_id ?? null,
             "business_service_id" => $request->business_service_id ?? null,
@@ -2862,7 +2849,7 @@ class ReviewNewController extends Controller
             });
         } else {
             foreach ($result['data'] as $key => $review) {
-                $isPrivate = is_object($review) ? (bool)($review->is_private ?? false) : (bool)($review['is_private'] ?? false);
+                $isPrivate = is_object($review) ? (bool) ($review->is_private ?? false) : (bool) ($review['is_private'] ?? false);
                 if ($isPrivate) {
                     if (is_object($review) && isset($review->user) && $review->user) {
                         if (is_object($review->user)) {
@@ -2942,7 +2929,7 @@ class ReviewNewController extends Controller
      *     )
      */
 
-    public function  getReviewById($reviewId, Request $request)
+    public function getReviewById($reviewId, Request $request)
     {
         // with
         $reviewValue = ReviewNew::with([
@@ -2971,7 +2958,7 @@ class ReviewNewController extends Controller
         ], 200);
     }
 
-        // ##################################################
+    // ##################################################
     // Make Reviews Private by IDs
     // ##################################################
 
@@ -3170,7 +3157,7 @@ class ReviewNewController extends Controller
         }
 
         $idArray = array_map('trim', explode(',', $ids));
-        $numericIds = array_values(array_unique(array_map('intval', array_filter($idArray, fn($id) => ctype_digit((string)$id) && (int)$id > 0))));
+        $numericIds = array_values(array_unique(array_map('intval', array_filter($idArray, fn($id) => ctype_digit((string) $id) && (int) $id > 0))));
 
         if (empty($numericIds)) {
             return response()->json([
@@ -3527,7 +3514,7 @@ class ReviewNewController extends Controller
      * @OA\Get(
      *      path="/v1.0/review-trends/{businessId}",
      *      operationId="reviewTrends",
-     *      tags={"review_management"},
+     *      tags={"review_management", "dashboard_management"},
      *      security={
      *           {"bearerAuth": {}}
      *       },
@@ -3586,7 +3573,13 @@ class ReviewNewController extends Controller
      */
     public function reviewTrends(Request $request, $businessId)
     {
+        $user = $request->user();
+        $businessId = $user->business_id;
+
+        // CHECK BUSINESS
         Business::findOrFail($businessId);
+
+        // 
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->with(['user', 'guest_user', 'survey'])
             ->withCalculatedRating();
