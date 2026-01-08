@@ -26,6 +26,8 @@ return new class extends Migration
     $table->integer('priority')->default(1);
 
     $table->string('confidence_required')->nullable();
+
+    
     
             $table->timestamps();
         });

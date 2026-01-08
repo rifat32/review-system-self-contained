@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('recommendations', function (Blueprint $table) {
             $table->id();
 
-             $table->unsignedBigInteger('business_id');
+    $table->unsignedBigInteger('business_id');
     $table->unsignedBigInteger('insight_id')->nullable();
     $table->unsignedBigInteger('rule_id')->nullable();
 
@@ -26,16 +26,29 @@ return new class extends Migration
     $table->integer('priority')->default(1);
 
     $table->json('evidence')->nullable();
-    
+
+    $table->foreign('business_id')->references('id')->on('businesses');
+        $table->foreign('insight_id')->references('id')->on('insight_records');
+        $table->foreign('rule_id')->references('id')->on('ai_rules');
+
             $table->timestamps();
         });
     }
 
-    /**
+
+    /*
      * Reverse the migrations.
      */
+
+    
     public function down(): void
     {
         Schema::dropIfExists('recommendations');
     }
+
+
+
+
+
+
 };

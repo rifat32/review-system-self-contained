@@ -1,6 +1,6 @@
 <?php
 
-
+use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchMemberController;
@@ -545,3 +545,11 @@ Route::put('/v1.0/client/reviews/update-guest-email/{ids}', [ReviewNewController
 Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, 'getAllQuestionClient']);
 Route::get('/v1.0/client/surveys/{id}', [SurveyController::class, "getSurveyByIdClient"]);
 Route::post('/v1.0/client/email/send-email', [EmailController::class, "sendEmail"]);
+
+
+Route::prefix('api')->group(function () {
+    Route::post('/recommendations/generate', [RecommendationController::class, 'generate']);
+    Route::get('/recommendations', [RecommendationController::class, 'index']);
+    Route::get('/recommendations/{id}/explain', [RecommendationController::class, 'explain']);
+    Route::get('/dashboard/insights', [RecommendationController::class, 'dashboardInsights']);
+});

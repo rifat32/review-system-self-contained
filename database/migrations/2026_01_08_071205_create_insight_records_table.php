@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             
     $table->unsignedBigInteger('business_id');
+           $table->foreign('business_id')->references('id')->on('businesses');
 
     $table->string('main_category');
     $table->string('sub_category')->nullable();
