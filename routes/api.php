@@ -458,6 +458,11 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/dashboard/metrics', [DashboardController::class, 'getDashboardMetrics']);
     Route::get('/v1.0/dashboard/top-staff', [DashboardController::class, 'topStaff']);
     Route::get('/v1.0/dashboard/recent-reviews', [DashboardController::class, 'getRecentReviews']);
+    Route::get('/v1.0/dashboard/rating-breakdown', [DashboardController::class, 'getRatingBreakdown']);
+    Route::get('/v1.0/dashboard/tags-breakdown', [DashboardController::class, 'getTagsBreakdown']);
+    Route::get('/v1.0/dashboard/ai-insights', [DashboardController::class, 'getAiInsights']);
+    Route::get('/v1.0/dashboard/staff-performance-snapshot', [DashboardController::class, 'getStaffPerformanceSnapshot']);
+
 
 
     // ============================================================================

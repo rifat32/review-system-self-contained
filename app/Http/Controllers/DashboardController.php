@@ -2219,6 +2219,306 @@ class DashboardController extends Controller
 
     /**
      * @OA\Get(
+     *      path="/v1.0/dashboard/rating-breakdown",
+     *      operationId="getRatingBreakdown",
+     *      tags={"dashboard_management"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get rating breakdown for authenticated user's business",
+     *      description="Retrieve rating distribution and statistics",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Rating breakdown retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="average_rating", type="number", format="float", example=4.2),
+     *                  @OA\Property(property="total_reviews", type="integer", example=150),
+     *                  @OA\Property(property="distribution", type="object",
+     *                      @OA\Property(property="5_star", type="integer", example=75),
+     *                      @OA\Property(property="4_star", type="integer", example=45),
+     *                      @OA\Property(property="3_star", type="integer", example=20),
+     *                      @OA\Property(property="2_star", type="integer", example=7),
+     *                      @OA\Property(property="1_star", type="integer", example=3)
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User has no business",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="User does not have an associated business")
+     *          )
+     *      )
+     * )
+     */
+    public function getRatingBreakdown(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+        $period = $request->get('period', 'last_30_days');
+
+        // Get period dates
+        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+
+        // Get rating breakdown
+        $reviewsQuery = ReviewNew::withCalculatedRating()
+            ->globalFilters(0, $businessId);
+
+        if ($dateRange !== null) {
+            $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
+
+        $ratingBreakdown = extractRatingBreakdown($reviewsQuery->get());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Rating breakdown retrieved successfully',
+            'data' => $ratingBreakdown
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/tags-breakdown",
+     *      operationId="getTagsBreakdown",
+     *      tags={"dashboard_management"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get tags breakdown for authenticated user's business",
+     *      description="Retrieve tag distribution and analysis",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Tags breakdown retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="top_tags", type="array",
+     *                      @OA\Items(
+     *                          type="object",
+     *                          @OA\Property(property="tag", type="string", example="service"),
+     *                          @OA\Property(property="count", type="integer", example=45),
+     *                          @OA\Property(property="percentage", type="number", format="float", example=30.0)
+     *                      )
+     *                  ),
+     *                  @OA\Property(property="total_tags", type="integer", example=150)
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User has no business",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="User does not have an associated business")
+     *          )
+     *      )
+     * )
+     */
+    public function getTagsBreakdown(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+        $period = $request->get('period', 'last_30_days');
+
+        // Get period dates
+        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+
+        // Get tags breakdown
+        $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tags breakdown retrieved successfully',
+            'data' => $tagsBreakdown
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/ai-insights",
+     *      operationId="getAiInsights",
+     *      tags={"dashboard_management.ai"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get AI insights for authenticated user's business",
+     *      description="Retrieve AI-generated insights and recommendations",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="AI insights retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="summary", type="string", example="Customer satisfaction is improving"),
+     *                  @OA\Property(property="key_insights", type="array", @OA\Items(type="string")),
+     *                  @OA\Property(property="recommendations", type="array", @OA\Items(type="string")),
+     *                  @OA\Property(property="sentiment_trend", type="string", example="positive")
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User has no business",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="User does not have an associated business")
+     *          )
+     *      )
+     * )
+     */
+    public function getAiInsights(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+        $period = $request->get('period', 'last_30_days');
+
+        // Get period dates
+        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+
+        // Get AI insights
+        $aiInsights = getAiInsightsPanel($businessId, $dateRange);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'AI insights retrieved successfully',
+            'data' => $aiInsights
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/staff-performance-snapshot",
+     *      operationId="getStaffPerformanceSnapshot",
+     *      tags={"dashboard_management.staff"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get staff performance snapshot for authenticated user's business",
+     *      description="Retrieve staff performance metrics and rankings",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Staff performance retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="top_performers", type="array",
+     *                      @OA\Items(
+     *                          type="object",
+     *                          @OA\Property(property="staff_id", type="integer", example=1),
+     *                          @OA\Property(property="staff_name", type="string", example="John Doe"),
+     *                          @OA\Property(property="avg_rating", type="number", format="float", example=4.5),
+     *                          @OA\Property(property="review_count", type="integer", example=25)
+     *                      )
+     *                  ),
+     *                  @OA\Property(property="average_performance", type="number", format="float", example=4.2)
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User has no business",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="User does not have an associated business")
+     *          )
+     *      )
+     * )
+     */
+    public function getStaffPerformanceSnapshot(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+        $period = $request->get('period', 'last_30_days');
+
+        // Get period dates
+        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+
+        // Get staff performance
+        $staffPerformance = getStaffPerformanceSnapshot($businessId, $dateRange);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Staff performance retrieved successfully',
+            'data' => $staffPerformance
+        ], 200);
+    }
+
+
+    /**
+     * @OA\Get(
      *      path="/v1.0/dashboard/metrics",
      *      operationId="getDashboardMetrics",
      *      tags={"dashboard_management"},
