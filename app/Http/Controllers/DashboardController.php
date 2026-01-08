@@ -2116,6 +2116,109 @@ class DashboardController extends Controller
 
     /**
      * @OA\Get(
+     *      path="/v1.0/dashboard/recent-reviews",
+     *      operationId="getRecentReviews",
+     *      tags={"dashboard_management"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get recent reviews for authenticated user's business",
+     *      description="Retrieve recent reviews feed with optional period filtering",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Recent reviews retrieved successfully"),
+     *              @OA\Property(property="data", type="array",
+     *                  @OA\Items(
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="customer_name", type="string", example="John Doe"),
+     *                      @OA\Property(property="rating", type="number", format="float", example=4.5),
+     *                      @OA\Property(property="sentiment", type="string", example="positive"),
+     *                      @OA\Property(property="comment", type="string", example="Great service!"),
+     *                      @OA\Property(property="staff_name", type="string", example="Jane Smith", nullable=true),
+     *                      @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-08T10:30:00Z"),
+     *                      @OA\Property(property="is_voice_review", type="boolean", example=false),
+     *                      @OA\Property(property="tags", type="array", @OA\Items(type="string"))
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User has no business",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="User does not have an associated business")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Validation Error - Invalid period",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Validation failed"),
+     *              @OA\Property(property="errors", type="object",
+     *                  @OA\Property(property="period", type="array", @OA\Items(type="string", example="Invalid period. Only allowed: last_30_days, last_7_days, this_month, last_month, all_time"))
+     *              )
+     *          )
+     *      )
+     * )
+     */
+    public function getRecentReviews(Request $request)
+    {
+        $user = $request->user();
+        $businessId = $user->business_id;
+
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+
+        $filterable_fields = [
+            "last_30_days",
+            "last_7_days",
+            "this_month",
+            "last_month",
+            "all_time"
+        ];
+
+        if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
+            throw ValidationException::withMessages([
+                'period' => 'Invalid period. Only allowed: ' . implode(', ', $filterable_fields)
+            ]);
+
+        }
+        $period = $request->get('period', 'last_30_days');
+
+        // Get period dates
+        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+        // Get recent reviews feed
+        $reviewFeed = getReviewFeed($businessId, $dateRange);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Recent reviews retrieved successfully',
+            'data' => $reviewFeed
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
      *      path="/v1.0/dashboard/metrics",
      *      operationId="getDashboardMetrics",
      *      tags={"dashboard_management"},
