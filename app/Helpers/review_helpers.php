@@ -276,8 +276,8 @@ if (!function_exists('calculateDashboardMetrics')) {
         $positiveReviewsCount = $reviews->where('calculated_rating', '>=', 4)->count();
         $negativeReviewsCount = $reviews->where('calculated_rating', '<=', 2)->count();
 
-        // Top Topic (from review topics or extract from comments)
-        $topTopic = ReviewTopicService::extractTopTopics($reviews);
+        // Top Topic (minimal summary)
+        $topTopicSummary = ReviewTopicService::getTopTopicSummary($reviews);
 
         // Detect repeated issues (minimal data only)
         $issueAnalysis = ReviewIssueDetectionService::detectRepeatedIssues($reviews, [
@@ -340,8 +340,7 @@ if (!function_exists('calculateDashboardMetrics')) {
                 '2_star' => $reviews->whereBetween('calculated_rating', [2.0, 2.99])->count(),
                 '1_star' => $reviews->where('calculated_rating', '<', 2.0)->count()
             ],
-            'top_topic' => $topTopic['top_topic'],
-            'all_topics' => $topTopic['all_topics'],
+            'top_topic' => $topTopicSummary,
             'repeated_issues' => [
                 'review_count' => $total,
                 'issue_count' => $issueAnalysis['total_issues_found'],

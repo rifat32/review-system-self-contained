@@ -9,12 +9,121 @@ namespace App\Services\review;
 class ReviewTopicService
 {
     /**
-     * Enhanced topic extraction with better accuracy
-     * Returns multiple topics with detailed statistics
+     * Get top topic summary with minimal data
+     * Returns only what's needed: counts and top topic name
+     * 
+     * @param mixed $reviews Collection or array of ReviewNew models
+     * @return array Minimal topic summary
+     */
+    public static function getTopTopicSummary($reviews): array
+    {
+        $totalReviews = is_countable($reviews) ? count($reviews) : $reviews->count();
+        $staffCount = 0;
+
+        // Count unique staff
+        $staffIds = [];
+        foreach ($reviews as $review) {
+            if ($review->staff_id && !in_array($review->staff_id, $staffIds)) {
+                $staffIds[] = $review->staff_id;
+            }
+        }
+        $staffCount = count($staffIds);
+
+        if ($totalReviews === 0) {
+            return [
+                'review_count' => 0,
+                'staff_count' => 0,
+                'top_topic_count' => 0,
+                'top_topic' => null
+            ];
+        }
+
+        // Get all topics with counts
+        $topicCounts = self::extractTopicCounts($reviews);
+
+        if (empty($topicCounts)) {
+            return [
+                'review_count' => $totalReviews,
+                'staff_count' => $staffCount,
+                'top_topic_count' => 0,
+                'top_topic' => 'General'
+            ];
+        }
+
+        // Get top topic
+        arsort($topicCounts);
+        $topTopicName = array_key_first($topicCounts);
+        $topTopicCount = $topicCounts[$topTopicName];
+
+        return [
+            'review_count' => $totalReviews,
+            'staff_count' => $staffCount,
+            'top_topic_count' => round($topTopicCount),
+            'top_topic' => $topTopicName
+        ];
+    }
+
+    /**
+     * Extract topic counts from reviews (internal helper)
+     * Combines AI topics and keyword matching
+     * 
+     * @param mixed $reviews Collection or array of reviews
+     * @return array Topic name => weighted count
+     */
+    private static function extractTopicCounts($reviews): array
+    {
+        $aiTopicCounts = [];
+        $keywordTopicCounts = [];
+
+        $topicKeywords = self::getTopicKeywordsMap();
+
+        foreach ($reviews as $review) {
+            // Extract from AI-generated topics
+            if ($review->topics && is_array($review->topics)) {
+                foreach ($review->topics as $topic) {
+                    $normalizedTopic = ucwords(strtolower(trim($topic)));
+                    $aiTopicCounts[$normalizedTopic] = ($aiTopicCounts[$normalizedTopic] ?? 0) + 1;
+                }
+            }
+
+            // Extract from comment keywords
+            if ($review->comment) {
+                $comment = strtolower($review->comment);
+
+                foreach ($topicKeywords as $topicName => $keywords) {
+                    foreach ($keywords as $keyword) {
+                        if (preg_match('/\b' . preg_quote($keyword, '/') . '\b/i', $comment)) {
+                            $keywordTopicCounts[$topicName] = ($keywordTopicCounts[$topicName] ?? 0) + 1;
+                            break; // Count once per topic per review
+                        }
+                    }
+                }
+            }
+        }
+
+        // Merge with AI topics weighted higher
+        $mergedTopics = [];
+
+        foreach ($aiTopicCounts as $topic => $count) {
+            $mergedTopics[$topic] = ($aiTopicCounts[$topic] ?? 0) + ($keywordTopicCounts[$topic] ?? 0);
+        }
+
+        foreach ($keywordTopicCounts as $topic => $count) {
+            if (!isset($mergedTopics[$topic])) {
+                $mergedTopics[$topic] = $count;
+            }
+        }
+
+        return $mergedTopics;
+    }
+
+    /**
+     * Enhanced topic extraction with detailed statistics
+     * Use this when you need full topic breakdown
      * 
      * @param mixed $reviews Collection or array of ReviewNew models
      * @param int $limit Maximum number of topics to return
-     * @return array Topic analysis results
+     * @return array Detailed topic analysis
      */
     public static function extractTopTopics($reviews, int $limit = 5): array
     {
@@ -30,26 +139,10 @@ class ReviewTopicService
 
         $aiTopicCounts = [];
         $keywordTopicCounts = [];
-
-        // Expanded topic vocabulary with word boundaries for better matching
-        $topicKeywords = [
-            'Service' => ['service', 'serving', 'served', 'help', 'assistance', 'support'],
-            'Staff' => ['staff', 'employee', 'worker', 'team', 'crew', 'manager', 'waiter', 'server'],
-            'Wait Time' => ['wait', 'waiting', 'queue', 'line', 'slow', 'delay', 'took long', 'minutes'],
-            'Quality' => ['quality', 'standard', 'grade', 'level', 'excellence'],
-            'Pricing' => ['price', 'pricing', 'cost', 'expensive', 'cheap', 'affordable', 'value', 'worth'],
-            'Cleanliness' => ['clean', 'cleanliness', 'dirty', 'messy', 'hygiene', 'sanitary', 'tidy'],
-            'Product' => ['product', 'item', 'goods', 'merchandise', 'selection', 'variety'],
-            'Location' => ['location', 'place', 'venue', 'spot', 'area', 'accessibility', 'parking'],
-            'Atmosphere' => ['atmosphere', 'ambiance', 'environment', 'vibe', 'mood', 'setting'],
-            'Food Quality' => ['food', 'taste', 'flavor', 'fresh', 'delicious', 'yummy', 'bland', 'stale'],
-            'Friendliness' => ['friendly', 'polite', 'courteous', 'welcoming', 'rude', 'attitude'],
-            'Speed' => ['fast', 'quick', 'rapid', 'prompt', 'efficient', 'speedy'],
-            'Professionalism' => ['professional', 'expert', 'skilled', 'competent', 'knowledgeable']
-        ];
+        $topicKeywords = self::getTopicKeywordsMap();
 
         foreach ($reviews as $review) {
-            // Extract from AI-generated topics
+            // AI topics
             if ($review->topics && is_array($review->topics)) {
                 foreach ($review->topics as $topic) {
                     $normalizedTopic = ucwords(strtolower(trim($topic)));
@@ -57,14 +150,13 @@ class ReviewTopicService
                 }
             }
 
-            // Extract from comment keywords with word boundary matching
+            // Keyword topics
             if ($review->comment) {
                 $comment = strtolower($review->comment);
 
                 foreach ($topicKeywords as $topicName => $keywords) {
                     $matched = false;
                     foreach ($keywords as $keyword) {
-                        // Use word boundaries for more accurate matching
                         if (preg_match('/\b' . preg_quote($keyword, '/') . '\b/i', $comment)) {
                             $matched = true;
                             break;
@@ -78,32 +170,26 @@ class ReviewTopicService
             }
         }
 
-        // Merge both sources with weighted preference for AI topics
+        // Merge topics (actual count, not weighted)
         $mergedTopics = [];
-
-        // Add AI topics with higher weight
         foreach ($aiTopicCounts as $topic => $count) {
-            $mergedTopics[$topic] = $count * 1.5; // Give AI topics 1.5x weight
+            $mergedTopics[$topic] = ($aiTopicCounts[$topic] ?? 0) + ($keywordTopicCounts[$topic] ?? 0);
         }
-
-        // Add keyword topics
         foreach ($keywordTopicCounts as $topic => $count) {
-            $mergedTopics[$topic] = ($mergedTopics[$topic] ?? 0) + $count;
+            if (!isset($mergedTopics[$topic])) {
+                $mergedTopics[$topic] = $count;
+            }
         }
 
-        // Sort by count descending
         arsort($mergedTopics);
 
-        // Build result array
+        // Build detailed result
         $allTopics = [];
-        foreach (array_slice($mergedTopics, 0, $limit, true) as $topicName => $weightedCount) {
-            // Get actual count (not weighted)
-            $actualCount = ($aiTopicCounts[$topicName] ?? 0) + ($keywordTopicCounts[$topicName] ?? 0);
-
+        foreach (array_slice($mergedTopics, 0, $limit, true) as $topicName => $count) {
             $allTopics[] = [
                 'name' => $topicName,
-                'count' => round($actualCount),
-                'percentage' => round(($actualCount / $totalReviews) * 100, 1),
+                'count' => $count,
+                'percentage' => round(($count / $totalReviews) * 100, 1),
                 'source' => isset($aiTopicCounts[$topicName]) && isset($keywordTopicCounts[$topicName])
                     ? 'both'
                     : (isset($aiTopicCounts[$topicName]) ? 'ai' : 'keyword')
@@ -126,14 +212,13 @@ class ReviewTopicService
     }
 
     /**
-     * Get topic keywords for a specific category
+     * Get topic keywords map (internal)
      * 
-     * @param string $category Topic category name
-     * @return array Keywords for the category
+     * @return array Topic name => keywords array
      */
-    public static function getTopicKeywords(string $category): array
+    private static function getTopicKeywordsMap(): array
     {
-        $allKeywords = [
+        return [
             'Service' => ['service', 'serving', 'served', 'help', 'assistance', 'support'],
             'Staff' => ['staff', 'employee', 'worker', 'team', 'crew', 'manager', 'waiter', 'server'],
             'Wait Time' => ['wait', 'waiting', 'queue', 'line', 'slow', 'delay', 'took long', 'minutes'],
@@ -148,7 +233,17 @@ class ReviewTopicService
             'Speed' => ['fast', 'quick', 'rapid', 'prompt', 'efficient', 'speedy'],
             'Professionalism' => ['professional', 'expert', 'skilled', 'competent', 'knowledgeable']
         ];
+    }
 
+    /**
+     * Get topic keywords for a specific category
+     * 
+     * @param string $category Topic category name
+     * @return array Keywords for the category
+     */
+    public static function getTopicKeywords(string $category): array
+    {
+        $allKeywords = self::getTopicKeywordsMap();
         return $allKeywords[$category] ?? [];
     }
 
@@ -159,20 +254,6 @@ class ReviewTopicService
      */
     public static function getAvailableCategories(): array
     {
-        return [
-            'Service',
-            'Staff',
-            'Wait Time',
-            'Quality',
-            'Pricing',
-            'Cleanliness',
-            'Product',
-            'Location',
-            'Atmosphere',
-            'Food Quality',
-            'Friendliness',
-            'Speed',
-            'Professionalism'
-        ];
+        return array_keys(self::getTopicKeywordsMap());
     }
 }
