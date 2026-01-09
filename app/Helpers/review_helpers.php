@@ -2,11 +2,14 @@
 
 // AI Moderation
 
+use App\Helpers\AIProcessor;
 use App\Models\Branch;
 use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
 use App\Models\Tag;
 use App\Models\User;
+use App\Services\review\ReviewIssueDetectionService;
+use App\Services\review\ReviewTopicService;
 use Carbon\Carbon;
 
 
@@ -273,6 +276,20 @@ if (!function_exists('calculateDashboardMetrics')) {
         $positiveReviewsCount = $reviews->where('calculated_rating', '>=', 4)->count();
         $negativeReviewsCount = $reviews->where('calculated_rating', '<=', 2)->count();
 
+        // Top Topic (from review topics or extract from comments)
+        $topTopic = ReviewTopicService::extractTopTopics($reviews);
+
+        // Detect repeated issues (minimal data only)
+        $issueAnalysis = ReviewIssueDetectionService::detectRepeatedIssues($reviews, [
+            'min_occurrences' => 3,
+            'min_percentage' => 5,
+            'include_trend' => false  // Disable trend for performance
+        ]);
+
+        $topIssue = !empty($issueAnalysis['repeated_issues'])
+            ? $issueAnalysis['repeated_issues'][0]['issue']
+            : null;
+
         return [
             'avg_overall_rating' => [
                 'value' => $currentAvgRating,
@@ -322,6 +339,13 @@ if (!function_exists('calculateDashboardMetrics')) {
                 '3_star' => $reviews->whereBetween('calculated_rating', [3.0, 3.99])->count(),
                 '2_star' => $reviews->whereBetween('calculated_rating', [2.0, 2.99])->count(),
                 '1_star' => $reviews->where('calculated_rating', '<', 2.0)->count()
+            ],
+            'top_topic' => $topTopic['top_topic'],
+            'all_topics' => $topTopic['all_topics'],
+            'repeated_issues' => [
+                'review_count' => $total,
+                'issue_count' => $issueAnalysis['total_issues_found'],
+                'top_issue' => $topIssue
             ]
         ];
     }
