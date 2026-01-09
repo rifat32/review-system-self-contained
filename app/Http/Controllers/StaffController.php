@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateStaffRequest;
 use App\Models\BranchMember;
 use App\Models\ReviewNew;
 use App\Models\User;
+use App\Services\Staff\StaffService;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 use Carbon\Carbon;
+
 
 class StaffController extends Controller
 {
@@ -1429,18 +1431,12 @@ class StaffController extends Controller
             ]);
         }
 
-
-        $currentReviews = ReviewNew::where('business_id', $businessId)
-            ->whereNotNull('staff_id')
-            ->globalFilters(0, $businessId)
-            ->withCalculatedRating()
-            ->get();
-
-
-        $previousReviews = getPreviousPeriodReviews($businessId, $period);
-
-        // Calculate overall metrics
-        $overallMetrics = calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews);
+        // Use StaffService to get metrics with proper period comparison
+        // this_week compares with last_week
+        // this_month compares with last_month
+        // last_week compares with week before last
+        // last_month compares with 2 months ago
+        $overallMetrics = StaffService::getStaffMetricsWithComparison($businessId, $period);
 
         return response()->json([
             'success' => true,
