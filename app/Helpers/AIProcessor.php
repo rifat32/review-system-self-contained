@@ -362,15 +362,28 @@ class AIProcessor
         }
     }
 
-    public static function getAiInsightsPanel($businessId, $dateRange)
+    public static function getAiInsightsPanel($businessId, $dateRange, $user = null)
     {
         // Get reviews WITH calculated rating in one query
-        $reviews = ReviewNew::where('business_id', $businessId)
+        $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->whereNotNull('ai_suggestions')
             ->globalFilters(0, $businessId)
-            ->withCalculatedRating()
-            ->get();
+            ->withCalculatedRating();
+
+        // Apply branch filter
+        $userBranchId = $user->hasRole('branch_manager')
+            ? $user->branch_id
+            : null;
+
+        if ($userBranchId) {
+            // Branch manager - force their branch
+            $reviewsQuery->where('branch_id', $userBranchId);
+        }
+
+        $reviews = $reviewsQuery->get();
+
+
 
         // Extract common themes from existing AI suggestions
         $allSuggestions = $reviews->pluck('ai_suggestions')->flatten();
@@ -2328,16 +2341,27 @@ class AIProcessor
     }
 
 
-    public static function getReviewFeed($businessId, $dateRange, $limit = 10)
+    public static function getReviewFeed($businessId, $dateRange, $limit = 10, $user = null)
     {
-        $reviews = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tags', 'value'])
+        // Determine branch filter for branch managers
+        $userBranchId = ($user && $user->hasRole('branch_manager'))
+            ? $user->branch_id
+            : null;
+
+        $query = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tags', 'value'])
             ->where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->orderBy('created_at', 'desc')
             ->globalFilters(0, $businessId)
             ->limit($limit)
-            ->withCalculatedRating()
-            ->get();
+            ->withCalculatedRating();
+
+        // Apply branch filter if user is branch manager
+        if ($userBranchId) {
+            $query->where('branch_id', $userBranchId);
+        }
+
+        $reviews = $query->get();
 
         return $reviews->map(function ($review) {
             // Use the calculated_rating from the query, no need to recalculate

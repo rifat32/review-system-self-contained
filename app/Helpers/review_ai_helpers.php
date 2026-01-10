@@ -29,9 +29,9 @@ if (!function_exists('getTopMentionedStaff')) {
 
 
 if (!function_exists('getReviewFeed')) {
-    function getReviewFeed($businessId, $dateRange, $limit = 10)
+    function getReviewFeed($businessId, $dateRange, $limit = 10, $user = null)
     {
-        return App\Helpers\AIProcessor::getReviewFeed($businessId, $dateRange, $limit);
+        return App\Helpers\AIProcessor::getReviewFeed($businessId, $dateRange, $limit, $user);
     }
 }
 
@@ -368,14 +368,16 @@ if (!function_exists('getTopTopic')) {
                 })
                     ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
             })
-            ->withCount(['review_values' => function ($query) use ($businessId, $startDate, $endDate) {
-                $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
-                    $q->where('business_id', $businessId)
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->globalFilters(0, $businessId);
-                })
-                    ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
-            }])
+            ->withCount([
+                'review_values' => function ($query) use ($businessId, $startDate, $endDate) {
+                    $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
+                        $q->where('business_id', $businessId)
+                            ->whereBetween('created_at', [$startDate, $endDate])
+                            ->globalFilters(0, $businessId);
+                    })
+                        ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
+                }
+            ])
             ->orderByDesc('review_values_count')
             ->first();
 

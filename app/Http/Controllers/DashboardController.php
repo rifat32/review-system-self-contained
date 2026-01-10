@@ -2320,6 +2320,8 @@ class DashboardController extends Controller
      */
     public function getOverallDashboardData($businessId, Request $request)
     {
+        $user = $request->user();
+
         $filterable_fields = [
             "last_30_days",
             "last_7_days",
@@ -2351,7 +2353,7 @@ class DashboardController extends Controller
         );
 
         // Get tags breakdown (NEW)
-        $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange);
+        $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange, $user);
 
         // Get AI insights using existing AI pipeline
         $aiInsights = getAiInsightsPanel($businessId, $dateRange);
@@ -2474,7 +2476,7 @@ class DashboardController extends Controller
         // Get period dates
         $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
         // Get recent reviews feed
-        $reviewFeed = getReviewFeed($businessId, $dateRange);
+        $reviewFeed = AIProcessor::getReviewFeed($businessId, $dateRange, 10, $user);
 
         return response()->json([
             'success' => true,
@@ -2554,6 +2556,15 @@ class DashboardController extends Controller
         if ($dateRange !== null) {
             $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
         }
+        // Apply branch filter
+        $userBranchId = $request->user()->hasRole('branch_manager')
+            ? $request->user()->branch_id
+            : null;
+
+        if ($userBranchId) {
+            // Branch manager - force their branch
+            $reviewsQuery->where('branch_id', $userBranchId);
+        }
 
         $ratingBreakdown = extractRatingBreakdown($reviewsQuery->get());
 
@@ -2629,7 +2640,7 @@ class DashboardController extends Controller
         $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
 
         // Get tags breakdown
-        $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange);
+        $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange, $user);
 
         return response()->json([
             'success' => true,
@@ -2698,7 +2709,7 @@ class DashboardController extends Controller
         $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
 
         // Get AI insights
-        $aiInsights = getAiInsightsPanel($businessId, $dateRange);
+        $aiInsights = AIProcessor::getAiInsightsPanel($businessId, $dateRange, $user);
 
         return response()->json([
             'success' => true,
@@ -2911,7 +2922,7 @@ class DashboardController extends Controller
 
         // Calculate metrics using DashboardService
         $dashboardService = app(DashboardService::class);
-        $metrics = $dashboardService->calculateMetrics($businessId, $dateRange);
+        $metrics = $dashboardService->calculateMetrics($businessId, $dateRange, $user);
 
 
         return response()->json([
@@ -2986,15 +2997,24 @@ class DashboardController extends Controller
     public function getAverages($businessId, $start, $end, Request $request)
     {
         // Get reviews with their values
-        $reviews = ReviewNew::with(['value'])
+        $query = ReviewNew::with(['value'])
             ->where("business_id", $businessId)
             ->globalFilters(0, $businessId)
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
-            ->withCalculatedRating()
-            ->get();
+            ->withCalculatedRating();
 
-        $data = extractRatingBreakdown($reviews);
+        // Apply branch filter
+        $userBranchId = $request->user()->hasRole('branch_manager')
+            ? $request->user()->branch_id
+            : null;
+
+        if ($userBranchId) {
+            // Branch manager - force their branch
+            $query->where('branch_id', $userBranchId);
+        }
+
+        $data = extractRatingBreakdown($query->get());
 
         return response($data, 200);
     }

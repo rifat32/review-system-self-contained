@@ -20,7 +20,7 @@ class DashboardService
      * @param array|null $dateRange Array with 'start' and 'end' Carbon instances
      * @return array
      */
-    public function calculateMetrics($businessId, $dateRange = null)
+    public function calculateMetrics($businessId, $dateRange = null, $user)
     {
         // Get current period reviews WITH calculated rating
         $reviewsQuery = ReviewNew::globalFilters(0, $businessId)
@@ -30,6 +30,16 @@ class DashboardService
         // Apply date filter only if dateRange is provided
         if ($dateRange !== null) {
             $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
+
+        // Apply branch filter
+        $userBranchId = $user->hasRole('branch_manager')
+            ? $user->branch_id
+            : null;
+
+        if ($userBranchId) {
+            // Branch manager - force their branch
+            $reviewsQuery->where('branch_id', $userBranchId);
         }
 
         $reviews = $reviewsQuery->get();

@@ -112,13 +112,25 @@ if (!function_exists('extractRatingBreakdown')) {
 }
 
 if (!function_exists('extractTagsBreakdown')) {
-    function extractTagsBreakdown($businessId, $dateRange)
+    function extractTagsBreakdown($businessId, $dateRange, $user = null)
     {
+        // Determine branch filter for branch managers
+        $userBranchId = ($user && $user->hasRole('branch_manager'))
+            ? $user->branch_id
+            : null;
+
         // Get all tags with their mention counts
         $tags = Tag::where('business_id', $businessId)
             ->withCount([
-                'review_values' => function ($query) use ($dateRange) {
+                'review_values' => function ($query) use ($dateRange, $userBranchId) {
                     $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
+
+                    // Filter by branch if user is branch manager
+                    if ($userBranchId) {
+                        $query->whereHas('review', function ($q) use ($userBranchId) {
+                            $q->where('branch_id', $userBranchId);
+                        });
+                    }
                 }
             ])
             ->orderByDesc('review_values_count')

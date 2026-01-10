@@ -3366,6 +3366,8 @@ class ReviewNewController extends Controller
 
         $businessId = $request->user()->business_id;
 
+
+
         $query = ReviewNew::with([
             "value.question",
             "value.tags",
@@ -3467,9 +3469,16 @@ class ReviewNewController extends Controller
         }
 
         // Apply branch filter
-        if ($request->has('branch_id') && !empty($request->branch_id)) {
-            $branchId = (int) $request->input('branch_id');
-            $query->where('branch_id', $branchId);
+        $userBranchId = $request->user()->hasRole('branch_manager')
+            ? $request->user()->branch_id
+            : null;
+
+        if ($userBranchId) {
+            // Branch manager - force their branch
+            $query->where('branch_id', $userBranchId);
+        } elseif ($request->has('branch_id') && !empty($request->branch_id)) {
+            // Other users - optional branch filter from request
+            $query->where('branch_id', (int) $request->input('branch_id'));
         }
 
         // Apply is_overall filter
