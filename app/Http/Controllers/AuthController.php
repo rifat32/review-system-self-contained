@@ -446,9 +446,13 @@ class AuthController extends Controller
         $user = User::with('business', 'roles')->find($user->id);
         $user->token = $user->createToken('authToken')->accessToken;
         $user->permissions = $user->getAllPermissions()->pluck('name');
-        // Add branch_count for user's business (0 if no business)
-        $user->branch_count = $user->business_id ? Branch::where('business_id', $user->business_id)->count() : 0;
 
+        // BRANCH ID PUSH IF USER IS BRANCH MANAGER
+        if ($user->hasRole('branch_manager')) {
+            $user->setAttribute('branch_id', $user->branch?->branch_id ?? null);  // Safe null check
+        }
+
+        // SEND RESPONSE
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
