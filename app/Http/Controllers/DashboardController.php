@@ -10,6 +10,7 @@ use App\Models\ReviewNew;
 use App\Models\Survey;
 use App\Models\Tag;
 use App\Models\User;
+use App\Services\DashboardService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -2643,8 +2644,9 @@ class DashboardController extends Controller
         // Get period dates
         $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
 
-        // Calculate metrics using existing methods
-        $metrics = calculateDashboardMetrics($businessId, $dateRange);
+        // Calculate metrics using DashboardService
+        $dashboardService = app(DashboardService::class);
+        $metrics = $dashboardService->calculateMetrics($businessId, $dateRange);
 
 
         return response()->json([

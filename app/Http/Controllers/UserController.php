@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -498,7 +499,10 @@ class UserController extends Controller
         }
 
         // Build query for users in the same business
-        $userQuery = User::with(['roles', 'branches'])->where('business_id', $business_id);
+        $userQuery = User::with([
+            'roles:id,name',
+            'branches'
+        ])->where('business_id', $business_id);
 
         // Filter by role - if no role specified, show only staff and manager roles
         if (request()->filled('role')) {
@@ -524,7 +528,7 @@ class UserController extends Controller
             "success" => true,
             "message" => "Users retrieved successfully",
             "meta" => $data['meta'],
-            "data" => $data['data'],
+            "data" => UserResource::collection($data['data']),
         ], 200);
     }
 
