@@ -241,7 +241,7 @@ class QuestionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Questions retrieved successfully.',
-            'data'    => $query->get()
+            'data' => $query->get()
         ]);
     }
 
@@ -306,7 +306,7 @@ class QuestionController extends Controller
             }
         }
 
-        $data =  json_decode(json_encode($question), true);
+        $data = json_decode(json_encode($question), true);
 
         foreach ($question->question_stars as $key2 => $questionStar) {
             $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
@@ -325,7 +325,7 @@ class QuestionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Question retrieved successfully.',
-            'data'    => $data
+            'data' => $data
         ], 200);
     }
 
@@ -566,13 +566,14 @@ class QuestionController extends Controller
             $data[$key1]['stars'] = [];
 
             foreach ($question->question_stars as $key2 => $questionStar) {
-                if (!$questionStar->star) continue;
+                if (!$questionStar->star)
+                    continue;
 
                 $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
                 $data[$key1]["stars"][$key2]["tags"] = [];
 
                 foreach ($questionStar->star->star_tags as $starTag) {
-                    if ((int)$starTag->question_id === (int)$question->id) {
+                    if ((int) $starTag->question_id === (int) $question->id) {
                         array_push($data[$key1]["stars"][$key2]["tags"], json_decode(json_encode($starTag->tag), true));
                     }
                 }
@@ -670,8 +671,8 @@ class QuestionController extends Controller
         // Attach to survey if survey_id is provided
         if ($request->filled('survey_id')) {
             SurveyQuestion::create([
-                'survey_id'    => $request->survey_id,
-                'question_id'  => $question->id,
+                'survey_id' => $request->survey_id,
+                'question_id' => $question->id,
             ]);
         }
 
@@ -681,7 +682,7 @@ class QuestionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Question created successfully.',
-            'data'    => $question
+            'data' => $question
         ], 201);
     }
 
@@ -762,8 +763,8 @@ class QuestionController extends Controller
             // Regular user: check if they own the business
             $businessId = $data['business_id'] ?? $question->business_id;
             $business = Business::where([
-                'id'       => $businessId,
-                'OwnerID'  => $user->id
+                'id' => $businessId,
+                'OwnerID' => $user->id
             ])->first();
 
             if (!$business) {
@@ -793,7 +794,7 @@ class QuestionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Question updated successfully.',
-            'data'    => $question
+            'data' => $question
         ], 200);
     }
 
@@ -872,8 +873,8 @@ class QuestionController extends Controller
     public function setOverallQuestions(SetOverallQuestionRequest $request): JsonResponse
     {
         // Already validated & passed ValidBusiness + ValidQuestion
-        $data        = $request->validated();
-        $businessId  = $data['business_id'];
+        $data = $request->validated();
+        $businessId = $data['business_id'];
         $questionIds = $data['question_ids'];
 
         // Perform the update within a transaction
@@ -895,8 +896,8 @@ class QuestionController extends Controller
 
         // send response
         return response()->json([
-            'success'           => true,
-            'message'           => 'Overall questions updated successfully.',
+            'success' => true,
+            'message' => 'Overall questions updated successfully.',
             'data' => $overallQuestions,
         ], 200);
     }
@@ -935,7 +936,7 @@ class QuestionController extends Controller
     {
         // Validate input
         $request->validate([
-            'id'        => 'required|integer|exists:questions,id',
+            'id' => 'required|integer|exists:questions,id',
             'is_active' => 'required|boolean',
         ]);
 
@@ -1108,34 +1109,34 @@ class QuestionController extends Controller
         $validator = Validator::make($request->all(), [
             'question_id' => 'required|integer|exists:questions,id',
 
-            'stars'                  => 'required|array|min:1',
-            'stars.*.star_id'        => 'required|integer|distinct|exists:stars,id',
-            'stars.*.tags'           => 'present|array', // allows [] or missing
-            'stars.*.tags.*.tag_id'  => 'required|integer|exists:tags,id',
+            'stars' => 'required|array|min:1',
+            'stars.*.star_id' => 'required|integer|distinct|exists:stars,id',
+            'stars.*.tags' => 'present|array', // allows [] or missing
+            'stars.*.tags.*.tag_id' => 'required|integer|exists:tags,id',
         ], [
-            'question_id.required'           => 'Question ID is required.',
-            'question_id.exists'             => 'The selected question does not exist.',
+            'question_id.required' => 'Question ID is required.',
+            'question_id.exists' => 'The selected question does not exist.',
 
-            'stars.required'                 => 'You must provide at least one star rating.',
-            'stars.min'                      => 'At least one star is required.',
-            'stars.*.star_id.required'       => 'Each star must have a star_id.',
-            'stars.*.star_id.distinct'       => 'Duplicate star ratings are not allowed.',
-            'stars.*.star_id.exists'         => 'One or more selected stars do not exist.',
+            'stars.required' => 'You must provide at least one star rating.',
+            'stars.min' => 'At least one star is required.',
+            'stars.*.star_id.required' => 'Each star must have a star_id.',
+            'stars.*.star_id.distinct' => 'Duplicate star ratings are not allowed.',
+            'stars.*.star_id.exists' => 'One or more selected stars do not exist.',
 
             'stars.*.tags.*.tag_id.required' => 'Each tag must have a tag_id.',
-            'stars.*.tags.*.tag_id.exists'   => 'One or more selected tags do not exist.',
+            'stars.*.tags.*.tag_id.exists' => 'One or more selected tags do not exist.',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validator->errors()
+                'errors' => $validator->errors()
             ], 422);
         }
 
         $questionId = $request->input('question_id');
-        $stars      = collect($request->input('stars'));
+        $stars = collect($request->input('stars'));
 
         return DB::transaction(function () use ($questionId, $stars) {
 
@@ -1149,14 +1150,14 @@ class QuestionController extends Controller
 
             // === 4. Sync stars and tags efficiently ===
             foreach ($stars as $starData) {
-                $starId  = $starData['star_id'];
-                $tagIds  = collect($starData['tags'] ?? [])->pluck('tag_id')->unique();
+                $starId = $starData['star_id'];
+                $tagIds = collect($starData['tags'] ?? [])->pluck('tag_id')->unique();
 
                 // Upsert the star relationship
                 QuestionStar::updateOrCreate(
                     [
                         'question_id' => $questionId,
-                        'star_id'     => $starId,
+                        'star_id' => $starId,
                     ],
                     [
                         // You can add timestamps or other fields here if needed
@@ -1173,8 +1174,8 @@ class QuestionController extends Controller
                 foreach ($tagIds as $tagId) {
                     StarTag::updateOrCreate([
                         'question_id' => $questionId,
-                        'star_id'     => $starId,
-                        'tag_id'      => $tagId,
+                        'star_id' => $starId,
+                        'tag_id' => $tagId,
                     ]);
                 }
             }
@@ -1185,7 +1186,7 @@ class QuestionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Question stars and tags updated successfully',
-                'data'    => null
+                'data' => null
                 // 'data' => $question // if you want to return updated structure
             ], 200);
         });
@@ -1295,18 +1296,18 @@ class QuestionController extends Controller
     // ##################################################
     // This method is to get report
     // ##################################################
-    public function   getSelectedTagCountByQuestion($questionId, Request $request)
+    public function getSelectedTagCountByQuestion($questionId, Request $request)
     {
 
-        $question =    Question::where(["id" => $questionId])
+        $question = Question::where(["id" => $questionId])
             ->first();
 
-        $data =  json_decode(json_encode($question), true);
+        $data = json_decode(json_encode($question), true);
 
 
         foreach ($question->question_stars as $key2 => $questionStar) {
             $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
-            $data["stars"][$key2]["star_count"]  =  ReviewValueNew::where([
+            $data["stars"][$key2]["star_count"] = ReviewValueNew::where([
                 "question_id" => $question->id,
                 "star_id" => $questionStar->star->id,
 
@@ -1336,17 +1337,17 @@ class QuestionController extends Controller
     // ##################################################
     // This method is to get report
     // ##################################################
-    public function   getSelectedTagCount($businessId, Request $request)
+    public function getSelectedTagCount($businessId, Request $request)
     {
 
-        $questions =    Question::where(["business_id" => $businessId])
+        $questions = Question::where(["business_id" => $businessId])
             ->get();
-        $data =  json_decode(json_encode($questions), true);
+        $data = json_decode(json_encode($questions), true);
         foreach ($questions as $key1 => $question) {
 
             foreach ($question->question_stars as $key2 => $questionStar) {
                 $data[$key1]["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
-                $data[$key1]["stars"][$key2]["star_count"]  =  ReviewValueNew::where([
+                $data[$key1]["stars"][$key2]["star_count"] = ReviewValueNew::where([
                     "question_id" => $question->id,
                     "star_id" => $questionStar->star->id,
                 ])->count();
@@ -1376,7 +1377,7 @@ class QuestionController extends Controller
 
 
 
-     // ##################################################
+    // ##################################################
     // This method is to delete question by id
     // ##################################################
     /**
@@ -1432,7 +1433,7 @@ class QuestionController extends Controller
      *      )
      *     )
      */
-    public function   deleteQuestionById($id, Request $request)
+    public function deleteQuestionById($id, Request $request)
     {
         Question::where(["id" => $id])
             ->delete();
@@ -1441,7 +1442,7 @@ class QuestionController extends Controller
     }
 
 
-        // ##################################################
+    // ##################################################
     // This method is to get question  by id
     // ##################################################
     /**
@@ -1498,9 +1499,9 @@ class QuestionController extends Controller
      *     )
      */
 
-    public function   getQuestionById($id, Request $request)
+    public function getQuestionById($id, Request $request)
     {
-        $questions =    Question::where(["id" => $id])
+        $questions = Question::where(["id" => $id])
             ->first();
 
 
@@ -1509,7 +1510,7 @@ class QuestionController extends Controller
                 "message" => "No question found"
             ], 404);
         }
-        $data =  json_decode(json_encode($questions), true);
+        $data = json_decode(json_encode($questions), true);
 
         foreach ($questions->question_stars as $key2 => $questionStar) {
             $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
@@ -1586,9 +1587,9 @@ class QuestionController extends Controller
      *     )
      */
 
-    public function   getQuestionById2($id, $businessId, Request $request)
+    public function getQuestionById2($id, $businessId, Request $request)
     {
-        $questions =    Question::where(["id" => $id, "business_id" => $businessId])
+        $questions = Question::where(["id" => $id, "business_id" => $businessId])
             ->first();
 
 
@@ -1597,7 +1598,7 @@ class QuestionController extends Controller
                 "message" => "No question found"
             ], 404);
         }
-        $data =  json_decode(json_encode($questions), true);
+        $data = json_decode(json_encode($questions), true);
 
         foreach ($questions->question_stars as $key2 => $questionStar) {
             $data["stars"][$key2] = json_decode(json_encode($questionStar->star), true);
@@ -1674,7 +1675,7 @@ class QuestionController extends Controller
      *      )
      *     )
      */
-    public function   getQuestion(Request $request)
+    public function getQuestion(Request $request)
     {
         $is_default = false;
         $businessId = !empty($request->business_id) ? $request->business_id : NULL;
@@ -1683,20 +1684,22 @@ class QuestionController extends Controller
             $is_default = true;
             $businessId = NULL;
         } else {
-            $business =    Business::where(["id" => $request->business_id])->first();
+            $business = Business::where(["id" => $request->business_id])->first();
             if (!$business && !$request->user()->hasRole("superadmin")) {
                 return response("No Business Found", 404);
             }
         }
 
 
-        $query = Question::with(['surveys' => function ($q) {
-            $q->select(
-                "surveys.id",
-                "name",
-                "order_no"
-            );
-        }])->where(["business_id" => $businessId, "is_default" => $is_default])
+        $query = Question::with([
+            'surveys' => function ($q) {
+                $q->select(
+                    "surveys.id",
+                    "name",
+                    "order_no"
+                );
+            }
+        ])->where(["business_id" => $businessId, "is_default" => $is_default])
             ->when($request->boolean("is_user"), function ($q) use ($request) {
                 return $q->where("show_in_user", $request->boolean("is_user"));
             })
@@ -1724,7 +1727,7 @@ class QuestionController extends Controller
                 });
             });
 
-        $questions =  $query->get();
+        $questions = $query->get();
 
 
         return response([
@@ -1734,7 +1737,7 @@ class QuestionController extends Controller
         ], 200);
     }
 
- // ##################################################
+    // ##################################################
     // This method is to update question's active state
     // ##################################################
 
@@ -1800,11 +1803,11 @@ class QuestionController extends Controller
         $question = [
             "is_active" => $request->is_active,
         ];
-        $checkQuestion =    Question::where(["id" => $request->id])->first();
+        $checkQuestion = Question::where(["id" => $request->id])->first();
         if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
             return response()->json(["message" => "you can not update the question. you are not a super admin"]);
         }
-        $updatedQuestion =    tap(Question::where(["id" => $request->id]))->update(
+        $updatedQuestion = tap(Question::where(["id" => $request->id]))->update(
             $question
         )
             // ->with("somthing")
@@ -1893,8 +1896,8 @@ class QuestionController extends Controller
     public function setOverallQuestion(SetOverallQuestionRequest $request): JsonResponse
     {
         // Already validated & passed ValidBusiness + ValidQuestion
-        $data        = $request->validated();
-        $businessId  = $data['business_id'];
+        $data = $request->validated();
+        $businessId = $data['business_id'];
         $questionIds = $data['question_ids'];
 
         // Perform the update within a transaction
@@ -1916,13 +1919,13 @@ class QuestionController extends Controller
 
         // send response
         return response()->json([
-            'success'           => true,
-            'message'           => 'Overall questions updated successfully.',
+            'success' => true,
+            'message' => 'Overall questions updated successfully.',
             'data' => $overallQuestions,
         ], 200);
     }
 
-// ##################################################
+    // ##################################################
     // This method is to update question
     // ##################################################
     /**
@@ -2001,11 +2004,11 @@ class QuestionController extends Controller
             'survey_name' => $request->survey_name,
             "is_active" => $request->is_active,
         ];
-        $checkQuestion =    Question::where(["id" => $request->id])->first();
+        $checkQuestion = Question::where(["id" => $request->id])->first();
         if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
             return response()->json(["message" => "you can not update the question. you are not a super admin"]);
         }
-        $updatedQuestion =    tap(Question::where(["id" => $request->id]))->update(
+        $updatedQuestion = tap(Question::where(["id" => $request->id]))->update(
             $question
         )
             // ->with("somthing")
@@ -2016,7 +2019,7 @@ class QuestionController extends Controller
         return response($updatedQuestion, 200);
     }
 
-// ##################################################
+    // ##################################################
     // This method is to store question
     // ##################################################
     /**
@@ -2099,14 +2102,14 @@ class QuestionController extends Controller
             $question["business_id"] = NULL;
         } else {
 
-            $business =    Business::where(["id" => $request->business_id, "OwnerID" => $request->user()->id])->first();
+            $business = Business::where(["id" => $request->business_id, "OwnerID" => $request->user()->id])->first();
 
             if (!$business) {
                 return response()->json(["message" => "No Business Found"], 400);
             }
         }
 
-        $createdQuestion =    Question::create($question);
+        $createdQuestion = Question::create($question);
         $createdQuestion->info = "supported value is of type is 'star','emoji','numbers','heart'";
 
         if (request()->has('survey_id')) {

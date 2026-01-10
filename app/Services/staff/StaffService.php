@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Staff;
+namespace App\Services\staff;
 
 use App\Models\ReviewNew;
 use Carbon\Carbon;

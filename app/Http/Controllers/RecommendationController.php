@@ -1,7 +1,7 @@
 <?php
 // app/Http/Controllers/Api/RecommendationController.php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\InsightAggregationHelper;
@@ -25,24 +25,24 @@ class RecommendationController extends Controller
             'business_id' => 'required|integer|exists:businesses,id',
             'days' => 'integer|min:1|max:90'
         ]);
-        
+
         $businessId = $request->business_id;
         $days = $request->days ?? 30;
-        
+
         try {
             // Step 1: Aggregate insights
             $aggregationResult = InsightAggregationHelper::aggregateReviewsForBusiness($businessId, $days);
-            
+
             // Step 2: Generate recommendations
             $recommendations = RecommendationGenerator::generateFromInsights($businessId, $days);
-            
+
             return response()->json([
                 'success' => true,
                 'aggregation' => $aggregationResult,
                 'recommendations' => $recommendations,
                 'generated_at' => now()->toISOString()
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -51,7 +51,7 @@ class RecommendationController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * List recommendations
      * GET /api/recommendations
@@ -63,13 +63,13 @@ class RecommendationController extends Controller
             'limit' => 'integer|min:1|max:50',
             'type' => 'in:business,staff,area'
         ]);
-        
+
         $query = Recommendation::where('business_id', $request->business_id);
-        
+
         if ($request->type) {
             $query->where('type', $request->type);
         }
-        
+
         $recommendations = $query->orderBy('priority', 'desc')
             ->orderBy('created_at', 'desc')
             ->limit($request->limit ?? 10)
@@ -86,14 +86,14 @@ class RecommendationController extends Controller
                     'explain_url' => route('recommendations.explain', $rec->id)
                 ];
             });
-        
+
         return response()->json([
             'success' => true,
             'recommendations' => $recommendations,
             'count' => $recommendations->count()
         ]);
     }
-    
+
     /**
      * Get single recommendation with explanation
      * GET /api/recommendations/{id}/explain
@@ -102,13 +102,13 @@ class RecommendationController extends Controller
     {
         $recommendation = Recommendation::findOrFail($id);
         $insight = $recommendation->insight;
-        
+
         // Get confidence analysis
         $confidence = ConfidenceCalculator::calculateInsightConfidence($insight);
-        
+
         // Get rule that triggered this
         $rule = $recommendation->rule;
-        
+
         return response()->json([
             'success' => true,
             'recommendation' => [
@@ -144,7 +144,7 @@ class RecommendationController extends Controller
             ]
         ]);
     }
-    
+
     /**
      * Get dashboard insights
      * GET /api/dashboard/insights
@@ -154,10 +154,10 @@ class RecommendationController extends Controller
         $request->validate([
             'business_id' => 'required|integer|exists:businesses,id'
         ]);
-        
+
         $insights = InsightAggregationHelper::getDashboardInsights($request->business_id, 5);
         $recommendations = RecommendationGenerator::getDashboardRecommendations($request->business_id, 3);
-        
+
         return response()->json([
             'success' => true,
             'insights' => $insights,

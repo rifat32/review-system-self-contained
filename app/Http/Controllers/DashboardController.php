@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 
 class DashboardController extends Controller
 {
@@ -796,9 +797,273 @@ class DashboardController extends Controller
         ], 200);
     }
 
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/staff-insights",
+     *      operationId="getStaffInsights",
+     *      tags={"dashboard_management"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get staff insights and top performers",
+     *      description="Get overall sentiment and top performing staff member for a business",
+     *      @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date in d-m-Y format (e.g., 01-01-2025)",
+     *         required=false,
+     *         example="01-01-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date in d-m-Y format (e.g., 31-12-2025)",
+     *         required=false,
+     *         example="31-12-2025"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Staff insights retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="period", type="object",
+     *                      @OA\Property(property="start_date", type="string", example="2025-01-01"),
+     *                      @OA\Property(property="end_date", type="string", example="2025-12-31"),
+     *                      @OA\Property(property="display_text", type="string", example="Jan 1, 2025 - Dec 31, 2025")
+     *                  ),
+     *                  @OA\Property(property="overall_sentiment", type="string", example="Positive"),
+     *                  @OA\Property(property="top_performer", type="object", nullable=true,
+     *                      @OA\Property(property="name", type="string", example="John Doe"),
+     *                      @OA\Property(property="rating", type="number", format="float", example=4.8),
+     *                      @OA\Property(property="review_count", type="integer", example=25)
+     *                  ),
+     *                  @OA\Property(property="action_text", type="string", example="Details")
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad request"
+     *      )
+     * )
+     */
+    public function getStaffInsights(Request $request)
+    {
+        // VALIDATE QUERY
+        $request->validate([
+            'start_date' => 'nullable|date_format:d-m-Y',
+            'end_date' => 'nullable|date_format:d-m-Y'
+        ]);
 
+        // GET BUSINESS ID
+        $businessId = auth()->user()->business_id;
 
+        // Parse date parameters with defaults for all-time data
+        $endDate = $request->end_date
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : Carbon::now()->endOfDay();
 
+        $startDate = $request->start_date
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::createFromTimestamp(0)->startOfDay(); // Very old date for all-time
+
+        // Validate date range
+        if ($startDate->greaterThan($endDate)) {
+            throw new BadRequestException('Start date cannot be greater than end date');
+        }
+
+        // Get reviews with staff for the current period
+        $staffReviews = ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->withCalculatedRating()
+            ->get();
+
+        // Calculate overall sentiment
+        $sentiment_data = calculateAggregatedSentiment($staffReviews);
+        $sentiment_status = is_array($sentiment_data) ? $sentiment_data['sentiment_label'] : $sentiment_data;
+
+        $topPerformer = null;
+
+        if ($staffReviews->isNotEmpty()) {
+            // Group reviews by staff_id
+            $staffGroups = [];
+            foreach ($staffReviews as $review) {
+                if ($review->staff_id) {
+                    $staffGroups[$review->staff_id][] = $review;
+                }
+            }
+
+            $staffPerformance = [];
+
+            foreach ($staffGroups as $staffId => $reviewsArray) {
+                $staff = User::find($staffId);
+                if (!$staff || count($reviewsArray) < 3)
+                    continue; // Skip staff with less than 3 reviews
+
+                $totalRating = 0;
+                $totalReviews = count($reviewsArray);
+
+                foreach ($reviewsArray as $review) {
+                    $totalRating += $review->calculated_rating ?? 0;
+                }
+
+                $avgRating = $totalReviews > 0 ? $totalRating / $totalReviews : 0;
+
+                $staffPerformance[] = [
+                    'staff_id' => $staffId,
+                    'staff_name' => $staff->name,
+                    'avg_rating' => round($avgRating, 2),
+                    'review_count' => $totalReviews
+                ];
+            }
+
+            // Sort by average rating (highest first)
+            usort($staffPerformance, function ($a, $b) {
+                if ($b['avg_rating'] == $a['avg_rating']) {
+                    return $b['review_count'] <=> $a['review_count'];
+                }
+                return $b['avg_rating'] <=> $a['avg_rating'];
+            });
+
+            // Get the top performer
+            if (!empty($staffPerformance)) {
+                $topStaff = $staffPerformance[0];
+                $topPerformer = [
+                    'name' => $topStaff['staff_name'],
+                    'rating' => $topStaff['avg_rating'],
+                    'review_count' => $topStaff['review_count']
+                ];
+            }
+        }
+
+        // Format period display text
+        $periodDisplayText = formatPeriodDisplay($startDate, $endDate);
+
+        $data = [
+            'period' => [
+                'start_date' => $startDate->format('Y-m-d'),
+                'end_date' => $endDate->format('Y-m-d'),
+                'display_text' => $periodDisplayText
+            ],
+            'overall_sentiment' => $sentiment_status,
+            'top_performer' => $topPerformer,
+            'action_text' => 'Details'
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Staff insights retrieved successfully',
+            'data' => $data
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/survey-insights",
+     *      operationId="getSurveyInsights",
+     *      tags={"dashboard_management"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get survey insights and statistics",
+     *      description="Get active surveys count and recent survey submissions for a business",
+     *      @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date in d-m-Y format (e.g., 01-01-2025)",
+     *         required=false,
+     *         example="01-01-2025"
+     *      ),
+     *      @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date in d-m-Y format (e.g., 31-12-2025)",
+     *         required=false,
+     *         example="31-12-2025"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Survey insights retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="period", type="object",
+     *                      @OA\Property(property="start_date", type="string", example="2025-01-01"),
+     *                      @OA\Property(property="end_date", type="string", example="2025-12-31"),
+     *                      @OA\Property(property="display_text", type="string", example="Jan 1, 2025 - Dec 31, 2025")
+     *                  ),
+     *                  @OA\Property(property="active_surveys", type="integer", example=5),
+     *                  @OA\Property(property="recent_submissions", type="integer", example=120),
+     *                  @OA\Property(property="action_text", type="string", example="Manage")
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad request"
+     *      )
+     * )
+     */
+    public function getSurveyInsights(Request $request)
+    {
+        // VALIDATE QUERY
+        $request->validate([
+            'start_date' => 'nullable|date_format:d-m-Y',
+            'end_date' => 'nullable|date_format:d-m-Y'
+        ]);
+
+        // GET BUSINESS ID
+        $businessId = auth()->user()->business_id;
+
+        // Parse date parameters with defaults for all-time data
+        $endDate = $request->end_date
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $startDate = $request->start_date
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::createFromTimestamp(0)->startOfDay(); // Very old date for all-time
+
+        // Validate date range
+        if ($startDate->greaterThan($endDate)) {
+            throw new BadRequestException('Start date cannot be greater than end date');
+        }
+
+        // Active Surveys (surveys that are active/published)
+        $activeSurveys = Survey::where('business_id', $businessId)
+            ->where('is_active', true)
+            ->count();
+
+        // Recent Submissions (reviews in the current period that are from surveys)
+        $recentSubmissions = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotNull('survey_id')
+            ->count();
+
+        // Format period display text
+        $periodDisplayText = formatPeriodDisplay($startDate, $endDate);
+
+        $data = [
+            'period' => [
+                'start_date' => $startDate->format('Y-m-d'),
+                'end_date' => $endDate->format('Y-m-d'),
+                'display_text' => $periodDisplayText
+            ],
+            'active_surveys' => $activeSurveys,
+            'recent_submissions' => $recentSubmissions,
+            'action_text' => 'Manage'
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Survey insights retrieved successfully',
+            'data' => $data
+        ], 200);
+    }
 
     /**
      * @OA\Get(
@@ -2377,7 +2642,7 @@ class DashboardController extends Controller
      * @OA\Get(
      *      path="/v1.0/dashboard/ai-insights",
      *      operationId="getAiInsights",
-     *      tags={"dashboard_management.ai"},
+     *      tags={"dashboard_management"},
      *      security={{"bearerAuth": {}}},
      *      summary="Get AI insights for authenticated user's business",
      *      description="Retrieve AI-generated insights and recommendations",

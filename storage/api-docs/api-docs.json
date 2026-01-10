@@ -6183,6 +6183,138 @@
                 ]
             }
         },
+        "/v1.0/business/default-branch": {
+            "patch": {
+                "tags": [
+                    "business"
+                ],
+                "summary": "Update default branch for the authenticated user's business",
+                "description": "Update the default branch ID for the business owned by the authenticated user. The business is determined by the user's ownership.",
+                "operationId": "updateDefaultBranch",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "default_branch_id": {
+                                        "description": "ID of the default branch (null to remove default branch)",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default branch updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Default branch updated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "Name": {
+                                                    "type": "string",
+                                                    "example": "My Restaurant"
+                                                },
+                                                "default_branch_id": {
+                                                    "type": "integer",
+                                                    "example": 1,
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business or branch not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/client/businesses": {
             "get": {
                 "tags": [
@@ -8804,10 +8936,205 @@
                 ]
             }
         },
-        "/v1.0/dashboard/overview": {
+        "/v1.0/dashboard/staff-insights": {
             "get": {
                 "tags": [
                     "dashboard_management"
+                ],
+                "summary": "Get staff insights and top performers",
+                "description": "Get overall sentiment and top performing staff member for a business",
+                "operationId": "getStaffInsights",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format (e.g., 01-01-2025)",
+                        "required": false,
+                        "example": "01-01-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format (e.g., 31-12-2025)",
+                        "required": false,
+                        "example": "31-12-2025"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff insights retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "period": {
+                                                    "properties": {
+                                                        "start_date": {
+                                                            "type": "string",
+                                                            "example": "2025-01-01"
+                                                        },
+                                                        "end_date": {
+                                                            "type": "string",
+                                                            "example": "2025-12-31"
+                                                        },
+                                                        "display_text": {
+                                                            "type": "string",
+                                                            "example": "Jan 1, 2025 - Dec 31, 2025"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "overall_sentiment": {
+                                                    "type": "string",
+                                                    "example": "Positive"
+                                                },
+                                                "top_performer": {
+                                                    "properties": {
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "John Doe"
+                                                        },
+                                                        "rating": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 4.8
+                                                        },
+                                                        "review_count": {
+                                                            "type": "integer",
+                                                            "example": 25
+                                                        }
+                                                    },
+                                                    "type": "object",
+                                                    "nullable": true
+                                                },
+                                                "action_text": {
+                                                    "type": "string",
+                                                    "example": "Details"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/survey-insights": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get survey insights and statistics",
+                "description": "Get active surveys count and recent survey submissions for a business",
+                "operationId": "getSurveyInsights",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date in d-m-Y format (e.g., 01-01-2025)",
+                        "required": false,
+                        "example": "01-01-2025"
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date in d-m-Y format (e.g., 31-12-2025)",
+                        "required": false,
+                        "example": "31-12-2025"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Survey insights retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "period": {
+                                                    "properties": {
+                                                        "start_date": {
+                                                            "type": "string",
+                                                            "example": "2025-01-01"
+                                                        },
+                                                        "end_date": {
+                                                            "type": "string",
+                                                            "example": "2025-12-31"
+                                                        },
+                                                        "display_text": {
+                                                            "type": "string",
+                                                            "example": "Jan 1, 2025 - Dec 31, 2025"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "active_surveys": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "recent_submissions": {
+                                                    "type": "integer",
+                                                    "example": 120
+                                                },
+                                                "action_text": {
+                                                    "type": "string",
+                                                    "example": "Manage"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/overview": {
+            "get": {
+                "tags": [
+                    "z.unused"
                 ],
                 "summary": "Get dashboard overview data",
                 "description": "Get dashboard overview statistics for the specified date range",
@@ -9416,7 +9743,7 @@
         "/v1.0/reports/staff-dashboard/{businessId}": {
             "get": {
                 "tags": [
-                    "Reports"
+                    "dashboard_management.staff"
                 ],
                 "summary": "Get staff performance dashboard",
                 "description": "Get overall staff performance metrics and rankings",
@@ -9575,6 +9902,132 @@
                         "description": "Not Found"
                     }
                 }
+            }
+        },
+        "/v1.0/dashboard/top-staff": {
+            "get": {
+                "tags": [
+                    "dashboard_management.staff"
+                ],
+                "summary": "Get top performing staff for authenticated user's business",
+                "description": "Retrieve top staff members ranked by average rating from reviews",
+                "operationId": "getTopStaff",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of top staff to return (default: 3)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        },
+                        "example": 3
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Top Staff retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "staff_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "staff_name": {
+                                                        "type": "string",
+                                                        "example": "John Doe"
+                                                    },
+                                                    "position": {
+                                                        "type": "string",
+                                                        "example": "Manager"
+                                                    },
+                                                    "avg_rating": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 4.5
+                                                    },
+                                                    "review_count": {
+                                                        "type": "integer",
+                                                        "example": 25
+                                                    },
+                                                    "sentiment_score": {
+                                                        "type": "integer",
+                                                        "example": 80
+                                                    },
+                                                    "sentiment_label": {
+                                                        "type": "string",
+                                                        "example": "Excellent"
+                                                    },
+                                                    "top_topics": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "recent_activity": {
+                                                        "type": "string",
+                                                        "example": "2 days ago"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/v1.0/reports/review-analytics/{businessId}": {
@@ -9809,6 +10262,15 @@
                         "in": "query",
                         "description": "Period: last_30_days, last_7_days, this_month, last_month",
                         "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month"
+                            ]
+                        },
                         "example": "last_30_days"
                     }
                 ],
@@ -9829,6 +10291,914 @@
                                         },
                                         "data": {
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/recent-reviews": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get recent reviews for authenticated user's business",
+                "description": "Retrieve recent reviews feed with optional period filtering",
+                "operationId": "getRecentReviews",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Recent reviews retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "customer_name": {
+                                                        "type": "string",
+                                                        "example": "John Doe"
+                                                    },
+                                                    "rating": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 4.5
+                                                    },
+                                                    "sentiment": {
+                                                        "type": "string",
+                                                        "example": "positive"
+                                                    },
+                                                    "comment": {
+                                                        "type": "string",
+                                                        "example": "Great service!"
+                                                    },
+                                                    "staff_name": {
+                                                        "type": "string",
+                                                        "example": "Jane Smith",
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2024-01-08T10:30:00Z"
+                                                    },
+                                                    "is_voice_review": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "tags": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error - Invalid period",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "period": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "Invalid period. Only allowed: last_30_days, last_7_days, this_month, last_month, all_time"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/rating-breakdown": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get rating breakdown for authenticated user's business",
+                "description": "Retrieve rating distribution and statistics",
+                "operationId": "getRatingBreakdown",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Rating breakdown retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "average_rating": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 4.2
+                                                },
+                                                "total_reviews": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                },
+                                                "distribution": {
+                                                    "properties": {
+                                                        "5_star": {
+                                                            "type": "integer",
+                                                            "example": 75
+                                                        },
+                                                        "4_star": {
+                                                            "type": "integer",
+                                                            "example": 45
+                                                        },
+                                                        "3_star": {
+                                                            "type": "integer",
+                                                            "example": 20
+                                                        },
+                                                        "2_star": {
+                                                            "type": "integer",
+                                                            "example": 7
+                                                        },
+                                                        "1_star": {
+                                                            "type": "integer",
+                                                            "example": 3
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/tags-breakdown": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get tags breakdown for authenticated user's business",
+                "description": "Retrieve tag distribution and analysis",
+                "operationId": "getTagsBreakdown",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Tags breakdown retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "top_tags": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "tag": {
+                                                                "type": "string",
+                                                                "example": "service"
+                                                            },
+                                                            "count": {
+                                                                "type": "integer",
+                                                                "example": 45
+                                                            },
+                                                            "percentage": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 30
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "total_tags": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/ai-insights": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get AI insights for authenticated user's business",
+                "description": "Retrieve AI-generated insights and recommendations",
+                "operationId": "getAiInsights",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "AI insights retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "summary": {
+                                                    "type": "string",
+                                                    "example": "Customer satisfaction is improving"
+                                                },
+                                                "key_insights": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "recommendations": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "sentiment_trend": {
+                                                    "type": "string",
+                                                    "example": "positive"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/staff-performance-snapshot": {
+            "get": {
+                "tags": [
+                    "dashboard_management.staff"
+                ],
+                "summary": "Get staff performance snapshot for authenticated user's business",
+                "description": "Retrieve staff performance metrics and rankings",
+                "operationId": "getStaffPerformanceSnapshot",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff performance retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "top_performers": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "staff_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "staff_name": {
+                                                                "type": "string",
+                                                                "example": "John Doe"
+                                                            },
+                                                            "avg_rating": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 4.5
+                                                            },
+                                                            "review_count": {
+                                                                "type": "integer",
+                                                                "example": 25
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "average_performance": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 4.2
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/metrics": {
+            "get": {
+                "tags": [
+                    "dashboard_management"
+                ],
+                "summary": "Get dashboard metrics for authenticated user's business",
+                "description": "Get comprehensive dashboard metrics data with AI insights and analytics for the authenticated user's business",
+                "operationId": "getDashboardMetrics",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dashboard metrics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "avg_overall_rating": {
+                                                    "properties": {
+                                                        "value": {
+                                                            "type": "number",
+                                                            "example": 4.2
+                                                        },
+                                                        "change": {
+                                                            "type": "number",
+                                                            "example": 5,
+                                                            "nullable": true
+                                                        },
+                                                        "previous_value": {
+                                                            "type": "number",
+                                                            "example": 4
+                                                        },
+                                                        "calculated_from": {
+                                                            "type": "string",
+                                                            "example": "review_value_news (via calculated_rating)"
+                                                        },
+                                                        "review_count": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "ai_sentiment_score": {
+                                                    "properties": {
+                                                        "value": {
+                                                            "type": "number",
+                                                            "example": 7.5
+                                                        },
+                                                        "max": {
+                                                            "type": "integer",
+                                                            "example": 10
+                                                        },
+                                                        "change": {
+                                                            "type": "number",
+                                                            "example": 3.2,
+                                                            "nullable": true
+                                                        },
+                                                        "review_count": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "total_reviews": {
+                                                    "properties": {
+                                                        "value": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        },
+                                                        "change": {
+                                                            "type": "number",
+                                                            "example": 25,
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "positive_negative_ratio": {
+                                                    "properties": {
+                                                        "positive": {
+                                                            "type": "integer",
+                                                            "example": 70
+                                                        },
+                                                        "negative": {
+                                                            "type": "integer",
+                                                            "example": 15
+                                                        },
+                                                        "positive_count": {
+                                                            "type": "integer",
+                                                            "example": 105
+                                                        },
+                                                        "negative_count": {
+                                                            "type": "integer",
+                                                            "example": 22
+                                                        },
+                                                        "review_count": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "staff_linked_reviews": {
+                                                    "properties": {
+                                                        "percentage": {
+                                                            "type": "integer",
+                                                            "example": 60
+                                                        },
+                                                        "count": {
+                                                            "type": "integer",
+                                                            "example": 90
+                                                        },
+                                                        "total": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        },
+                                                        "review_count": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "voice_reviews": {
+                                                    "properties": {
+                                                        "percentage": {
+                                                            "type": "integer",
+                                                            "example": 25
+                                                        },
+                                                        "count": {
+                                                            "type": "integer",
+                                                            "example": 38
+                                                        },
+                                                        "total": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        },
+                                                        "review_count": {
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "rating_distribution": {
+                                                    "properties": {
+                                                        "5_star": {
+                                                            "type": "integer",
+                                                            "example": 75
+                                                        },
+                                                        "4_star": {
+                                                            "type": "integer",
+                                                            "example": 45
+                                                        },
+                                                        "3_star": {
+                                                            "type": "integer",
+                                                            "example": 20
+                                                        },
+                                                        "2_star": {
+                                                            "type": "integer",
+                                                            "example": 7
+                                                        },
+                                                        "1_star": {
+                                                            "type": "integer",
+                                                            "example": 3
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid period",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "period": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "Invalid period. Only allowed: last_30_days, last_7_days, this_month, last_month, all_time"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
+                                        },
+                                        "data": {
+                                            "type": "null"
                                         }
                                     },
                                     "type": "object"
@@ -19971,6 +21341,20 @@
                         "example": 1
                     },
                     {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "Filter reviews by overall status (1 = overall reviews, 0 = non-overall reviews, not specified = all reviews)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "example": 1
+                    },
+                    {
                         "name": "topics",
                         "in": "query",
                         "description": "Filter reviews by topic",
@@ -20038,7 +21422,8 @@
         "/v1.0/review-trends/{businessId}": {
             "get": {
                 "tags": [
-                    "review_management"
+                    "review_management",
+                    "dashboard_management"
                 ],
                 "summary": "Get review trends for a business",
                 "description": "Retrieve review submission trends over time for a specific business with optional date filtering",
@@ -22505,6 +23890,245 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/staffs/metrics": {
+            "get": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Get staff metrics for authenticated user's business",
+                "description": "Retrieve staff performance metrics including averages, totals, and trends",
+                "operationId": "getStaffMetrics",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Filter period (default: last_month)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "this_week",
+                                "this_month",
+                                "last_week",
+                                "last_month"
+                            ]
+                        },
+                        "example": "last_month"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff metrics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "total_reviews": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                },
+                                                "average_rating": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 4.2
+                                                },
+                                                "total_staff": {
+                                                    "type": "integer",
+                                                    "example": 25
+                                                },
+                                                "trend": {
+                                                    "properties": {
+                                                        "rating_change": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 5.5
+                                                        },
+                                                        "review_change": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 12.3
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error - Invalid period",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "period": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "Invalid period. Only allowed: this_week, this_month, last_week, last_month"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/staffs/compliment-ratio": {
+            "get": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Get staff compliment ratio for authenticated user's business",
+                "description": "Retrieve compliment ratio showing positive vs negative feedback for staff",
+                "operationId": "getStaffComplimentRatio",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Compliment ratio retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "total_reviews": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                },
+                                                "positive_count": {
+                                                    "type": "integer",
+                                                    "example": 120
+                                                },
+                                                "negative_count": {
+                                                    "type": "integer",
+                                                    "example": 30
+                                                },
+                                                "compliment_ratio": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 80
+                                                },
+                                                "sentiment_label": {
+                                                    "type": "string",
+                                                    "example": "Excellent"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
                                         }
                                     },
                                     "type": "object"
@@ -25903,7 +27527,7 @@
                     "user_management.super_admin"
                 ],
                 "summary": "Delete user by id",
-                "description": "\n     *     Rules:\n     *     - Superadmin can delete ONLY business owners and it's business\n     *     - Business owner can delete users within their own business\n     *     - Business owner cannot delete another business owner\n     *     ",
+                "description": "\r\n     *     Rules:\r\n     *     - Superadmin can delete ONLY business owners and it's business\r\n     *     - Business owner can delete users within their own business\r\n     *     - Business owner cannot delete another business owner\r\n     *     ",
                 "operationId": "deleteUserById",
                 "parameters": [
                     {
@@ -26095,11 +27719,6 @@
                                             "business_staff"
                                         ],
                                         "example": "branch_manager"
-                                    },
-                                    "branch_id": {
-                                        "description": "Branch ID to assign the user to (optional)",
-                                        "type": "integer",
-                                        "example": 1
                                     },
                                     "post_code": {
                                         "description": "Postal code",
@@ -26692,11 +28311,6 @@
                                         "description": "User skills",
                                         "type": "string",
                                         "example": "PHP, Laravel"
-                                    },
-                                    "branch_id": {
-                                        "description": "Branch ID to assign the user",
-                                        "type": "integer",
-                                        "example": 1
                                     }
                                 },
                                 "type": "object"
@@ -27493,6 +29107,10 @@
         {
             "name": "Reports",
             "description": "Reports"
+        },
+        {
+            "name": "dashboard_management.staff",
+            "description": "dashboard_management.staff"
         },
         {
             "name": "email_management.feed_genius",
