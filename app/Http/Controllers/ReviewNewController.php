@@ -3376,7 +3376,19 @@ class ReviewNewController extends Controller
         ])->where("business_id", $businessId)
             ->withCalculatedRating();
 
+        // Apply review_ids filter (comma-separated IDs)
+        if ($request->has('review_ids') && !empty($request->review_ids)) {
+            $reviewIds = $request->input('review_ids');
 
+            // Handle both array and comma-separated string
+            if (is_string($reviewIds)) {
+                $reviewIds = array_filter(array_map('trim', explode(',', $reviewIds)));
+            }
+
+            if (!empty($reviewIds)) {
+                $query->whereIn('id', $reviewIds);
+            }
+        }
 
         // Apply status filter
         if ($request->has('status') && !empty($request->status)) {

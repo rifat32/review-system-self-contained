@@ -804,7 +804,7 @@ class DashboardController extends Controller
      * @OA\Get(
      *      path="/v1.0/dashboard/overview",
      *      operationId="getDashboardOverview",
-     *      tags={"dashboard_management"},
+     *      tags={"z.unused"},
      *      @OA\Parameter(
      *         name="businessId",
      *         in="query",
@@ -1138,7 +1138,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Dashboard overview retrieved successfully',
+            'message' => 'api has been deprecated',
             'data' => $data
         ], 200);
     }

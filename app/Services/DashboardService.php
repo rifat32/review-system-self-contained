@@ -236,7 +236,18 @@ class DashboardService
             'repeated_issues' => [
                 'review_count' => $total,
                 'issue_count' => $issueAnalysis['total_issues_found'],
-                'top_issue' => $topIssue
+                'top_issue' => $topIssue,
+                'top_issue_details' => !empty($issueAnalysis['repeated_issues']) ? [
+                    'issue_name' => $issueAnalysis['repeated_issues'][0]['issue'],
+                    'occurrence_count' => $issueAnalysis['repeated_issues'][0]['count'],
+                    'percentage' => $issueAnalysis['repeated_issues'][0]['percentage'],
+                    'severity' => $issueAnalysis['repeated_issues'][0]['severity'],
+                    'priority' => $issueAnalysis['repeated_issues'][0]['priority'],
+                    'sample_review_ids' => array_column(
+                        $issueAnalysis['repeated_issues'][0]['sample_reviews'] ?? [],
+                        'id'
+                    ),
+                ] : null
             ],
             'csat_score' => [
                 'percentage' => $csatPercentage,
