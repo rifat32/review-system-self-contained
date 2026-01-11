@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      *
@@ -42,7 +41,7 @@ return new class extends Migration
             $table->foreign('staff_id')->references('id')->on('users')->onDelete('set null');
             $table->enum('status', ['pending', 'published', 'rejected'])->default('pending');
             $table->integer('order_no')->default(0);
-            $table->float('sentiment_score')->nullable(); 
+            $table->float('sentiment_score')->nullable();
             $table->json('topics')->nullable();
             $table->json('moderation_results')->nullable();
             $table->json('ai_suggestions')->nullable();
@@ -54,23 +53,23 @@ return new class extends Migration
             $table->json('transcription_metadata')->nullable();
             $table->boolean('is_private')->nullable();
 
-             $table->boolean('rating_comment_mismatch')->default(false);
+            $table->boolean('rating_comment_mismatch')->default(false);
             $table->json('mismatch_insights')->nullable();
 
 
-        $table->decimal('ai_confidence', 3, 2)->nullable()->comment('Confidence score 0.00-1.00');
-        $table->string('sentiment_label', 20)->nullable()->comment('very_negative, negative, neutral, positive, very_positive');
-        $table->json('openai_raw_response')->nullable();
-        $table->boolean('is_abusive')->default(false);
-        $table->text('summary')->nullable();
-        $table->json('service_analysis')->nullable();
+            $table->decimal('ai_confidence', 3, 2)->nullable()->comment('Confidence score 0.00-1.00');
+            $table->string('sentiment_label', 20)->nullable()->comment('very_negative, negative, neutral, positive, very_positive');
+            $table->json('openai_raw_response')->nullable();
+            $table->boolean('is_abusive')->default(false);
+            $table->text('summary')->nullable();
+            $table->json('service_analysis')->nullable();
 
-        $table->boolean('is_ai_processed')->default(0);
+            $table->boolean('is_ai_processed')->default(0);
 
-         $table->unsignedBigInteger('branch_id')->nullable();
-      
+            $table->unsignedBigInteger('branch_id')->nullable();
 
-        $table->timestamps();
+
+            $table->timestamps();
 
         });
     }

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 use Carbon\Carbon;
 
@@ -1301,10 +1302,7 @@ class StaffController extends Controller
             ->find($staffId);
 
         if (!$staff) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Staff not found'
-            ], 404);
+            throw new NotFoundHttpException('Staff not found');
         }
 
         $validFilters = ['positive', 'negative', 'neutral'];
@@ -1421,22 +1419,16 @@ class StaffController extends Controller
 
         $businessId = $user->business_id;
 
-        // Validate filter parameter
-        $allowedFilters = ['this_week', 'this_month', 'last_week', 'last_month'];
-        $period = $request->get('period');
 
-        if (!in_array($period, $allowedFilters)) {
-            throw ValidationException::withMessages([
-                'period' => 'Invalid period. Only allowed: ' . implode(', ', $allowedFilters)
-            ]);
-        }
+        // GET DATE RANGE BASED ON PERIOD
+        $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
 
-        // Use StaffService to get metrics with proper period comparison
-        // this_week compares with last_week
-        // this_month compares with last_month
-        // last_week compares with week before last
-        // last_month compares with 2 months ago
-        $overallMetrics = StaffService::getStaffMetricsWithComparison($businessId, $period);
+        // Use StaffService to get metrics with named arguments (PHP 8.0+)
+        $overallMetrics = StaffService::getStaffMetricsWithComparison(
+            businessId: $businessId,
+            dateRange: $dateRange,
+            user: $user
+        );
 
         return response()->json([
             'success' => true,
@@ -1453,6 +1445,14 @@ class StaffController extends Controller
      *      security={{"bearerAuth": {}}},
      *      summary="Get staff compliment ratio for authenticated user's business",
      *      description="Retrieve compliment ratio showing positive vs negative feedback for staff",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
@@ -1486,17 +1486,32 @@ class StaffController extends Controller
     public function getComplimentRatio(Request $request)
     {
         $user = $request->user();
+        $businessId = $user->business_id;
 
-        if (!$user || !$user->business_id) {
+        if (!$businessId) {
             throw new AuthorizationException('User does not have an associated business');
         }
 
-        $businessId = $user->business_id;
+        // GET DATE RANGE BASED ON PERIOD
+        $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
 
+        $userBranchId = $user->hasRole('business_owner') || $user->hasRole('branch_manager')
+            ? $user->default_branch_id
+            : null;
+
+        // GET CURRENT REVIEWS
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->globalFilters(0, $businessId)
             ->withCalculatedRating()
+            ->when($dateRange, function ($query) use ($dateRange) {
+                // FILTER BY DATE RANGE
+                return $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+            })
+            ->when($userBranchId, function ($query) use ($userBranchId) {
+                // FILTER BY BRANCH
+                return $query->where('branch_id', $userBranchId);
+            })
             ->get();
 
         $complimentRatio = calculateComplimentRatio($currentReviews);
@@ -1507,4 +1522,103 @@ class StaffController extends Controller
             'data' => $complimentRatio
         ], 200);
     }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/staffs/top-staffs",
+     *      operationId="getTopStaff",
+     *      tags={"staff_management"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get top performing staff for authenticated user's business",
+     *      description="Retrieve top staff members ranked by average rating from reviews",
+     *      @OA\Parameter(
+     *          name="limit",
+     *          in="query",
+     *          required=false,
+     *          description="Number of top staff to return (default: 3)",
+     *          example=3,
+     *          @OA\Schema(type="integer", minimum=1, maximum=100)
+     *      ),
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Top Staff retrieved successfully"),
+     *              @OA\Property(property="data", type="array",
+     *                  @OA\Items(
+     *                      type="object",
+     *                      @OA\Property(property="staff_id", type="integer", example=1),
+     *                      @OA\Property(property="staff_name", type="string", example="John Doe"),
+     *                      @OA\Property(property="position", type="string", example="Manager"),
+     *                      @OA\Property(property="avg_rating", type="number", format="float", example=4.5),
+     *                      @OA\Property(property="review_count", type="integer", example=25),
+     *                      @OA\Property(property="sentiment_score", type="integer", example=80),
+     *                      @OA\Property(property="sentiment_label", type="string", example="Excellent"),
+     *                      @OA\Property(property="top_topics", type="array", @OA\Items(type="string")),
+     *                      @OA\Property(property="recent_activity", type="string", example="2 days ago")
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User has no business",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="User does not have an associated business")
+     *          )
+     *      )
+     * )
+     */
+    public function getTopStaff(Request $request)
+    {
+        $user = $request->user();
+        $businessId = $user->business_id;
+        $limit = $request->get('limit', 3);
+
+        // GET DATE RANGE BASED ON PERIOD
+        $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
+
+        $userBranchId = $user->hasRole('business_owner') || $user->hasRole('branch_manager')
+            ? $user->default_branch_id
+            : null;
+
+        $currentReviews = ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->globalFilters(0, $businessId)
+            ->when($dateRange, function ($query) use ($dateRange) {
+                // FILTER BY DATE RANGE
+                return $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+            })
+            ->when($userBranchId, function ($query) use ($userBranchId) {
+                // FILTER BY BRANCH
+                return $query->where('branch_id', $userBranchId);
+            })
+            ->withCalculatedRating()
+            ->get();
+
+        $topStaff = getTopStaffByRatingFromReviewValue($currentReviews, $limit);
+
+        // SEND RESPONSE
+        return response()->json([
+            'success' => true,
+            'message' => 'Top Staff retrieved successfully',
+            'data' => $topStaff
+        ], 200);
+    }
+
 }

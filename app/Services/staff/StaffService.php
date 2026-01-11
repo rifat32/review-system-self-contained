@@ -3,82 +3,32 @@
 namespace App\Services\staff;
 
 use App\Models\ReviewNew;
+use App\Models\User;
 use Carbon\Carbon;
 
 class StaffService
 {
-    /**
-     * Get date range for current period based on period type
-     */
-    public static function getCurrentPeriodDateRange(string $period): array
-    {
-        return match ($period) {
-            'this_week' => [
-                'start' => Carbon::now()->startOfWeek(),
-                'end' => Carbon::now()->endOfWeek()
-            ],
-            'this_month' => [
-                'start' => Carbon::now()->startOfMonth(),
-                'end' => Carbon::now()->endOfMonth()
-            ],
-            'last_week' => [
-                'start' => Carbon::now()->subWeek()->startOfWeek(),
-                'end' => Carbon::now()->subWeek()->endOfWeek()
-            ],
-            'last_month' => [
-                'start' => Carbon::now()->subMonth()->startOfMonth(),
-                'end' => Carbon::now()->subMonth()->endOfMonth()
-            ],
-            default => [
-                'start' => Carbon::now()->startOfMonth(),
-                'end' => Carbon::now()->endOfMonth()
-            ]
-        };
-    }
-
-    /**
-     * Get date range for comparison (previous) period based on period type
-     */
-    public static function getComparisonPeriodDateRange(string $period): array
-    {
-        return match ($period) {
-            'this_week' => [
-                // Compare this week with last week
-                'start' => Carbon::now()->subWeek()->startOfWeek(),
-                'end' => Carbon::now()->subWeek()->endOfWeek()
-            ],
-            'this_month' => [
-                // Compare this month with last month
-                'start' => Carbon::now()->subMonth()->startOfMonth(),
-                'end' => Carbon::now()->subMonth()->endOfMonth()
-            ],
-            'last_week' => [
-                // Compare last week with 2 weeks ago
-                'start' => Carbon::now()->subWeeks(2)->startOfWeek(),
-                'end' => Carbon::now()->subWeeks(2)->endOfWeek()
-            ],
-            'last_month' => [
-                // Compare last month with 2 months ago
-                'start' => Carbon::now()->subMonths(2)->startOfMonth(),
-                'end' => Carbon::now()->subMonths(2)->endOfMonth()
-            ],
-            default => [
-                'start' => Carbon::now()->subMonth()->startOfMonth(),
-                'end' => Carbon::now()->subMonth()->endOfMonth()
-            ]
-        };
-    }
 
     /**
      * Get reviews for current period
      */
-    public static function getCurrentPeriodReviews(int $businessId, string $period)
-    {
-        $dateRange = self::getCurrentPeriodDateRange($period);
+    public static function getCurrentPeriodReviews(
+        int $businessId,
+        array $dateRange = null,
+        ?User $user = null
+    ) {
+        $userBranchId = $user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')) ? $user->default_branch_id : null;
 
         return ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->when($dateRange, function ($query) use ($dateRange) {
+                $startDate = Carbon::parse($dateRange['start'])->startOfDay();
+                $endDate = Carbon::parse($dateRange['end'])->endOfDay();
+                return $query->whereBetween('created_at', [$startDate, $endDate]);
+            })
+            ->when($userBranchId, function ($query) use ($userBranchId) {
+                return $query->where('branch_id', $userBranchId);
+            })
             ->globalFilters(0, $businessId)
             ->withCalculatedRating()
             ->get();
@@ -87,32 +37,56 @@ class StaffService
     /**
      * Get reviews for comparison (previous) period
      */
-    public static function getComparisonPeriodReviews(int $businessId, string $period)
-    {
-        $dateRange = self::getComparisonPeriodDateRange($period);
+    public static function getComparisonPeriodReviews(
+        int $businessId,
+        array $dateRange = null,
+        ?User $user = null
+    ) {
+        $userBranchId = $user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')) ? $user->default_branch_id : null;
 
         return ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->when($dateRange, function ($query) use ($dateRange) {
+                $startDate = Carbon::parse($dateRange['start'])->subMonth()->startOfDay();
+                $endDate = Carbon::parse($dateRange['end'])->subMonth()->endOfDay();
+                return $query->whereBetween('created_at', [$startDate, $endDate]);
+            })
+            ->when($userBranchId, function ($query) use ($userBranchId) {
+                return $query->where('branch_id', $userBranchId);
+            })
             ->globalFilters(0, $businessId)
             ->withCalculatedRating()
             ->get();
     }
 
+
     /**
      * Get staff metrics with period comparison
+     * 
+     * @param int $businessId Business ID
+     * @param array|null $dateRange Date range array with 'start' and 'end' keys
+     * @param User|null $user User for branch filtering
+     * @return array
      */
-    public static function getStaffMetricsWithComparison(int $businessId, string $period): array
-    {
+    public static function getStaffMetricsWithComparison(
+        int $businessId,
+        ?array $dateRange = null,
+        ?User $user = null
+    ): array {
         // Get current period reviews
-        $currentReviews = self::getCurrentPeriodReviews($businessId, $period);
+        $currentReviews = self::getCurrentPeriodReviews(
+            businessId: $businessId,
+            dateRange: $dateRange,
+            user: $user
+        );
 
         // Get comparison period reviews
-        $comparisonReviews = self::getComparisonPeriodReviews($businessId, $period);
+        $comparisonReviews = self::getComparisonPeriodReviews(
+            businessId: $businessId,
+            dateRange: $dateRange,
+            user: $user
+        );
 
-        // Get date ranges for context
-        $currentDateRange = self::getCurrentPeriodDateRange($period);
-        $comparisonDateRange = self::getComparisonPeriodDateRange($period);
 
         // Calculate staff counts
         $currentStaffCount = $currentReviews->pluck('staff_id')->unique()->count();
@@ -148,18 +122,12 @@ class StaffService
 
         // Add period information
         $overallMetrics['period_info'] = [
-            'selected_period' => $period,
+            'selected_period' => $dateRange,
             'current_period' => [
-                'start' => $currentDateRange['start']->format('Y-m-d'),
-                'end' => $currentDateRange['end']->format('Y-m-d'),
-                'label' => self::getPeriodLabel($period, 'current'),
                 'staff_count' => $currentStaffCount,
                 'review_count' => $currentReviewCount
             ],
             'comparison_period' => [
-                'start' => $comparisonDateRange['start']->format('Y-m-d'),
-                'end' => $comparisonDateRange['end']->format('Y-m-d'),
-                'label' => self::getPeriodLabel($period, 'comparison'),
                 'staff_count' => $comparisonStaffCount,
                 'review_count' => $comparisonReviewCount
             ]
@@ -168,28 +136,58 @@ class StaffService
         return $overallMetrics;
     }
 
-    /**
-     * Get human-readable period label
-     */
-    private static function getPeriodLabel(string $period, string $type): string
+    public static function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
     {
-        if ($type === 'current') {
-            return match ($period) {
-                'this_week' => 'This Week',
-                'this_month' => 'This Month',
-                'last_week' => 'Last Week',
-                'last_month' => 'Last Month',
-                default => 'Current Period'
-            };
+        // Calculate current period average rating from calculated_rating field
+        $currentAvgRating = $currentReviews->isNotEmpty()
+            ? round($currentReviews->avg('calculated_rating'), 1)
+            : 0;
+
+        // Calculate previous period average rating from calculated_rating field
+        $previousAvgRating = $previousReviews->isNotEmpty()
+            ? round($previousReviews->avg('calculated_rating'), 1)
+            : 0;
+
+        $currentSentiment = self::calculateAverageSentiment($currentReviews);
+        $currentTotalReviews = $currentReviews->count();
+
+        $previousSentiment = self::calculateAverageSentiment($previousReviews);
+        $previousTotalReviews = $previousReviews->count();
+
+        $ratingChange = $previousAvgRating > 0 ?
+            round((($currentAvgRating - $previousAvgRating) / $previousAvgRating) * 100, 1) : 0;
+
+        $sentimentChange = $previousSentiment > 0 ?
+            round($currentSentiment - $previousSentiment, 1) : 0;
+
+        $reviewsChange = $previousTotalReviews > 0 ?
+            $currentTotalReviews - $previousTotalReviews : $currentTotalReviews;
+
+        return [
+            'overall_rating' => [
+                'value' => $currentAvgRating,
+                'change' => $ratingChange,
+                'change_type' => $ratingChange >= 0 ? 'positive' : 'negative'
+            ],
+            'overall_sentiment' => [
+                'value' => $currentSentiment,
+                'change' => $sentimentChange,
+                'change_type' => $sentimentChange >= 0 ? 'positive' : 'negative'
+            ],
+            'total_reviews' => [
+                'value' => $currentTotalReviews,
+                'change' => $reviewsChange,
+                'change_type' => $reviewsChange >= 0 ? 'positive' : 'negative'
+            ]
+        ];
+    }
+    public static function calculateAverageSentiment($reviews)
+    {
+        if ($reviews->isEmpty()) {
+            return 0;
         }
 
-        // Comparison labels
-        return match ($period) {
-            'this_week' => 'Last Week',
-            'this_month' => 'Last Month',
-            'last_week' => 'Week Before Last',
-            'last_month' => '2 Months Ago',
-            default => 'Previous Period'
-        };
+        $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        return round(($positiveReviews / $reviews->count()) * 100);
     }
 }

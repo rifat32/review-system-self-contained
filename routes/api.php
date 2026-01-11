@@ -247,13 +247,14 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // StaffController – CRUD + image upload (protected)
     // ============================================================================
-    Route::get('/v1.0/staffs', [StaffController::class, 'getAllStaffs']);
+    // Route::get('/v1.0/staffs', [StaffController::class, 'getAllStaffs']);
     Route::get('/v1.0/staffs/metrics', [StaffController::class, 'getStaffMetrics']);
     Route::get('/v1.0/staffs/compliment-ratio', [StaffController::class, 'getComplimentRatio']);
-    Route::get('/v1.0/staffs/{id}', [StaffController::class, 'getStaffById']);
-    Route::post('/v1.0/staffs', [StaffController::class, 'createStaff']);
-    Route::patch('/v1.0/staffs/{id}', [StaffController::class, 'updateStaff']);
-    Route::delete('/v1.0/staffs/{id}', [StaffController::class, 'deleteStaff']);
+    Route::get('/v1.0/staffs/top-staffs', [StaffController::class, 'getTopStaff']);
+    // Route::get('/v1.0/staffs/{id}', [StaffController::class, 'getStaffById']);
+    // Route::post('/v1.0/staffs', [StaffController::class, 'createStaff']);
+    // Route::patch('/v1.0/staffs/{id}', [StaffController::class, 'updateStaff']);
+    // Route::delete('/v1.0/staffs/{id}', [StaffController::class, 'deleteStaff']);
     Route::get('/v1.0/staffs/{staffId}/performance-report', [StaffController::class, 'staffPerformanceReport']);
     Route::get('/v1.0/staffs/{staffId}/rating-trends', [StaffController::class, 'staffRatingTrends']);
     Route::get('/v1.0/staffs/{staffId}/reviews', [StaffController::class, 'getStaffReviews']);
@@ -446,7 +447,6 @@ Route::middleware(['auth:api'])->group(function () {
 
     // Get dashboard metrics for authenticated user's business (no businessId parameter required)
     Route::get('/v1.0/dashboard/metrics', [DashboardController::class, 'getDashboardMetrics']);
-    Route::get('/v1.0/dashboard/top-staff', [DashboardController::class, 'topStaff']);
     Route::get('/v1.0/dashboard/recent-reviews', [DashboardController::class, 'getRecentReviews']);
     Route::get('/v1.0/dashboard/rating-breakdown', [DashboardController::class, 'getRatingBreakdown']);
     Route::get('/v1.0/dashboard/tags-breakdown', [DashboardController::class, 'getTagsBreakdown']);

@@ -15,31 +15,6 @@ use Carbon\Carbon;
 
 
 
-if (!function_exists('getDateRangeByPeriod')) {
-    function getDateRangeByPeriod($period)
-    {
-        $now = Carbon::now();
-
-        return match ($period) {
-            'last_7_days' => [
-                'start' => $now->copy()->subDays(7)->startOfDay(),
-                'end' => $now->copy()->endOfDay()
-            ],
-            'this_month' => [
-                'start' => $now->copy()->startOfMonth(),
-                'end' => $now->copy()->endOfDay()
-            ],
-            'last_month' => [
-                'start' => $now->copy()->subMonth()->startOfMonth(),
-                'end' => $now->copy()->subMonth()->endOfMonth()
-            ],
-            default => [ // last_30_days
-                'start' => $now->copy()->subDays(30)->startOfDay(),
-                'end' => $now->copy()->endOfDay()
-            ]
-        };
-    }
-}
 
 
 

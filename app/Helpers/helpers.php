@@ -1,5 +1,7 @@
 <?php
 
+use Carbon\Carbon;
+
 
 
 
@@ -38,7 +40,8 @@ if (!function_exists('retrieve_data')) {
         // Get order column and sort order
         if (request()->filled('order_by')) {
             $orderBy = request()->input('order_by');
-        };
+        }
+        ;
         // Handle order_by safely (default to id if empty)
         if (request()->filled('order_by') && request()->input('order_by') !== '') {
             $orderBy = request()->input('order_by');
@@ -103,7 +106,110 @@ if (!function_exists('retrieve_data')) {
 }
 
 
+if (!function_exists('getDateRangeByPeriod')) {
+    function getDateRangeByPeriod($period)
+    {
+        $now = Carbon::now();
 
+        return match ($period) {
+            // Days
+            'yesterday' => [
+                'start' => $now->copy()->subDay()->startOfDay(),
+                'end' => $now->copy()->subDay()->endOfDay()
+            ],
+            'today' => [
+                'start' => $now->copy()->startOfDay(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'last_7_days' => [
+                'start' => $now->copy()->subDays(7)->startOfDay(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'last_30_days' => [
+                'start' => $now->copy()->subDays(30)->startOfDay(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'last_90_days' => [
+                'start' => $now->copy()->subDays(90)->startOfDay(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'next_7_days' => [
+                'start' => $now->copy()->startOfDay(),
+                'end' => $now->copy()->addDays(7)->endOfDay()
+            ],
+            'next_30_days' => [
+                'start' => $now->copy()->startOfDay(),
+                'end' => $now->copy()->addDays(30)->endOfDay()
+            ],
+            'next_90_days' => [
+                'start' => $now->copy()->startOfDay(),
+                'end' => $now->copy()->addDays(90)->endOfDay()
+            ],
+
+            // Weeks
+            'this_week' => [
+                'start' => $now->copy()->startOfWeek(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'last_week' => [
+                'start' => $now->copy()->subWeek()->startOfWeek(),
+                'end' => $now->copy()->subWeek()->endOfWeek()
+            ],
+            'next_week' => [
+                'start' => $now->copy()->addWeek()->startOfWeek(),
+                'end' => $now->copy()->addWeek()->endOfWeek()
+            ],
+
+            // Months
+            'this_month' => [
+                'start' => $now->copy()->startOfMonth(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'last_month' => [
+                'start' => $now->copy()->subMonth()->startOfMonth(),
+                'end' => $now->copy()->subMonth()->endOfMonth()
+            ],
+            'next_month' => [
+                'start' => $now->copy()->addMonth()->startOfMonth(),
+                'end' => $now->copy()->addMonth()->endOfMonth()
+            ],
+
+            // Quarters
+            'this_quarter' => [
+                'start' => $now->copy()->startOfQuarter(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'last_quarter' => [
+                'start' => $now->copy()->subQuarter()->startOfQuarter(),
+                'end' => $now->copy()->subQuarter()->endOfQuarter()
+            ],
+            'next_quarter' => [
+                'start' => $now->copy()->addQuarter()->startOfQuarter(),
+                'end' => $now->copy()->addQuarter()->endOfQuarter()
+            ],
+
+            // Years
+            'this_year' => [
+                'start' => $now->copy()->startOfYear(),
+                'end' => $now->copy()->endOfDay()
+            ],
+            'last_year' => [
+                'start' => $now->copy()->subYear()->startOfYear(),
+                'end' => $now->copy()->subYear()->endOfYear()
+            ],
+            'next_year' => [
+                'start' => $now->copy()->addYear()->startOfYear(),
+                'end' => $now->copy()->addYear()->endOfYear()
+            ],
+
+            // Default fallback (last 30 days)
+            default => [
+                'start' => $now->copy()->subDays(30)->startOfDay(),
+                'end' => $now->copy()->endOfDay()
+            ]
+        };
+    }
+}
 
 
 

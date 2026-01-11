@@ -405,6 +405,13 @@ class UserController extends Controller
      *          @OA\Schema(type="string")
      *      ),
      *      @OA\Parameter(
+     *          name="without_branch",
+     *          in="query",
+     *          description="Filter users without branch assignment",
+     *          required=false,
+     *          @OA\Schema(type="boolean")
+     *      ),
+     *      @OA\Parameter(
      *          name="order_by",
      *          in="query",
      *          description="Field to order the users by, e.g., 'name', 'email', etc.",
@@ -503,7 +510,7 @@ class UserController extends Controller
         // Build query for users in the same business
         $userQuery = User::with([
             'roles:id,name',
-            'branches'
+            'branch'
         ])->where('business_id', $business_id);
 
         // Filter by role - if no role specified, show only staff and manager roles
@@ -511,6 +518,11 @@ class UserController extends Controller
             $userQuery->whereHas('roles', fn($r) => $r->where('name', $request->role));
         } else {
             $userQuery->whereHas('roles', fn($r) => $r->whereIn('name', ['branch_manager', 'business_staff']));
+        }
+
+        // Filter users without branch assignment
+        if (request()->filled('without_branch')) {
+            $userQuery->whereDoesntHave('branch');
         }
 
         // Search functionality

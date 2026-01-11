@@ -3233,7 +3233,7 @@ class ReviewNewController extends Controller
      *          description="Filter by review status",
      *          @OA\Schema(
      *              type="string",
-     *              enum={"published", "draft", "archived"}
+     *              enum={"pending", "published", "rejected"}
      *          )
      *      ),
      *      @OA\Parameter(

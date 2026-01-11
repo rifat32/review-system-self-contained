@@ -458,6 +458,7 @@ class AuthController extends Controller
             $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);
         } else if ($user->hasRole('business_owner')) {
             $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);
+            $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
         }
 
         // SEND RESPONSE
