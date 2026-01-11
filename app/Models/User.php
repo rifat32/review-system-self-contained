@@ -96,7 +96,12 @@ class User extends Authenticatable
 
     public function branch(): HasOne
     {
-        return $this->hasOne(BranchMember::class, 'user_id', 'id')->where('is_active', true);
+        return $this->hasOne(BranchMember::class, 'user_id', 'id')
+            ->where('is_active', true)
+            ->select(
+                'branch_id',
+                'is_active'
+            );
     }
 
     public function branch_histories()

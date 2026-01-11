@@ -379,16 +379,8 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     Route::get('/v1.0/review-new/values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValue"]);
 
-    Route::get('/review-new/getvalues/{businessId}', [ReviewNewController::class, "getreviewvalueById"]);
-
-    Route::get('/review-new/getavg/review/{businessId}/{start}/{end}', [DashboardController::class, "getAverages"]);
-
-    Route::post('/review-new/addupdatetags/{businessId}', [ReviewNewController::class, "store2"]);
 
 
-    Route::get('/review-new/getreview/{businessId}/{rate}/{start}/{end}', [ReviewNewController::class, "filterReviews"]);
-    Route::get('/review-new/getreviewAll/{businessId}', [ReviewNewController::class, "reviewByBusinessId"]);
-    Route::get('/review-new/getcustomerreview/{businessId}/{start}/{end}', [ReviewNewController::class, "getCustommerReview"]);
 
     // Questions (protected)
     Route::get('/review-new/get/questions-all', [ReviewNewController::class, 'getQuestionAll'])->name('getQuestionAll');
@@ -402,9 +394,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/stars/{id}', [StarController::class, "getStarById"]);
     Route::delete('/v1.0/stars/{id}', [StarController::class, "deleteStarById"]);
 
-    // Quantum reports (protected)
-    Route::get('/review-new/get/questions-all-report/quantum', [ReviewNewController::class, "getQuestionAllReportQuantum"]);
-    Route::get('/review-new/get/questions-all-report/guest/quantum', [ReviewNewController::class, "getQuestionAllReportGuestQuantum"]);
 
     // Star-tag-question (protected)
     Route::post('/v1.0/star-tag-question', [StarTagQuestionController::class, "createStarTagQuestion"]);
@@ -412,8 +401,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/star-tag-question', [StarTagQuestionController::class, "getAllStarQuestionTag"]);
     Route::get('/v1.0/star-tag-question/{id}', [StarTagQuestionController::class, "getStarTagQuestionById"]);
     Route::delete('/v1.0/star-tag-question/{id}', [StarTagQuestionController::class, "deleteStarTagQuestionById"]);
-    // Route::get('/tag-count/star-tag-question/{businessId}', [QuestionController::class, "getSelectedTagCount"]);
-    // Route::get('/tag-count/star-tag-question/by-question/{questionId}', [QuestionController::class, "getSelectedTagCountByQuestion"]);
 
     // ============================================================================`
     // CustomerController – Customers (protected)

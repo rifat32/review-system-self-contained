@@ -8,9 +8,40 @@ use App\Models\ReviewNew;
 use App\Models\User;
 use App\Services\review\ReviewIssueDetectionService;
 use App\Services\review\ReviewTopicService;
+use Illuminate\Validation\ValidationException;
 
 class DashboardService
 {
+    // ==================== PERIOD VALIDATION ====================
+
+    private const FILTERABLE_FIELDS = [
+        "last_30_days",
+        "last_7_days",
+        "this_month",
+        "last_month",
+        "all_time"
+    ];
+
+    /**
+     * Validate period and return date range
+     * 
+     * @param string|null $period
+     * @return array|null Returns date range array or null for 'all_time'
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function validateAndGetDateRange(?string $period = 'last_30_days'): ?array
+    {
+        $period = $period ?? 'last_30_days';
+
+        if (!in_array($period, self::FILTERABLE_FIELDS)) {
+            throw ValidationException::withMessages([
+                'period' => 'Invalid period. Only allowed: ' . implode(', ', self::FILTERABLE_FIELDS)
+            ]);
+        }
+
+        return $period === 'all_time' ? null : getDateRangeByPeriod($period);
+    }
+
     // ==================== DASHBOARD METRICS CALCULATION ====================
 
     /**
@@ -33,8 +64,8 @@ class DashboardService
         }
 
         // Apply branch filter
-        $userBranchId = $user->hasRole('branch_manager')
-            ? $user->branch_id
+        $userBranchId = $user->hasRole('branch_manager') || $user->hasRole('business_owner')
+            ? $user->default_branch_id
             : null;
 
         if ($userBranchId) {

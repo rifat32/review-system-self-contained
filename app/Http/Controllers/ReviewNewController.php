@@ -423,7 +423,7 @@ class ReviewNewController extends Controller
      * @OA\Get(
      *      path="/review-new/getreview/{businessId}/{rate}/{start}/{end}",
      *      operationId="filterReviews",
-     *      tags={"review"},
+     *      tags={"z.unused"},
      *        security={
      *           {"bearerAuth": {}}
      *       },
@@ -515,7 +515,7 @@ class ReviewNewController extends Controller
      * @OA\Get(
      *      path="/review-new/getreviewAll/{businessId}",
      *      operationId="reviewByBusinessId",
-     *      tags={"review"},
+     *      tags={"z.unused"},
      *        security={
      *           {"bearerAuth": {}}
      *       },
@@ -586,7 +586,7 @@ class ReviewNewController extends Controller
      * @OA\Get(
      *      path="/review-new/getcustomerreview/{businessId}/{start}/{end}",
      *      operationId="getCustommerReview",
-     *      tags={"review"},
+     *      tags={"z.unused"},
      *        security={
      *           {"bearerAuth": {}}
      *       },
@@ -1971,7 +1971,7 @@ class ReviewNewController extends Controller
      * @OA\Get(
      *      path="/review-new/get/questions-all-report/guest/quantum",
      *      operationId="getQuestionAllReportGuestQuantum",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *   *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -2060,7 +2060,7 @@ class ReviewNewController extends Controller
      * @OA\Get(
      *      path="/review-new/get/questions-all-report/quantum",
      *      operationId="getQuestionAllReportQuantum",
-     *      tags={"review.setting.question"},
+     *      tags={"z.unused"},
      *   *       security={
      *           {"bearerAuth": {}}
      *       },

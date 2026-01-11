@@ -20,7 +20,7 @@ class DashboardManagementController extends Controller
      * @OA\Get(
      *      path="/v1.0/business-owner-dashboard",
      *      operationId="getBusinessOwnerDashboardData",
-     *      tags={"dashboard_management"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },

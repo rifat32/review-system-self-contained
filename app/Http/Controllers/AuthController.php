@@ -364,13 +364,13 @@ class AuthController extends Controller
 
             // Check email verification
             $user = Auth::user();
-            if (!$this->isEmailVerified($user)) {
-                Auth::logout();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Please verify your email address before logging in'
-                ], 403);
-            }
+            // if (!$this->isEmailVerified($user)) {
+            //     Auth::logout();
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'Please verify your email address before logging in'
+            //     ], 403);
+            // }
 
             // Successful login - reset failed attempts and generate token
             return $this->handleSuccessfulLogin($user);
@@ -444,18 +444,22 @@ class AuthController extends Controller
         ]);
 
         // GET USER WITH RELATIONSHIP
-        $user = User::with('business', 'roles', 'branch')->findOrFail($user->id);
+        $user = User::with('business', 'branch')->findOrFail($user->id);
 
         // SET TOKEN AND PERMISSION 
         $user->setAttribute('token', $user->createToken('authToken')->accessToken);
         $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
 
-        // BRANCH ID PUSH IF USER IS BRANCH MANAGER
+        // SET ROLE AS SINGLE OBJECT
+        $user->setAttribute('role', $user->roles->first());
+
+        // SET DEFAULT_BRANCH_ID BASED ON ROLE
         if ($user->hasRole('branch_manager')) {
-            $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);  // Safe null check
+            $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);
         } else if ($user->hasRole('business_owner')) {
-            $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);  // Safe null check
+            $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);
         }
+
         // SEND RESPONSE
         return response()->json([
             'success' => true,

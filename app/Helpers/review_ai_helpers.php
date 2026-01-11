@@ -414,7 +414,7 @@ if (!function_exists('getTopTopic')) {
 }
 
 if (!function_exists('analyzeBusinessServicesPerformance')) {
-    function analyzeBusinessServicesPerformance($businessId, $dateRange = null)
+    function analyzeBusinessServicesPerformance($businessId, $dateRange = null, $user = null)
     {
         // Get all business services for this business
         $businessServices = BusinessService::where('business_id', $businessId)
@@ -429,12 +429,18 @@ if (!function_exists('analyzeBusinessServicesPerformance')) {
         }
 
         // Get reviews within date range with their associated services
-        $reviews = ReviewNew::where('business_id', $businessId)
+        $reviewQuery = ReviewNew::where('business_id', $businessId)
             ->when($dateRange, fn($q) => $q->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
             ->globalFilters(0, $businessId)
             ->with(['business_services', 'value']) // Eager load services and values
-            ->withCalculatedRating()
-            ->get();
+            ->withCalculatedRating();
+
+        // ADD BRANCH FILTER
+        if ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner'))) {
+            $reviewQuery->where('branch_id', $user->default_branch_id);
+        }
+
+        $reviews = $reviewQuery->get();
 
         if ($reviews->isEmpty()) {
             return [

@@ -115,8 +115,8 @@ if (!function_exists('extractTagsBreakdown')) {
     function extractTagsBreakdown($businessId, $dateRange, $user = null)
     {
         // Determine branch filter for branch managers
-        $userBranchId = ($user && $user->hasRole('branch_manager'))
-            ? $user->branch_id
+        $userBranchId = ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')))
+            ? $user->default_branch_id
             : null;
 
         // Get all tags with their mention counts

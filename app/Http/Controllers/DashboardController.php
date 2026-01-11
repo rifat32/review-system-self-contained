@@ -17,9 +17,17 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class DashboardController extends Controller
 {
+    private $dashboardService;
+
+    public function __construct(DashboardService $dashboardService)
+    {
+        $this->dashboardService = $dashboardService;
+    }
+
     private function getBaseQueries(Request $request)
     {
         $businessId = $request->businessId;
@@ -68,6 +76,14 @@ class DashboardController extends Controller
             'number_of_months' => $startDate->diffInMonths($endDate)
         ];
     }
+
+    private const FILTERABLE_FIELDS = [
+        "last_30_days",
+        "last_7_days",
+        "this_month",
+        "last_month",
+        "all_time"
+    ];
 
     /**
      * @OA\Get(
@@ -420,13 +436,6 @@ class DashboardController extends Controller
      *      operationId="getTopWorstServices",
      *      tags={"dashboard_management"},
      *      @OA\Parameter(
-     *         name="businessId",
-     *         in="query",
-     *         description="Business ID",
-     *         required=true,
-     *         example="1"
-     *      ),
-     *      @OA\Parameter(
      *         name="period",
      *         in="query",
      *         description="Time period (last_30_days, last_7_days, this_month, last_month)",
@@ -527,17 +536,17 @@ class DashboardController extends Controller
     public function getTopWorstServices(Request $request)
     {
         $request->validate([
-            'businessId' => 'required|integer|exists:businesses,id',
             'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
             'min_reviews' => 'nullable|integer|min:1',
             'is_overall' => 'nullable|in:0,1'
         ]);
 
-        $businessId = $request->input('businessId');
+        $businessId = auth()->user()->business_id;
 
-        // Get date range from period
-        $period = $request->input('period');
-        $dateRange = $period ? getDateRangeByPeriod($period) : null;
+        // Validate period and get date range using service
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
 
         // Analyze services performance
         $servicesAnalysis = analyzeBusinessServicesPerformance($businessId, $dateRange);
@@ -808,18 +817,12 @@ class DashboardController extends Controller
      *      summary="Get staff insights and top performers",
      *      description="Get overall sentiment and top performing staff member for a business",
      *      @OA\Parameter(
-     *         name="start_date",
-     *         in="query",
-     *         description="Start date in d-m-Y format (e.g., 01-01-2025)",
-     *         required=false,
-     *         example="01-01-2025"
-     *      ),
-     *      @OA\Parameter(
-     *         name="end_date",
-     *         in="query",
-     *         description="End date in d-m-Y format (e.g., 31-12-2025)",
-     *         required=false,
-     *         example="31-12-2025"
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
      *      ),
      *      @OA\Response(
      *          response=200,
@@ -851,36 +854,25 @@ class DashboardController extends Controller
      */
     public function getStaffInsights(Request $request)
     {
-        // VALIDATE QUERY
-        $request->validate([
-            'start_date' => 'nullable|date_format:d-m-Y',
-            'end_date' => 'nullable|date_format:d-m-Y'
-        ]);
 
         // GET BUSINESS ID
         $businessId = auth()->user()->business_id;
 
-        // Parse date parameters with defaults for all-time data
-        $endDate = $request->end_date
-            ? Carbon::parse($request->end_date)->endOfDay()
-            : Carbon::now()->endOfDay();
-
-        $startDate = $request->start_date
-            ? Carbon::parse($request->start_date)->startOfDay()
-            : Carbon::createFromTimestamp(0)->startOfDay(); // Very old date for all-time
-
-        // Validate date range
-        if ($startDate->greaterThan($endDate)) {
-            throw new BadRequestException('Start date cannot be greater than end date');
-        }
+        // Validate period and get date range using service
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
 
         // Get reviews with staff for the current period
-        $staffReviews = ReviewNew::where('business_id', $businessId)
+        $staffReviewQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->withCalculatedRating()
-            ->get();
+            ->withCalculatedRating();
 
+        if ($dateRange) {
+            $staffReviewQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
+
+        $staffReviews = $staffReviewQuery->get();
         // Calculate overall sentiment
         $sentiment_data = calculateAggregatedSentiment($staffReviews);
         $sentiment_status = is_array($sentiment_data) ? $sentiment_data['sentiment_label'] : $sentiment_data;
@@ -915,6 +907,7 @@ class DashboardController extends Controller
                 $staffPerformance[] = [
                     'staff_id' => $staffId,
                     'staff_name' => $staff->name,
+                    'staff_image' => $staff->image,
                     'avg_rating' => round($avgRating, 2),
                     'review_count' => $totalReviews
                 ];
@@ -939,15 +932,8 @@ class DashboardController extends Controller
             }
         }
 
-        // Format period display text
-        $periodDisplayText = formatPeriodDisplay($startDate, $endDate);
 
         $data = [
-            'period' => [
-                'start_date' => $startDate->format('Y-m-d'),
-                'end_date' => $endDate->format('Y-m-d'),
-                'display_text' => $periodDisplayText
-            ],
             'overall_sentiment' => $sentiment_status,
             'top_performer' => $topPerformer,
             'action_text' => 'Details'
@@ -971,18 +957,12 @@ class DashboardController extends Controller
      *      summary="Get survey insights and statistics",
      *      description="Get active surveys count and recent survey submissions for a business",
      *      @OA\Parameter(
-     *         name="start_date",
-     *         in="query",
-     *         description="Start date in d-m-Y format (e.g., 01-01-2025)",
-     *         required=false,
-     *         example="01-01-2025"
-     *      ),
-     *      @OA\Parameter(
-     *         name="end_date",
-     *         in="query",
-     *         description="End date in d-m-Y format (e.g., 31-12-2025)",
-     *         required=false,
-     *         example="31-12-2025"
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="last_30_days",
+     *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
      *      ),
      *      @OA\Response(
      *          response=200,
@@ -1010,49 +990,51 @@ class DashboardController extends Controller
      */
     public function getSurveyInsights(Request $request)
     {
-        // VALIDATE QUERY
-        $request->validate([
-            'start_date' => 'nullable|date_format:d-m-Y',
-            'end_date' => 'nullable|date_format:d-m-Y'
-        ]);
+        // GET USER AND BUSINESS ID
+        $user = $request->user();
+        $businessId = $user->business_id;
 
-        // GET BUSINESS ID
-        $businessId = auth()->user()->business_id;
+        // Validate period and get date range using service
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
 
-        // Parse date parameters with defaults for all-time data
-        $endDate = $request->end_date
-            ? Carbon::parse($request->end_date)->endOfDay()
-            : Carbon::now()->endOfDay();
-
-        $startDate = $request->start_date
-            ? Carbon::parse($request->start_date)->startOfDay()
-            : Carbon::createFromTimestamp(0)->startOfDay(); // Very old date for all-time
-
-        // Validate date range
-        if ($startDate->greaterThan($endDate)) {
-            throw new BadRequestException('Start date cannot be greater than end date');
-        }
+        // Apply branch filter
+        $userBranchId = ($user->hasRole('branch_manager') || $user->hasRole('business_owner'))
+            ? $user->default_branch_id
+            : null;
 
         // Active Surveys (surveys that are active/published)
-        $activeSurveys = Survey::where('business_id', $businessId)
-            ->where('is_active', true)
-            ->count();
+        $activeSurveysQuery = Survey::where('business_id', $businessId)
+            ->where('is_active', true);
+
+        if ($userBranchId) {
+            $activeSurveysQuery->whereHas('reviews', function ($query) use ($userBranchId) {
+                $query->where('branch_id', $userBranchId);
+            });
+        }
+
+        if ($dateRange) {
+            $activeSurveysQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
+
+        $activeSurveys = $activeSurveysQuery->count();
 
         // Recent Submissions (reviews in the current period that are from surveys)
-        $recentSubmissions = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->whereNotNull('survey_id')
-            ->count();
+        $recentSubmissionsQuery = ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('survey_id');
 
-        // Format period display text
-        $periodDisplayText = formatPeriodDisplay($startDate, $endDate);
+        if ($dateRange) {
+            $recentSubmissionsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
+
+        if ($userBranchId) {
+            $recentSubmissionsQuery->where('branch_id', $userBranchId);
+        }
+
+        $recentSubmissions = $recentSubmissionsQuery->count();
 
         $data = [
-            'period' => [
-                'start_date' => $startDate->format('Y-m-d'),
-                'end_date' => $endDate->format('Y-m-d'),
-                'display_text' => $periodDisplayText
-            ],
             'active_surveys' => $activeSurveys,
             'recent_submissions' => $recentSubmissions,
             'action_text' => 'Manage'
@@ -1909,7 +1891,7 @@ class DashboardController extends Controller
      * @OA\Get(
      *      path="/v1.0/reports/staff-dashboard/{businessId}",
      *      operationId="staffDashboard",
-     *      tags={"dashboard_management.staff"},
+     *      tags={"z.unused"},
      *      summary="Get staff performance dashboard",
      *      description="Get overall staff performance metrics and rankings",
      *      @OA\Parameter(
@@ -2457,24 +2439,11 @@ class DashboardController extends Controller
 
         $businessId = $user->business_id;
 
-        $filterable_fields = [
-            "last_30_days",
-            "last_7_days",
-            "this_month",
-            "last_month",
-            "all_time"
-        ];
+        // Validate period and get date range using service
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
 
-        if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
-            throw ValidationException::withMessages([
-                'period' => 'Invalid period. Only allowed: ' . implode(', ', $filterable_fields)
-            ]);
-
-        }
-        $period = $request->get('period', 'last_30_days');
-
-        // Get period dates
-        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
         // Get recent reviews feed
         $reviewFeed = AIProcessor::getReviewFeed($businessId, $dateRange, 10, $user);
 
@@ -2544,10 +2513,10 @@ class DashboardController extends Controller
         }
 
         $businessId = $user->business_id;
-        $period = $request->get('period', 'last_30_days');
-
-        // Get period dates
-        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+        // Validate period and get date range using service
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
 
         // Get rating breakdown
         $reviewsQuery = ReviewNew::withCalculatedRating()
@@ -2557,8 +2526,8 @@ class DashboardController extends Controller
             $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
         }
         // Apply branch filter
-        $userBranchId = $request->user()->hasRole('branch_manager')
-            ? $request->user()->branch_id
+        $userBranchId = $request->user()->hasRole('branch_manager') || $request->user()->hasRole('business_owner')
+            ? $request->user()->default_branch_id
             : null;
 
         if ($userBranchId) {
@@ -2634,10 +2603,11 @@ class DashboardController extends Controller
         }
 
         $businessId = $user->business_id;
-        $period = $request->get('period', 'last_30_days');
 
-        // Get period dates
-        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+        // Validate period and get date range using service
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
 
         // Get tags breakdown
         $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange, $user);
@@ -2703,10 +2673,11 @@ class DashboardController extends Controller
         }
 
         $businessId = $user->business_id;
-        $period = $request->get('period', 'last_30_days');
 
-        // Get period dates
-        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+        // Validate period and get date range using service
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
 
         // Get AI insights
         $aiInsights = AIProcessor::getAiInsightsPanel($businessId, $dateRange, $user);
@@ -2895,34 +2866,18 @@ class DashboardController extends Controller
         // Get business_id from authenticated user
         $user = auth()->user();
 
-        if (!$user || !$user->business_id) {
-            throw new AuthorizationException('User does not have an associated business');
+        if (!$user->business_id) {
+            throw new NotFoundHttpException('Business not found');
         }
 
         $businessId = $user->business_id;
 
-        $filterable_fields = [
-            "last_30_days",
-            "last_7_days",
-            "this_month",
-            "last_month",
-            "all_time"
-        ];
-
-        if (!in_array($request->get('period', 'last_30_days'), $filterable_fields)) {
-            throw ValidationException::withMessages([
-                'period' => 'Invalid period. Only allowed: ' . implode(', ', $filterable_fields)
-            ]);
-
-        }
-        $period = $request->get('period', 'last_30_days');
-
-        // Get period dates
-        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
-
+        // Validate period and get date range using service
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
         // Calculate metrics using DashboardService
-        $dashboardService = app(DashboardService::class);
-        $metrics = $dashboardService->calculateMetrics($businessId, $dateRange, $user);
+        $metrics = $this->dashboardService->calculateMetrics($businessId, $dateRange, $user);
 
 
         return response()->json([

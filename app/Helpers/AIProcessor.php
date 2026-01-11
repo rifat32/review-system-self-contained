@@ -362,18 +362,21 @@ class AIProcessor
         }
     }
 
-    public static function getAiInsightsPanel($businessId, $dateRange, $user = null)
+    public static function getAiInsightsPanel($businessId, $dateRange = null, $user = null)
     {
         // Get reviews WITH calculated rating in one query
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->whereNotNull('ai_suggestions')
             ->globalFilters(0, $businessId)
             ->withCalculatedRating();
 
+        if ($dateRange) {
+            $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
+
         // Apply branch filter
-        $userBranchId = $user->hasRole('branch_manager')
-            ? $user->branch_id
+        $userBranchId = $user->hasRole('branch_manager') || $user->hasRole('business_owner')
+            ? $user->default_branch_id
             : null;
 
         if ($userBranchId) {
@@ -2341,20 +2344,23 @@ class AIProcessor
     }
 
 
-    public static function getReviewFeed($businessId, $dateRange, $limit = 10, $user = null)
+    public static function getReviewFeed($businessId, $dateRange = null, $limit = 10, $user = null)
     {
         // Determine branch filter for branch managers
-        $userBranchId = ($user && $user->hasRole('branch_manager'))
-            ? $user->branch_id
+        $userBranchId = ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')))
+            ? $user->default_branch_id
             : null;
 
         $query = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tags', 'value'])
             ->where('business_id', $businessId)
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->orderBy('created_at', 'desc')
             ->globalFilters(0, $businessId)
             ->limit($limit)
             ->withCalculatedRating();
+
+        if ($dateRange) {
+            $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
 
         // Apply branch filter if user is branch manager
         if ($userBranchId) {
