@@ -8,6 +8,7 @@ use App\Models\Business;
 use App\Models\ReviewNew;
 use Exception;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class BranchController extends Controller
 {
@@ -241,13 +242,7 @@ class BranchController extends Controller
         $validatedData = $request->validated();
 
         // Additional ownership check
-        $business = Business::find($validatedData['business_id']);
-        if ($business->OwnerID != $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to create branches for this business'
-            ], 403);
-        }
+        Business::findOrFail($validatedData['business_id']);
 
         $branch = Branch::create($validatedData);
 
@@ -344,22 +339,12 @@ class BranchController extends Controller
      */
     public function getBranchById($id)
     {
-        $branch = Branch::with('business')->find($id);
-
-        if (!$branch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Branch not found'
-            ], 404);
-        }
+        $branch = Branch::with('business')->findOrFail($id);
 
         // Check ownership
         $user = auth('api')->user();
         if ($branch->business->OwnerID != $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to view this branch'
-            ], 403);
+            throw new AccessDeniedHttpException('This branch does not belongs to your business');
         }
 
         return response()->json([
@@ -497,18 +482,12 @@ class BranchController extends Controller
         // Check ownership
         $user = $request->user();
         if ($branch->business->OwnerID != $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to update this branch'
-            ], 403);
+            throw new AccessDeniedHttpException('This branch does not belongs to your business');
         }
 
         // Prevent updating default branch
         if ($branch->is_default) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot update default branch'
-            ], 403);
+            throw new AccessDeniedHttpException('Cannot update default branch');
         }
 
         $branch->update($validatedData);

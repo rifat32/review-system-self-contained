@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PDF;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BusinessController extends Controller
 {
@@ -48,7 +50,7 @@ class BusinessController extends Controller
      * @OA\Post(
      *      path="/v1.0/business",
      *      operationId="storeRestaurant",
-     *      tags={"business"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -134,7 +136,7 @@ class BusinessController extends Controller
      * @OA\Post(
      *      path="/business/by-owner-id",
      *      operationId="storeRestaurantByOwnerId",
-     *      tags={"business"},
+     *      tags={"z.unused"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -271,20 +273,11 @@ class BusinessController extends Controller
     {
         // CHECK SUPER ADMIN PERMISSION
         if (!$request->user()->hasRole("superadmin")) {
-            return response()->json([
-                "success" => false,
-                "message" => "You do not have permission to delete businesses"
-            ], 403);
+            throw new AccessDeniedHttpException('You do not have permission to delete businesses');
         }
 
         // CHECK IF BUSINESS EXISTS
-        $business = Business::find($id);
-        if (!$business) {
-            return response()->json([
-                "success" => false,
-                "message" => "Business not found"
-            ], 404);
-        }
+        $business = Business::findOrFail($id);
 
         // EXECUTE DELETION WITHIN DATABASE TRANSACTION
         DB::transaction(function () use ($business, $id) {
@@ -307,7 +300,7 @@ class BusinessController extends Controller
      * @OA\Delete(
      *      path="/v1.0/business/delete/force-delete/{email}",
      *      operationId="deleteBusinessByRestaurantIdForceDelete",
-     *      tags={"business"},
+     *      tags={"z.unused"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -538,18 +531,12 @@ class BusinessController extends Controller
         // CHECK IF BUSINESS EXISTS
         $business = Business::find($businessId);
         if (!$business) {
-            return response()->json([
-                "success" => false,
-                "message" => "Business not found"
-            ], 404);
+            throw new NotFoundHttpException('Business not found');
         }
 
         // CHECK OWNERSHIP OR SUPER ADMIN PERMISSION
         if ($business->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
-            return response()->json([
-                "success" => false,
-                "message" => "You do not have permission to update this business"
-            ], 403);
+            throw new AccessDeniedHttpException('This business does not belong to you');
         }
 
         // GENERATE UNIQUE FILENAME
@@ -728,18 +715,12 @@ class BusinessController extends Controller
         $business = Business::find($businessId);
 
         if (!$business) {
-            return response()->json([
-                "status" => false,
-                "message" => "No Business Found"
-            ], 404);
+            throw new NotFoundHttpException('Business not found');
         }
 
         // Check Ownership or Super admin
         if ($business->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
-            return response()->json([
-                "status" => false,
-                "message" => "This is not your business"
-            ], 403);
+            throw new AccessDeniedHttpException('This business does not belong to you');
         }
 
         // Update
@@ -829,23 +810,13 @@ class BusinessController extends Controller
         $user = $request->user();
 
         // Find business owned by this user
-        $business = Business::where('OwnerID', $user->id)->first();
-
-        if (!$business) {
-            return response()->json([
-                "success" => false,
-                "message" => "Business not found"
-            ], 404);
-        }
+        $business = Business::findOrFail($user->business_id);
 
         // If default_branch_id is provided, ensure it belongs to this business
         if ($request->filled('default_branch_id')) {
             $branch = $business->branches()->find($request->default_branch_id);
             if (!$branch) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "Branch not found or does not belong to this business"
-                ], 404);
+                throw new NotFoundHttpException('Branch not found or does not belong to this business');
             }
         }
 
@@ -854,11 +825,21 @@ class BusinessController extends Controller
             'default_branch_id' => $request->default_branch_id
         ]);
 
-        // Return success response
+        // Reload user with relationships
+        $user = User::with('business', 'roles')->find($user->id);
+
+        // Generate new access token
+        $user->setAttribute('token', $user->createToken('authToken')->accessToken);
+        $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
+
+        // Add default_branch_id to user response
+        $user->setAttribute('default_branch_id', $business->default_branch_id);
+
+        // Return success response with token and user data
         return response()->json([
             "success" => true,
             "message" => "Default branch updated successfully",
-            "data" => $business->only(['id', 'Name', 'default_branch_id'])
+            "data" => $user
         ], 200);
     }
 
@@ -950,10 +931,7 @@ class BusinessController extends Controller
 
         // CHECK IF BUSINESS EXISTS
         if (!$business) {
-            return response()->json([
-                "success" => false,
-                "message" => "Business not found"
-            ], 404);
+            throw new NotFoundHttpException('Business not found');
         }
 
         // RETURN RESPONSE
@@ -1308,7 +1286,7 @@ class BusinessController extends Controller
      * @OA\Get(
      *      path="/v1.0/restaurants/tables/{businessId}",
      *      operationId="getRestaurantTableByBusinessId",
-     *      tags={"business"},
+     *      tags={"z.unused"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -1384,10 +1362,7 @@ class BusinessController extends Controller
 
         // CHECK IF BUSINESS EXISTS
         if (!$business) {
-            return response()->json([
-                "success" => false,
-                "message" => "Business not found"
-            ], 404);
+            throw new NotFoundHttpException("Business not found");
         }
 
         // RETURN RESPONSE

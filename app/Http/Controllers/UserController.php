@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Http\Requests\UserRequest;
 use App\Models\BranchMember;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class UserController extends Controller
 {
@@ -635,10 +637,7 @@ class UserController extends Controller
         $business_id = $request->user()->business->id;
 
         if (!$business_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No business found for the authenticated user'
-            ], 403);
+            throw new AccessDeniedHttpException('This user does not belong to your business');
         }
 
         // Find the user and ensure they belong to the same business
@@ -647,10 +646,7 @@ class UserController extends Controller
             ->first();
 
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not found or access denied'
-            ], 403);
+            throw new AccessDeniedHttpException('This user does not belong to your business');
         }
 
         // Validate request data (excluding password for updates)
@@ -743,10 +739,7 @@ class UserController extends Controller
         $business_id = $request->user()->business->id;
 
         if (!$business_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No business found for the authenticated user'
-            ], 403);
+            throw new AccessDeniedHttpException('This user does not belong to your business');
         }
 
         // Find the user and ensure they belong to the same business
@@ -755,10 +748,7 @@ class UserController extends Controller
             ->first();
 
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not found or access denied'
-            ], 403);
+            throw new AccessDeniedHttpException('This user does not belong to your business');
         }
 
         // Return success response

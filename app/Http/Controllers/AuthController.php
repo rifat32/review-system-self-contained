@@ -443,15 +443,19 @@ class AuthController extends Controller
             'last_failed_login_attempt_at' => null
         ]);
 
-        $user = User::with('business', 'roles')->find($user->id);
-        $user->token = $user->createToken('authToken')->accessToken;
-        $user->permissions = $user->getAllPermissions()->pluck('name');
+        // GET USER WITH RELATIONSHIP
+        $user = User::with('business', 'roles', 'branch')->findOrFail($user->id);
+
+        // SET TOKEN AND PERMISSION 
+        $user->setAttribute('token', $user->createToken('authToken')->accessToken);
+        $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
 
         // BRANCH ID PUSH IF USER IS BRANCH MANAGER
         if ($user->hasRole('branch_manager')) {
-            $user->setAttribute('branch_id', $user->branch?->branch_id ?? null);  // Safe null check
+            $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);  // Safe null check
+        } else if ($user->hasRole('business_owner')) {
+            $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);  // Safe null check
         }
-
         // SEND RESPONSE
         return response()->json([
             'success' => true,
@@ -474,7 +478,7 @@ class AuthController extends Controller
      * @OA\Post(
      *      path="/auth/check-pin/{id}",
      *      operationId="verifyPin",
-     *      tags={"auth"},
+     *      tags={"z.unused"},
      *      security={{"bearerAuth": {}}},
      *      summary="Verify user PIN",
      *      description="Verify the PIN for a specific user (users can only verify their own PIN)",
@@ -607,7 +611,7 @@ class AuthController extends Controller
      * @OA\Get(
      *      path="/auth",
      *      operationId="getUsersWithRestaurants",
-     *      tags={"auth"},
+     *      tags={"z.unused"},
      *      security={{"bearerAuth": {}}},
      *      summary="Get authenticated user with business details",
      *      description="Retrieve the currently authenticated user's information including business and roles",
