@@ -813,12 +813,12 @@ class BusinessController extends Controller
         $business = Business::findOrFail($user->business_id);
 
         // If default_branch_id is provided, ensure it belongs to this business
-        if ($request->filled('default_branch_id')) {
-            $branch = $business->branches()->find($request->default_branch_id);
-            if (!$branch) {
-                throw new NotFoundHttpException('Branch not found or does not belong to this business');
-            }
-        }
+        // if ($request->filled('default_branch_id')) {
+        //     $branch = $business->branches()->find($request->default_branch_id);
+        //     if (!$branch) {
+        //         throw new NotFoundHttpException('Branch not found or does not belong to this business');
+        //     }
+        // }
 
         // Update only the default_branch_id field
         $business->update([
@@ -924,8 +924,8 @@ class BusinessController extends Controller
     public function getBusinessById($businessId)
     {
 
-        // GET BUSINESS WITH OWNER
-        $business = Business::with("owner")
+        // GET BUSINESS WITH OWNER AND DEFAULT BRANCH
+        $business = Business::with(["owner", "defaultBranch"])
             ->where("id", $businessId)
             ->first();
 

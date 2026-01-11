@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -412,6 +413,14 @@ class UserController extends Controller
      *          @OA\Schema(type="boolean")
      *      ),
      *      @OA\Parameter(
+     *          name="ignore_id",
+     *          in="query",
+     *          description="User ID to include in results even if they have a branch (works with without_branch filter)",
+     *          required=false,
+     *          example=5,
+     *          @OA\Schema(type="integer")
+     *      ),
+     *      @OA\Parameter(
      *          name="order_by",
      *          in="query",
      *          description="Field to order the users by, e.g., 'name', 'email', etc.",
@@ -501,10 +510,7 @@ class UserController extends Controller
         $business_id = $request->user()->business->id;
 
         if (!$business_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No business found for the authenticated user'
-            ], 403);
+            throw new AuthorizationException('No business found for the authenticated user');
         }
 
         // Build query for users in the same business
@@ -521,8 +527,17 @@ class UserController extends Controller
         }
 
         // Filter users without branch assignment
+        // If ignore_id is provided, include that user even if they have a branch
         if (request()->filled('without_branch')) {
-            $userQuery->whereDoesntHave('branch');
+            if (request()->filled('ignore_id')) {
+                $ignoreId = request()->get('ignore_id');
+                $userQuery->where(function ($query) use ($ignoreId) {
+                    $query->whereDoesntHave('branch')
+                        ->orWhere('id', $ignoreId);
+                });
+            } else {
+                $userQuery->whereDoesntHave('branch');
+            }
         }
 
         // Search functionality

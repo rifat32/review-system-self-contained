@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      *
@@ -84,30 +83,30 @@ return new class extends Migration
             $table->json('export_settings')->nullable();
 
 
-          $table->json('default_color_threshold')->default(json_encode([
-    [
-        "score_range" => [80, 100],
-        "status" => "Excellent",
-        "color" => "bg-green-500",
-    ],
-    [
-        "score_range" => [60, 79],
-        "status" => "Good",
-        "color" => "bg-yellow-500",
-    ],
-    [
-        "score_range" => [40, 59],
-        "status" => "Needs Attention",
-        "color" => "bg-orange-500",
-    ],
-    [
-        "score_range" => [0, 39],
-        "status" => "Critical",
-        "color" => "bg-red-500",
-    ],
-]));
+            $table->json('default_color_threshold')->default(json_encode([
+                [
+                    "score_range" => [80, 100],
+                    "status" => "Excellent",
+                    "color" => "bg-green-500",
+                ],
+                [
+                    "score_range" => [60, 79],
+                    "status" => "Good",
+                    "color" => "bg-yellow-500",
+                ],
+                [
+                    "score_range" => [40, 59],
+                    "status" => "Needs Attention",
+                    "color" => "bg-orange-500",
+                ],
+                [
+                    "score_range" => [0, 39],
+                    "status" => "Critical",
+                    "color" => "bg-red-500",
+                ],
+            ]));
 
-            
+
 
             $table->foreign('OwnerID')->references('id')->on('users')->onDelete('cascade');
 

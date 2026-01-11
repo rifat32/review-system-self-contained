@@ -335,7 +335,7 @@
         "/auth": {
             "get": {
                 "tags": [
-                    "auth"
+                    "z.unused"
                 ],
                 "summary": "Get authenticated user with business details",
                 "description": "Retrieve the currently authenticated user's information including business and roles",
@@ -760,7 +760,7 @@
         "/auth/check-pin/{id}": {
             "post": {
                 "tags": [
-                    "auth"
+                    "z.unused"
                 ],
                 "summary": "Verify user PIN",
                 "description": "Verify the PIN for a specific user (users can only verify their own PIN)",
@@ -4926,7 +4926,7 @@
             },
             "post": {
                 "tags": [
-                    "business"
+                    "z.unused"
                 ],
                 "summary": "Store a new business",
                 "description": "Create a new business with the provided details",
@@ -5065,7 +5065,7 @@
         "/business/by-owner-id": {
             "post": {
                 "tags": [
-                    "business"
+                    "z.unused"
                 ],
                 "summary": "Store a new business by specifying owner ID",
                 "description": "Create a new business with the provided details and specified owner ID",
@@ -5314,7 +5314,7 @@
         "/v1.0/business/delete/force-delete/{email}": {
             "delete": {
                 "tags": [
-                    "business"
+                    "z.unused"
                 ],
                 "summary": "Force delete business by email (Super Admin only - within 5 minutes of creation)",
                 "description": "Force delete a business and all its associated data by email address. Only super admins can perform this action, and only if the business was created within the last 5 minutes.",
@@ -6576,7 +6576,7 @@
         "/v1.0/restaurants/tables/{businessId}": {
             "get": {
                 "tags": [
-                    "business"
+                    "z.unused"
                 ],
                 "summary": "Get business with tables by business ID",
                 "description": "Retrieve business information including associated tables and owner details",
@@ -8356,13 +8356,6 @@
                 "operationId": "getTopWorstServices",
                 "parameters": [
                     {
-                        "name": "businessId",
-                        "in": "query",
-                        "description": "Business ID",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
                         "name": "period",
                         "in": "query",
                         "description": "Time period (last_30_days, last_7_days, this_month, last_month)",
@@ -8946,18 +8939,21 @@
                 "operationId": "getStaffInsights",
                 "parameters": [
                     {
-                        "name": "start_date",
+                        "name": "period",
                         "in": "query",
-                        "description": "Start date in d-m-Y format (e.g., 01-01-2025)",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
                         "required": false,
-                        "example": "01-01-2025"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "End date in d-m-Y format (e.g., 31-12-2025)",
-                        "required": false,
-                        "example": "31-12-2025"
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
                     }
                 ],
                 "responses": {
@@ -9051,18 +9047,21 @@
                 "operationId": "getSurveyInsights",
                 "parameters": [
                     {
-                        "name": "start_date",
+                        "name": "period",
                         "in": "query",
-                        "description": "Start date in d-m-Y format (e.g., 01-01-2025)",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
                         "required": false,
-                        "example": "01-01-2025"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "End date in d-m-Y format (e.g., 31-12-2025)",
-                        "required": false,
-                        "example": "31-12-2025"
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
                     }
                 ],
                 "responses": {
@@ -9743,7 +9742,7 @@
         "/v1.0/reports/staff-dashboard/{businessId}": {
             "get": {
                 "tags": [
-                    "dashboard_management.staff"
+                    "z.unused"
                 ],
                 "summary": "Get staff performance dashboard",
                 "description": "Get overall staff performance metrics and rankings",
@@ -9902,132 +9901,6 @@
                         "description": "Not Found"
                     }
                 }
-            }
-        },
-        "/v1.0/dashboard/top-staff": {
-            "get": {
-                "tags": [
-                    "dashboard_management.staff"
-                ],
-                "summary": "Get top performing staff for authenticated user's business",
-                "description": "Retrieve top staff members ranked by average rating from reviews",
-                "operationId": "getTopStaff",
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "Number of top staff to return (default: 3)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "maximum": 100,
-                            "minimum": 1
-                        },
-                        "example": 3
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Top Staff retrieved successfully"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "staff_id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "staff_name": {
-                                                        "type": "string",
-                                                        "example": "John Doe"
-                                                    },
-                                                    "position": {
-                                                        "type": "string",
-                                                        "example": "Manager"
-                                                    },
-                                                    "avg_rating": {
-                                                        "type": "number",
-                                                        "format": "float",
-                                                        "example": 4.5
-                                                    },
-                                                    "review_count": {
-                                                        "type": "integer",
-                                                        "example": 25
-                                                    },
-                                                    "sentiment_score": {
-                                                        "type": "integer",
-                                                        "example": 80
-                                                    },
-                                                    "sentiment_label": {
-                                                        "type": "string",
-                                                        "example": "Excellent"
-                                                    },
-                                                    "top_topics": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "recent_activity": {
-                                                        "type": "string",
-                                                        "example": "2 days ago"
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden - User has no business",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "User does not have an associated business"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
             }
         },
         "/v1.0/reports/review-analytics/{businessId}": {
@@ -11289,7 +11162,7 @@
         "/v1.0/business-owner-dashboard": {
             "get": {
                 "tags": [
-                    "dashboard_management"
+                    "z.unused"
                 ],
                 "summary": "Get all dashboard data combined",
                 "description": "Retrieves combined dashboard data for business owners, including customer analytics by period",
@@ -19396,7 +19269,7 @@
         "/review-new/getreview/{businessId}/{rate}/{start}/{end}": {
             "get": {
                 "tags": [
-                    "review"
+                    "z.unused"
                 ],
                 "summary": "This method is to filter   Review",
                 "description": "This method is to filter   Review",
@@ -19475,7 +19348,7 @@
         "/review-new/getreviewAll/{businessId}": {
             "get": {
                 "tags": [
-                    "review"
+                    "z.unused"
                 ],
                 "summary": "This method is to get review by business id",
                 "description": "This method is to get review by business id",
@@ -19533,7 +19406,7 @@
         "/review-new/getcustomerreview/{businessId}/{start}/{end}": {
             "get": {
                 "tags": [
-                    "review"
+                    "z.unused"
                 ],
                 "summary": "This method is to get customer review",
                 "description": "This method is to get customer review",
@@ -20448,7 +20321,7 @@
         "/review-new/get/questions-all-report/guest/quantum": {
             "get": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to get all question report guest and only business owner of the business can view this ",
                 "description": "This method is to get all question report guest and only business owner of the business can view this ",
@@ -20525,7 +20398,7 @@
         "/review-new/get/questions-all-report/quantum": {
             "get": {
                 "tags": [
-                    "review.setting.question"
+                    "z.unused"
                 ],
                 "summary": "This method is to get all question report.  and only business owner of the business can view this ",
                 "description": "This method is to get all question report. and only business owner of the business can view this ",
@@ -21242,9 +21115,9 @@
                         "schema": {
                             "type": "string",
                             "enum": [
+                                "pending",
                                 "published",
-                                "draft",
-                                "archived"
+                                "rejected"
                             ]
                         }
                     },
@@ -24061,6 +23934,25 @@
                 "summary": "Get staff compliment ratio for authenticated user's business",
                 "description": "Retrieve compliment ratio showing positive vs negative feedback for staff",
                 "operationId": "getStaffComplimentRatio",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -24101,6 +23993,149 @@
                                                 }
                                             },
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User has no business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User does not have an associated business"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/staffs/top-staffs": {
+            "get": {
+                "tags": [
+                    "staff_management"
+                ],
+                "summary": "Get top performing staff for authenticated user's business",
+                "description": "Retrieve top staff members ranked by average rating from reviews",
+                "operationId": "getTopStaff",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of top staff to return (default: 3)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        },
+                        "example": 3
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Period: last_30_days, last_7_days, this_month, last_month, all_time",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_30_days",
+                                "last_7_days",
+                                "this_month",
+                                "last_month",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Top Staff retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "staff_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "staff_name": {
+                                                        "type": "string",
+                                                        "example": "John Doe"
+                                                    },
+                                                    "position": {
+                                                        "type": "string",
+                                                        "example": "Manager"
+                                                    },
+                                                    "avg_rating": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 4.5
+                                                    },
+                                                    "review_count": {
+                                                        "type": "integer",
+                                                        "example": 25
+                                                    },
+                                                    "sentiment_score": {
+                                                        "type": "integer",
+                                                        "example": 80
+                                                    },
+                                                    "sentiment_label": {
+                                                        "type": "string",
+                                                        "example": "Excellent"
+                                                    },
+                                                    "top_topics": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "recent_activity": {
+                                                        "type": "string",
+                                                        "example": "2 days ago"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -28006,6 +28041,25 @@
                             "type": "string"
                         },
                         "example": "john"
+                    },
+                    {
+                        "name": "without_branch",
+                        "in": "query",
+                        "description": "Filter users without branch assignment",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "ignore_id",
+                        "in": "query",
+                        "description": "User ID to include in results even if they have a branch (works with without_branch filter)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 5
                     },
                     {
                         "name": "order_by",

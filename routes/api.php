@@ -324,12 +324,16 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/v1.0/business', [BusinessController::class, "storeRestaurant"]);
     Route::post('/v1.0/business/by-owner-id', [BusinessController::class, "storeRestaurantByOwnerId"]);
     Route::get('/v1.0/business', [BusinessController::class, "getAllBusinesses"]);
+
+    // Specific routes MUST come before parameterized routes
+    Route::patch('/v1.0/business/default-branch', [BusinessController::class, "updateDefaultBranch"]);
+    Route::patch('/v1.0/business/upload-image/{businessId}', [BusinessController::class, "uploadRestaurantImage"]);
+    Route::delete('/v1.0/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurantIdForceDelete"]);
+
+    // Parameterized routes come AFTER specific routes
     Route::patch('/v1.0/business/{businessId}', [BusinessController::class, "UpdateBusiness"]);
     Route::delete('/v1.0/business/{id}', [BusinessController::class, "deleteBusinessById"]);
     Route::get('/v1.0/restaurants/tables/{businessId}', [BusinessController::class, "getRestaurantTableByBusinessId"]);
-    Route::delete('/v1.0/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurantIdForceDelete"]);
-    Route::patch('/v1.0/business/upload-image/{businessId}', [BusinessController::class, "uploadRestaurantImage"]);
-    Route::patch('/v1.0/business/default-branch', [BusinessController::class, "updateDefaultBranch"]);
 
     // ============================================================================
     // BranchController – Branch CRUD (protected, /v1.0/branches)
