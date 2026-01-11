@@ -3469,8 +3469,8 @@ class ReviewNewController extends Controller
         }
 
         // Apply branch filter
-        $userBranchId = $request->user()->hasRole('branch_manager')
-            ? $request->user()->branch_id
+        $userBranchId = $request->user()->hasRole('branch_manager') || $request->user()->hasRole('business_owner')
+            ? $request->user()->default_branch_id
             : null;
 
         if ($userBranchId) {
