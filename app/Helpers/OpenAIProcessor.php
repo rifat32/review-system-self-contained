@@ -1358,6 +1358,10 @@ PROMPT;
             // Convert to database format
             $dbData = self::convertForDatabase($openAIResult, $review, $enabledModules);
 
+    
+    $ruleResults = RuleEngineHelper::evaluateReviewRules($review, $openAIResult);
+    \Log::info('Review rules evaluated', ['results' => $ruleResults]);
+
             // Update the review
             $review->fill($dbData);
             $review->save();
