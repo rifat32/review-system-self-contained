@@ -16,10 +16,14 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class BranchController extends Controller
 {
+    private $branchService;
+    private $reviewService;
     public function __construct(
-        private BranchService $branchService,
-        private ReviewService $reviewService
+        BranchService $branchService,
+        ReviewService $reviewService
     ) {
+        $this->branchService = $branchService;
+        $this->reviewService = $reviewService;
     }
 
     /**
@@ -673,15 +677,9 @@ class BranchController extends Controller
     {
         $user = auth('api')->user();
 
-        // Find the branch
-        $branch = Branch::find($id);
+        // ==================== AUTHORIZATION ====================
+        $branch = Branch::with('manager')->findOrFail($id);
 
-        if (!$branch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Branch not found'
-            ], 404);
-        }
 
         // Check if the user owns this branch through business ownership
         $business = Business::where('id', $branch->business_id)
@@ -753,10 +751,26 @@ class BranchController extends Controller
     public function branchMetric($branchId, Request $request)
     {
         $user = $request->user();
+        $businessId = $user->business_id;
 
         // Check permissions
         if (!$user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
             throw new AuthorizationException('You do not have permission to view this branch metric');
+        }
+
+        // ==================== AUTHORIZATION ====================
+        $branch = Branch::with('manager')->findOrFail($branchId);
+
+        // Ensure branch belongs to user's business
+        if ($branch->business_id !== $businessId) {
+            throw new AuthorizationException('The Branch does not belong to your business');
+        }
+
+        // If user is a branch_manager (not business_owner), ensure they manage this specific branch
+        if ($user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+            if ($branch->manager_id !== $user->id) {
+                throw new AuthorizationException('You are not the manager of this branch');
+            }
         }
 
         // Validate period and get date range
@@ -887,17 +901,25 @@ class BranchController extends Controller
             $user = $request->user();
             $businessId = $user->business_id;
 
-            // ==================== AUTHORIZATION ====================
-            $branch = Branch::findOrFail($branchId);
-
-            // Ensure branch belongs to user's business
-            if ($branch->business_id !== $businessId) {
-                throw new AuthorizationException('The Branch does not belongs to your business');
-            }
-
             // Check permissions (branch manager or business owner)
             if (!$user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
                 throw new AuthorizationException('You do not have permission to view AI insights for this branch');
+            }
+
+            // ==================== AUTHORIZATION ====================
+            $branch = Branch::with('manager')->findOrFail($branchId);
+
+            // Ensure branch belongs to user's business
+            if ($branch->business_id !== $businessId) {
+                throw new AuthorizationException('The Branch does not belong to your business');
+            }
+
+
+            // If user is a branch_manager (not business_owner), ensure they manage this specific branch
+            if ($user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+                if ($branch->manager_id !== $user->id) {
+                    throw new AuthorizationException('You are not the manager of this branch');
+                }
             }
 
             // ==================== VALIDATE & GET DATE RANGE ====================
@@ -1033,17 +1055,25 @@ class BranchController extends Controller
         $user = $request->user();
         $businessId = $user->business_id;
 
+        // Check permissions (branch manager or business owner)
+        if (!$user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+            throw new AuthorizationException('You do not have permission to view staff performance for this branch');
+        }
+
         // ==================== AUTHORIZATION ====================
-        $branch = Branch::findOrFail($branchId);
+        $branch = Branch::with('manager')->findOrFail($branchId);
 
         // Ensure branch belongs to user's business
         if ($branch->business_id !== $businessId) {
-            throw new AuthorizationException('The Branch does not belongs to your business');
+            throw new AuthorizationException('The Branch does not belong to your business');
         }
 
-        // Check permissions (branch manager or business owner)
-        if (!$user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
-            throw new AuthorizationException('You do not have permission to view AI insights for this branch');
+
+        // If user is a branch_manager (not business_owner), ensure they manage this specific branch
+        if ($user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+            if ($branch->manager_id !== $user->id) {
+                throw new AuthorizationException('You are not the manager of this branch');
+            }
         }
 
         // ==================== VALIDATE & GET DATE RANGE ====================
@@ -1067,6 +1097,297 @@ class BranchController extends Controller
             'success' => true,
             'message' => 'Staff performance generated successfully',
             'data' => $staffPerformance
+        ], 200);
+    }
+
+    /**
+     * Get recent reviews for a specific branch
+     *
+     * @OA\Get(
+     *     path="/v1.0/branches/{branchId}/recent-reviews",
+     *     tags={"branch_management"},
+     *     summary="Get recent reviews for a branch",
+     *     description="Retrieves the most recent reviews for a specific branch, sorted by creation date",
+     *     operationId="getBranchRecentReviews",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="branchId",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the branch",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="period",
+     *         in="query",
+     *         required=false,
+     *         description="Time period for filtering reviews (last_7_days, last_30_days, last_90_days, this_month, last_month, all_time, custom)",
+     *         @OA\Schema(type="string", enum={"last_7_days", "last_30_days", "last_90_days", "this_month", "last_month", "all_time", "custom"}, example="last_30_days")
+     *     ),
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         required=false,
+     *         description="Maximum number of recent reviews to return",
+     *         @OA\Schema(type="integer", minimum=1, maximum=50, example=5)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Recent reviews retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Recent reviews generated successfully"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=123),
+     *                     @OA\Property(property="customer_name", type="string", example="John Doe"),
+     *                     @OA\Property(property="rating", type="number", format="float", example=4.5),
+     *                     @OA\Property(property="comment", type="string", example="Great service and friendly staff!"),
+     *                     @OA\Property(property="sentiment_label", type="string", example="positive"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-01-12T15:30:00Z"),
+     *                     @OA\Property(property="time_ago", type="string", example="2 hours ago")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Authorization error - User doesn't have permission",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="You do not have permission to view reviews for this branch"),
+     *             @OA\Property(property="error", type="string", example="authorization_error")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Branch not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="not_found")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation Error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Invalid period parameter"),
+     *             @OA\Property(property="error", type="string", example="validation_error")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="An error occurred while retrieving recent reviews"),
+     *             @OA\Property(property="error", type="string", example="server_error")
+     *         )
+     *     )
+     * )
+     */
+    public function branchRecentReviews($branchId, Request $request)
+    {
+        // ==================== GET USER & BUSINESS ====================
+        $user = $request->user();
+        $businessId = $user->business_id;
+
+        // Check permissions (branch manager or business owner)
+        if (!$user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+            throw new AuthorizationException('You do not have permission to view reviews for this branch');
+        }
+
+        // ==================== AUTHORIZATION ====================
+        $branch = Branch::with('manager')->findOrFail($branchId);
+
+        // Ensure branch belongs to user's business
+        if ($branch->business_id !== $businessId) {
+            throw new AuthorizationException('The Branch does not belong to your business');
+        }
+
+        // If user is a branch_manager (not business_owner), ensure they manage this specific branch
+        if ($user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+            if ($branch->manager_id !== $user->id) {
+                throw new AuthorizationException('You are not the manager of this branch');
+            }
+        }
+
+        // ==================== VALIDATE & GET DATE RANGE ====================
+        $dateRange = $this->branchService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
+
+
+        // ==================== GET REVIEWS ====================
+        $reviews = ReviewService::getCurrentPeriodReviews(
+            businessId: $businessId,
+            branchId: $branchId,
+            dateRange: $dateRange === 'all_time' ? null : $dateRange,
+        );
+
+        // ==================== GET RECENT REVIEWS ====================
+        $recentReviews = AIProcessor::getRecentReviews(
+            reviews: $reviews,
+            limit: $request->get('limit', 5)
+        );
+
+        // ==================== RETURN RESPONSE ====================
+        return response()->json([
+            'success' => true,
+            'message' => 'Recent reviews generated successfully',
+            'data' => $recentReviews
+        ], 200);
+    }
+
+
+    /**
+     * Get AI-generated recommendations for a specific branch
+     *
+     * @OA\Get(
+     *     path="/v1.0/branches/{branchId}/recommendations",
+     *     tags={"branch_management"},
+     *     summary="Get AI recommendations for a branch",
+     *     description="Retrieves AI-generated actionable recommendations for improving branch performance based on review analysis",
+     *     operationId="getBranchRecommendations",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="branchId",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the branch",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="period",
+     *         in="query",
+     *         required=false,
+     *         description="Time period for analysis (last_7_days, last_30_days, last_90_days, this_month, last_month, all_time, custom)",
+     *         @OA\Schema(type="string", enum={"last_7_days", "last_30_days", "last_90_days", "this_month", "last_month", "all_time", "custom"}, example="last_30_days")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Branch recommendations retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Branch recommendations generated successfully"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="type", type="string", example="Action", description="Recommendation type: Action, Strength, Weak Area, Info"),
+     *                     @OA\Property(property="title", type="string", example="Optimize Service Flow"),
+     *                     @OA\Property(property="description", type="string", example="Review staffing schedules during peak hours and implement queue management."),
+     *                     @OA\Property(property="priority", type="string", example="high", description="Priority level: high, medium, low"),
+     *                     @OA\Property(property="evidence_count", type="integer", example=5, description="Number of reviews supporting this recommendation")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Authorization error - User doesn't have permission",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="You do not have permission to view recommendations for this branch"),
+     *             @OA\Property(property="error", type="string", example="authorization_error")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Branch not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="not_found")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation Error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Invalid period parameter"),
+     *             @OA\Property(property="error", type="string", example="validation_error")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="An error occurred while generating recommendations"),
+     *             @OA\Property(property="error", type="string", example="server_error")
+     *         )
+     *     )
+     * )
+     */
+    public function branchBranchRecommendations($branchId, Request $request)
+    {
+        // ==================== GET USER & BUSINESS ====================
+        $user = $request->user();
+        $businessId = $user->business_id;
+
+        // Check permissions (branch manager or business owner)
+        if (!$user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+            throw new AuthorizationException('You do not have permission to view recommendations for this branch');
+        }
+
+        // ==================== AUTHORIZATION ====================
+        $branch = Branch::with('manager')->findOrFail($branchId);
+
+        // Ensure branch belongs to user's business
+        if ($branch->business_id !== $businessId) {
+            throw new AuthorizationException('The Branch does not belong to your business');
+        }
+
+        // If user is a branch_manager (not business_owner), ensure they manage this specific branch
+        if ($user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+            if ($branch->manager_id !== $user->id) {
+                throw new AuthorizationException('You are not the manager of this branch');
+            }
+        }
+
+        // ==================== VALIDATE & GET DATE RANGE ====================
+        $dateRange = $this->branchService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
+
+
+        // ==================== GET REVIEWS ====================
+        $reviews = ReviewService::getCurrentPeriodReviews(
+            businessId: $businessId,
+            branchId: $branchId,
+            dateRange: $dateRange === 'all_time' ? null : $dateRange,
+        );
+
+        // ==================== GET RECENT REVIEWS ====================
+        $branchRecommendations = AIProcessor::generateBranchRecommendations(
+            reviews: $reviews,
+        );
+
+        // ==================== RETURN RESPONSE ====================
+        return response()->json([
+            'success' => true,
+            'message' => 'Branch recommendations generated successfully',
+            'data' => $branchRecommendations
         ], 200);
     }
 }
