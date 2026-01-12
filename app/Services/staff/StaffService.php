@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\staff;
+namespace App\Services\Staff;
 
 use App\Models\ReviewNew;
 use App\Models\User;
