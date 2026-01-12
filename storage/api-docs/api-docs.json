@@ -2770,6 +2770,307 @@
                 ]
             }
         },
+        "/v1.0/branches/{branchId}/metrics": {
+            "get": {
+                "tags": [
+                    "branch_management"
+                ],
+                "summary": "Get branch metrics with period comparison",
+                "description": "Returns branch metrics including ratings, sentiment, staff performance with comparison to previous period",
+                "operationId": "getBranchMetrics",
+                "parameters": [
+                    {
+                        "name": "branchId",
+                        "in": "path",
+                        "description": "Branch ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for metrics",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "last_30_days",
+                            "enum": [
+                                "last_7_days",
+                                "last_30_days",
+                                "last_90_days",
+                                "this_week",
+                                "last_week",
+                                "this_month",
+                                "last_month",
+                                "this_quarter",
+                                "last_quarter",
+                                "this_year",
+                                "last_year"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Branch metrics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch metrics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Branch not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branches/{branchId}/ai-insights": {
+            "get": {
+                "tags": [
+                    "branch_management"
+                ],
+                "summary": "Get AI-generated insights for branch reviews",
+                "description": "Returns AI-generated summary, sentiment breakdown, and key trends based on branch reviews for the specified period",
+                "operationId": "getBranchAiInsights",
+                "parameters": [
+                    {
+                        "name": "branchId",
+                        "in": "path",
+                        "description": "Branch ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for analysis",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "last_30_days",
+                            "enum": [
+                                "last_7_days",
+                                "last_30_days",
+                                "last_90_days",
+                                "this_week",
+                                "last_week",
+                                "this_month",
+                                "last_month",
+                                "this_quarter",
+                                "last_quarter",
+                                "this_year",
+                                "last_year"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "AI insights generated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "AI insights generated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "summary": {
+                                                    "type": "string",
+                                                    "example": "Overall customer sentiment is positive with 75% positive reviews. Key strengths include excellent customer service and product quality. Areas for improvement include delivery times and packaging."
+                                                },
+                                                "sentiment_breakdown": {
+                                                    "properties": {
+                                                        "positive": {
+                                                            "type": "integer",
+                                                            "example": 75
+                                                        },
+                                                        "neutral": {
+                                                            "type": "integer",
+                                                            "example": 15
+                                                        },
+                                                        "negative": {
+                                                            "type": "integer",
+                                                            "example": 10
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "key_trends": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "topic": {
+                                                                "type": "string",
+                                                                "example": "customer service"
+                                                            },
+                                                            "sentiment": {
+                                                                "type": "string",
+                                                                "example": "positive"
+                                                            },
+                                                            "mentions": {
+                                                                "type": "integer",
+                                                                "example": 45
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Unauthorized access to branch",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized access to branch"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Branch not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid period parameter",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid period parameter"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error while generating insights",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to generate AI insights"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/branch-members/assign": {
             "post": {
                 "tags": [
@@ -9375,7 +9676,7 @@
         "/v1.0/branch-dashboard/{branchId}": {
             "get": {
                 "tags": [
-                    "report"
+                    "z.unused"
                 ],
                 "summary": "Get branch dashboard data with real metrics",
                 "description": "Returns branch dashboard with real data from database",

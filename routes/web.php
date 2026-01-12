@@ -38,11 +38,11 @@ Route::get('/', function () {
 Route::get('/generate-ai', function () {
     ReviewNew::whereNotNull("raw_text")->update(['is_ai_processed' => 0]);
 
-    if(request()->boolean("generate")) {
-Artisan::call('reviews:process');
+    if (request()->boolean("generate")) {
+        Artisan::call('reviews:process');
     }
 
-    
+
 });
 
 Route::get('/reviews', function () {
@@ -50,29 +50,29 @@ Route::get('/reviews', function () {
         "data" => ReviewNew::whereNotNull("raw_text")->select(
             'id',
             'raw_text',
-             'sentiment_score',
-    'sentiment',
-    'emotion',
-    'key_phrases',
-    'topics',
-    'moderation_results',
-    'ai_suggestions',
-    'staff_suggestions',
-    'language',
-    'ai_confidence',
-    'sentiment_label',
-    'openai_raw_response',
-    'summary',
-    'rating_comment_mismatch',
-    'mismatch_insights',
-    'topic_id',
-    'transcription_metadata',
-    'branch_id',
-    'is_ai_processed',
-    'is_abusive',
-    'staff_id',
-    'created_at',
-    'updated_at',
+            'sentiment_score',
+            'sentiment',
+            'emotion',
+            'key_phrases',
+            'topics',
+            'moderation_results',
+            'ai_suggestions',
+            'staff_suggestions',
+            'language',
+            'ai_confidence',
+            'sentiment_label',
+            'openai_raw_response',
+            'summary',
+            'rating_comment_mismatch',
+            'mismatch_insights',
+            'topic_id',
+            'transcription_metadata',
+            'branch_id',
+            'is_ai_processed',
+            'is_abusive',
+            'staff_id',
+            'created_at',
+            'updated_at',
 
 
 
@@ -93,7 +93,7 @@ Route::get('/swagger-refresh', function () {
 
     // Force regenerate (clears old cache)
     Artisan::call('l5-swagger:generate');
-    return "swagger generated";
+    return redirect('/api/documentation#');
 });
 
 // SETUP PASSPORT
@@ -164,11 +164,11 @@ Route::get("/activate/{token}", function (Request $request, $token) {
     ])->first();
 
     $html_content = json_decode($email_content->template);
-    $html_content =  str_replace("[FirstName]", $user->first_Name, $html_content);
-    $html_content =  str_replace("[LastName]", $user->last_Name, $html_content);
-    $html_content =  str_replace("[FullName]", ($user->first_Name . " " . $user->last_Name), $html_content);
-    $html_content =  str_replace("[AccountVerificationLink]", (env('APP_URL') . '/activate/' . $user->email_verify_token), $html_content);
-    $html_content =  str_replace("[ForgotPasswordLink]", (env('FRONT_END_URL') . '/fotget-password/' . $user->resetPasswordToken), $html_content);
+    $html_content = str_replace("[FirstName]", $user->first_Name, $html_content);
+    $html_content = str_replace("[LastName]", $user->last_Name, $html_content);
+    $html_content = str_replace("[FullName]", ($user->first_Name . " " . $user->last_Name), $html_content);
+    $html_content = str_replace("[AccountVerificationLink]", (env('APP_URL') . '/activate/' . $user->email_verify_token), $html_content);
+    $html_content = str_replace("[ForgotPasswordLink]", (env('FRONT_END_URL') . '/fotget-password/' . $user->resetPasswordToken), $html_content);
 
 
     $email_template_wrapper = EmailTemplateWrapper::where([
@@ -183,7 +183,7 @@ Route::get("/activate/{token}", function (Request $request, $token) {
 
 
     $html_final = json_decode($email_template_wrapper->template);
-    $html_final =  str_replace("[content]", $html_content, $html_final);
+    $html_final = str_replace("[content]", $html_content, $html_final);
     return view('mail.dynamic_mail', ["html_content" => $html_final]);
 });
 
