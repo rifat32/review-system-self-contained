@@ -18,7 +18,7 @@ use App\Helpers\RecommendationGenerator;
 use App\Helpers\RuleEngineHelper;
 use App\Models\InsightRecord;
 
-class AIProcessor
+class ABC
 {
     // ========== NEW INTEGRATION METHODS ==========
 
@@ -191,14 +191,28 @@ class AIProcessor
     /**
      * Get AI insights panel - MODIFIED to use rule engine
      */
-    public static function getAiInsightsPanel($businessId, $dateRange): array
+    public static function getAiInsightsPanel($businessId, $dateRange = null, $user = null)
     {
         // Get reviews WITH calculated rating in one query
-        $reviews = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+        $reviewsQuery = ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('ai_suggestions')
             ->globalFilters(0, $businessId)
-            ->withCalculatedRating()
-            ->get();
+            ->withCalculatedRating();
+
+        if ($dateRange) {
+            $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
+
+        // Apply branch filter
+        $userBranchId = $user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner'))
+            ? $user->default_branch_id
+            : null;
+
+        if ($userBranchId) {
+            $reviewsQuery->where('branch_id', $userBranchId);
+        }
+
+        $reviews = $reviewsQuery->get();
 
         return [
             'summary' => self::generateAiSummaryFromRuleEngine($businessId, $reviews),
@@ -209,9 +223,71 @@ class AIProcessor
     }
 
     /**
+     * Generate AI summary - MODIFIED to use rule engine
+     */
+    public static function generateAiSummary($reviews)
+    {
+        if ($reviews->isEmpty()) {
+            return 'No reviews to analyze.';
+        }
+
+        $firstReview = $reviews->first();
+        $businessId = $firstReview->business_id ?? 0;
+
+        if ($businessId) {
+            return self::generateAiSummaryFromRuleEngine($businessId, $reviews);
+        }
+
+        // Fallback to original logic
+        $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $negativeCount = $reviews->where('sentiment_score', '<', 0.4)->count();
+        $total = $reviews->count();
+
+        $positivePercent = $total > 0 ? round(($positiveCount / $total) * 100) : 0;
+        $negativePercent = $total > 0 ? round(($negativeCount / $total) * 100) : 0;
+
+        return "Customers are {$positivePercent}% positive and {$negativePercent}% negative. " .
+            "Common themes include staff friendliness, service speed, and occasional cleanliness concerns.";
+    }
+
+    /**
+     * Extract issues from suggestions - MODIFIED to use rule engine
+     */
+    public static function extractIssuesFromSuggestions($suggestions)
+    {
+        if (empty($suggestions)) {
+            return [
+                [
+                    'issue' => 'No major issues detected.',
+                    'mention_count' => 0
+                ]
+            ];
+        }
+
+        // If we have business context, use rule engine
+        $suggestionsArray = $suggestions->toArray();
+        if (isset($suggestionsArray[0]) && isset($suggestionsArray[0]['business_id'])) {
+            $businessId = $suggestionsArray[0]['business_id'];
+            $dateRange = ['start' => now()->subDays(30), 'end' => now()];
+            return self::extractIssuesFromRuleEngine($businessId, collect($suggestionsArray), $dateRange);
+        }
+
+        // Fallback to original logic
+        return collect($suggestions)
+            ->filter(fn($s) => stripos($s, 'consider') !== false || stripos($s, 'implement') !== false)
+            ->map(fn($s) => [
+                'issue' => $s,
+                'mention_count' => 1
+            ])
+            ->take(3)
+            ->values()
+            ->toArray();
+    }
+
+    /**
      * Generate branch recommendations - MODIFIED to use rule engine
      */
-    public static function generateBranchRecommendations($reviews): array
+    public static function generateBranchRecommendations($reviews)
     {
         $totalReviews = $reviews->count();
 
@@ -343,7 +419,7 @@ class AIProcessor
         return array_slice($recommendations, 0, 3);
     }
 
-    // ========== KEEP ALL EXISTING METHODS UNCHANGED (for frontend compatibility) ==========
+    // ========== KEEP ALL EXISTING METHODS UNCHANGED ==========
 
     /**
      * Get sentiment label from score - KEEP UNCHANGED
@@ -408,7 +484,7 @@ class AIProcessor
 
     public static function getStaffPerformanceSnapshot($businessId, $dateRange, ?int $staffId = null)
     {
-        // KEEP EXACTLY AS IS (no changes to response format)
+        // KEEP EXACTLY AS IS
         $query = ReviewNew::with('staff')
             ->where('business_id', $businessId)
             ->globalFilters(0, $businessId)
@@ -1597,9 +1673,6 @@ class AIProcessor
     }
 
     // ========== ALL OTHER METHODS KEPT EXACTLY AS IS ==========
-    // The rest of the methods (50+ methods) remain completely unchanged
-
-    // Only showing a few more for brevity, but ALL other methods should be kept as-is
 
     public static function calculateStaffMetricsFromReviewValue($reviews, $staffUser)
     {
@@ -1712,11 +1785,869 @@ class AIProcessor
         return $performance;
     }
 
-    // ... ALL other methods (getNotableReviews, getSentimentGapMessage, getPreviousPeriodReviews, 
-    // calculateOverallMetricsFromReviewValue, etc.) should be kept EXACTLY as they are
+    public static function getNotableReviews($reviews, $limit = 2)
+    {
+        // KEEP EXACTLY AS IS
+        return $reviews->whereNotNull('comment')
+            ->where('comment', '!=', '')
+            ->sortByDesc('created_at')
+            ->take($limit)
+            ->map(function ($review) {
+                return [
+                    'comment' => $review->comment,
+                    'sentiment_score' => $review->sentiment_score,
+                    'date' => $review->created_at->diffForHumans()
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
 
-    // ========== FINAL METHODS ==========
+    public static function getSentimentGapMessage($gap)
+    {
+        // KEEP EXACTLY AS IS
+        if ($gap > 0) {
+            return "Staff A has more positive reviews";
+        } elseif ($gap < 0) {
+            return "Staff B has more positive reviews";
+        } else {
+            return "Both have similar positive sentiment";
+        }
+    }
 
+    public static function getPreviousPeriodReviews($businessId, $period = null)
+    {
+        // KEEP EXACTLY AS IS
+        if ($period === null) {
+            return ReviewNew::where('business_id', $businessId)
+                ->whereNotNull('staff_id')
+                ->whereNotNull('sentiment_score')
+                ->globalFilters(0, $businessId)
+                ->withCalculatedRating()
+                ->get();
+        }
+
+        $startDate = match ($period) {
+            'this_week' => Carbon::now()->subWeek()->startOfWeek(),
+            'this_month' => Carbon::now()->subMonth()->startOfMonth(),
+            'last_week' => Carbon::now()->subWeeks(2)->startOfWeek(),
+            'last_month' => Carbon::now()->subMonths(2)->startOfMonth(),
+            default => Carbon::now()->subMonth()->startOfMonth()
+        };
+
+        $endDate = match ($period) {
+            'this_week' => Carbon::now()->subWeek()->endOfWeek(),
+            'this_month' => Carbon::now()->subMonth()->endOfMonth(),
+            'last_week' => Carbon::now()->subWeeks(2)->endOfWeek(),
+            'last_month' => Carbon::now()->subMonths(2)->endOfMonth(),
+            default => Carbon::now()->subMonth()->endOfMonth()
+        };
+
+        return ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->whereNotNull('sentiment_score')
+            ->globalFilters(0, $businessId)
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
+            ->withCalculatedRating()
+            ->get();
+    }
+
+    public static function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
+    {
+        // KEEP EXACTLY AS IS
+        $currentAvgRating = $currentReviews->isNotEmpty()
+            ? round($currentReviews->avg('calculated_rating'), 1)
+            : 0;
+
+        $previousAvgRating = $previousReviews->isNotEmpty()
+            ? round($previousReviews->avg('calculated_rating'), 1)
+            : 0;
+
+        $currentSentiment = self::calculateAverageSentiment($currentReviews);
+        $currentTotalReviews = $currentReviews->count();
+
+        $previousSentiment = self::calculateAverageSentiment($previousReviews);
+        $previousTotalReviews = $previousReviews->count();
+
+        $ratingChange = $previousAvgRating > 0 ?
+            round((($currentAvgRating - $previousAvgRating) / $previousAvgRating) * 100, 1) : 0;
+
+        $sentimentChange = $previousSentiment > 0 ?
+            round($currentSentiment - $previousSentiment, 1) : 0;
+
+        $reviewsChange = $previousTotalReviews > 0 ?
+            $currentTotalReviews - $previousTotalReviews : $currentTotalReviews;
+
+        return [
+            'overall_rating' => [
+                'value' => $currentAvgRating,
+                'change' => $ratingChange,
+                'change_type' => $ratingChange >= 0 ? 'positive' : 'negative'
+            ],
+            'overall_sentiment' => [
+                'value' => $currentSentiment,
+                'change' => $sentimentChange,
+                'change_type' => $sentimentChange >= 0 ? 'positive' : 'negative'
+            ],
+            'total_reviews' => [
+                'value' => $currentTotalReviews,
+                'change' => $reviewsChange,
+                'change_type' => $reviewsChange >= 0 ? 'positive' : 'negative'
+            ]
+        ];
+    }
+
+    public static function calculateAverageSentiment($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        if ($reviews->isEmpty()) {
+            return 0;
+        }
+
+        $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        return round(($positiveReviews / $reviews->count()) * 100);
+    }
+
+    public static function extractStaffTopics($staffReviews)
+    {
+        // KEEP EXACTLY AS IS
+        $allTopics = [];
+
+        foreach ($staffReviews as $review) {
+            if ($review->topics && is_array($review->topics)) {
+                foreach ($review->topics as $topic) {
+                    $allTopics[$topic] = ($allTopics[$topic] ?? 0) + 1;
+                }
+            }
+
+            // Also extract from comment if no topics set
+            if (empty($review->topics) && $review->comment) {
+                $commonWords = ['service', 'friendly', 'helpful', 'knowledge', 'slow', 'fast', 'polite', 'rude'];
+                $comment = strtolower($review->comment);
+
+                foreach ($commonWords as $word) {
+                    if (strpos($comment, $word) !== false) {
+                        $allTopics[$word] = ($allTopics[$word] ?? 0) + 1;
+                    }
+                }
+            }
+        }
+
+        arsort($allTopics);
+        return $allTopics;
+    }
+
+    /**
+     * Get top three staff based on ratings and review count
+     */
+    public static function getTopThreeStaff($businessId, $filters = [])
+    {
+        // KEEP EXACTLY AS IS
+        $reviewsQuery = ReviewNew::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->globalFilters(0, $businessId)
+            ->withCalculatedRating();
+
+        // Apply the same filters as main query
+        $reviewsQuery = applyFilters($reviewsQuery, $filters);
+
+        // Add calculated rating to the query
+        $reviews = $reviewsQuery->get();
+
+        if ($reviews->isEmpty()) {
+            return [
+                'message' => 'No staff reviews found',
+                'staff' => []
+            ];
+        }
+
+        // Manual grouping by staff_id
+        $staffGroups = [];
+        foreach ($reviews as $review) {
+            if ($review->staff_id) {
+                $staffGroups[$review->staff_id][] = $review;
+            }
+        }
+
+        $staffPerformance = [];
+
+        foreach ($staffGroups as $staffId => $reviewsArray) {
+            $staff = User::find($staffId);
+            if (!$staff)
+                continue;
+
+            $totalRating = 0;
+            $totalReviews = count($reviewsArray);
+            $positiveCount = 0;
+            $latestReviewDate = null;
+            $allTopics = [];
+
+            foreach ($reviewsArray as $review) {
+                $totalRating += $review->calculated_rating ?? 0;
+
+                if (isset($review->sentiment_score) && $review->sentiment_score >= 0.7) {
+                    $positiveCount++;
+                }
+
+                if (!$latestReviewDate || $review->created_at > $latestReviewDate) {
+                    $latestReviewDate = $review->created_at;
+                }
+
+                if (!empty($review->topics) && is_array($review->topics)) {
+                    $allTopics = array_merge($allTopics, $review->topics);
+                }
+            }
+
+            $avgRating = $totalReviews > 0 ? $totalRating / $totalReviews : 0;
+            $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
+
+            if ($totalReviews < 5) {
+                continue;
+            }
+
+            $topTopics = self::extractStaffTopics(collect($reviewsArray));
+
+            $staffPerformance[] = [
+                'staff_id' => $staffId,
+                'staff_name' => $staff->name,
+                'position' => $staff->job_title ?? 'Staff',
+                'image' => $staff->image ?? null,
+                'avg_rating' => round($avgRating, 1),
+                'review_count' => $totalReviews,
+                'sentiment_score' => $sentimentPercentage,
+                'sentiment_label' => self::getSentimentLabelByPercentage($sentimentPercentage),
+                'top_topics' => array_slice($topTopics, 0, 3),
+                'recent_activity' => $latestReviewDate
+                    ? $latestReviewDate->diffForHumans()
+                    : 'No recent activity'
+            ];
+        }
+
+        usort($staffPerformance, function ($a, $b) {
+            if ($b['avg_rating'] == $a['avg_rating']) {
+                return $b['review_count'] <=> $a['review_count'];
+            }
+            return $b['avg_rating'] <=> $a['avg_rating'];
+        });
+
+        $staffPerformance = array_slice($staffPerformance, 0, 3);
+
+        return [
+            'total_staff_reviewed' => count($staffGroups),
+            'staff' => $staffPerformance
+        ];
+    }
+
+    public static function calculatePerformanceOverviewFromReviewValue($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        if ($reviews instanceof Builder) {
+            $reviews = $reviews->get();
+        }
+
+        $totalSubmissions = $reviews->count();
+
+        $averageScore = $totalSubmissions > 0
+            ? round($reviews->avg('calculated_rating'), 1)
+            : 0;
+        $positiveCount = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $neutralCount = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
+        $negativeCount = $reviews->where('sentiment_score', '<', 0.4)->count();
+
+        $today = Carbon::today();
+        $startOfWeek = Carbon::now()->startOfWeek();
+        $endOfWeek = Carbon::now()->endOfWeek();
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth = Carbon::now()->endOfMonth();
+
+        return [
+            'total_submissions' => $totalSubmissions,
+            'average_score' => $averageScore,
+            'score_out_of' => 5,
+            'sentiment_distribution' => [
+                'positive' => $totalSubmissions > 0 ? round(($positiveCount / $totalSubmissions) * 100) : 0,
+                'neutral' => $totalSubmissions > 0 ? round(($neutralCount / $totalSubmissions) * 100) : 0,
+                'negative' => $totalSubmissions > 0 ? round(($negativeCount / $totalSubmissions) * 100) : 0
+            ],
+            'submissions_today' => $reviews->filter(function ($review) use ($today) {
+                return $review->created_at->isSameDay($today);
+            })->count(),
+            'submissions_this_week' => $reviews->filter(function ($review) use ($startOfWeek, $endOfWeek) {
+                return $review->created_at->between($startOfWeek, $endOfWeek);
+            })->count(),
+            'submissions_this_month' => $reviews->filter(function ($review) use ($startOfMonth, $endOfMonth) {
+                return $review->created_at->between($startOfMonth, $endOfMonth);
+            })->count(),
+            'guest_reviews_count' => $reviews->whereNotNull('guest_id')->count(),
+            'user_reviews_count' => $reviews->whereNotNull('user_id')->count(),
+        ];
+    }
+
+    public static function getReviewSamples($reviews, $limit = 2)
+    {
+        // KEEP EXACTLY AS IS
+        $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)
+            ->sortByDesc('created_at')
+            ->take($limit);
+
+        $constructiveReviews = $reviews->whereBetween('sentiment_score', [0.4, 0.69])
+            ->sortByDesc('created_at')
+            ->take($limit);
+
+        $negativeReviews = $reviews->where('sentiment_score', '<', 0.4)
+            ->sortByDesc('created_at')
+            ->take($limit);
+
+        return [
+            'positive' => $positiveReviews->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'comment' => $review->comment,
+                    'sentiment_score' => $review->sentiment_score,
+                    'date' => $review->created_at->diffForHumans(),
+                    'rating' => $review->calculated_rating
+                ];
+            })->values()->toArray(),
+            'constructive' => $constructiveReviews->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'comment' => $review->comment,
+                    'sentiment_score' => $review->sentiment_score,
+                    'date' => $review->created_at->diffForHumans(),
+                    'rating' => $review->calculated_rating
+                ];
+            })->values()->toArray(),
+            'neutral' => $negativeReviews->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'comment' => $review->comment,
+                    'sentiment_score' => $review->sentiment_score,
+                    'date' => $review->created_at->diffForHumans(),
+                    'rating' => $review->calculated_rating
+                ];
+            })->values()->toArray()
+        ];
+    }
+
+    public static function getSubmissionsOverTime($reviews, $period)
+    {
+        // KEEP EXACTLY AS IS
+        $endDate = Carbon::now();
+        $startDate = match ($period) {
+            '7d' => Carbon::now()->subDays(7),
+            '90d' => Carbon::now()->subDays(90),
+            '1y' => Carbon::now()->subYear(),
+            default => Carbon::now()->subDays(30)
+        };
+
+        $groupFormat = match ($period) {
+            '7d' => 'd-m-Y',
+            '90d', '1y' => 'm-Y',
+            default => 'd-m-Y'
+        };
+
+        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            $reviews = $reviews->get();
+        }
+
+        $reviewsArray = is_array($reviews) ? $reviews : $reviews->toArray();
+
+        $filteredReviews = [];
+        foreach ($reviewsArray as $review) {
+            $createdAt = is_array($review)
+                ? ($review['created_at'] ?? null)
+                : ($review->created_at ?? null);
+
+            if (!$createdAt)
+                continue;
+
+            $reviewDate = Carbon::parse($createdAt);
+            if ($reviewDate->between($startDate, $endDate)) {
+                $filteredReviews[] = $review;
+            }
+        }
+
+        $submissionsByPeriod = [];
+        foreach ($filteredReviews as $review) {
+            $createdAt = is_array($review)
+                ? ($review['created_at'] ?? null)
+                : ($review->created_at ?? null);
+
+            if (!$createdAt)
+                continue;
+
+            $periodKey = Carbon::parse($createdAt)->format($groupFormat);
+
+            if (!isset($submissionsByPeriod[$periodKey])) {
+                $submissionsByPeriod[$periodKey] = [
+                    'total_rating' => 0,
+                    'total_sentiment' => 0,
+                    'count' => 0
+                ];
+            }
+
+            $rating = is_array($review)
+                ? ($review['calculated_rating'] ?? 0)
+                : ($review->calculated_rating ?? 0);
+
+            $sentiment = is_array($review)
+                ? ($review['sentiment_score'] ?? 0)
+                : ($review->sentiment_score ?? 0);
+
+            $submissionsByPeriod[$periodKey]['total_rating'] += $rating;
+            $submissionsByPeriod[$periodKey]['total_sentiment'] += $sentiment;
+            $submissionsByPeriod[$periodKey]['count']++;
+        }
+
+        $formattedData = [];
+        $peakSubmissions = 0;
+
+        foreach ($submissionsByPeriod as $periodKey => $data) {
+            $count = $data['count'];
+            $avgRating = $count > 0 ? $data['total_rating'] / $count : 0;
+            $avgSentiment = $count > 0 ? $data['total_sentiment'] / $count : 0;
+
+            $formattedData[$periodKey] = [
+                'submissions_count' => $count,
+                'average_rating' => round($avgRating, 1),
+                'sentiment_score' => round($avgSentiment * 100, 1)
+            ];
+
+            if ($count > $peakSubmissions) {
+                $peakSubmissions = $count;
+            }
+        }
+
+        $filledData = fillMissingPeriods($formattedData, $startDate, $endDate, $groupFormat);
+
+        return [
+            'period' => $period,
+            'data' => $filledData,
+            'total_submissions' => count($filteredReviews),
+            'peak_submissions' => $peakSubmissions,
+            'date_range' => [
+                'start' => $startDate->format('d-m-Y'),
+                'end' => $endDate->format('d-m-Y')
+            ]
+        ];
+    }
+
+    public static function getRecentSubmissions($reviews, $limit = 5)
+    {
+        // KEEP EXACTLY AS IS
+        return $reviews->sortByDesc('created_at')
+            ->take($limit)
+            ->map(function ($review) {
+                $userName = getUserName($review);
+
+                return [
+                    'review_id' => $review->id,
+                    'user_name' => $userName,
+                    'rating' => $review->calculated_rating,
+                    'comment' => $review->comment,
+                    'submission_date' => $review->created_at->diffForHumans(),
+                    'exact_date' => $review->created_at->format('d-m-Y H:i:s'),
+                    'is_guest' => !is_null($review->guest_id),
+                    'is_overall' => (bool) $review->is_overall,
+                    'sentiment_score' => $review->sentiment_score,
+                    'survey_name' => $review->survey ? $review->survey->name : null,
+                    'staff_name' => $review->staff ? $review->staff->name : null,
+                    "calculated_rating" => $review->calculated_rating ?? null,
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    public static function getRatingGapMessage($gap)
+    {
+        // KEEP EXACTLY AS IS
+        if ($gap > 0) {
+            return "Staff A is performing better";
+        } elseif ($gap < 0) {
+            return "Staff B is performing better";
+        } else {
+            return "Both staff are performing equally";
+        }
+    }
+
+    public static function getRecommendedTraining($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        $trainingRecommendations = [];
+
+        $text = $reviews->pluck('comment')->implode(' ');
+        $textLower = strtolower($text);
+
+        if (strpos($textLower, 'escalat') !== false || strpos($textLower, 'conflict') !== false) {
+            $trainingRecommendations[] = [
+                'title' => 'Advanced Conflict Resolution',
+                'description' => 'Recommended based on feedback regarding complex customer escalations.',
+                'priority' => 'high',
+                'category' => 'communication'
+            ];
+        }
+
+        if (strpos($textLower, 'technical') !== false || strpos($textLower, 'knowledge') !== false) {
+            $trainingRecommendations[] = [
+                'title' => 'Technical Product Training',
+                'description' => 'Recommended to improve product knowledge and technical expertise.',
+                'priority' => 'medium',
+                'category' => 'knowledge'
+            ];
+        }
+
+        if (strpos($textLower, 'upsell') !== false || strpos($textLower, 'recommend') !== false) {
+            $trainingRecommendations[] = [
+                'title' => 'Sales and Upselling Techniques',
+                'description' => 'Recommended to enhance sales skills and product recommendation abilities.',
+                'priority' => 'medium',
+                'category' => 'sales'
+            ];
+        }
+
+        if (empty($trainingRecommendations)) {
+            $trainingRecommendations[] = [
+                'title' => 'Customer Service Excellence',
+                'description' => 'General customer service skills enhancement.',
+                'priority' => 'low',
+                'category' => 'communication'
+            ];
+        }
+
+        return $trainingRecommendations;
+    }
+
+    public static function analyzeSkillGaps($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        $strengths = [];
+        $improvement_areas = [];
+
+        $text = $reviews->pluck('comment')->implode(' ');
+        $textLower = strtolower($text);
+
+        if (strpos($textLower, 'communicat') !== false || strpos($textLower, 'explain') !== false) {
+            $strengths[] = 'Communication';
+        }
+        if (strpos($textLower, 'solve') !== false || strpos($textLower, 'resolve') !== false) {
+            $strengths[] = 'Problem Solving';
+        }
+        if (strpos($textLower, 'patient') !== false) {
+            $strengths[] = 'Patience';
+        }
+        if (strpos($textLower, 'professional') !== false) {
+            $strengths[] = 'Professionalism';
+        }
+
+        if (strpos($textLower, 'technical') !== false && strpos($textLower, 'know') === false) {
+            $improvement_areas[] = 'Technical Knowledge';
+        }
+        if (strpos($textLower, 'upsell') !== false) {
+            $improvement_areas[] = 'Upselling';
+        }
+        if (strpos($textLower, 'slow') !== false) {
+            $improvement_areas[] = 'Process Efficiency';
+        }
+
+        $strengths = array_unique($strengths);
+        $improvement_areas = array_unique($improvement_areas);
+
+        return [
+            'strengths' => array_values($strengths),
+            'improvement_areas' => array_values($improvement_areas)
+        ];
+    }
+
+    public static function calculateCustomerTone($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        $toneMetrics = [
+            'friendliness' => ['friendly', 'nice', 'kind', 'pleasant', 'warm'],
+            'patience' => ['patient', 'calm', 'understanding', 'tolerant'],
+            'professionalism' => ['professional', 'expert', 'knowledgeable', 'competent']
+        ];
+
+        $results = [];
+
+        foreach ($toneMetrics as $tone => $keywords) {
+            $matchingReviews = $reviews->filter(function ($review) use ($keywords) {
+                $text = strtolower($review->raw_text . ' ' . $review->comment);
+                foreach ($keywords as $keyword) {
+                    if (strpos($text, $keyword) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            if ($matchingReviews->count() > 0) {
+                $positiveMatches = $matchingReviews->where('sentiment_score', '>=', 0.7)->count();
+                $percentage = round(($positiveMatches / $matchingReviews->count()) * 100);
+            } else {
+                $percentage = 0;
+            }
+
+            $results[$tone] = $percentage;
+        }
+
+        return $results;
+    }
+
+    public static function calculateSentimentDistribution($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        $total = $reviews->count();
+
+        if ($total === 0) {
+            return ['positive' => 0, 'neutral' => 0, 'negative' => 0];
+        }
+
+        $positive = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $neutral = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
+        $negative = $reviews->where('sentiment_score', '<', 0.4)->count();
+
+        return [
+            'positive' => round(($positive / $total) * 100),
+            'neutral' => round(($neutral / $total) * 100),
+            'negative' => round(($negative / $total) * 100)
+        ];
+    }
+
+    public static function calculateComplimentRatio($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        $totalReviews = $reviews->count();
+
+        if ($totalReviews === 0) {
+            return [
+                'compliments_percentage' => 0,
+                'complaints_percentage' => 0,
+                'compliments_count' => 0,
+                'complaints_count' => 0
+            ];
+        }
+
+        $compliments = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $complaints = $reviews->where('sentiment_score', '<', 0.4)->count();
+        $neutral = $totalReviews - $compliments - $complaints;
+
+        return [
+            'compliments_percentage' => round(($compliments / $totalReviews) * 100),
+            'complaints_percentage' => round(($complaints / $totalReviews) * 100),
+            'neutral_percentage' => round(($neutral / $totalReviews) * 100),
+            'compliments_count' => $compliments,
+            'complaints_count' => $complaints,
+            'neutral_count' => $neutral
+        ];
+    }
+
+    public static function getAllStaffMetricsFromReviewValue($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        $staffGroups = [];
+        foreach ($reviews as $review) {
+            if ($review->staff_id) {
+                $staffGroups[$review->staff_id][] = $review;
+            }
+        }
+
+        $staffMetrics = [];
+
+        foreach ($staffGroups as $staffId => $reviewsArray) {
+            $staff = User::find($staffId);
+            if (!$staff)
+                continue;
+
+            $totalRating = 0;
+            $totalSentiment = 0;
+            $totalReviews = count($reviewsArray);
+            $compliments = 0;
+            $complaints = 0;
+            $neutral = 0;
+
+            foreach ($reviewsArray as $review) {
+                $totalRating += $review->calculated_rating ?? 0;
+
+                $sentimentScore = $review->sentiment_score ?? 0;
+                $totalSentiment += $sentimentScore;
+
+                if ($sentimentScore >= 0.7) {
+                    $compliments++;
+                } elseif ($sentimentScore < 0.4) {
+                    $complaints++;
+                } else {
+                    $neutral++;
+                }
+            }
+
+            $avgRating = $totalReviews > 0 ? $totalRating / $totalReviews : 0;
+            $avgSentiment = $totalReviews > 0 ? $totalSentiment / $totalReviews : 0;
+
+            $staffMetrics[] = [
+                'staff_id' => $staffId,
+                'staff_name' => $staff->name,
+                'position' => $staff->job_title ?? 'Staff',
+                'avg_rating' => round($avgRating, 1),
+                'sentiment_score' => self::getSentimentLabel($avgSentiment),
+                'compliments_count' => $compliments,
+                'complaints_count' => $complaints,
+                'neutral_count' => $neutral,
+                'total_reviews' => $totalReviews,
+                'sentiment_numeric' => round($avgSentiment * 100)
+            ];
+        }
+
+        usort($staffMetrics, function ($a, $b) {
+            return $b['avg_rating'] <=> $a['avg_rating'];
+        });
+
+        return $staffMetrics;
+    }
+
+    public static function getReviewFeed($businessId, $dateRange = null, $limit = 10, $user = null)
+    {
+        // KEEP EXACTLY AS IS
+        $userBranchId = ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')))
+            ? $user->default_branch_id
+            : null;
+
+        $query = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tags', 'value'])
+            ->where('business_id', $businessId)
+            ->orderBy('created_at', 'desc')
+            ->globalFilters(0, $businessId)
+            ->limit($limit)
+            ->withCalculatedRating();
+
+        if ($dateRange) {
+            $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+        }
+
+        if ($userBranchId) {
+            $query->where('branch_id', $userBranchId);
+        }
+
+        $reviews = $query->get();
+
+        return $reviews->map(function ($review) {
+            $calculatedRating = (float) $review->calculated_rating;
+
+            $user = $review->user;
+
+            return [
+                'id' => $review->id,
+                'responded_at' => $review->responded_at,
+                'rating' => ($calculatedRating ?? 0) . '/5',
+                'calculated_rating' => $calculatedRating,
+                'author' => $review->user?->name ?? $review->guest_user?->full_name ?? 'Anonymous',
+                'author_image' => $review->user?->image ?? null,
+                'time_ago' => $review->created_at->diffForHumans(),
+                'comment' => $review->comment,
+                'staff_name' => $review->staff?->name,
+                'tags' => $review->value->flatMap(function ($value) {
+                    return $value->tags->pluck('tag')->all();
+                })->filter()->unique()->values()->toArray(),
+                'is_voice' => $review->is_voice_review,
+                'sentiment' => self::getSentimentLabel($review->sentiment_score),
+                'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])
+            ];
+        });
+    }
+
+    public static function getAudioDuration($filePath)
+    {
+        // KEEP EXACTLY AS IS
+        try {
+            $getID3 = new getID3();
+            $fileInfo = $getID3->analyze($filePath);
+            return $fileInfo['playtime_seconds'] ?? null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    public static function getSentimentLabelByPercentage($percentage)
+    {
+        // KEEP EXACTLY AS IS
+        if ($percentage >= 70) {
+            return 'Excellent';
+        } elseif ($percentage >= 50) {
+            return 'Good';
+        } elseif ($percentage >= 30) {
+            return 'Average';
+        } else {
+            return 'Needs Improvement';
+        }
+    }
+
+    /**
+     * Calculate aggregated sentiment metrics for reports
+     */
+    public static function calculateAggregatedSentiment($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        $total = count($reviews);
+        $positive = 0;
+        $neutral = 0;
+        $negative = 0;
+        $totalScore = 0;
+
+        foreach ($reviews as $review) {
+            $score = $review->sentiment_score ?? 0;
+            $totalScore += $score;
+
+            if ($score >= 0.7) {
+                $positive++;
+            } elseif ($score >= 0.4) {
+                $neutral++;
+            } else {
+                $negative++;
+            }
+        }
+
+        $avgScore = $total > 0 ? round($totalScore / $total, 2) : 0;
+
+        return [
+            'total_reviews' => $total,
+            'positive_count' => $positive,
+            'neutral_count' => $neutral,
+            'negative_count' => $negative,
+            'positive_percentage' => $total > 0 ? round(($positive / $total) * 100) : 0,
+            'neutral_percentage' => $total > 0 ? round(($neutral / $total) * 100) : 0,
+            'negative_percentage' => $total > 0 ? round(($negative / $total) * 100) : 0,
+            'average_score' => $avgScore,
+            'average_percentage' => round($avgScore * 100),
+            'sentiment_label' => self::getSentimentLabel($avgScore)
+        ];
+    }
+
+    /**
+     * Extract common topics for reports
+     */
+    public static function extractCommonTopics($reviews, $limit = 5)
+    {
+        // KEEP EXACTLY AS IS
+        $topicCounts = [];
+
+        foreach ($reviews as $review) {
+            $topics = $review->topics ?? [];
+            if (is_string($topics)) {
+                $topics = json_decode($topics, true) ?? [];
+            }
+
+            foreach ($topics as $topic) {
+                $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
+            }
+        }
+
+        arsort($topicCounts);
+        return array_slice($topicCounts, 0, $limit, true);
+    }
+
+    /**
+     * Generate AI insights summary for dashboard
+     */
     public static function generateDashboardInsights($reviews)
     {
         // KEEP EXACTLY AS IS
@@ -1783,6 +2714,9 @@ class AIProcessor
         return $insights;
     }
 
+    /**
+     * Get insights overview data for dashboard
+     */
     public static function getInsightsOverview($businessId, $dateRange)
     {
         // KEEP EXACTLY AS IS
@@ -1805,6 +2739,9 @@ class AIProcessor
         ];
     }
 
+    /**
+     * Extract top issues from reviews using existing findCommonIssues method
+     */
     public static function extractTopIssuesFromReviews($reviews)
     {
         // KEEP EXACTLY AS IS
@@ -1831,6 +2768,9 @@ class AIProcessor
         return array_slice($issuesWithPercentages, 0, 3);
     }
 
+    /**
+     * Get performance by branch
+     */
     public static function getPerformanceByBranch($businessId, $dateRange)
     {
         // KEEP EXACTLY AS IS
@@ -1867,82 +2807,157 @@ class AIProcessor
         return array_slice($performanceData, 0, 3);
     }
 
-    // ========== NEED TO ADD THE NEW CLASS IMPORTS ==========
-
-    // Add these at the top of your existing AIProcessor class:
-    // use App\Helpers\InsightAggregationHelper;
-    // use App\Helpers\RecommendationGenerator;
-    // use App\Helpers\RuleEngineHelper;
-    // use App\Models\InsightRecord;
-
     /**
-     * Calculate aggregated sentiment data from reviews
+     * Get performance by area (BusinessArea)
      */
-    public static function calculateAggregatedSentiment($reviews)
+    public static function getPerformanceByArea($businessId, $dateRange)
     {
-        $total = is_countable($reviews) ? count($reviews) : $reviews->count();
-        $positive = 0;
-        $neutral = 0;
-        $negative = 0;
-        $totalScore = 0;
+        // KEEP EXACTLY AS IS
+        $areasWithReviews = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->globalFilters(0, $businessId)
+            ->withCalculatedRating()
+            ->whereHas('review_business_services', function ($query) {
+                $query->whereNotNull('business_area_id');
+            })
+            ->with(['review_business_services.business_service.business_areas'])
+            ->get();
 
-        foreach ($reviews as $review) {
-            $score = $review->sentiment_score ?? 0;
-            $totalScore += $score;
+        $areaReviews = [];
 
-            if ($score >= 0.7) {
-                $positive++;
-            } elseif ($score >= 0.4) {
-                $neutral++;
-            } else {
-                $negative++;
+        foreach ($areasWithReviews as $review) {
+            foreach ($review->review_business_services as $service) {
+                if ($service->business_area_id) {
+                    if ($service->business_service && $service->business_service->business_areas) {
+                        foreach ($service->business_service->business_areas as $area) {
+                            if ($area->id == $service->business_area_id) {
+                                if (!isset($areaReviews[$area->id])) {
+                                    $areaReviews[$area->id] = [
+                                        'area' => $area,
+                                        'reviews' => [],
+                                        'ratings' => []
+                                    ];
+                                }
+                                $areaReviews[$area->id]['reviews'][] = $review;
+                                $areaReviews[$area->id]['ratings'][] = $review->calculated_rating ?? 0;
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        $avgScore = $total > 0 ? round($totalScore / $total, 2) : 0;
+        $performanceData = [];
 
-        return [
-            'total_reviews' => $total,
-            'positive_count' => $positive,
-            'neutral_count' => $neutral,
-            'negative_count' => $negative,
-            'positive_percentage' => $total > 0 ? round(($positive / $total) * 100) : 0,
-            'neutral_percentage' => $total > 0 ? round(($neutral / $total) * 100) : 0,
-            'negative_percentage' => $total > 0 ? round(($negative / $total) * 100) : 0,
-            'average_score' => $avgScore,
-            'average_percentage' => round($avgScore * 100),
-            'sentiment_label' => self::getSentimentLabel($avgScore)
-        ];
-    }
+        foreach ($areaReviews as $areaData) {
+            $area = $areaData['area'];
+            $reviews = $areaData['reviews'];
+            $ratings = $areaData['ratings'];
 
-    /**
-     * Extract common topics from reviews
-     */
-    public static function extractCommonTopics($reviews, $limit = 5)
-    {
-        $topicCounts = [];
+            if (count($ratings) > 0) {
+                $avgRating = round(array_sum($ratings) / count($ratings), 1);
 
-        foreach ($reviews as $review) {
-            $topics = $review->topics ?? [];
-            if (is_string($topics)) {
-                $topics = json_decode($topics, true) ?? [];
-            }
-
-            foreach ($topics as $topic) {
-                $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
+                $performanceData[] = [
+                    'name' => $area->area_name,
+                    'rating' => $avgRating,
+                    'review_count' => count($reviews),
+                    'area_id' => $area->id,
+                    'business_service_id' => $area->business_service_id,
+                    'business_service_name' => $area->business_service->name ?? 'Unknown'
+                ];
             }
         }
 
-        arsort($topicCounts);
-        return array_slice($topicCounts, 0, $limit, true);
+        if (empty($performanceData)) {
+            $areas = BusinessArea::where('business_id', $businessId)
+                ->where('is_active', true)
+                ->with(['business_service'])
+                ->get();
+
+            foreach ($areas as $area) {
+                $reviewCount = ReviewNew::where('business_id', $businessId)
+                    ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+                    ->whereHas('review_business_services', function ($query) use ($area) {
+                        $query->where('business_area_id', $area->id);
+                    })
+                    ->globalFilters(0, $businessId)
+                    ->withCalculatedRating()
+                    ->count();
+
+                $reviewsForArea = ReviewNew::where('business_id', $businessId)
+                    ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+                    ->whereHas('review_business_services', function ($query) use ($area) {
+                        $query->where('business_area_id', $area->id);
+                    })
+                    ->globalFilters(0, $businessId)
+                    ->withCalculatedRating()
+                    ->get();
+
+                if ($reviewsForArea->isNotEmpty()) {
+                    $avgRating = round($reviewsForArea->avg('calculated_rating'), 1);
+
+                    $performanceData[] = [
+                        'name' => $area->area_name,
+                        'rating' => $avgRating,
+                        'review_count' => $reviewCount,
+                        'area_id' => $area->id,
+                        'business_service_id' => $area->business_service_id,
+                        'business_service_name' => $area->business_service->name ?? 'Unknown'
+                    ];
+                }
+            }
+        }
+
+        usort($performanceData, function ($a, $b) {
+            return $b['rating'] <=> $a['rating'];
+        });
+
+        return array_slice($performanceData, 0, 3);
     }
 
     /**
-     * Get top and worst performing staff
+     * Get top performing staff using existing getTopWorstStaff method
      */
+    public static function getTopPerformingStaffFromTopWorst($businessId, $dateRange)
+    {
+        // KEEP EXACTLY AS IS
+        $staffAnalysis = self::getTopWorstStaff($businessId, $dateRange, 3, 'rating');
+
+        if (empty($staffAnalysis['top_staff'])) {
+            return [];
+        }
+
+        $topStaff = [];
+
+        foreach ($staffAnalysis['top_staff'] as $staff) {
+            $staffUser = User::with("branches")
+                ->where('id', $staff['staff_id'])
+                ->first();
+            if (!$staffUser)
+                continue;
+
+            $name = $staffUser->name;
+            $nameParts = explode(' ', $name);
+            $formattedName = $nameParts[0] . ' ' .
+                (isset($nameParts[1]) ? substr($nameParts[1], 0, 1) . '.' : '');
+
+            $topStaff[] = [
+                'staff_id' => $staff['staff_id'],
+                'name' => $formattedName,
+                'role' => $staffUser->job_title ?? 'Staff',
+                'branches' => $staffUser->branches,
+                'rating' => round($staff['avg_rating'], 1),
+                'review_count' => $staff['review_count'] ?? 0,
+                'image' => $staffUser->image ?? null
+            ];
+        }
+
+        return $topStaff;
+    }
+
     public static function getTopWorstStaff($businessId, $dateRange, $limit = 3, $criteria = 'rating')
     {
-        // Get staff reviews WITH calculated rating
+        // KEEP EXACTLY AS IS
         $staffReviews = ReviewNew::with('staff')
             ->where('business_id', $businessId)
             ->globalFilters(0, $businessId)
@@ -1959,7 +2974,6 @@ class AIProcessor
             ];
         }
 
-        // Manual grouping since calculated_rating is not a real database column
         $groupedReviews = [];
         foreach ($staffReviews as $review) {
             if ($review->staff_id) {
@@ -1974,7 +2988,6 @@ class AIProcessor
             if (!$staff)
                 continue;
 
-            // Manual calculations
             $totalRating = 0;
             $reviewCount = count($reviews);
             $positiveCount = 0;
@@ -1983,10 +2996,8 @@ class AIProcessor
             $latestReviewDate = null;
 
             foreach ($reviews as $review) {
-                // Calculate average rating
                 $totalRating += $review->calculated_rating ?? 0;
 
-                // Count positive/negative reviews based on sentiment score
                 $sentimentScore = $review->sentiment_score ?? 0;
                 $totalSentiment += $sentimentScore;
 
@@ -1996,23 +3007,21 @@ class AIProcessor
                     $negativeCount++;
                 }
 
-                // Track latest review
                 if (!$latestReviewDate || $review->created_at > $latestReviewDate) {
                     $latestReviewDate = $review->created_at;
                 }
             }
 
-            // Calculate averages
             $avgRating = $reviewCount > 0 ? $totalRating / $reviewCount : 0;
             $avgSentiment = $reviewCount > 0 ? $totalSentiment / $reviewCount : 0;
 
-            // Only include staff with at least 3 reviews for meaningful analysis
             if ($reviewCount < 3)
                 continue;
 
-            // Calculate additional metrics
             $sentimentPercentage = $reviewCount > 0 ? round(($positiveCount / $reviewCount) * 100) : 0;
             $negativePercentage = $reviewCount > 0 ? round(($negativeCount / $reviewCount) * 100) : 0;
+
+            $commonPraise = self::extractCommonPraise(collect($reviews));
 
             $staffPerformance[] = [
                 'staff_id' => $staffId,
@@ -2028,26 +3037,24 @@ class AIProcessor
                 'review_count' => $reviewCount,
                 'positive_reviews' => $positiveCount,
                 'negative_reviews' => $negativeCount,
+                'common_praise' => array_slice($commonPraise, 0, 3),
                 'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'No reviews',
-                'rating_trend' => self::calculateStaffRatingTrend(collect($reviews))
+                'rating_trend' => self::calculateStaffRatingTrend(collect($reviews)),
+                'performance_level' => self::identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage)
             ];
         }
 
-        // Sort based on selected criteria for TOP performers (highest first)
         if ($criteria === 'rating') {
-            // Sort by average rating (highest first for top, lowest first for worst)
             usort($staffPerformance, function ($a, $b) {
                 return $b['avg_rating'] <=> $a['avg_rating'];
             });
             $topStaff = array_slice($staffPerformance, 0, $limit);
 
-            // Reverse sort for worst staff
             usort($staffPerformance, function ($a, $b) {
                 return $a['avg_rating'] <=> $b['avg_rating'];
             });
             $worstStaff = array_slice($staffPerformance, 0, $limit);
         } elseif ($criteria === 'sentiment') {
-            // Sort by sentiment score (highest first for top, lowest first for worst)
             usort($staffPerformance, function ($a, $b) {
                 return $b['avg_sentiment'] <=> $a['avg_sentiment'];
             });
@@ -2058,7 +3065,6 @@ class AIProcessor
             });
             $worstStaff = array_slice($staffPerformance, 0, $limit);
         } else {
-            // Sort by positive percentage (highest first for top) and negative percentage (highest first for worst)
             usort($staffPerformance, function ($a, $b) {
                 return $b['sentiment_percentage'] <=> $a['sentiment_percentage'];
             });
@@ -2070,9 +3076,12 @@ class AIProcessor
             $worstStaff = array_slice($staffPerformance, 0, $limit);
         }
 
+        $summary = self::generateTopWorstSummary($topStaff, $worstStaff, $staffPerformance);
+
         return [
             'top_staff' => $topStaff,
             'worst_staff' => $worstStaff,
+            'summary' => $summary,
             'total_staff_analyzed' => count($staffPerformance),
             'criteria_used' => $criteria,
             'date_range' => [
@@ -2080,5 +3089,342 @@ class AIProcessor
                 'end' => $dateRange['end']->format('Y-m-d')
             ]
         ];
+    }
+
+    /**
+     * Extract common praise from reviews
+     */
+    public static function extractCommonPraise($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        $praise = [];
+
+        foreach ($reviews as $review) {
+            if (empty($review->comment))
+                continue;
+
+            $text = strtolower($review->comment);
+
+            $patterns = [
+                'friendly' => ['friendly', 'polite', 'courteous', 'pleasant', 'welcoming'],
+                'helpful' => ['helpful', 'supportive', 'assistive', 'accommodating'],
+                'knowledgeable' => ['knowledgeable', 'expert', 'professional', 'experienced'],
+                'efficient' => ['efficient', 'quick', 'fast', 'prompt', 'timely'],
+                'attentive' => ['attentive', 'caring', 'thoughtful', 'considerate'],
+                'problem_solver' => ['solved', 'resolved', 'fixed', 'helped with', 'assisted with'],
+                'excellent_service' => ['excellent service', 'great service', 'outstanding service', 'amazing service'],
+                'goes_extra_mile' => ['goes above', 'extra mile', 'above and beyond', 'exceeded expectations']
+            ];
+
+            foreach ($patterns as $key => $keywords) {
+                foreach ($keywords as $keyword) {
+                    if (strpos($text, $keyword) !== false) {
+                        $praise[$key] = ($praise[$key] ?? 0) + 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        arsort($praise);
+
+        $readablePraise = [];
+        $labelMap = [
+            'friendly' => 'Friendliness',
+            'helpful' => 'Helpfulness',
+            'knowledgeable' => 'Knowledge/Expertise',
+            'efficient' => 'Efficiency',
+            'attentive' => 'Attentiveness',
+            'problem_solver' => 'Problem Solving',
+            'excellent_service' => 'Excellent Service',
+            'goes_extra_mile' => 'Going Above & Beyond'
+        ];
+
+        foreach ($praise as $key => $count) {
+            $readablePraise[] = [
+                'strength' => $labelMap[$key] ?? ucfirst($key),
+                'count' => $count,
+                'percentage' => count($reviews) > 0 ? round(($count / count($reviews)) * 100) : 0
+            ];
+        }
+
+        return $readablePraise;
+    }
+
+    /**
+     * Identify performance level based on metrics
+     */
+    public static function identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage)
+    {
+        // KEEP EXACTLY AS IS
+        if ($avgRating >= 4.5 && $avgSentiment >= 0.8 && $negativePercentage < 10) {
+            return 'Excellent - Top Performer';
+        } elseif ($avgRating >= 4.0 && $avgSentiment >= 0.7 && $negativePercentage < 20) {
+            return 'Very Good - Strong Performer';
+        } elseif ($avgRating >= 3.5 && $avgSentiment >= 0.6 && $negativePercentage < 30) {
+            return 'Good - Consistent Performer';
+        } elseif ($avgRating >= 3.0 && $negativePercentage < 40) {
+            return 'Average - Room for Improvement';
+        } elseif ($avgRating >= 2.0) {
+            return 'Below Average - Needs Attention';
+        } else {
+            return 'Poor - Critical Attention Required';
+        }
+    }
+
+    /**
+     * Generate summary for top and worst staff
+     */
+    public static function generateTopWorstSummary($topStaff, $worstStaff, $allStaff)
+    {
+        // KEEP EXACTLY AS IS
+        if (empty($topStaff) && empty($worstStaff)) {
+            return [
+                'overall_status' => 'No staff with enough reviews for analysis',
+                'rating_gap' => 0,
+                'top_performers_key_strengths' => [],
+                'worst_performers_key_issues' => []
+            ];
+        }
+
+        $topAvgRating = !empty($topStaff) ? array_sum(array_column($topStaff, 'avg_rating')) / count($topStaff) : 0;
+        $worstAvgRating = !empty($worstStaff) ? array_sum(array_column($worstStaff, 'avg_rating')) / count($worstStaff) : 0;
+
+        $allStrengths = [];
+        foreach ($topStaff as $staff) {
+            foreach ($staff['common_praise'] as $praise) {
+                $strength = $praise['strength'];
+                $allStrengths[$strength] = ($allStrengths[$strength] ?? 0) + $praise['count'];
+            }
+        }
+
+        arsort($allStrengths);
+        $topStrengths = array_slice($allStrengths, 0, 3, true);
+
+        $keyStrengths = [];
+        foreach ($topStrengths as $strength => $count) {
+            $keyStrengths[] = $strength;
+        }
+
+        $allComplaints = [];
+        foreach ($worstStaff as $staff) {
+            $worstReviews = ReviewNew::where('staff_id', $staff['staff_id'])
+                ->where('business_id', $staff['business_id'] ?? 0)
+                ->whereBetween('created_at', [$dateRange['start'] ?? now()->subMonth(), $dateRange['end'] ?? now()])
+                ->get();
+
+            $complaints = self::extractCommonComplaints($worstReviews);
+            foreach ($complaints as $complaint) {
+                $issue = $complaint['issue'];
+                $allComplaints[$issue] = ($allComplaints[$issue] ?? 0) + $complaint['count'];
+            }
+        }
+
+        arsort($allComplaints);
+        $topIssues = array_slice($allComplaints, 0, 3, true);
+
+        $keyIssues = [];
+        foreach ($topIssues as $issue => $count) {
+            $keyIssues[] = $issue;
+        }
+
+        $health = 'good';
+        if (!empty($worstStaff) && $worstAvgRating < 2.5) {
+            $health = 'needs_attention';
+        } elseif (!empty($worstStaff) && $worstAvgRating < 3.0) {
+            $health = 'monitor';
+        }
+
+        $ratingGap = round($topAvgRating - $worstAvgRating, 2);
+
+        return [
+            'overall_status' => $health === 'good' ? 'Performance Levels Normal' : ($health === 'monitor' ? 'Some Staff Need Monitoring' : 'Performance Issues Detected'),
+            'performance_health' => $health,
+            'top_average_rating' => round($topAvgRating, 1),
+            'worst_average_rating' => round($worstAvgRating, 1),
+            'rating_gap' => $ratingGap,
+            'top_performers_count' => count($topStaff),
+            'worst_performers_count' => count($worstStaff),
+            'top_performers_key_strengths' => $keyStrengths,
+            'worst_performers_key_issues' => $keyIssues,
+            'recommendations' => self::getTopWorstRecommendations($ratingGap, $keyStrengths, $keyIssues)
+        ];
+    }
+
+    /**
+     * Get recommendations based on top/worst analysis
+     */
+    public static function getTopWorstRecommendations($ratingGap, $keyStrengths, $keyIssues)
+    {
+        // KEEP EXACTLY AS IS
+        $recommendations = [];
+
+        if ($ratingGap > 2.0) {
+            $recommendations[] = 'Significant performance gap detected. Consider peer mentoring program.';
+        }
+
+        if (!empty($keyStrengths)) {
+            $recommendations[] = 'Leverage top performers\' strengths (' . implode(', ', $keyStrengths) . ') in training programs.';
+        }
+
+        if (!empty($keyIssues)) {
+            $recommendations[] = 'Address common issues in underperformers: ' . implode(', ', $keyIssues);
+        }
+
+        if (count($recommendations) === 0) {
+            $recommendations[] = 'Maintain current performance monitoring and support systems.';
+        }
+
+        return $recommendations;
+    }
+
+    /**
+     * Extract common complaints from reviews
+     */
+    public static function extractCommonComplaints($reviews)
+    {
+        // KEEP EXACTLY AS IS
+        $complaints = [];
+
+        foreach ($reviews as $review) {
+            if (empty($review->comment))
+                continue;
+
+            $text = strtolower($review->comment);
+
+            $patterns = [
+                'rude' => ['rude', 'impolite', 'disrespectful', 'unprofessional'],
+                'slow' => ['slow', 'late', 'delay', 'wait', 'long time'],
+                'ignore' => ['ignore', 'ignored', 'unattentive', 'unhelpful'],
+                'mistake' => ['mistake', 'error', 'wrong', 'incorrect'],
+                'knowledge' => ["don't know", 'uninformed', 'no knowledge', 'clueless'],
+                'attitude' => ['attitude', 'arrogant', 'dismissive', 'condescending'],
+                'communication' => ['unclear', 'confusing', 'poor communication', "didn't explain"],
+                'inefficient' => ['inefficient', 'disorganized', 'messy', 'chaotic']
+            ];
+
+            foreach ($patterns as $key => $keywords) {
+                foreach ($keywords as $keyword) {
+                    if (strpos($text, $keyword) !== false) {
+                        $complaints[$key] = ($complaints[$key] ?? 0) + 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        arsort($complaints);
+
+        $readableComplaints = [];
+        $labelMap = [
+            'rude' => 'Rudeness/Unprofessionalism',
+            'slow' => 'Slow Service',
+            'ignore' => 'Being Ignored',
+            'mistake' => 'Mistakes/Errors',
+            'knowledge' => 'Lack of Knowledge',
+            'attitude' => 'Bad Attitude',
+            'communication' => 'Poor Communication',
+            'inefficient' => 'Inefficiency'
+        ];
+
+        foreach ($complaints as $key => $count) {
+            $readableComplaints[] = [
+                'issue' => $labelMap[$key] ?? ucfirst($key),
+                'count' => $count,
+                'percentage' => count($reviews) > 0 ? round(($count / count($reviews)) * 100) : 0
+            ];
+        }
+
+        return $readableComplaints;
+    }
+
+    /**
+     * Identify performance issues based on metrics
+     */
+    public static function identifyPerformanceIssue($avgRating, $avgSentiment, $negativePercentage)
+    {
+        // KEEP EXACTLY AS IS
+        if ($avgRating <= 2.0 || $avgSentiment < 0.3) {
+            return 'Critical Issue - Needs Immediate Attention';
+        } elseif ($avgRating <= 2.5 || $avgSentiment < 0.4) {
+            return 'Major Concern - Requires Training';
+        } elseif ($avgRating <= 3.0 || $negativePercentage > 30) {
+            return 'Needs Improvement - Monitor Closely';
+        } elseif ($avgRating <= 3.5 || $negativePercentage > 20) {
+            return 'Below Average - Coaching Recommended';
+        } else {
+            return 'Acceptable - Minor Issues Only';
+        }
+    }
+
+    /**
+     * Generate summary for worst staff
+     */
+    public static function generateWorstStaffSummary($worstStaff, $allStaff)
+    {
+        // KEEP EXACTLY AS IS
+        if (empty($worstStaff)) {
+            return [
+                'overall_status' => 'No staff with significant issues',
+                'average_rating_gap' => 0,
+                'key_issues' => []
+            ];
+        }
+
+        $worstAvgRating = array_sum(array_column($worstStaff, 'avg_rating')) / count($worstStaff);
+        $allAvgRating = array_sum(array_column($allStaff, 'avg_rating')) / count($allStaff);
+
+        $allComplaints = [];
+        foreach ($worstStaff as $staff) {
+            foreach ($staff['common_complaints'] as $complaint) {
+                $issue = $complaint['issue'];
+                $allComplaints[$issue] = ($allComplaints[$issue] ?? 0) + $complaint['count'];
+            }
+        }
+
+        arsort($allComplaints);
+        $topIssues = array_slice($allComplaints, 0, 3, true);
+
+        $keyIssues = [];
+        foreach ($topIssues as $issue => $count) {
+            $keyIssues[] = $issue;
+        }
+
+        $severity = 'low';
+        $worstRating = min(array_column($worstStaff, 'avg_rating'));
+        if ($worstRating < 2.0) {
+            $severity = 'critical';
+        } elseif ($worstRating < 2.5) {
+            $severity = 'high';
+        } elseif ($worstRating < 3.0) {
+            $severity = 'medium';
+        }
+
+        return [
+            'overall_status' => $severity === 'critical' ? 'Critical Issues Detected' : 'Improvement Needed',
+            'severity_level' => $severity,
+            'worst_rating' => round($worstRating, 1),
+            'average_rating_gap' => round($allAvgRating - $worstAvgRating, 2),
+            'affected_staff_count' => count($worstStaff),
+            'key_issues' => $keyIssues,
+            'recommendation' => self::getPerformanceRecommendation($severity, $keyIssues)
+        ];
+    }
+
+    /**
+     * Get performance recommendation
+     */
+    public static function getPerformanceRecommendation($severity, $keyIssues)
+    {
+        // KEEP EXACTLY AS IS
+        if ($severity === 'critical') {
+            return 'Immediate intervention required. Consider formal performance review or retraining.';
+        } elseif ($severity === 'high') {
+            return 'Urgent coaching and monitoring needed. Set clear performance expectations.';
+        } elseif ($severity === 'medium') {
+            return 'Regular feedback and training recommended. Address specific skill gaps.';
+        } else {
+            return 'Provide constructive feedback and ongoing support.';
+        }
     }
 }
