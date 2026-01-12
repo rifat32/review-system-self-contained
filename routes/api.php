@@ -342,6 +342,10 @@ Route::middleware(['auth:api'])->group(function () {
     Route::prefix('v1.0/branches')->group(function () {
         Route::get('/', [BranchController::class, 'getBranches']);
         Route::post('/', [BranchController::class, 'createBranch']);
+
+        // Specific routes before parameterized routes
+        Route::get('/{branchId}/metrics', [BranchController::class, 'branchMetric']);
+
         Route::get('/{id}', [BranchController::class, 'getBranchById']);
         Route::patch('/{id}', [BranchController::class, 'updateBranch']);
         Route::patch('/{id}/toggle-active', [BranchController::class, 'toggleBranchActive']);

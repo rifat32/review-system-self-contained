@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\UserResource;
+use App\Mail\ManagerWelcomeMail;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Http\Requests\UserRequest;
 use App\Models\BranchMember;
+use Mail;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -873,12 +875,16 @@ class UserController extends Controller
         // Validate request data
         $validatedData = $request->validated();
         $business_id = $request->user()->business->id;
+        $business_name = $request->user()->business->Name;
 
         // ADD BUSINESS ID
         $validatedData['business_id'] = $business_id;
 
+        // Store plain password before hashing (for email)
+        $plainPassword = '12345678@Welcome';
+
         // Hash the password
-        $validatedData['password'] = Hash::make($validatedData['password']);
+        $validatedData['password'] = Hash::make($plainPassword);
 
         // Generate remember token
         $validatedData['remember_token'] = Str::random(10);
@@ -901,13 +907,20 @@ class UserController extends Controller
                 'user_id' => $user->id,
                 'branch_id' => $validatedData["branch_id"],
             ]);
+        }
 
+        // Send welcome email with credentials
+        try {
+            Mail::to($user->email)->send(new ManagerWelcomeMail($user, $plainPassword, $business_name));
+        } catch (\Exception $e) {
+            // Log error but don't fail user creation
+            \Log::error('Failed to send welcome email to: ' . $user->email . ' - Error: ' . $e->getMessage());
         }
 
         // Return success response
         return response()->json([
             'success' => true,
-            'message' => 'User created successfully',
+            'message' => 'User created successfully. Welcome email sent to ' . $user->email,
             'data' => $user
         ], 201);
     }
