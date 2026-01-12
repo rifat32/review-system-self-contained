@@ -18,7 +18,7 @@ use App\Helpers\RecommendationGenerator;
 use App\Helpers\RuleEngineHelper;
 use App\Models\InsightRecord;
 
-class ABC
+class AIProcessor
 {
     // ========== NEW INTEGRATION METHODS ==========
 

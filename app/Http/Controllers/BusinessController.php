@@ -842,6 +842,7 @@ class BusinessController extends Controller
 
         // Add default_branch_id to user response
         $user->setAttribute('default_branch_id', $business->default_branch_id);
+        $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
         $user->setAttribute('role', $user->roles->first());
 
         // Generate new access token
