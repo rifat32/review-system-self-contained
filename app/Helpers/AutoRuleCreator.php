@@ -100,6 +100,16 @@ class AutoRuleCreator
         // Determine rule parameters based on pattern
         $ruleConfig = self::generateRuleConfig($mainCategory, $subCategory, $severity, $frequency);
         
+        // Generate AI explanations for the rule
+        $explanations = self::generateRuleExplanations(
+            $businessId,
+            $mainCategory,
+            $subCategory,
+            $severity,
+            $frequency,
+            $ruleConfig
+        );
+        
         // Create the rule
         $rule = AiRule::create([
             'rule_id' => self::generateRuleId($businessId, $mainCategory, $subCategory),
@@ -113,18 +123,69 @@ class AutoRuleCreator
             'conditions' => json_encode($ruleConfig['conditions']),
             'actions' => json_encode($ruleConfig['actions']),
             'explainability' => json_encode($ruleConfig['explainability']),
+            'short_explanation' => $explanations['short_explanation'],
+            'detailed_explanation' => $explanations['detailed_explanation'],
+            'why_it_matters' => $explanations['why_it_matters'],
+            'explanation_generated_at' => now(),
             'created_by' => 'auto_creator',
             'version' => 1
         ]);
         
-        \Log::info('Auto-created rule', [
+        \Log::info('Auto-created rule with AI explanations', [
             'rule_id' => $rule->rule_id,
             'business_id' => $businessId,
             'pattern' => "$mainCategory|$subCategory",
-            'frequency' => $frequency
+            'frequency' => $frequency,
+            'has_explanations' => $rule->hasExplanations()
         ]);
         
         return $rule;
+    }
+    
+    /**
+     * Generate AI explanations for the rule
+     */
+    private static function generateRuleExplanations(
+        int $businessId,
+        string $mainCategory,
+        ?string $subCategory,
+        string $severity,
+        int $frequency,
+        array $ruleConfig
+    ): array
+    {
+        // Get business type for context
+        $business = \App\Models\Business::find($businessId);
+        $businessType = $business ? ($business->business_type ?? 'Business') : 'Business';
+        
+        // Prepare rule data for explanation generation
+        $ruleData = [
+            'business_type' => $businessType,
+            'rule_name' => self::generateRuleName($mainCategory, $subCategory, $frequency),
+            'category' => self::determineRuleCategory($mainCategory, $subCategory),
+            'priority' => self::determinePriority($severity, $frequency),
+            'conditions' => $ruleConfig['conditions'],
+            'actions' => $ruleConfig['actions'],
+            'main_category' => $mainCategory,
+            'sub_category' => $subCategory,
+            'severity' => $severity,
+            'frequency' => $frequency
+        ];
+        
+        // Try to generate AI explanations using OpenAI
+        $explanations = RuleExplanationHelper::generateExplanations($ruleData);
+        
+        // Fallback to template-based explanations if AI fails
+        if (!$explanations) {
+            \Log::warning('OpenAI explanation generation failed, using fallback', [
+                'business_id' => $businessId,
+                'main_category' => $mainCategory
+            ]);
+            
+            $explanations = RuleExplanationHelper::generateFallbackExplanations($ruleData);
+        }
+        
+        return $explanations;
     }
     
     /**

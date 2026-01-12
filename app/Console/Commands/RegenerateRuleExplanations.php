@@ -1,0 +1,171 @@
+<?php
+// app/Console/Commands/RegenerateRuleExplanations.php - Simplified version
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use App\Models\AiRule;
+use App\Helpers\RuleExplanationHelper;
+use Illuminate\Support\Facades\Log;
+
+class RegenerateRuleExplanations extends Command
+{
+    protected $signature = 'rules:regenerate-explanations 
+                           {--business= : Specific business ID}
+                           {--rule= : Specific rule ID}
+                           {--all : Regenerate all rules}
+                           {--missing-only : Only rules without explanations}
+                           {--outdated-only : Only rules with outdated explanations}
+                           {--limit=50 : Maximum rules to process}';
+
+    protected $description = 'Regenerate AI explanations for rules';
+
+    public function handle()
+    {
+        $this->info('Starting rule explanation regeneration...');
+        
+        $rules = $this->getRulesToProcess();
+        
+        if ($rules->isEmpty()) {
+            $this->info('No rules found to process.');
+            return 0;
+        }
+
+        $this->info("Found {$rules->count()} rule(s) to process");
+
+        $results = [
+            'success' => 0,
+            'failed' => 0,
+            'skipped' => 0
+        ];
+
+        $progressBar = $this->output->createProgressBar($rules->count());
+        $progressBar->start();
+
+        foreach ($rules as $rule) {
+            try {
+                // Check if regeneration is needed
+                if (!$this->shouldRegenerate($rule)) {
+                    $results['skipped']++;
+                    $progressBar->advance();
+                    continue;
+                }
+
+                // Generate explanations using helper
+                $explanations = RuleExplanationHelper::regenerateForRule($rule);
+                
+                if ($explanations) {
+                    $rule->update([
+                        'short_explanation' => $explanations['short_explanation'],
+                        'detailed_explanation' => $explanations['detailed_explanation'],
+                        'why_it_matters' => $explanations['why_it_matters'],
+                        'explanation_generated_at' => now()
+                    ]);
+                    
+                    $results['success']++;
+                } else {
+                    $results['failed']++;
+                    $this->newLine();
+                    $this->warn("Failed: {$rule->rule_id}");
+                }
+                
+            } catch (\Exception $e) {
+                $results['failed']++;
+                $this->newLine();
+                $this->error("Error: {$rule->rule_id} - {$e->getMessage()}");
+            }
+            
+            $progressBar->advance();
+            
+            // Small delay to avoid API rate limits
+            usleep(500000); // 0.5 second delay
+        }
+
+        $progressBar->finish();
+        $this->newLine(2);
+
+        // Display results
+        $this->table(
+            ['Status', 'Count'],
+            [
+                ['Success', $results['success']],
+                ['Failed', $results['failed']],
+                ['Skipped', $results['skipped']],
+                ['Total', $rules->count()]
+            ]
+        );
+
+        if ($results['failed'] > 0) {
+            $this->error("Some explanations failed to regenerate. Check logs for details.");
+            return 1;
+        }
+
+        $this->info('Explanation regeneration completed successfully!');
+        return 0;
+    }
+
+    private function getRulesToProcess()
+    {
+        $query = AiRule::query();
+
+        if ($this->option('business')) {
+            $query->where('business_id', $this->option('business'));
+        }
+
+        if ($this->option('rule')) {
+            $query->where('rule_id', $this->option('rule'));
+            return $query->get();
+        }
+
+        if ($this->option('missing-only')) {
+            $query->where(function($q) {
+                $q->whereNull('short_explanation')
+                  ->orWhereNull('detailed_explanation')
+                  ->orWhereNull('why_it_matters');
+            });
+        }
+
+        if ($this->option('outdated-only')) {
+            $query->whereNotNull('short_explanation')
+                ->whereNotNull('explanation_generated_at')
+                ->whereColumn('updated_at', '>', 'explanation_generated_at');
+        }
+
+        if ($this->option('all') && !$this->option('missing-only') && !$this->option('outdated-only')) {
+            // Get all rules
+        } elseif (!$this->option('all') && !$this->option('missing-only') && !$this->option('outdated-only')) {
+            // Default: get rules without explanations or outdated
+            $query->where(function($q) {
+                $q->whereNull('short_explanation')
+                  ->orWhereNull('detailed_explanation')
+                  ->orWhereNull('why_it_matters')
+                  ->orWhere(function($sub) {
+                      $sub->whereNotNull('explanation_generated_at')
+                          ->whereColumn('updated_at', '>', 'explanation_generated_at');
+                  });
+            });
+        }
+
+        $limit = $this->option('limit') ?? 50;
+        $query->limit($limit);
+
+        return $query->get();
+    }
+
+    private function shouldRegenerate($rule): bool
+    {
+        if (!$rule->hasExplanations()) {
+            return true;
+        }
+
+        if ($rule->explanationsOutdated()) {
+            return true;
+        }
+
+        if ($this->option('all')) {
+            return true;
+        }
+
+        return false;
+    }
+}

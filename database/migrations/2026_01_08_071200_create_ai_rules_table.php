@@ -32,6 +32,10 @@ return new class extends Migration
         $table->string('created_by', 50)->default('system');
         $table->integer('version')->default(1);
 
+        $table->text('short_explanation')->nullable();
+        $table->text('detailed_explanation')->nullable();
+        $table->text('why_it_matters')->nullable();
+        $table->timestamp('explanation_generated_at')->nullable();
          $table->foreign('business_id')->references('id')->on('businesses');
         
         $table->timestamps();

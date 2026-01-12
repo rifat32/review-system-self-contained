@@ -1,6 +1,4 @@
 <?php
-// app/Http/Controllers/Api/RecommendationController.php
-
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;

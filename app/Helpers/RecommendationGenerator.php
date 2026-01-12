@@ -23,6 +23,7 @@ class RecommendationGenerator
         $recommendations = [];
         
         foreach ($insights as $insight) {
+            
             // Match rules to insight
             $matchedRules = RuleEngineHelper::matchRulesToInsight($insight);
             

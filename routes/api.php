@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\RecommendationController;
+use App\Http\Controllers\AiRuleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchMemberController;
@@ -37,6 +37,7 @@ use App\Http\Controllers\SurveyQuestionController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BusinessAIModuleController;
+use App\Http\Controllers\RecommendationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -467,6 +468,37 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/notes/{id}', [NoteController::class, 'getNoteById']);
     Route::put('/v1.0/notes/{id}', [NoteController::class, 'updateNote']);
     Route::delete('/v1.0/notes/delete/{ids}', [NoteController::class, 'deleteNotes']);
+
+
+    // AI Rules with Explanations
+    Route::prefix('ai-rules')->group(function () {
+        // List all rules
+        Route::get('/', [AiRuleController::class, 'index']);
+        
+        // Create new rule
+        Route::post('/', [AiRuleController::class, 'store']);
+        
+        // Get rules needing explanations
+        Route::get('/missing-explanations', [AiRuleController::class, 'missingExplanations']);
+        
+        // Batch regenerate explanations
+        Route::post('/batch-regenerate', [AiRuleController::class, 'batchRegenerateExplanations']);
+        
+        // Get specific rule details
+        Route::get('/{ruleId}', [AiRuleController::class, 'show']);
+        
+        // Update rule
+        Route::put('/{ruleId}', [AiRuleController::class, 'update']);
+        
+        // Delete rule
+        Route::delete('/{ruleId}', [AiRuleController::class, 'destroy']);
+        
+        // Toggle rule enabled/disabled
+        Route::patch('/{ruleId}/toggle', [AiRuleController::class, 'toggleEnabled']);
+        
+        // Regenerate explanations for specific rule
+        Route::post('/{ruleId}/regenerate-explanations', [AiRuleController::class, 'regenerateExplanations']);
+    });
 });
 
 // ============================================================================
@@ -545,3 +577,4 @@ Route::prefix('api')->group(function () {
     Route::get('/recommendations/{id}/explain', [RecommendationController::class, 'explain']);
     Route::get('/dashboard/insights', [RecommendationController::class, 'dashboardInsights']);
 });
+
