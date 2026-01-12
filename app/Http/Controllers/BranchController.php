@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\AIProcessor;
 use App\Http\Requests\BranchRequest;
 use App\Models\Branch;
 use App\Models\Business;
@@ -771,5 +772,41 @@ class BranchController extends Controller
             'message' => 'Branch metrics retrieved successfully',
             'data' => $metrics
         ], 200);
+    }
+
+    public function generateAiInsights($reviews)
+    {
+        if ($reviews->isEmpty()) {
+            return [
+                'summary' => 'No reviews available for analysis.',
+                'sentiment_breakdown' => [
+                    'positive' => 0,
+                    'neutral' => 0,
+                    'negative' => 0
+                ]
+            ];
+        }
+
+        $totalReviews = $reviews->count();
+
+        // Sentiment breakdown
+        $positive = $reviews->where('sentiment_score', '>=', 0.7)->count();
+        $neutral = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
+        $negative = $reviews->where('sentiment_score', '<', 0.4)->count();
+
+        $sentimentBreakdown = [
+            'positive' => round(($positive / $totalReviews) * 100),
+            'neutral' => round(($neutral / $totalReviews) * 100),
+            'negative' => round(($negative / $totalReviews) * 100)
+        ];
+
+        // Generate summary
+        $summary = AIProcessor::generateAiSummaryReport($reviews, $sentimentBreakdown);
+
+        return [
+            'summary' => $summary,
+            'sentiment_breakdown' => $sentimentBreakdown,
+            'key_trends' => AIProcessor::extractKeyTrends($reviews)
+        ];
     }
 }

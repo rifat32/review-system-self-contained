@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\review;
+namespace App\Services\Review;
 
 /**
  * ReviewTopicService - Extract and analyze topics from reviews

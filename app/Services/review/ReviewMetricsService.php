@@ -69,8 +69,10 @@ class ReviewMetricsService
             });
 
         $totalCount = (clone $baseQuery)->count();
+
+        // Count flagged reviews using scope
         $flaggedCount = (clone $baseQuery)
-            ->whereDoesNotMeetThreshold($businessId)
+            ->whereDoesNotMeetsThreshold($businessId)
             ->count();
 
         $percentage = $totalCount > 0 ? round(($flaggedCount / $totalCount) * 100, 1) : 0;

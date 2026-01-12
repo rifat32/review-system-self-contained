@@ -6,8 +6,8 @@ use App\Http\Utils\DateRangeUtil;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\User;
-use App\Services\review\ReviewIssueDetectionService;
-use App\Services\review\ReviewTopicService;
+use App\Services\Review\ReviewIssueDetectionService;
+use App\Services\Review\ReviewTopicService;
 use App\Services\Review\ReviewMetricsService;
 use App\Services\Review\ReviewService;
 use Illuminate\Validation\ValidationException;
@@ -63,14 +63,14 @@ class DashboardService
         // ==================== GET REVIEWS USING REVIEWSERVICE ====================
 
         // Get current and previous period reviews using ReviewService
-        $reviews = ReviewService::getCurrentAndComparisonReviews(
+        $reviewsData = ReviewService::getCurrentAndComparisonReviews(
             businessId: $businessId,
             branchId: $userBranchId,
             dateRange: $dateRange
         );
 
-        $reviews = $reviews['current'];
-        $previousReviews = $reviews['previous'];
+        $reviews = $reviewsData['current'];
+        $previousReviews = $reviewsData['previous'];
 
         // ==================== USE REVIEW METRICS SERVICE ====================
 

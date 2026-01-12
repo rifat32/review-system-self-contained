@@ -8,8 +8,8 @@ use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
 use App\Models\Tag;
 use App\Models\User;
-use App\Services\review\ReviewIssueDetectionService;
-use App\Services\review\ReviewTopicService;
+use App\Services\Review\ReviewIssueDetectionService;
+use App\Services\Review\ReviewTopicService;
 use Carbon\Carbon;
 
 

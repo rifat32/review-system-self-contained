@@ -879,6 +879,7 @@ class AIProcessor
         ];
     }
     public static function generateAiInsights($reviews)
+    // DUPLICATED
     {
         if ($reviews->isEmpty()) {
             return [
