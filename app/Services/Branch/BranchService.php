@@ -60,7 +60,7 @@ class BranchService
         $branch = Branch::with(['business'])->findOrFail($branchId);
         $businessId = $branch->business_id;
 
-        // ==================== GET REVIEWS USING REVIEWSERVICE ====================
+        // ==================== GET REVIEWS USING REVIEW SERVICE ====================
 
         // Get current and previous period reviews using ReviewService
         $reviews = ReviewService::getCurrentAndComparisonReviews(

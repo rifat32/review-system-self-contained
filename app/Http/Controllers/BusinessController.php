@@ -723,6 +723,17 @@ class BusinessController extends Controller
             throw new AccessDeniedHttpException('This business does not belong to you');
         }
 
+        // GET USER
+        $user = User::with('roles')->findOrFail($business->OwnerID);
+
+        // Add default_branch_id to user response
+        $user->setAttribute('default_branch_id', $business->default_branch_id);
+        $user->setAttribute('role', $user->roles->first());
+
+        // Generate new access token
+        $user->setAttribute('token', $user->createToken('authToken')->accessToken);
+        $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
+
         // Update
         $business->update($request_payload);
 
@@ -732,7 +743,8 @@ class BusinessController extends Controller
         return response()->json([
             "status" => true,
             "message" => "Business updated successfully",
-            "business" => $business
+            "business" => $business,
+            "user" => $user
         ], 200);
     }
 
@@ -828,12 +840,14 @@ class BusinessController extends Controller
         // Reload user with relationships
         $user = User::with('business', 'roles')->find($user->id);
 
+        // Add default_branch_id to user response
+        $user->setAttribute('default_branch_id', $business->default_branch_id);
+        $user->setAttribute('role', $user->roles->first());
+
         // Generate new access token
         $user->setAttribute('token', $user->createToken('authToken')->accessToken);
         $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
 
-        // Add default_branch_id to user response
-        $user->setAttribute('default_branch_id', $business->default_branch_id);
 
         // Return success response with token and user data
         return response()->json([
