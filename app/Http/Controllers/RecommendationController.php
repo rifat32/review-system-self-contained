@@ -17,6 +17,7 @@ class RecommendationController extends Controller
      * Generate recommendations
      * POST /api/recommendations/generate
      */
+    
     public function generate(Request $request)
     {
         $request->validate([
