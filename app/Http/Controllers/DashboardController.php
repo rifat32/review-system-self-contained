@@ -2359,7 +2359,7 @@ class DashboardController extends Controller
         $user = $request->user();
         $businessId = $user->business_id;
 
-        if (!$user || !$user->business_id) {
+        if (!$user->business_id) {
             throw new AuthorizationException('User does not have an associated business');
         }
 
@@ -2371,7 +2371,12 @@ class DashboardController extends Controller
         );
 
         // Get recent reviews feed
-        $reviewFeed = AIProcessor::getReviewFeed($businessId, $dateRange, 10, $user);
+        $reviewFeed = AIProcessor::getReviewFeed(
+            businessId: $businessId,
+            dateRange: $dateRange,
+            limit: 10,
+            user: $user
+        );
 
         return response()->json([
             'success' => true,
