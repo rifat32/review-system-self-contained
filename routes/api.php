@@ -348,6 +348,8 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/{branchId}/ai-insights', [BranchController::class, 'branchAiInsights']);
         // Staff Performance endpoint
         Route::get('/{branchId}/staff-performance', [BranchController::class, 'getBranchStaffPerformance']);
+        // Recent Reviews endpoint
+        Route::get('/{branchId}/recent-reviews', [BranchController::class, 'branchRecentReviews']);
 
         Route::get('/{id}', [BranchController::class, 'getBranchById']);
         Route::patch('/{id}', [BranchController::class, 'updateBranch']);
