@@ -8,6 +8,8 @@ use App\Models\ReviewNew;
 use App\Models\User;
 use App\Services\review\ReviewIssueDetectionService;
 use App\Services\review\ReviewTopicService;
+use App\Services\Review\ReviewMetricsService;
+use App\Services\Review\ReviewService;
 use Illuminate\Validation\ValidationException;
 
 class DashboardService
@@ -53,69 +55,45 @@ class DashboardService
      */
     public function calculateMetrics($businessId, $dateRange = null, $user)
     {
-        // Get current period reviews WITH calculated rating
-        $reviewsQuery = ReviewNew::globalFilters(0, $businessId)
-            ->where('business_id', $businessId)
-            ->withCalculatedRating();
-
-        // Apply date filter only if dateRange is provided
-        if ($dateRange !== null) {
-            $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-        }
-
-        // Apply branch filter
+        // Apply branch filter for branch managers
         $userBranchId = $user->hasRole('branch_manager') || $user->hasRole('business_owner')
             ? $user->default_branch_id
             : null;
 
-        if ($userBranchId) {
-            // Branch manager - force their branch
-            $reviewsQuery->where('branch_id', $userBranchId);
-        }
+        // ==================== GET REVIEWS USING REVIEWSERVICE ====================
 
-        $reviews = $reviewsQuery->get();
+        // Get current and previous period reviews using ReviewService
+        $reviews = ReviewService::getCurrentAndComparisonReviews(
+            businessId: $businessId,
+            branchId: $userBranchId,
+            dateRange: $dateRange
+        );
 
-        // Get previous period reviews WITH calculated rating (only if dateRange provided)
-        $previousReviews = collect();
-        $previousAvgRating = 0;
-        $previousTotal = 0;
-        $previous_sentiment_score = 0;
+        $reviews = $reviews['current'];
+        $previousReviews = $reviews['previous'];
 
-        if ($dateRange !== null) {
-            $previousReviews = ReviewNew::globalFilters(0, $businessId)
-                ->where('business_id', $businessId)
-                ->whereBetween('created_at', [
-                    $dateRange['start']->copy()->subDays(30),
-                    $dateRange['end']->copy()->subDays(30)
-                ])
-                ->globalFilters(0, $businessId)
-                ->withCalculatedRating()
-                ->get();
+        // ==================== USE REVIEW METRICS SERVICE ====================
 
-            $previousTotal = $previousReviews->count();
+        // Get review counts with comparison
+        $reviewCounts = ReviewMetricsService::getReviewCountWithComparison($reviews, $previousReviews);
+        $total = $reviewCounts['current'];
+        $previousTotal = $reviewCounts['previous'];
 
-            // Calculate previous period ratings FROM calculated_rating field
-            $previousAvgRating = $previousReviews->isNotEmpty()
-                ? round($previousReviews->avg('calculated_rating'), 1)
-                : 0;
+        // Get rating with comparison  
+        $ratingMetrics = ReviewMetricsService::getRatingWithComparison($reviews, $previousReviews);
+        $currentAvgRating = $ratingMetrics['current'];
+        $previousAvgRating = $ratingMetrics['previous'];
+        $ratingChange = $ratingMetrics['change'];
+        $ratingChangeType = $ratingMetrics['change_type'];
 
-            // Calculate sentiment scores (still from ReviewNew)
-            $previous_sentiment_score = $previousReviews->avg('sentiment_score') ?? 0;
-        }
-
-        $total = $reviews->count();
-
-        // Calculate current period ratings FROM calculated_rating field
-        $currentAvgRating = $reviews->isNotEmpty()
-            ? round($reviews->avg('calculated_rating'), 1)
-            : 0;
-
-        // Calculate sentiment scores (still from ReviewNew)
-        $current_sentiment_score = $reviews->avg('sentiment_score') ?? 0;
-
-        // Calculate positive/negative counts based on calculated_rating
-        $positiveReviewsCount = $reviews->where('calculated_rating', '>=', 4)->count();
-        $negativeReviewsCount = $reviews->where('calculated_rating', '<=', 2)->count();
+        // Get sentiment with comparison
+        $sentimentMetrics = ReviewMetricsService::getSentimentWithComparison($reviews, $previousReviews);
+        $current_sentiment_score = $sentimentMetrics['score'];
+        $previous_sentiment_score = $sentimentMetrics['previous_score'];
+        $positiveReviewsCount = $sentimentMetrics['positive'];
+        $negativeReviewsCount = $sentimentMetrics['negative'];
+        $sentimentChange = $dateRange !== null ? $sentimentMetrics['change'] : null;
+        $sentimentChangeType = $sentimentMetrics['change_type'];
 
         // Top Topic (minimal summary)
         $topTopicSummary = ReviewTopicService::getTopTopicSummary($reviews);
@@ -131,71 +109,22 @@ class DashboardService
             ? $issueAnalysis['repeated_issues'][0]['issue']
             : null;
 
-        // Calculate change percentage and type for sentiment score
-        $sentimentChange = $dateRange !== null ? calculatePercentageChange(
-            $current_sentiment_score,
-            $previous_sentiment_score
-        ) : null;
+        // Calculate CSAT Score using ReviewMetricsService
+        $csatMetrics = ReviewMetricsService::calculateCSATScore(
+            businessId: $businessId,
+            branchId: $userBranchId,
+            dateRange: $dateRange
+        );
+        $csatPercentage = $csatMetrics['percentage'];
+        $csatReviewsCount = $csatMetrics['qualifying_count'];
 
-        $sentimentChangeType = null;
-        if ($sentimentChange !== null) {
-            if ($sentimentChange > 0) {
-                $sentimentChangeType = 'positive';
-            } elseif ($sentimentChange < 0) {
-                $sentimentChangeType = 'negative';
-            } else {
-                $sentimentChangeType = 'neutral';
-            }
-        }
-
-        // Calculate change percentage and type for average overall rating
-        $ratingChange = $dateRange !== null ? calculatePercentageChange(
-            $currentAvgRating,
-            $previousAvgRating
-        ) : null;
-
-        $ratingChangeType = null;
-        if ($ratingChange !== null) {
-            if ($ratingChange > 0) {
-                $ratingChangeType = 'positive';
-            } elseif ($ratingChange < 0) {
-                $ratingChangeType = 'negative';
-            } else {
-                $ratingChangeType = 'neutral';
-            }
-        }
-
-
-        // Calculate CSAT Score (percentage of reviews meeting threshold)
-        $baseReviewQuery = ReviewNew::globalFilters(0, $businessId)
-            ->where('business_id', $businessId);
-
-        // Current period CSAT
-        $csatReviewsCount = 0;
-        $flaggedReviewsCount = 0;
-
-        if ($dateRange !== null) {
-            $csatReviewsCount = (clone $baseReviewQuery)
-                ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-                ->whereMeetsThreshold($businessId)
-                ->count();
-
-            $flaggedReviewsCount = (clone $baseReviewQuery)
-                ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-                ->whereDoesNotMeetsThreshold($businessId)
-                ->count();
-        } else {
-            // All time
-            $csatReviewsCount = (clone $baseReviewQuery)
-                ->whereMeetsThreshold($businessId)
-                ->count();
-
-            $flaggedReviewsCount = (clone $baseReviewQuery)
-                ->whereDoesNotMeetsThreshold($businessId)
-                ->count();
-        }
-
-        $csatPercentage = $total > 0 ? round(($csatReviewsCount / $total) * 100) : 0;
+        // Calculate Flagged Reviews using ReviewMetricsService
+        $flaggedMetrics = ReviewMetricsService::getFlaggedReviews(
+            businessId: $businessId,
+            branchId: $userBranchId,
+            dateRange: $dateRange
+        );
+        $flaggedReviewsCount = $flaggedMetrics['count'];
 
         // Previous period CSAT (only if dateRange provided)
         $previousCSATPercentage = 0;

@@ -115,97 +115,118 @@ if (!function_exists('getDateRangeByPeriod')) {
             // Days
             'yesterday' => [
                 'start' => $now->copy()->subDay()->startOfDay(),
-                'end' => $now->copy()->subDay()->endOfDay()
+                'end' => $now->copy()->subDay()->endOfDay(),
+                'daysOffset' => 1
             ],
             'today' => [
                 'start' => $now->copy()->startOfDay(),
-                'end' => $now->copy()->endOfDay()
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 1
             ],
             'last_7_days' => [
                 'start' => $now->copy()->subDays(7)->startOfDay(),
-                'end' => $now->copy()->endOfDay()
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 7
             ],
             'last_30_days' => [
                 'start' => $now->copy()->subDays(30)->startOfDay(),
-                'end' => $now->copy()->endOfDay()
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 30
             ],
             'last_90_days' => [
                 'start' => $now->copy()->subDays(90)->startOfDay(),
-                'end' => $now->copy()->endOfDay()
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 90
             ],
             'next_7_days' => [
                 'start' => $now->copy()->startOfDay(),
-                'end' => $now->copy()->addDays(7)->endOfDay()
+                'end' => $now->copy()->addDays(7)->endOfDay(),
+                'daysOffset' => 7
             ],
             'next_30_days' => [
                 'start' => $now->copy()->startOfDay(),
-                'end' => $now->copy()->addDays(30)->endOfDay()
+                'end' => $now->copy()->addDays(30)->endOfDay(),
+                'daysOffset' => 30
             ],
             'next_90_days' => [
                 'start' => $now->copy()->startOfDay(),
-                'end' => $now->copy()->addDays(90)->endOfDay()
+                'end' => $now->copy()->addDays(90)->endOfDay(),
+                'daysOffset' => 90
             ],
 
             // Weeks
             'this_week' => [
                 'start' => $now->copy()->startOfWeek(),
-                'end' => $now->copy()->endOfDay()
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 7
             ],
             'last_week' => [
                 'start' => $now->copy()->subWeek()->startOfWeek(),
-                'end' => $now->copy()->subWeek()->endOfWeek()
+                'end' => $now->copy()->subWeek()->endOfWeek(),
+                'daysOffset' => 7
             ],
             'next_week' => [
                 'start' => $now->copy()->addWeek()->startOfWeek(),
-                'end' => $now->copy()->addWeek()->endOfWeek()
+                'end' => $now->copy()->addWeek()->endOfWeek(),
+                'daysOffset' => 7
             ],
 
             // Months
             'this_month' => [
                 'start' => $now->copy()->startOfMonth(),
-                'end' => $now->copy()->endOfDay()
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 30
             ],
             'last_month' => [
                 'start' => $now->copy()->subMonth()->startOfMonth(),
-                'end' => $now->copy()->subMonth()->endOfMonth()
+                'end' => $now->copy()->subMonth()->endOfMonth(),
+                'daysOffset' => 30
             ],
             'next_month' => [
                 'start' => $now->copy()->addMonth()->startOfMonth(),
-                'end' => $now->copy()->addMonth()->endOfMonth()
+                'end' => $now->copy()->addMonth()->endOfMonth(),
+                'daysOffset' => 30
             ],
 
             // Quarters
             'this_quarter' => [
                 'start' => $now->copy()->startOfQuarter(),
-                'end' => $now->copy()->endOfDay()
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 90
             ],
             'last_quarter' => [
                 'start' => $now->copy()->subQuarter()->startOfQuarter(),
-                'end' => $now->copy()->subQuarter()->endOfQuarter()
+                'end' => $now->copy()->subQuarter()->endOfQuarter(),
+                'daysOffset' => 90
             ],
             'next_quarter' => [
                 'start' => $now->copy()->addQuarter()->startOfQuarter(),
-                'end' => $now->copy()->addQuarter()->endOfQuarter()
+                'end' => $now->copy()->addQuarter()->endOfQuarter(),
+                'daysOffset' => 90
             ],
 
             // Years
             'this_year' => [
                 'start' => $now->copy()->startOfYear(),
-                'end' => $now->copy()->endOfDay()
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 365
             ],
             'last_year' => [
                 'start' => $now->copy()->subYear()->startOfYear(),
-                'end' => $now->copy()->subYear()->endOfYear()
+                'end' => $now->copy()->subYear()->endOfYear(),
+                'daysOffset' => 365
             ],
             'next_year' => [
                 'start' => $now->copy()->addYear()->startOfYear(),
-                'end' => $now->copy()->addYear()->endOfYear()
+                'end' => $now->copy()->addYear()->endOfYear(),
+                'daysOffset' => 365
             ],
 
             // Default fallback (last 30 days)
             default => [
                 'start' => $now->copy()->subDays(30)->startOfDay(),
-                'end' => $now->copy()->endOfDay()
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 30
             ]
         };
     }

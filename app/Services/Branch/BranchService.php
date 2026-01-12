@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\review\ReviewIssueDetectionService;
 use App\Services\review\ReviewTopicService;
 use App\Services\Review\ReviewMetricsService;
+use App\Services\Review\ReviewService;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -59,33 +60,17 @@ class BranchService
         $branch = Branch::with(['business'])->findOrFail($branchId);
         $businessId = $branch->business_id;
 
-        // ==================== CURRENT PERIOD REVIEWS ====================
-        $currentReviewsQuery = ReviewNew::where('business_id', $businessId)
-            ->where('branch_id', $branchId)
-            ->globalFilters(0, $businessId)
-            ->withCalculatedRating();
+        // ==================== GET REVIEWS USING REVIEWSERVICE ====================
 
-        if ($dateRange !== null) {
-            $startDate = Carbon::parse($dateRange['start'])->startOfDay();
-            $endDate = Carbon::parse($dateRange['end'])->endOfDay();
-            $currentReviewsQuery->whereBetween('created_at', [$startDate, $endDate]);
-        }
+        // Get current and previous period reviews using ReviewService
+        $reviews = ReviewService::getCurrentAndComparisonReviews(
+            businessId: $businessId,
+            branchId: $branchId,
+            dateRange: $dateRange
+        );
 
-        $currentReviews = $currentReviewsQuery->get();
-
-        // ==================== PREVIOUS PERIOD REVIEWS ====================
-        $previousReviews = collect();
-        if ($dateRange !== null) {
-            $prevStartDate = Carbon::parse($dateRange['start'])->subMonth()->startOfDay();
-            $prevEndDate = Carbon::parse($dateRange['end'])->subMonth()->endOfDay();
-
-            $previousReviews = ReviewNew::where('business_id', $businessId)
-                ->where('branch_id', $branchId)
-                ->whereBetween('created_at', [$prevStartDate, $prevEndDate])
-                ->globalFilters(0, $businessId)
-                ->withCalculatedRating()
-                ->get();
-        }
+        $currentReviews = $reviews['current'];
+        $previousReviews = $reviews['previous'];
 
         // ==================== BASIC COUNTS ====================
         $reviewCounts = ReviewMetricsService::getReviewCountWithComparison($currentReviews, $previousReviews);
