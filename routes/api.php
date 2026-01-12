@@ -346,6 +346,8 @@ Route::middleware(['auth:api'])->group(function () {
         // Specific routes before parameterized routes
         Route::get('/{branchId}/metrics', [BranchController::class, 'branchMetric']);
         Route::get('/{branchId}/ai-insights', [BranchController::class, 'branchAiInsights']);
+        // Staff Performance endpoint
+        Route::get('/{branchId}/staff-performance', [BranchController::class, 'getBranchStaffPerformance']);
 
         Route::get('/{id}', [BranchController::class, 'getBranchById']);
         Route::patch('/{id}', [BranchController::class, 'updateBranch']);
@@ -422,7 +424,6 @@ Route::middleware(['auth:api'])->group(function () {
     // ReportController & DashboardManagementController – Reports/dashboards (protected)
     // ============================================================================
 
-    Route::get('/v1.0/business-owner-dashboard', [DashboardManagementController::class, "getBusinessOwnerDashboardData"]);
     Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
     Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
     Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);

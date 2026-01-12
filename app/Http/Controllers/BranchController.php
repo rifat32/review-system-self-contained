@@ -927,4 +927,146 @@ class BranchController extends Controller
             throw $e;
         }
     }
+
+    /**
+     * Get staff performance for a specific branch
+     *
+     * @OA\Get(
+     *     path="/v1.0/branches/{branchId}/staff-performance",
+     *     tags={"branch_management"},
+     *     summary="Get staff performance metrics for a branch",
+     *     description="Retrieves detailed performance metrics for staff members in a specific branch, including ratings, sentiment scores, and trends",
+     *     operationId="getBranchStaffPerformance",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="branchId",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the branch",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="period",
+     *         in="query",
+     *         required=false,
+     *         description="Time period for analysis (last_7_days, last_30_days, last_90_days, this_month, last_month, custom)",
+     *         @OA\Schema(type="string", enum={"last_7_days", "last_30_days", "last_90_days", "this_month", "last_month", "custom"}, example="last_30_days")
+     *     ),
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         required=false,
+     *         description="Maximum number of staff members to return",
+     *         @OA\Schema(type="integer", minimum=1, maximum=50, example=10)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Staff performance retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Staff performance generated successfully"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="staff_id", type="integer", example=42),
+     *                     @OA\Property(property="staff_name", type="string", example="John Doe"),
+     *                     @OA\Property(property="avg_rating", type="number", format="float", example=4.5),
+     *                     @OA\Property(property="reviews_count", type="integer", example=25),
+     *                     @OA\Property(property="positive_percentage", type="integer", example=85),
+     *                     @OA\Property(property="evaluation", type="string", example="Top Performer"),
+     *                     @OA\Property(property="rating_trend", type="string", example="improving"),
+     *                     @OA\Property(property="last_review_date", type="string", example="2 days ago")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Authorization error - User doesn't have permission",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="You do not have permission to view staff performance for this branch"),
+     *             @OA\Property(property="error", type="string", example="authorization_error")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Branch not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="not_found")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation Error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Invalid period parameter"),
+     *             @OA\Property(property="error", type="string", example="validation_error")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="An error occurred while retrieving staff performance"),
+     *             @OA\Property(property="error", type="string", example="server_error")
+     *         )
+     *     )
+     * )
+     */
+    public function getBranchStaffPerformance($branchId, Request $request)
+    {
+
+        // ==================== GET USER & BUSINESS ====================
+        $user = $request->user();
+        $businessId = $user->business_id;
+
+        // ==================== AUTHORIZATION ====================
+        $branch = Branch::findOrFail($branchId);
+
+        // Ensure branch belongs to user's business
+        if ($branch->business_id !== $businessId) {
+            throw new AuthorizationException('The Branch does not belongs to your business');
+        }
+
+        // Check permissions (branch manager or business owner)
+        if (!$user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+            throw new AuthorizationException('You do not have permission to view AI insights for this branch');
+        }
+
+        // ==================== VALIDATE & GET DATE RANGE ====================
+        $dateRange = $this->branchService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
+
+        $startDate = $dateRange['start'];
+        $endDate = $dateRange['end'];
+
+        $staffPerformance = AIProcessor::getStaffPerformance(
+            branchId: $branchId,
+            businessId: $businessId,
+            startDate: $startDate,
+            endDate: $endDate,
+            limit: $request->get('limit', 10)
+        );
+
+        // ==================== RETURN RESPONSE ====================
+        return response()->json([
+            'success' => true,
+            'message' => 'Staff performance generated successfully',
+            'data' => $staffPerformance
+        ], 200);
+    }
 }

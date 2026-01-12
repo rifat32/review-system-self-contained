@@ -46,7 +46,7 @@ class AIProcessor
 
         // Use rule engine to extract staff mentions
         $staffMentions = RuleEngineHelper::extractStaffMentions($positiveReviews);
-        
+
         if (empty($staffMentions)) {
             return [];
         }
@@ -120,7 +120,7 @@ class AIProcessor
             // Use dynamic thresholds from rule engine
             $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
             $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-            
+
             $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
             $negativeReviews = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
@@ -241,9 +241,9 @@ class AIProcessor
     public static function extractOpportunitiesFromSuggestions($suggestions)
     {
         $opportunityKeywords = RuleEngineHelper::getOpportunityKeywords();
-        
+
         return collect($suggestions)
-            ->filter(function($s) use ($opportunityKeywords) {
+            ->filter(function ($s) use ($opportunityKeywords) {
                 foreach ($opportunityKeywords as $keyword) {
                     if (stripos($s, $keyword) !== false) {
                         return true;
@@ -271,7 +271,7 @@ class AIProcessor
         }
 
         $avgRating = $reviews->avg('calculated_rating') ?? 0;
-        
+
         // Use rule engine for prediction calculation
         $predictionData = RuleEngineHelper::generateRatingPrediction($avgRating);
 
@@ -366,7 +366,7 @@ class AIProcessor
 
         // Get insights from rule engine
         $insights = InsightAggregationHelper::getDashboardInsights($businessId, 10);
-        
+
         $summary = self::generateAiSummaryFromRuleEngine($businessId, $reviews);
         $issues = self::extractIssuesFromRuleEngine($businessId, $reviews, $dateRange ?? ['start' => now()->subMonth(), 'end' => now()]);
         $opportunities = self::extractOpportunitiesFromSuggestions($reviews->pluck('ai_suggestions')->flatten());
@@ -433,7 +433,7 @@ class AIProcessor
         // Use dynamic thresholds
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-        
+
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
         $total = $reviews->count();
@@ -640,7 +640,7 @@ class AIProcessor
 
         // Get issue patterns from rule engine
         $issuePatterns = RuleEngineHelper::getIssuePatterns();
-        
+
         $results = [];
 
         foreach ($reviews as $review) {
@@ -652,7 +652,7 @@ class AIProcessor
 
             foreach ($issuePatterns as $topic => $patternData) {
                 $matched = false;
-                
+
                 foreach ($patternData['keywords'] as $keyword) {
                     if (strpos($comment, $keyword) !== false) {
                         $matched = true;
@@ -699,7 +699,7 @@ class AIProcessor
 
         $totalReviews = $reviews->count();
         $averageRating = $reviews->avg('calculated_rating') ?? 0;
-        
+
         // Use dynamic thresholds
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
@@ -770,7 +770,7 @@ class AIProcessor
             $latestReviewDate = null;
 
             $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
-            
+
             foreach ($reviews as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
                 if (isset($review->sentiment_score) && $review->sentiment_score >= $positiveThreshold) {
@@ -954,7 +954,7 @@ class AIProcessor
 
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        
+
         $sentiment = RuleEngineHelper::determineOverallSentiment($positiveReviews, $totalReviews);
 
         $csatThreshold = RuleEngineHelper::getCsatThreshold();
@@ -1039,7 +1039,7 @@ class AIProcessor
 
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-        
+
         $positive = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $neutral = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
         $negative = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
@@ -1068,7 +1068,7 @@ class AIProcessor
         $positivePercentage = $sentimentBreakdown['positive'];
 
         $sentimentDescription = RuleEngineHelper::getSentimentDescription($positivePercentage);
-        
+
         $summary = "Overall sentiment is {$sentimentDescription}, with {$positivePercentage}% of reviews expressing positive sentiment. ";
 
         $avgRating = $reviews->avg('calculated_rating') ?? 0;
@@ -1108,7 +1108,7 @@ class AIProcessor
         $secondSentiment = $secondHalf->avg('sentiment_score');
 
         $trendThreshold = RuleEngineHelper::getTrendThreshold();
-        
+
         if ($secondSentiment > $firstSentiment + $trendThreshold) {
             $trends[] = RuleEngineHelper::getImprovingTrendMessage();
         } elseif ($secondSentiment < $firstSentiment - $trendThreshold) {
@@ -1117,7 +1117,7 @@ class AIProcessor
 
         $commonIssues = self::findCommonIssues($reviews);
         $frequentIssueThreshold = RuleEngineHelper::getFrequentIssueThreshold();
-        
+
         foreach ($commonIssues as $issue) {
             if ($issue['count'] >= $frequentIssueThreshold) {
                 $trends[] = "Frequent mentions of " . $issue['topic'];
@@ -1186,13 +1186,16 @@ class AIProcessor
             ->where('branch_id', $branchId)
             ->globalFilters(0, $businessId, 1)
             ->whereNotNull('staff_id')
-            ->whereBetween('created_at', [$startDate, $endDate])
+            // ->whereBetween('created_at', [$startDate, $endDate])
+            ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
+                return $query->whereBetween('created_at', [$startDate, $endDate]);
+            })
             ->withCalculatedRating()
             ->get();
 
         $staffPerformance = [];
         $groupedReviews = [];
-        
+
         foreach ($staffReviews as $review) {
             if ($review->staff_id) {
                 $groupedReviews[$review->staff_id][] = $review;
@@ -1211,7 +1214,7 @@ class AIProcessor
             $latestReviewDate = null;
 
             $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
-            
+
             foreach ($reviews as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
                 if (isset($review->sentiment_score) && $review->sentiment_score >= $positiveThreshold) {
@@ -1257,7 +1260,7 @@ class AIProcessor
         if ($reviewCount < RuleEngineHelper::getMinimumReviewsForStaffEvaluation()) {
             return RuleEngineHelper::getInsufficientDataMessage();
         }
-        
+
         return RuleEngineHelper::getStaffEvaluationFromRating($avgRating);
     }
 
@@ -1267,7 +1270,7 @@ class AIProcessor
     public static function generateActionItem($issue, $evidenceCount)
     {
         $actionData = RuleEngineHelper::generateActionForIssue($issue, $evidenceCount);
-        
+
         if ($actionData) {
             return [
                 'type' => 'Action',
@@ -1299,7 +1302,7 @@ class AIProcessor
         $secondHalfAvg = $secondHalf->avg('calculated_rating') ?? 0;
 
         $trendThreshold = RuleEngineHelper::getTrendThreshold();
-        
+
         if ($secondHalfAvg > $firstHalfAvg + $trendThreshold) {
             return RuleEngineHelper::getImprovingTrendMessage();
         } elseif ($secondHalfAvg < $firstHalfAvg - $trendThreshold) {
@@ -1339,7 +1342,7 @@ class AIProcessor
 
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-        
+
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $neutralCount = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
         $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
@@ -1395,7 +1398,7 @@ class AIProcessor
     public static function calculatePerformanceByCategory($reviews)
     {
         $performanceCategories = RuleEngineHelper::getPerformanceCategories();
-        
+
         $performance = [];
 
         foreach ($performanceCategories as $category => $keywords) {
@@ -1552,7 +1555,7 @@ class AIProcessor
 
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        
+
         return round(($positiveReviews / $reviews->count()) * 100);
     }
 
@@ -1628,7 +1631,7 @@ class AIProcessor
             $allTopics = [];
 
             $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
-            
+
             foreach ($reviewsArray as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
 
@@ -1700,10 +1703,10 @@ class AIProcessor
         $averageScore = $totalSubmissions > 0
             ? round($reviews->avg('calculated_rating'), 1)
             : 0;
-        
+
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-        
+
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $neutralCount = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
         $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
@@ -1744,7 +1747,7 @@ class AIProcessor
     {
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-        
+
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)
             ->sortByDesc('created_at')
             ->take($limit);
@@ -1967,7 +1970,7 @@ class AIProcessor
 
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-        
+
         $positive = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $neutral = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
         $negative = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
@@ -1997,7 +2000,7 @@ class AIProcessor
 
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-        
+
         $compliments = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $complaints = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
         $neutral = $totalReviews - $compliments - $complaints;
@@ -2041,7 +2044,7 @@ class AIProcessor
 
             $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
             $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-            
+
             foreach ($reviewsArray as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
 
@@ -2095,9 +2098,9 @@ class AIProcessor
     public static function extractIssuesFromSuggestions($suggestions)
     {
         $issueKeywords = RuleEngineHelper::getIssueKeywords();
-        
+
         $issues = collect($suggestions)
-            ->filter(function($s) use ($issueKeywords) {
+            ->filter(function ($s) use ($issueKeywords) {
                 foreach ($issueKeywords as $keyword) {
                     if (stripos($s, $keyword) !== false) {
                         return true;
@@ -2205,7 +2208,7 @@ class AIProcessor
 
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-        
+
         foreach ($reviews as $review) {
             $score = $review->sentiment_score ?? 0;
             $totalScore += $score;
@@ -2444,7 +2447,7 @@ class AIProcessor
             $staffUser = User::with("branches")
                 ->where('id', $staff['staff_id'])
                 ->first();
-                
+
             if (!$staffUser) {
                 continue;
             }
@@ -2513,7 +2516,7 @@ class AIProcessor
 
             $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
             $negativeThreshold = RuleEngineHelper::getNegativeSentimentThreshold();
-            
+
             foreach ($reviews as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
 
