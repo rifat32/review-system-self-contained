@@ -8,6 +8,7 @@ use App\Models\Branch;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Services\Branch\BranchService;
+use App\Services\Review\ReviewService;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -16,7 +17,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 class BranchController extends Controller
 {
     public function __construct(
-        private BranchService $branchService
+        private BranchService $branchService,
+        private ReviewService $reviewService
     ) {
     }
 
@@ -774,39 +776,155 @@ class BranchController extends Controller
         ], 200);
     }
 
-    public function generateAiInsights($reviews)
+    /**
+     * Get AI-generated insights for a branch
+     * 
+     * @OA\Get(
+     *      path="/v1.0/branches/{branchId}/ai-insights",
+     *      operationId="getBranchAiInsights",
+     *      tags={"branch_management"},
+     *      summary="Get AI-generated insights for branch reviews",
+     *      description="Returns AI-generated summary, sentiment breakdown, and key trends based on branch reviews for the specified period",
+     *      security={{"bearerAuth":{}}},
+     *      @OA\Parameter(
+     *          name="branchId",
+     *          in="path",
+     *          required=true,
+     *          description="Branch ID",
+     *          @OA\Schema(type="integer", example=1)
+     *      ),
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          description="Time period for analysis",
+     *          required=false,
+     *          @OA\Schema(
+     *              type="string",
+     *              enum={"last_7_days", "last_30_days", "last_90_days", "this_week", "last_week", "this_month", "last_month", "this_quarter", "last_quarter", "this_year", "last_year"},
+     *              default="last_30_days"
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="AI insights generated successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="AI insights generated successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(
+     *                      property="summary",
+     *                      type="string",
+     *                      example="Overall customer sentiment is positive with 75% positive reviews. Key strengths include excellent customer service and product quality. Areas for improvement include delivery times and packaging."
+     *                  ),
+     *                  @OA\Property(
+     *                      property="sentiment_breakdown",
+     *                      type="object",
+     *                      @OA\Property(property="positive", type="integer", example=75),
+     *                      @OA\Property(property="neutral", type="integer", example=15),
+     *                      @OA\Property(property="negative", type="integer", example=10)
+     *                  ),
+     *                  @OA\Property(
+     *                      property="key_trends",
+     *                      type="array",
+     *                      @OA\Items(
+     *                          type="object",
+     *                          @OA\Property(property="topic", type="string", example="customer service"),
+     *                          @OA\Property(property="sentiment", type="string", example="positive"),
+     *                          @OA\Property(property="mentions", type="integer", example=45)
+     *                      )
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - Unauthorized access to branch",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Unauthorized access to branch")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="Branch not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Branch not found")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Invalid period parameter",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Invalid period parameter"),
+     *              @OA\Property(property="errors", type="object")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=500,
+     *          description="Server error while generating insights",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Failed to generate AI insights")
+     *          )
+     *      )
+     * )
+     */
+    public function branchAiInsights($branchId, Request $request)
     {
-        if ($reviews->isEmpty()) {
-            return [
-                'summary' => 'No reviews available for analysis.',
-                'sentiment_breakdown' => [
-                    'positive' => 0,
-                    'neutral' => 0,
-                    'negative' => 0
-                ]
-            ];
+        try {
+            // ==================== GET USER & BUSINESS ====================
+            $user = $request->user();
+            $businessId = $user->business_id;
+
+            // ==================== AUTHORIZATION ====================
+            $branch = Branch::findOrFail($branchId);
+
+            // Ensure branch belongs to user's business
+            if ($branch->business_id !== $businessId) {
+                throw new AuthorizationException('The Branch does not belongs to your business');
+            }
+
+            // Check permissions (branch manager or business owner)
+            if (!$user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+                throw new AuthorizationException('You do not have permission to view AI insights for this branch');
+            }
+
+            // ==================== VALIDATE & GET DATE RANGE ====================
+            $dateRange = $this->branchService->validateAndGetDateRange(
+                $request->get('period', 'last_30_days')
+            );
+
+            // ==================== GET REVIEWS ====================
+            $reviews = $this->reviewService->getCurrentPeriodReviews(
+                businessId: $businessId,
+                branchId: $branchId,
+                dateRange: $dateRange === 'all_time' ? null : $dateRange,
+            );
+
+            // ==================== GENERATE AI INSIGHTS ====================
+            // Use existing AIProcessor instead of duplicating logic
+            $insights = AIProcessor::generateAiInsights($reviews);
+
+            // ==================== RETURN RESPONSE ====================
+            return response()->json([
+                'success' => true,
+                'message' => 'AI insights generated successfully',
+                'data' => $insights
+            ], 200);
+
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        $totalReviews = $reviews->count();
-
-        // Sentiment breakdown
-        $positive = $reviews->where('sentiment_score', '>=', 0.7)->count();
-        $neutral = $reviews->whereBetween('sentiment_score', [0.4, 0.69])->count();
-        $negative = $reviews->where('sentiment_score', '<', 0.4)->count();
-
-        $sentimentBreakdown = [
-            'positive' => round(($positive / $totalReviews) * 100),
-            'neutral' => round(($neutral / $totalReviews) * 100),
-            'negative' => round(($negative / $totalReviews) * 100)
-        ];
-
-        // Generate summary
-        $summary = AIProcessor::generateAiSummaryReport($reviews, $sentimentBreakdown);
-
-        return [
-            'summary' => $summary,
-            'sentiment_breakdown' => $sentimentBreakdown,
-            'key_trends' => AIProcessor::extractKeyTrends($reviews)
-        ];
     }
 }

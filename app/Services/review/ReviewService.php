@@ -147,18 +147,20 @@ class ReviewService
         int $businessId,
         ?int $branchId = null,
         ?array $dateRange = null,
-        int $comparisonDaysOffset = 30
+        bool $withCalculatedRating = true,
     ): array {
         return [
             'current' => self::getCurrentPeriodReviews(
                 businessId: $businessId,
                 branchId: $branchId,
-                dateRange: $dateRange
+                dateRange: $dateRange,
+                withCalculatedRating: $withCalculatedRating
             ),
             'previous' => self::getComparisonPeriodReviews(
                 businessId: $businessId,
                 branchId: $branchId,
                 dateRange: $dateRange,
+                withCalculatedRating: $withCalculatedRating
             )
         ];
     }
