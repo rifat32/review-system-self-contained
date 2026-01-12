@@ -1530,7 +1530,7 @@ class DashboardController extends Controller
      * @OA\Get(
      *      path="/v1.0/branch-dashboard/{branchId}",
      *      operationId="getBranchDashboard",
-     *      tags={"report"},
+     *      tags={"z.unused"},
      *      summary="Get branch dashboard data with real metrics",
      *      description="Returns branch dashboard with real data from database",
      *      security={
@@ -1653,8 +1653,8 @@ class DashboardController extends Controller
         ];
 
         return response()->json([
-            'success' => true,
-            'message' => 'Branch dashboard retrieved successfully',
+            'success' => false,
+            'message' => 'Api has been dupricated',
             'data' => $data
         ], 200);
     }

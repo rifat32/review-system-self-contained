@@ -6,12 +6,19 @@ use App\Http\Requests\BranchRequest;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\ReviewNew;
+use App\Services\Branch\BranchService;
 use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class BranchController extends Controller
 {
+    public function __construct(
+        private BranchService $branchService
+    ) {
+    }
+
     /**
      * @OA\Get(
      *      path="/v1.0/branches",
@@ -696,5 +703,73 @@ class BranchController extends Controller
             'message' => $message,
             'data' => $branch
         ]);
+    }
+
+    /**
+     * Get branch metrics with comparison
+     * 
+     * @OA\Get(
+     *      path="/v1.0/branches/{branchId}/metrics",
+     *      operationId="getBranchMetrics",
+     *      tags={"branch_management"},
+     *      summary="Get branch metrics with period comparison",
+     *      description="Returns branch metrics including ratings, sentiment, staff performance with comparison to previous period",
+     *      security={{"bearerAuth":{}}},
+     *      @OA\Parameter(
+     *          name="branchId",
+     *          in="path",
+     *          required=true,
+     *          description="Branch ID",
+     *          @OA\Schema(type="integer", example=1)
+     *      ),
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          description="Time period for metrics",
+     *          required=false,
+     *          @OA\Schema(
+     *              type="string",
+     *              enum={"last_7_days", "last_30_days", "last_90_days", "this_week", "last_week", "this_month", "last_month", "this_quarter", "last_quarter", "this_year", "last_year"},
+     *              default="last_30_days"
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Branch metrics retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Branch metrics retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
+     *      @OA\Response(response=401, description="Unauthenticated"),
+     *      @OA\Response(response=403, description="Forbidden"),
+     *      @OA\Response(response=404, description="Branch not found")
+     * )
+     */
+    public function branchMetric($branchId, Request $request)
+    {
+        $user = $request->user();
+
+        // Check permissions
+        if (!$user->hasRole('branch_manager') && !$user->hasRole('business_owner')) {
+            throw new AuthorizationException('You do not have permission to view this branch metric');
+        }
+
+        // Validate period and get date range
+        $dateRange = $this->branchService->validateAndGetDateRange($request->get('period', 'last_30_days'));
+
+        // Get metrics using BranchService with named arguments
+        $metrics = $this->branchService->getBranchMetricsWithComparison(
+            branchId: $branchId,
+            dateRange: $dateRange,
+            user: $user
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Branch metrics retrieved successfully',
+            'data' => $metrics
+        ], 200);
     }
 }
