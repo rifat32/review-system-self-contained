@@ -9,6 +9,7 @@ use App\Http\Utils\ErrorUtil;
 use App\Models\Business;
 use App\Models\Survey;
 use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -90,7 +91,7 @@ class SurveyController extends Controller
                     ->first();
                 $insertable_data["business_id"] = $business->id;
 
-                $survey =  Survey::create($insertable_data);
+                $survey = Survey::create($insertable_data);
 
 
                 $survey->questions()->sync($insertable_data["survey_questions"]);
@@ -177,11 +178,11 @@ class SurveyController extends Controller
     {
         try {
 
-            return  DB::transaction(function () use ($request) {
+            return DB::transaction(function () use ($request) {
 
                 $request_data = $request->validated();
 
-                $survey =  Survey::where([
+                $survey = Survey::where([
                     "id" => $request_data["id"]
                 ])->first();
 
@@ -618,30 +619,51 @@ class SurveyController extends Controller
     public function getAllSurveys($business_id, Request $request)
     {
         try {
+            // ==================== GET AUTHENTICATED USER ====================
+            $user = auth()->user();
 
-            // FIRST CHECK
-            $business = Business::find($business_id);
-            if (!$business) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "no business found"
-                ], 404);
+            // ==================== AUTHORIZATION CHECK ====================
+            // Ensure user belongs to the requested business
+            if ($user->business_id != $business_id) {
+                throw new AuthorizationException('You are not belongs to this business');
             }
 
-            // GET ALL SURVEYS WHICH BELONGS
+            // ==================== BRANCH MANAGER SCOPE ====================
+            // Initialize branch ID variable for filtering
+            $userBranchId = null;
+
+            // If user is a branch manager, restrict surveys to their branch only
+            if ($user->hasRole('branch_manager')) {
+                $userBranchId = $user->default_branch_id;
+            }
+
+            // ==================== VALIDATE BUSINESS EXISTS ====================
+            Business::findOrFail($business_id);
+
+            // ==================== BUILD QUERY WITH RELATIONSHIPS ====================
+            // Get all surveys belonging to the business with related data
             $query = Survey::with('questions', "business_services.business_areas")
                 ->withCount([
-                    "reviews",
+                    "reviews", // Count total reviews for each survey
                 ])
                 ->where([
                     "business_id" => $business_id,
                 ])
-                ->filter();
+                ->filter(); // Apply any query filters from request
 
+            // ==================== APPLY BRANCH FILTER ====================
+            // If user is branch manager, only show surveys with reviews from their branch
+            if ($userBranchId) {
+                $query->whereHas('reviews', function ($query) use ($userBranchId) {
+                    $query->where('branch_id', $userBranchId);
+                });
+            }
 
+            // ==================== RETRIEVE PAGINATED DATA ====================
+            // Get surveys ordered by order_no with pagination
             $surveys = retrieve_data($query, 'order_no');
 
-
+            // ==================== RETURN RESPONSE ====================
             return response()->json([
                 "success" => true,
                 "message" => "surveys retrieved successfully",
@@ -649,10 +671,7 @@ class SurveyController extends Controller
                 "data" => $surveys['data']
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "message" => "some thing went wrong",
-                "original_message" => $e->getMessage()
-            ], 404);
+            throw $e;
         }
     }
 
@@ -753,7 +772,7 @@ class SurveyController extends Controller
 
 
 
-            $surveyQuery =  Survey::with('questions')
+            $surveyQuery = Survey::with('questions')
                 ->where([
                     "business_id" => $business_id
                 ])
