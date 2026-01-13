@@ -6,6 +6,7 @@ use App\Models\Question;
 use App\Models\Survey;
 use Illuminate\Http\Request;
 use App\Models\SurveyQuestion;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 
 class SurveyQuestionController extends Controller
 {
@@ -137,10 +138,17 @@ class SurveyQuestionController extends Controller
      */
     public function getBySurveyAndQuestionIds(Request $request)
     {
-        // GET BUSINESS ID FROM AUTHENTICATED USER
+        // ==================== GET AUTHENTICATED USER ====================
         $businessId = $request->user()->business_id;
 
-        // PARSE COMMA-SEPARATED IDS INTO ARRAYS
+        // ==================== BRANCH MANAGER SCOPE ====================
+        // Only filter by branch for branch managers, not business owners
+        $userBranchId = null;
+        if ($request->user()->hasRole('branch_manager')) {
+            $userBranchId = $request->user()->default_branch_id;
+        }
+
+        // ==================== PARSE COMMA-SEPARATED IDS ====================
         $surveyIds = $request->has('survey_ids') && $request->input('survey_ids')
             ? array_map('intval', array_filter(explode(',', $request->input('survey_ids'))))
             : [];
@@ -149,22 +157,24 @@ class SurveyQuestionController extends Controller
             ? array_map('intval', array_filter(explode(',', $request->input('question_ids'))))
             : [];
 
-        // CHECK IF AT LEAST ONE FILTER IS PROVIDED
+        // ==================== VALIDATE AT LEAST ONE FILTER ====================
         if (empty($surveyIds) && empty($questionIds)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'At least one of survey_ids or question_ids is required'
-            ], 422);
+            throw new BadRequestException('At least one of survey_ids or question_ids is required');
         }
 
-        // VALIDATE SURVEY IDS EXIST IN DATABASE AND BELONG TO USER'S BUSINESS
+        // ==================== VALIDATE SURVEY IDS ====================
         if (!empty($surveyIds)) {
             $existingSurveyIds = Survey::whereIn('id', $surveyIds)
                 ->where('business_id', $businessId)
+                ->when($userBranchId, function ($query) use ($userBranchId) {
+                    return $query->whereHas('reviews', function ($query) use ($userBranchId) {
+                        return $query->where('branch_id', $userBranchId);
+                    });
+                })
                 ->pluck('id')
                 ->toArray();
-            $invalidSurveyIds = array_diff($surveyIds, $existingSurveyIds);
 
+            $invalidSurveyIds = array_diff($surveyIds, $existingSurveyIds);
             if (!empty($invalidSurveyIds)) {
                 return response()->json([
                     'success' => false,
@@ -177,7 +187,7 @@ class SurveyQuestionController extends Controller
             }
         }
 
-        // VALIDATE QUESTION IDS EXIST IN DATABASE AND BELONG TO USER'S BUSINESS OR ARE DEFAULT
+        // ==================== VALIDATE QUESTION IDS ====================
         if (!empty($questionIds)) {
             $existingQuestionIds = Question::whereIn('id', $questionIds)
                 ->where(function ($query) use ($businessId) {
@@ -186,8 +196,8 @@ class SurveyQuestionController extends Controller
                 })
                 ->pluck('id')
                 ->toArray();
-            $invalidQuestionIds = array_diff($questionIds, $existingQuestionIds);
 
+            $invalidQuestionIds = array_diff($questionIds, $existingQuestionIds);
             if (!empty($invalidQuestionIds)) {
                 return response()->json([
                     'success' => false,
@@ -200,23 +210,33 @@ class SurveyQuestionController extends Controller
             }
         }
 
-        // BUILD QUERY
-        $query = SurveyQuestion::with(['question']);
+        // ==================== BUILD QUERY ====================
+        // Start with base query and relationships
+        $query = SurveyQuestion::with(['question', 'survey']);
 
-        // FILTER BY SURVEY IDS IF PROVIDED
+        // Apply branch filter ONLY if user is branch manager
+        if ($userBranchId) {
+            $query->whereHas('survey', function ($query) use ($userBranchId) {
+                return $query->whereHas('reviews', function ($query) use ($userBranchId) {
+                    return $query->where('branch_id', $userBranchId);
+                });
+            });
+        }
+
+        // ==================== FILTER BY SURVEY IDS ====================
         if (!empty($surveyIds)) {
             $query->whereIn('survey_id', $surveyIds);
         }
 
-        // FILTER BY QUESTION IDS IF PROVIDED
+        // ==================== FILTER BY QUESTION IDS ====================
         if (!empty($questionIds)) {
             $query->whereIn('question_id', $questionIds);
         }
 
-        // FETCH SURVEY QUESTIONS WITH RELATED DATA
+        // ==================== FETCH SURVEY QUESTIONS ====================
         $surveyQuestions = $query->orderBy('order_no')->get();
 
-        // RETURN SUCCESS RESPONSE
+        // ==================== RETURN RESPONSE ====================
         return response()->json([
             'success' => true,
             'message' => 'Survey questions retrieved successfully',
