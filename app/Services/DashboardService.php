@@ -155,7 +155,7 @@ class DashboardService
         return [
             'avg_overall_rating' => [
                 'value' => $currentAvgRating,
-                'change' => $dateRange !== null ? calculatePercentageChange(
+                'change' => $dateRange !== null ? \App\Services\Review\ReviewService::calculatePercentageChange(
                     $currentAvgRating,
                     $previousAvgRating
                 ) : null,
@@ -174,7 +174,7 @@ class DashboardService
             ],
             'total_reviews' => [
                 'value' => $total,
-                'change' => $dateRange !== null ? calculatePercentageChange($total, $previousTotal) : null
+                'change' => $dateRange !== null ? \App\Services\Review\ReviewService::calculatePercentageChange($total, $previousTotal) : null
             ],
             'positive_negative_ratio' => [
                 'positive' => $total > 0 ? round(($positiveReviewsCount / $total) * 100) : 0,

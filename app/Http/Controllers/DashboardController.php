@@ -10,6 +10,7 @@ use App\Models\ReviewNew;
 use App\Models\Survey;
 use App\Models\Tag;
 use App\Models\User;
+use App\Services\AIProcessorService;
 use App\Services\DashboardService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -549,7 +550,7 @@ class DashboardController extends Controller
         );
 
         // Analyze services performance
-        $servicesAnalysis = analyzeBusinessServicesPerformance($businessId, $dateRange);
+        $servicesAnalysis = AIProcessorService::analyzeBusinessServicesPerformance($businessId, $dateRange);
 
         // Apply minimum reviews filter if specified
         $minReviews = $request->input('min_reviews', 3);
@@ -1324,7 +1325,7 @@ class DashboardController extends Controller
         }
 
         // Format period display text
-        $periodDisplayText = formatPeriodDisplay($startDate, $endDate);
+        $periodDisplayText = \App\Services\Review\ReviewService::formatPeriodDisplay($startDate, $endDate);
 
         $data = [
             'period' => [
@@ -2075,7 +2076,7 @@ class DashboardController extends Controller
             ->with(['user', 'guest_user', 'survey'])
             ->withCalculatedRating();
 
-        $reviewsQuery = applyFilters($reviewsQuery, $filters);
+        $reviewsQuery = \App\Services\Review\ReviewService::applyFilters($reviewsQuery, $filters);
         $reviews = (clone $reviewsQuery)->get();
 
         // Calculate performance overview using ReviewValueNew
@@ -2251,10 +2252,10 @@ class DashboardController extends Controller
         $dateRange = getDateRangeByPeriod($period);
 
         // Calculate metrics using existing methods
-        $metrics = calculateDashboardMetrics($businessId, $dateRange);
+        $metrics = \App\Services\Review\ReviewService::calculateDashboardMetrics($businessId, $dateRange);
 
         // Get rating breakdown using existing getAverage method logic
-        $ratingBreakdown = extractRatingBreakdown(
+        $ratingBreakdown = \App\Services\Review\ReviewService::extractRatingBreakdown(
             ReviewNew::withCalculatedRating()
                 ->globalFilters(0, $businessId)
                 ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
@@ -2262,19 +2263,19 @@ class DashboardController extends Controller
         );
 
         // Get tags breakdown (NEW)
-        $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange, $user);
+        $tagsBreakdown = \App\Services\Review\ReviewService::extractTagsBreakdown($businessId, $dateRange, $user);
 
         // Get AI insights using existing AI pipeline
-        $aiInsights = getAiInsightsPanel($businessId, $dateRange);
+        $aiInsights = \App\Services\AIProcessorService::getAiInsightsPanel($businessId, $dateRange);
 
         // Get staff performance using existing staff suggestions
-        $staffPerformance = getStaffPerformanceSnapshot($businessId, $dateRange);
+        $staffPerformance = \App\Services\AIProcessorService::getStaffPerformanceSnapshot($businessId, $dateRange);
 
         // Get recent reviews feed
-        $reviewFeed = getReviewFeed($businessId, $dateRange);
+        $reviewFeed = \App\Services\AIProcessorService::getReviewFeed($businessId, $dateRange);
 
         // Get available filters
-        $filters = getAvailableFilters($businessId);
+        $filters = \App\Services\Review\ReviewService::getAvailableFilters($businessId);
 
         return response()->json([
             'success' => true,
@@ -2372,7 +2373,7 @@ class DashboardController extends Controller
         );
 
         // Get recent reviews feed
-        $reviewFeed = AIProcessor::getReviewFeed(
+        $reviewFeed = \App\Services\AIProcessorService::getReviewFeed(
             businessId: $businessId,
             dateRange: $dateRange,
             limit: 10,
@@ -2467,7 +2468,7 @@ class DashboardController extends Controller
             $reviewsQuery->where('branch_id', $userBranchId);
         }
 
-        $ratingBreakdown = extractRatingBreakdown($reviewsQuery->get());
+        $ratingBreakdown = \App\Services\Review\ReviewService::extractRatingBreakdown($reviewsQuery->get());
 
         return response()->json([
             'success' => true,
@@ -2542,7 +2543,7 @@ class DashboardController extends Controller
         );
 
         // Get tags breakdown
-        $tagsBreakdown = extractTagsBreakdown($businessId, $dateRange, $user);
+        $tagsBreakdown = \App\Services\Review\ReviewService::extractTagsBreakdown($businessId, $dateRange, $user);
 
         return response()->json([
             'success' => true,
@@ -2612,7 +2613,7 @@ class DashboardController extends Controller
         );
 
         // Get AI insights
-        $aiInsights = AIProcessor::getAiInsightsPanel($businessId, $dateRange, $user);
+        $aiInsights = \App\Services\AIProcessorService::getAiInsightsPanel($businessId, $dateRange, $user);
 
         return response()->json([
             'success' => true,
@@ -2687,7 +2688,7 @@ class DashboardController extends Controller
         $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
 
         // Get staff performance
-        $staffPerformance = getStaffPerformanceSnapshot($businessId, $dateRange);
+        $staffPerformance = \App\Services\AIProcessorService::getStaffPerformanceSnapshot($businessId, $dateRange);
 
         return response()->json([
             'success' => true,

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\GuestUser;
 use App\Models\Question;
 use App\Models\Business;
@@ -181,7 +182,7 @@ class ReviewNewController extends Controller
             $duration = getAudioDuration($audioFile->getRealPath());
 
             // Transcribe the audio using existing method
-            $transcribedText = transcribeAudio($audioFile->getRealPath());
+            $transcribedText = \App\Services\AIProcessorService::transcribeAudio($audioFile->getRealPath());
 
             // If transcription is empty, try alternative method
             // if (empty($transcribedText)) {
@@ -806,7 +807,7 @@ class ReviewNewController extends Controller
             ->avg();
 
         $review = ReviewNew::create($reviewData);
-        storeReviewValues($review, $request->values, $business);
+        \App\Services\Review\ReviewService::storeReviewValues($review, $request->values, $business);
 
         if (!empty($request->business_services)) {
             $businessServicesData = [];
@@ -982,7 +983,7 @@ class ReviewNewController extends Controller
         ];
 
         $review = ReviewNew::create($reviewData);
-        storeReviewValues($review, $request->values, $business);
+        \App\Services\Review\ReviewService::storeReviewValues($review, $request->values, $business);
 
         // Attach business services with their respective business_area_id
 
