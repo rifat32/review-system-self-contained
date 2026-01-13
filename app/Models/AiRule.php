@@ -36,6 +36,8 @@ class AiRule extends Model
         'explainability' => 'array',
         'enabled' => 'boolean',
         'explanation_generated_at' => 'datetime',
+        'last_run_at' => 'datetime',
+        'next_run_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -69,8 +71,8 @@ class AiRule extends Model
      */
     public function hasExplanations(): bool
     {
-        return !empty($this->short_explanation) 
-            && !empty($this->detailed_explanation) 
+        return !empty($this->short_explanation)
+            && !empty($this->detailed_explanation)
             && !empty($this->why_it_matters);
     }
 
@@ -84,8 +86,10 @@ class AiRule extends Model
         }
 
         // Check if rule was updated after explanations were generated
-        if ($this->explanation_generated_at && 
-            $this->updated_at > $this->explanation_generated_at) {
+        if (
+            $this->explanation_generated_at &&
+            $this->updated_at > $this->explanation_generated_at
+        ) {
             return true;
         }
 
@@ -112,10 +116,10 @@ class AiRule extends Model
      */
     public function scopeWithoutExplanations($query)
     {
-        return $query->where(function($q) {
+        return $query->where(function ($q) {
             $q->whereNull('short_explanation')
-              ->orWhereNull('detailed_explanation')
-              ->orWhereNull('why_it_matters');
+                ->orWhereNull('detailed_explanation')
+                ->orWhereNull('why_it_matters');
         });
     }
 
@@ -158,9 +162,9 @@ class AiRule extends Model
      */
     public function scopeForBusiness($query, int $businessId)
     {
-        return $query->where(function($q) use ($businessId) {
+        return $query->where(function ($q) use ($businessId) {
             $q->where('business_id', $businessId)
-              ->orWhere('scope', 'system');
+                ->orWhere('scope', 'system');
         });
     }
 
@@ -169,7 +173,7 @@ class AiRule extends Model
      */
     public function getPriorityLabel(): string
     {
-        return match($this->priority) {
+        return match ($this->priority) {
             'critical' => 'Critical',
             'high' => 'High',
             'medium' => 'Medium',
@@ -183,7 +187,7 @@ class AiRule extends Model
      */
     public function getPriorityColor(): string
     {
-        return match($this->priority) {
+        return match ($this->priority) {
             'critical' => 'red',
             'high' => 'orange',
             'medium' => 'yellow',
@@ -197,7 +201,7 @@ class AiRule extends Model
      */
     public function getCategoryIcon(): string
     {
-        return match($this->category) {
+        return match ($this->category) {
             'staff' => '👤',
             'area' => '📍',
             'trend' => '📈',
