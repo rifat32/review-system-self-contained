@@ -796,6 +796,7 @@ class DashboardController extends Controller
             $dateRange = getDateRangeByPeriod($period);
         }
 
+
         // Get insights overview data
         $insightsData = AIProcessor::getInsightsOverview($businessId, $dateRange);
 

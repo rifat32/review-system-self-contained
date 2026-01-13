@@ -955,16 +955,22 @@ class AIProcessor
         $positiveThreshold = RuleEngineHelper::getPositiveSentimentThreshold();
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
 
+
         $sentiment = RuleEngineHelper::determineOverallSentiment($positiveReviews, $totalReviews);
+
+
 
         $csatThreshold = RuleEngineHelper::getCsatThreshold();
         $csatCount = $reviews->filter(function ($review) use ($csatThreshold) {
             return ($review->calculated_rating ?? 0) >= $csatThreshold;
         })->count();
 
+
         $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
 
         $topTopic = self::extractTopTopic($reviews);
+
+
         $flagged = $reviews->where('status', 'flagged')->count();
 
         return [
@@ -2282,9 +2288,14 @@ class AIProcessor
             ->withCalculatedRating()
             ->get();
 
+
         $topIssues = self::extractTopIssuesFromReviews($reviews);
+
         $performanceByBranch = self::getPerformanceByBranch($businessId, $dateRange);
+
         $performanceByArea = self::getPerformanceByArea($businessId, $dateRange);
+
+
         $topPerformingStaff = self::getTopPerformingStaffFromTopWorst($businessId, $dateRange);
 
         return [
@@ -2323,6 +2334,44 @@ class AIProcessor
         return array_slice($issuesWithPercentages, 0, 3);
     }
 
+    public static function getPerformanceByBranch($businessId, $dateRange)
+    {
+        // KEEP EXACTLY AS IS
+        $branches = Branch::where('business_id', $businessId)
+            ->where('is_active', true)
+            ->get();
+
+        $performanceData = [];
+
+
+        foreach ($branches as $branch) {
+            $reviews = ReviewNew::where('business_id', $businessId)
+                ->where('branch_id', $branch->id)
+                ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+                ->globalFilters(0, $businessId)
+                ->withCalculatedRating()
+                ->get();
+
+            if ($reviews->isNotEmpty()) {
+
+                $branchSummary = self::calculateBranchSummary($reviews);
+
+
+                $performanceData[] = [
+                    'name' => $branch->name,
+                    'rating' => $branchSummary['average_rating'] ?? 0,
+                    'review_count' => $branchSummary['total_reviews'] ?? 0,
+                    'branch_id' => $branch->id
+                ];
+            }
+        }
+
+        usort($performanceData, function ($a, $b) {
+            return $b['rating'] <=> $a['rating'];
+        });
+
+        return array_slice($performanceData, 0, 3);
+    }
     /**
      * Get performance by area dynamically
      */
