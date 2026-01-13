@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\AiRule;
-use App\Services\RuleExecutionService;
+use App\Services\Rule\RuleExecutionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

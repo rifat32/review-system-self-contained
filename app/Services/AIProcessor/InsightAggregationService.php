@@ -1,13 +1,13 @@
 <?php
 // app/Helpers/InsightAggregationHelper.php
 
-namespace App\Helpers;
+namespace App\Services\AIProcessor;
 
 use App\Models\ReviewNew;
 use App\Models\InsightRecord;
 use Carbon\Carbon;
 
-class InsightAggregationHelper
+class InsightAggregationService
 {
     /**
      * Main aggregation business logic
@@ -16,16 +16,16 @@ class InsightAggregationHelper
     {
         $startDate = Carbon::now()->subDays($days);
         $endDate = Carbon::now();
-        
+
         // Get AI-analyzed reviews
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('is_ai_processed', true)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
-        
+
         // Group reviews by category patterns
         $categoryPatterns = self::extractCategoryPatterns($reviews);
-        
+
         // Create insight records
         $insightsCreated = 0;
         foreach ($categoryPatterns as $pattern) {
@@ -34,7 +34,7 @@ class InsightAggregationHelper
                 $insightsCreated++;
             }
         }
-        
+
         return [
             'business_id' => $businessId,
             'period_days' => $days,
@@ -43,21 +43,21 @@ class InsightAggregationHelper
             'insights_created' => $insightsCreated
         ];
     }
-    
+
     /**
      * Extract patterns: Group reviews by (main_category + sub_category + staff_blame)
      */
     private static function extractCategoryPatterns($reviews): array
     {
         $patterns = [];
-        
+
         foreach ($reviews as $review) {
             $openaiData = json_decode($review->openai_raw_response ?? '{}', true);
             $categories = $openaiData['category_analysis'] ?? [];
-            
+
             foreach ($categories as $category) {
                 $key = self::createPatternKey($category, $openaiData);
-                
+
                 if (!isset($patterns[$key])) {
                     $patterns[$key] = [
                         'main_category' => $category['main_category'] ?? 'General',
@@ -70,11 +70,11 @@ class InsightAggregationHelper
                         'last_seen' => $review->created_at
                     ];
                 }
-                
+
                 $patterns[$key]['review_ids'][] = $review->id;
                 $patterns[$key]['sentiments'][] = $category['sentiment'] ?? 'neutral';
                 $patterns[$key]['severities'][] = $category['severity'] ?? 'low';
-                
+
                 if ($review->created_at < $patterns[$key]['first_seen']) {
                     $patterns[$key]['first_seen'] = $review->created_at;
                 }
@@ -83,10 +83,10 @@ class InsightAggregationHelper
                 }
             }
         }
-        
+
         return array_values($patterns);
     }
-    
+
     /**
      * Create unique pattern key
      */
@@ -100,30 +100,30 @@ class InsightAggregationHelper
             $staffBlame ? 'staff' : 'process'
         );
     }
-    
+
     /**
      * Create insight record from pattern
      */
     private static function createInsightFromPattern(int $businessId, array $pattern, Carbon $startDate, Carbon $endDate): ?InsightRecord
     {
         $mentions = count($pattern['review_ids']);
-        
+
         // Business rule: Minimum 2 mentions to create insight
         if ($mentions < 2) {
             return null;
         }
-        
+
         // Calculate severity (most frequent)
         $severityCounts = array_count_values($pattern['severities']);
         arsort($severityCounts);
         $severity = key($severityCounts) ?: 'medium';
-        
+
         // Calculate confidence (business rule)
         $confidence = self::calculateConfidence($mentions, $severity);
-        
+
         // Check trend
         $trend = self::calculateTrend($pattern['first_seen'], $pattern['last_seen'], $mentions);
-        
+
         // Find or create insight
         return InsightRecord::updateOrCreate(
             [
@@ -143,7 +143,7 @@ class InsightAggregationHelper
             ]
         );
     }
-    
+
     /**
      * Confidence calculation business rules:
      * - High: ≥5 mentions AND high severity
@@ -160,25 +160,25 @@ class InsightAggregationHelper
         }
         return 'low';
     }
-    
+
     /**
      * Trend calculation: If issue appeared recently and frequently
      */
     private static function calculateTrend(Carbon $firstSeen, Carbon $lastSeen, int $mentions): string
     {
         $daysDiff = $firstSeen->diffInDays($lastSeen);
-        
+
         if ($daysDiff <= 7 && $mentions >= 3) {
             return 'emerging'; // Rapid appearance
         }
-        
+
         if ($mentions >= 5 && $daysDiff <= 14) {
             return 'increasing'; // Frequent in short period
         }
-        
+
         return 'stable'; // Normal pattern
     }
-    
+
     /**
      * Get aggregated insights for dashboard
      */
@@ -189,7 +189,7 @@ class InsightAggregationHelper
             ->orderBy('mentions_count', 'desc')
             ->limit($limit)
             ->get();
-        
+
         return $insights->map(function ($insight) {
             return [
                 'id' => $insight->id,

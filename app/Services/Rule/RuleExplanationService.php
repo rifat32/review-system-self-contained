@@ -1,12 +1,12 @@
 <?php
 // app/Helpers/RuleExplanationHelper.php
 
-namespace App\Helpers;
+namespace App\Services\Rule;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class RuleExplanationHelper
+class RuleExplanationService
 {
     /**
      * Generate AI explanations for a rule using OpenAI
@@ -15,7 +15,7 @@ class RuleExplanationHelper
     {
         try {
             $requestBody = self::buildOpenAIRequest($ruleData);
-            
+
             $response = Http::timeout(30)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
@@ -32,14 +32,14 @@ class RuleExplanationHelper
             }
 
             $responseData = $response->json();
-            
+
             Log::info('OpenAI API response received', [
                 'has_content' => isset($responseData['content']),
                 'content_count' => count($responseData['content'] ?? [])
             ]);
-            
+
             return self::parseOpenAIResponse($responseData);
-            
+
         } catch (\Exception $e) {
             Log::error('Rule explanation generation failed', [
                 'error' => $e->getMessage(),
@@ -78,9 +78,9 @@ class RuleExplanationHelper
     private static function getSystemPrompt(): string
     {
         return 'You are an AI assistant that explains business rules in simple, non-technical language for business owners. ' .
-               'You must respond ONLY with valid JSON matching this exact structure: ' .
-               '{"short_explanation": "one sentence", "detailed_explanation": "2-3 sentences", "why_it_matters": "business impact"}. ' .
-               'Do not include any markdown formatting, code blocks, or additional text outside the JSON.';
+            'You must respond ONLY with valid JSON matching this exact structure: ' .
+            '{"short_explanation": "one sentence", "detailed_explanation": "2-3 sentences", "why_it_matters": "business impact"}. ' .
+            'Do not include any markdown formatting, code blocks, or additional text outside the JSON.';
     }
 
     /**
@@ -96,7 +96,7 @@ class RuleExplanationHelper
         $subCategory = $ruleData['sub_category'] ?? '';
         $severity = $ruleData['severity'] ?? 'medium';
         $frequency = $ruleData['frequency'] ?? 0;
-        
+
         $conditions = $ruleData['conditions'] ?? [];
         $actions = $ruleData['actions'] ?? [];
 
@@ -146,7 +146,7 @@ class RuleExplanationHelper
         try {
             // Extract text content from Claude's response format
             $textContent = self::extractTextFromResponse($responseData);
-            
+
             if (empty($textContent)) {
                 Log::warning('No text content in OpenAI response', [
                     'response_structure' => array_keys($responseData)
@@ -161,7 +161,7 @@ class RuleExplanationHelper
 
             // Try to parse as JSON
             $parsed = self::extractJsonFromText($textContent);
-            
+
             if (!$parsed) {
                 Log::warning('Failed to parse JSON from OpenAI response', [
                     'text' => $textContent
@@ -170,10 +170,12 @@ class RuleExplanationHelper
             }
 
             // Validate required fields
-            if (!isset($parsed['short_explanation']) || 
-                !isset($parsed['detailed_explanation']) || 
-                !isset($parsed['why_it_matters'])) {
-                
+            if (
+                !isset($parsed['short_explanation']) ||
+                !isset($parsed['detailed_explanation']) ||
+                !isset($parsed['why_it_matters'])
+            ) {
+
                 Log::warning('OpenAI response missing required fields', [
                     'parsed' => $parsed,
                     'has_short' => isset($parsed['short_explanation']),
@@ -205,7 +207,7 @@ class RuleExplanationHelper
             ]);
 
             return $explanations;
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to parse OpenAI response', [
                 'error' => $e->getMessage(),
@@ -222,7 +224,7 @@ class RuleExplanationHelper
     private static function extractTextFromResponse(array $responseData): string
     {
         $textParts = [];
-        
+
         // Claude API returns content as an array of blocks
         if (isset($responseData['content']) && is_array($responseData['content'])) {
             foreach ($responseData['content'] as $block) {
@@ -231,12 +233,12 @@ class RuleExplanationHelper
                 }
             }
         }
-        
+
         // Fallback: check if there's direct text field
         if (empty($textParts) && isset($responseData['text'])) {
             $textParts[] = $responseData['text'];
         }
-        
+
         return implode("\n", $textParts);
     }
 
@@ -274,13 +276,13 @@ class RuleExplanationHelper
     {
         // Remove extra whitespace
         $text = preg_replace('/\s+/', ' ', $text);
-        
+
         // Remove any remaining markdown
         $text = preg_replace('/[*_`]/', '', $text);
-        
+
         // Trim
         $text = trim($text);
-        
+
         return $text;
     }
 
@@ -296,7 +298,7 @@ class RuleExplanationHelper
         $frequency = $ruleData['frequency'] ?? 0;
 
         $templates = self::getFallbackTemplates();
-        
+
         $key = strtolower($category);
         if (isset($templates[$key])) {
             return [
@@ -357,11 +359,11 @@ class RuleExplanationHelper
             'rule_name' => $rule->rule_name,
             'category' => $rule->category,
             'priority' => $rule->priority,
-            'conditions' => is_string($rule->conditions) 
-                ? json_decode($rule->conditions, true) 
+            'conditions' => is_string($rule->conditions)
+                ? json_decode($rule->conditions, true)
                 : $rule->conditions,
-            'actions' => is_string($rule->actions) 
-                ? json_decode($rule->actions, true) 
+            'actions' => is_string($rule->actions)
+                ? json_decode($rule->actions, true)
                 : $rule->actions,
             'main_category' => $rule->conditions['category_match']['main_category'] ?? '',
             'sub_category' => $rule->conditions['category_match']['sub_category'] ?? '',
@@ -388,15 +390,19 @@ class RuleExplanationHelper
     public static function needsRegeneration($rule): bool
     {
         // Needs regeneration if any explanation is missing
-        if (empty($rule->short_explanation) || 
-            empty($rule->detailed_explanation) || 
-            empty($rule->why_it_matters)) {
+        if (
+            empty($rule->short_explanation) ||
+            empty($rule->detailed_explanation) ||
+            empty($rule->why_it_matters)
+        ) {
             return true;
         }
 
         // Check if rule logic changed (version increment without explanation update)
-        if ($rule->version > 1 && 
-            $rule->updated_at > ($rule->explanation_generated_at ?? $rule->created_at)) {
+        if (
+            $rule->version > 1 &&
+            $rule->updated_at > ($rule->explanation_generated_at ?? $rule->created_at)
+        ) {
             return true;
         }
 
@@ -418,7 +424,7 @@ class RuleExplanationHelper
         foreach ($rules as $rule) {
             try {
                 $explanations = self::regenerateForRule($rule);
-                
+
                 if ($explanations) {
                     $rule->update([
                         'short_explanation' => $explanations['short_explanation'],
@@ -426,7 +432,7 @@ class RuleExplanationHelper
                         'why_it_matters' => $explanations['why_it_matters'],
                         'explanation_generated_at' => now()
                     ]);
-                    
+
                     $results['success']++;
                     $results['details'][] = [
                         'rule_id' => $rule->rule_id,
@@ -439,13 +445,13 @@ class RuleExplanationHelper
                         'status' => 'failed'
                     ];
                 }
-                
+
             } catch (\Exception $e) {
                 Log::error('Batch explanation generation failed for rule', [
                     'rule_id' => $rule->rule_id,
                     'error' => $e->getMessage()
                 ]);
-                
+
                 $results['failed']++;
                 $results['details'][] = [
                     'rule_id' => $rule->rule_id,

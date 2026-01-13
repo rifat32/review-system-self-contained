@@ -2,10 +2,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Helpers\InsightAggregationHelper;
-use App\Helpers\RecommendationGenerator;
-use App\Helpers\RuleEngineHelper;
-use App\Helpers\ConfidenceCalculator;
+use App\Services\AIProcessor\InsightAggregationService;
+use App\Services\AIProcessor\RecommendationGeneratorService;
+use App\Services\Rule\RuleEngineService;
+use App\Services\AIProcessor\ConfidenceCalculatorService;
 use App\Models\Recommendation;
 use App\Models\InsightRecord;
 use Illuminate\Http\Request;
@@ -17,7 +17,7 @@ class RecommendationController extends Controller
      * Generate recommendations
      * POST /api/recommendations/generate
      */
-    
+
     public function generate(Request $request)
     {
         $request->validate([
@@ -30,10 +30,10 @@ class RecommendationController extends Controller
 
         try {
             // Step 1: Aggregate insights
-            $aggregationResult = InsightAggregationHelper::aggregateReviewsForBusiness($businessId, $days);
+            $aggregationResult = InsightAggregationService::aggregateReviewsForBusiness($businessId, $days);
 
             // Step 2: Generate recommendations
-            $recommendations = RecommendationGenerator::generateFromInsights($businessId, $days);
+            $recommendations = RecommendationGeneratorService::generateFromInsights($businessId, $days);
 
             return response()->json([
                 'success' => true,
@@ -103,7 +103,7 @@ class RecommendationController extends Controller
         $insight = $recommendation->insight;
 
         // Get confidence analysis
-        $confidence = ConfidenceCalculator::calculateInsightConfidence($insight);
+        $confidence = ConfidenceCalculatorService::calculateInsightConfidence($insight);
 
         // Get rule that triggered this
         $rule = $recommendation->rule;
@@ -154,8 +154,8 @@ class RecommendationController extends Controller
             'business_id' => 'required|integer|exists:businesses,id'
         ]);
 
-        $insights = InsightAggregationHelper::getDashboardInsights($request->business_id, 5);
-        $recommendations = RecommendationGenerator::getDashboardRecommendations($request->business_id, 3);
+        $insights = InsightAggregationService::getDashboardInsights($request->business_id, 5);
+        $recommendations = RecommendationGeneratorService::getDashboardRecommendations($request->business_id, 3);
 
         return response()->json([
             'success' => true,

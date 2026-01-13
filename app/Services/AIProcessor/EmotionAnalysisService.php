@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Helpers;
+namespace App\Services\AIProcessor;
 
 use App\Models\{ReviewEmotion, RatingMismatch};
 
 /**
- * Extension to AIProcessor for emotion detection and mismatch detection
+ * Service for emotion detection and rating mismatch analysis
+ * Handles sentiment analysis extensions including emotion intensity detection
  */
-class AIProcessorExtensions
+class EmotionAnalysisService
 {
     // ==================== EMOTION DETECTION ====================
 

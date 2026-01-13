@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\OpenAIProcessor;
+use App\Services\AIProcessor\OpenAIProcessorService;
 use App\Models\Business;
 use App\Models\BusinessAIModule;
 use Illuminate\Http\Request;
@@ -297,7 +297,7 @@ class BusinessAIModuleController extends Controller
 
         try {
             // UPDATE BUSINESS AI MODULES USING HELPER
-            $result = OpenAIProcessor::updateBusinessAiModules($businessId, $validated);
+            $result = OpenAIProcessorService::updateBusinessAiModules($businessId, $validated);
 
             if (!$result) {
                 return response()->json([
@@ -573,7 +573,7 @@ class BusinessAIModuleController extends Controller
             $period = $request->input('period', 'month');
 
             // GET TOKEN USAGE STATISTICS
-            $usageStats = OpenAIProcessor::getTokenUsageStatistics($businessId, $period);
+            $usageStats = OpenAIProcessorService::getTokenUsageStatistics($businessId, $period);
 
             return response()->json([
                 "success" => true,

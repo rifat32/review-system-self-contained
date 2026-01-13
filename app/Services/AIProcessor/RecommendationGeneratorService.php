@@ -1,13 +1,14 @@
 <?php
 // app/Helpers/RecommendationGenerator.php
 
-namespace App\Helpers;
+namespace App\Services\AIProcessor;
 
 use App\Models\InsightRecord;
 use App\Models\Recommendation;
+use App\Services\Rule\RuleEngineService;
 use Carbon\Carbon;
 
-class RecommendationGenerator
+class RecommendationGeneratorService
 {
     /**
      * Generate recommendations from insights
@@ -19,20 +20,20 @@ class RecommendationGenerator
             ->where('time_window_end', '>=', Carbon::now()->subDays($days))
             ->where('mentions_count', '>=', 2) // Business rule
             ->get();
-        
+
         $recommendations = [];
-        
+
         foreach ($insights as $insight) {
-            
+
             // Match rules to insight
-            $matchedRules = RuleEngineHelper::matchRulesToInsight($insight);
-            
+            $matchedRules = RuleEngineService::matchRulesToInsight($insight);
+
             foreach ($matchedRules as $matched) {
                 $rule = $matched['rule'];
-                
+
                 // Generate recommendation from rule
-                $recData = RuleEngineHelper::generateRecommendation($rule, $insight);
-                
+                $recData = RuleEngineService::generateRecommendation($rule, $insight);
+
                 if (!empty($recData)) {
                     $recommendation = self::createRecommendation(
                         $businessId,
@@ -40,23 +41,23 @@ class RecommendationGenerator
                         $rule,
                         $recData
                     );
-                    
+
                     if ($recommendation) {
                         $recommendations[] = $recommendation;
                     }
                 }
             }
         }
-        
+
         // Limit to top 5 recommendations by priority
-        usort($recommendations, function($a, $b) {
+        usort($recommendations, function ($a, $b) {
             $priorityOrder = ['critical' => 4, 'high' => 3, 'medium' => 2, 'low' => 1];
             return ($priorityOrder[$b['priority']] ?? 0) <=> ($priorityOrder[$a['priority']] ?? 0);
         });
-        
+
         return array_slice($recommendations, 0, 5);
     }
-    
+
     /**
      * Create recommendation record
      */
@@ -78,7 +79,7 @@ class RecommendationGenerator
                 'priority' => $recData['priority'],
                 'evidence' => json_encode($recData['evidence'])
             ]);
-            
+
             return [
                 'id' => $recommendation->id,
                 'type' => $recData['type'],
@@ -87,7 +88,7 @@ class RecommendationGenerator
                 'priority' => $recData['priority'],
                 'evidence' => $recData['evidence']
             ];
-            
+
         } catch (\Exception $e) {
             \Log::error('Failed to create recommendation', [
                 'business_id' => $businessId,
@@ -97,7 +98,7 @@ class RecommendationGenerator
             return null;
         }
     }
-    
+
     /**
      * Get actionable recommendations for dashboard
      */
@@ -109,7 +110,7 @@ class RecommendationGenerator
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();
-        
+
         return $recommendations->map(function ($rec) {
             return [
                 'id' => $rec->id,

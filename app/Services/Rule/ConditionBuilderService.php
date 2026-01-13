@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Helpers;
+namespace App\Services\Rule;
 
 use App\Models\ReviewNew;
 
-class ConditionBuilderHelper
+class ConditionBuilderService
 {
     // ==================== VALIDATION ====================
 

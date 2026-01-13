@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\{AiRule, ReviewNew, Branch};
-use App\Helpers\{ConditionBuilderHelper, RuleExplanationHelper};
-use App\Services\RuleMetricsService;
+use App\Services\Rule\ConditionBuilderService;
+use App\Services\Rule\{RuleExplanationService, RuleMetricsService};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log};
 
@@ -123,7 +123,7 @@ class RuleWizardController extends Controller
         }
 
         // Validate condition structure
-        $errors = ConditionBuilderHelper::validateConditionTree($validated['conditions']);
+        $errors = ConditionBuilderService::validateConditionTree($validated['conditions']);
 
         if (!empty($errors)) {
             return response()->json([
@@ -184,7 +184,7 @@ class RuleWizardController extends Controller
             // Simulate rule matching
             $aiData = $this->getReviewAIData($review);
 
-            $isMatch = ConditionBuilderHelper::evaluateConditions(
+            $isMatch = ConditionBuilderService::evaluateConditions(
                 $wizardData['conditions'],
                 $review,
                 $aiData,
@@ -264,9 +264,9 @@ class RuleWizardController extends Controller
             ]);
 
             // Generate AI explanations if RuleExplanationHelper exists
-            if (class_exists(RuleExplanationHelper::class)) {
+            if (class_exists(RuleExplanationService::class)) {
                 try {
-                    app(RuleExplanationHelper::class)->generateExplanations($rule);
+                    app(RuleExplanationService::class)->generateExplanations($rule);
                 } catch (\Exception $e) {
                     Log::warning("Failed to generate rule explanations", [
                         'rule_id' => $rule->rule_id,
@@ -452,7 +452,7 @@ class RuleWizardController extends Controller
             'condition_count' => count($ruleData['conditions'] ?? []),
             'action_count' => count($ruleData['actions'] ?? []),
             'formatted_conditions' => array_map(function ($condition) {
-                return ConditionBuilderHelper::formatCondition($condition);
+                return ConditionBuilderService::formatCondition($condition);
             }, $ruleData['conditions'] ?? [])
         ];
     }

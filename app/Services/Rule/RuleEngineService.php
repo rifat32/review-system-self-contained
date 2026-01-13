@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Helpers;
+namespace App\Services\Rule;
 
 use App\Models\{AiRule, ReviewNew, Business, InsightRecord, AiRuleEvaluation, AiInsightsAggregate, Alert};
+use App\Services\AIProcessor\ConfidenceCalculatorService;
+use App\Services\Rule\AutoRuleCreatorService;
 
 
 class RuleEngineHelper
@@ -32,7 +34,8 @@ class RuleEngineHelper
     {
         $actions = json_decode($rule->actions, true);
 
-        if (!isset($actions['suggest_action'])) return [];
+        if (!isset($actions['suggest_action']))
+            return [];
 
         $template = self::getRecommendationTemplate($actions['suggest_action']['template_id'] ?? 'GENERAL');
         $filledTemplate = self::fillTemplate($template, $insight->business_id, $rule, $insight);
@@ -65,7 +68,7 @@ class RuleEngineHelper
         }
 
         // Auto-create rules for new patterns
-        AutoRuleCreator::checkAndCreateRules($review, $openaiData);
+        AutoRuleCreatorService::checkAndCreateRules($review, $openaiData);
 
         return $results;
     }
@@ -183,7 +186,7 @@ class RuleEngineHelper
 
         // Confidence level
         if (isset($conditions['confidence_min'])) {
-            $confScore = ConfidenceCalculator::calculateInsightConfidence($insight)['score'];
+            $confScore = ConfidenceCalculatorService::calculateInsightConfidence($insight)['score'];
             if ($confScore < $conditions['confidence_min']) {
                 return false;
             }
@@ -195,7 +198,7 @@ class RuleEngineHelper
     private static function calculateRuleConfidence(AiRule $rule, InsightRecord $insight): string
     {
         // Use ConfidenceCalculator for consistency
-        $confidenceData = ConfidenceCalculator::calculateInsightConfidence($insight);
+        $confidenceData = ConfidenceCalculatorService::calculateInsightConfidence($insight);
 
         // Rule-specific confidence adjustment
         $adjustment = match ($rule->priority) {
@@ -227,7 +230,7 @@ class RuleEngineHelper
                 'trend' => $insight->trend,
                 'staff_related' => $insight->staff_blame_detected
             ],
-            'confidence_factors' => ConfidenceCalculator::calculateInsightConfidence($insight)['factors'],
+            'confidence_factors' => ConfidenceCalculatorService::calculateInsightConfidence($insight)['factors'],
             'time_period' => [
                 'start' => $insight->time_window_start?->format('Y-m-d'),
                 'end' => $insight->time_window_end?->format('Y-m-d')
@@ -597,7 +600,8 @@ class RuleEngineHelper
 
         $praiseCount = 0;
         foreach ($reviews as $review) {
-            if (empty($review->comment)) continue;
+            if (empty($review->comment))
+                continue;
 
             $text = strtolower(trim($review->comment));
             foreach ($praiseRules as $rule) {
@@ -653,7 +657,8 @@ class RuleEngineHelper
 
     public static function determineOverallSentiment(int $positiveReviews, int $totalReviews): string
     {
-        if ($totalReviews === 0) return 'Neutral';
+        if ($totalReviews === 0)
+            return 'Neutral';
 
         $percentage = ($positiveReviews / $totalReviews) * 100;
         $sentimentRules = AiRule::where('category', 'sentiment_rules')
@@ -741,7 +746,8 @@ class RuleEngineHelper
             ->where('key_name', $issue)
             ->first();
 
-        if (!$actions) return null;
+        if (!$actions)
+            return null;
 
         $data = json_decode($actions->value, true);
         return [
@@ -933,7 +939,8 @@ class RuleEngineHelper
 
         $praiseCounts = [];
         foreach ($reviews as $review) {
-            if (empty($review->comment)) continue;
+            if (empty($review->comment))
+                continue;
 
             $text = strtolower($review->comment);
             foreach ($praisePatterns as $pattern) {

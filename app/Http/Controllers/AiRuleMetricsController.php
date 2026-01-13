@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\{AiRule, AiRuleTrigger};
-use App\Services\RuleMetricsService;
-use App\Helpers\ConditionBuilderHelper;
+use App\Services\Rule\RuleMetricsService;
+use App\Services\Rule\ConditionBuilderService;
 use Illuminate\Http\Request;
 
 /**
@@ -123,7 +123,7 @@ class AiRuleMetricsController extends Controller
             'conditions' => 'required|array'
         ]);
 
-        $errors = ConditionBuilderHelper::validateConditionTree($validated['conditions']);
+        $errors = ConditionBuilderService::validateConditionTree($validated['conditions']);
 
         if (empty($errors)) {
             return response()->json([
@@ -146,7 +146,7 @@ class AiRuleMetricsController extends Controller
      */
     public function getConditionTypes(Request $request)
     {
-        $types = ConditionBuilderHelper::getSupportedTypes();
+        $types = ConditionBuilderService::getSupportedTypes();
 
         return response()->json([
             'success' => true,

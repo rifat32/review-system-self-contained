@@ -1,17 +1,18 @@
 <?php
 
-namespace App\Helpers;
+namespace App\Services\AIProcessor;
 
 use App\Models\BusinessAiModule;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Models\OpenAITokenUsage;
+use App\Services\Rule\RuleEngineService;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 
-class OpenAIProcessor
+class OpenAIProcessorService
 {
     /**
      * Debug method to check OpenAI status
@@ -32,12 +33,12 @@ class OpenAIProcessor
             ])
                 ->timeout(10)
                 ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-4o-mini',
-                    'messages' => [
-                        ['role' => 'user', 'content' => 'Say "Test successful"']
-                    ],
-                    'max_tokens' => 10
-                ]);
+                        'model' => 'gpt-4o-mini',
+                        'messages' => [
+                            ['role' => 'user', 'content' => 'Say "Test successful"']
+                        ],
+                        'max_tokens' => 10
+                    ]);
 
             if ($response->successful()) {
                 return [
@@ -143,21 +144,21 @@ class OpenAIProcessor
             ])
                 ->timeout(60)
                 ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => $model,
-                    'temperature' => 0.1,
-                    'max_tokens' => $dynamicMaxTokens, // Dynamic based on modules
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => $systemPrompt
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $userMessage
+                        'model' => $model,
+                        'temperature' => 0.1,
+                        'max_tokens' => $dynamicMaxTokens, // Dynamic based on modules
+                        'response_format' => ['type' => 'json_object'],
+                        'messages' => [
+                            [
+                                'role' => 'system',
+                                'content' => $systemPrompt
+                            ],
+                            [
+                                'role' => 'user',
+                                'content' => $userMessage
+                            ]
                         ]
-                    ]
-                ]);
+                    ]);
 
             if ($response->failed()) {
                 Log::error('OpenAI API failed', [
@@ -537,9 +538,12 @@ class OpenAIProcessor
         // Fix truncated boolean values - CORRECTED: preg_replace_callback
         $content = preg_replace_callback('/:\s*(tru|fals|nul)\b/', function ($matches) {
             $value = $matches[1];
-            if ($value === 'tru') return ': true';
-            if ($value === 'fals') return ': false';
-            if ($value === 'nul') return ': null';
+            if ($value === 'tru')
+                return ': true';
+            if ($value === 'fals')
+                return ': false';
+            if ($value === 'nul')
+                return ': null';
             return $matches[0];
         }, $content);
 
@@ -581,7 +585,8 @@ class OpenAIProcessor
             $firstChar = substr($json, 0, 1);
             $lastChar = substr($json, -1);
 
-            if (($firstChar === '{' && $lastChar === '}') ||
+            if (
+                ($firstChar === '{' && $lastChar === '}') ||
                 ($firstChar === '[' && $lastChar === ']')
             ) {
                 return $json;
@@ -1358,9 +1363,9 @@ PROMPT;
             // Convert to database format
             $dbData = self::convertForDatabase($openAIResult, $review, $enabledModules);
 
-    
-    $ruleResults = RuleEngineHelper::evaluateReviewRules($review, $openAIResult);
-    \Log::info('Review rules evaluated', ['results' => $ruleResults]);
+
+            $ruleResults = RuleEngineService::evaluateReviewRules($review, $openAIResult);
+            \Log::info('Review rules evaluated', ['results' => $ruleResults]);
 
             // Update the review
             $review->fill($dbData);
@@ -1645,7 +1650,8 @@ PROMPT;
             $insights = json_decode($review->mismatch_insights ?? '{}', true);
             $explanation = $insights['explanation'] ?? '';
 
-            if (empty($explanation)) continue;
+            if (empty($explanation))
+                continue;
 
             // Extract common keywords from explanation
             $keywords = [
@@ -1677,7 +1683,7 @@ PROMPT;
         return $issues;
     }
 
-// In your existing AIProcessor class, add this method:
+    // In your existing AIProcessor class, add this method:
     /**
      * Get rating mismatch alert for dashboard
      */
@@ -1717,27 +1723,27 @@ PROMPT;
      */
     private static function convertForDatabase(array $aiResult, ReviewNew $review, array $enabledModules): array
     {
-   
-        // Get raw score from OpenAI (-1 to 1)
-    $rawScore = $aiResult['sentiment']['score'] ?? 0.0;
-    $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
-    $dbSentimentScore = ($rawScore + 1) / 2;
-    
-    Log::debug('Score conversion debug', [
-        'raw_score' => $rawScore,
-        'db_score' => $dbSentimentScore,
-        'sentiment_label' => $sentimentLabel,
-        'score_type' => gettype($dbSentimentScore)
-    ]);
 
-    // Validate range
-if ($rawScore < -1 || $rawScore > 1) {
-    Log::warning('Invalid sentiment score from OpenAI', [
-        'score' => $rawScore,
-        'review_id' => $review->id
-    ]);
-    $rawScore = max(-1, min(1, $rawScore));
-}
+        // Get raw score from OpenAI (-1 to 1)
+        $rawScore = $aiResult['sentiment']['score'] ?? 0.0;
+        $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
+        $dbSentimentScore = ($rawScore + 1) / 2;
+
+        Log::debug('Score conversion debug', [
+            'raw_score' => $rawScore,
+            'db_score' => $dbSentimentScore,
+            'sentiment_label' => $sentimentLabel,
+            'score_type' => gettype($dbSentimentScore)
+        ]);
+
+        // Validate range
+        if ($rawScore < -1 || $rawScore > 1) {
+            Log::warning('Invalid sentiment score from OpenAI', [
+                'score' => $rawScore,
+                'review_id' => $review->id
+            ]);
+            $rawScore = max(-1, min(1, $rawScore));
+        }
 
 
         // Get confidence

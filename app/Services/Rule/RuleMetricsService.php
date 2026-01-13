@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Rule;
 
 use App\Models\{AiRule, AiRuleTrigger, AiRuleMetric, ReviewNew};
 use Illuminate\Support\Facades\Log;

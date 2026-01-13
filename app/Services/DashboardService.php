@@ -135,9 +135,9 @@ class DashboardService
             $previousPeriodCSATCount = ReviewNew::globalFilters(0, $businessId)
                 ->where('business_id', $businessId)
                 ->whereBetween('created_at', [
-                    $dateRange['start']->copy()->subDays(30),
-                    $dateRange['end']->copy()->subDays(30)
-                ])
+                        $dateRange['start']->copy()->subDays(30),
+                        $dateRange['end']->copy()->subDays(30)
+                    ])
                 ->whereMeetsThreshold($businessId)
                 ->count();
 
@@ -155,7 +155,7 @@ class DashboardService
         return [
             'avg_overall_rating' => [
                 'value' => $currentAvgRating,
-                'change' => $dateRange !== null ? \App\Services\Review\ReviewService::calculatePercentageChange(
+                'change' => $dateRange !== null ? ReviewService::calculatePercentageChange(
                     $currentAvgRating,
                     $previousAvgRating
                 ) : null,
@@ -174,7 +174,7 @@ class DashboardService
             ],
             'total_reviews' => [
                 'value' => $total,
-                'change' => $dateRange !== null ? \App\Services\Review\ReviewService::calculatePercentageChange($total, $previousTotal) : null
+                'change' => $dateRange !== null ? ReviewService::calculatePercentageChange($total, $previousTotal) : null
             ],
             'positive_negative_ratio' => [
                 'positive' => $total > 0 ? round(($positiveReviewsCount / $total) * 100) : 0,

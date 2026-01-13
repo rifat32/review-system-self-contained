@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\AiRule;
-use App\Helpers\RuleExplanationHelper;
+use App\Services\Rule\RuleExplanationService;
 use Illuminate\Support\Facades\Log;
 
 class RegenerateRuleExplanations extends Command
@@ -23,9 +23,9 @@ class RegenerateRuleExplanations extends Command
     public function handle()
     {
         $this->info('Starting rule explanation regeneration...');
-        
+
         $rules = $this->getRulesToProcess();
-        
+
         if ($rules->isEmpty()) {
             $this->info('No rules found to process.');
             return 0;
@@ -52,8 +52,8 @@ class RegenerateRuleExplanations extends Command
                 }
 
                 // Generate explanations using helper
-                $explanations = RuleExplanationHelper::regenerateForRule($rule);
-                
+                $explanations = RuleExplanationService::regenerateForRule($rule);
+
                 if ($explanations) {
                     $rule->update([
                         'short_explanation' => $explanations['short_explanation'],
@@ -61,22 +61,22 @@ class RegenerateRuleExplanations extends Command
                         'why_it_matters' => $explanations['why_it_matters'],
                         'explanation_generated_at' => now()
                     ]);
-                    
+
                     $results['success']++;
                 } else {
                     $results['failed']++;
                     $this->newLine();
                     $this->warn("Failed: {$rule->rule_id}");
                 }
-                
+
             } catch (\Exception $e) {
                 $results['failed']++;
                 $this->newLine();
                 $this->error("Error: {$rule->rule_id} - {$e->getMessage()}");
             }
-            
+
             $progressBar->advance();
-            
+
             // Small delay to avoid API rate limits
             usleep(500000); // 0.5 second delay
         }
@@ -118,10 +118,10 @@ class RegenerateRuleExplanations extends Command
         }
 
         if ($this->option('missing-only')) {
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->whereNull('short_explanation')
-                  ->orWhereNull('detailed_explanation')
-                  ->orWhereNull('why_it_matters');
+                    ->orWhereNull('detailed_explanation')
+                    ->orWhereNull('why_it_matters');
             });
         }
 
@@ -135,14 +135,14 @@ class RegenerateRuleExplanations extends Command
             // Get all rules
         } elseif (!$this->option('all') && !$this->option('missing-only') && !$this->option('outdated-only')) {
             // Default: get rules without explanations or outdated
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->whereNull('short_explanation')
-                  ->orWhereNull('detailed_explanation')
-                  ->orWhereNull('why_it_matters')
-                  ->orWhere(function($sub) {
-                      $sub->whereNotNull('explanation_generated_at')
-                          ->whereColumn('updated_at', '>', 'explanation_generated_at');
-                  });
+                    ->orWhereNull('detailed_explanation')
+                    ->orWhereNull('why_it_matters')
+                    ->orWhere(function ($sub) {
+                        $sub->whereNotNull('explanation_generated_at')
+                            ->whereColumn('updated_at', '>', 'explanation_generated_at');
+                    });
             });
         }
 

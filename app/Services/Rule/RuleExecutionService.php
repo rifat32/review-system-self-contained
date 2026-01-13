@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Rule;
 
 use App\Models\{AiRule, AiRuleTrigger, ReviewNew};
-use App\Helpers\{ConditionBuilderHelper, AIProcessorExtensions};
+use App\Services\Rule\ConditionBuilderService;
+use App\Services\AIProcessor\EmotionAnalysisService;
 use Illuminate\Support\Facades\{DB, Log};
 
 class RuleExecutionService
@@ -43,7 +44,7 @@ class RuleExecutionService
             $aiData = $this->getReviewAIData($review);
 
             // Evaluate rule conditions
-            $isMatch = ConditionBuilderHelper::evaluateConditions(
+            $isMatch = ConditionBuilderService::evaluateConditions(
                 $rule->conditions,
                 $review,
                 $aiData,

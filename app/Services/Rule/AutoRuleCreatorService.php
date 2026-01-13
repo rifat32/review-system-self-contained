@@ -1,13 +1,14 @@
 <?php
 // app/Helpers/AutoRuleCreator.php
 
-namespace App\Helpers;
+namespace App\Services\Rule;
 
 use App\Models\{AiRule, ReviewNew, InsightRecord};
+use App\Services\Rule\RuleExplanationService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class AutoRuleCreator
+class AutoRuleCreatorService
 {
     /**
      * Check and create rules for new patterns in review
@@ -15,21 +16,22 @@ class AutoRuleCreator
     public static function checkAndCreateRules(ReviewNew $review, array $openaiData): void
     {
         $categories = $openaiData['category_analysis'] ?? [];
-        
+
         foreach ($categories as $category) {
             $mainCategory = $category['main_category'] ?? null;
             $subCategory = $category['sub_category'] ?? null;
             $severity = $category['severity'] ?? 'medium';
-            
-            if (!$mainCategory) continue;
-            
+
+            if (!$mainCategory)
+                continue;
+
             // Check if this category pattern is recurring
             $patternFrequency = self::checkPatternFrequency(
-                $review->business_id, 
-                $mainCategory, 
+                $review->business_id,
+                $mainCategory,
                 $subCategory
             );
-            
+
             // Auto-create rule if pattern appears enough times
             if ($patternFrequency >= self::getThresholdForSeverity($severity)) {
                 self::createRuleFromPattern(
@@ -42,64 +44,63 @@ class AutoRuleCreator
             }
         }
     }
-    
+
     /**
      * Check if this category pattern appears frequently
      */
     private static function checkPatternFrequency(int $businessId, string $mainCategory, ?string $subCategory): int
     {
         $last30Days = Carbon::now()->subDays(30);
-        
+
         $query = ReviewNew::where('business_id', $businessId)
             ->where('is_ai_processed', true)
             ->where('created_at', '>=', $last30Days);
-        
+
         // Count reviews mentioning this category pattern
-        $count = $query->where(function($q) use ($mainCategory, $subCategory) {
-            $q->whereJsonContains('openai_raw_response->category_analysis', function($query) use ($mainCategory, $subCategory) {
+        $count = $query->where(function ($q) use ($mainCategory, $subCategory) {
+            $q->whereJsonContains('openai_raw_response->category_analysis', function ($query) use ($mainCategory, $subCategory) {
                 $query->where('main_category', $mainCategory);
                 if ($subCategory) {
                     $query->where('sub_category', $subCategory);
                 }
             });
         })->count();
-        
+
         return $count;
     }
-    
+
     /**
      * Get frequency threshold based on severity
      */
     private static function getThresholdForSeverity(string $severity): int
     {
-        return match($severity) {
+        return match ($severity) {
             'high' => 2,    // High severity issues: 2 mentions
             'medium' => 3,  // Medium severity: 3 mentions
             'low' => 4,     // Low severity: 4 mentions
             default => 3
         };
     }
-    
+
     /**
      * Create a new rule from a recurring pattern
      */
     public static function createRuleFromPattern(
-        int $businessId, 
-        string $mainCategory, 
-        ?string $subCategory, 
-        string $severity, 
+        int $businessId,
+        string $mainCategory,
+        ?string $subCategory,
+        string $severity,
         int $frequency
-    ): ?AiRule
-    {
+    ): ?AiRule {
         // Check if similar rule already exists
         $existingRule = self::findSimilarRule($businessId, $mainCategory, $subCategory);
         if ($existingRule) {
             return null; // Rule already exists
         }
-        
+
         // Determine rule parameters based on pattern
         $ruleConfig = self::generateRuleConfig($mainCategory, $subCategory, $severity, $frequency);
-        
+
         // Generate AI explanations for the rule
         $explanations = self::generateRuleExplanations(
             $businessId,
@@ -109,7 +110,7 @@ class AutoRuleCreator
             $frequency,
             $ruleConfig
         );
-        
+
         // Create the rule
         $rule = AiRule::create([
             'rule_id' => self::generateRuleId($businessId, $mainCategory, $subCategory),
@@ -130,7 +131,7 @@ class AutoRuleCreator
             'created_by' => 'auto_creator',
             'version' => 1
         ]);
-        
+
         \Log::info('Auto-created rule with AI explanations', [
             'rule_id' => $rule->rule_id,
             'business_id' => $businessId,
@@ -138,10 +139,10 @@ class AutoRuleCreator
             'frequency' => $frequency,
             'has_explanations' => $rule->hasExplanations()
         ]);
-        
+
         return $rule;
     }
-    
+
     /**
      * Generate AI explanations for the rule
      */
@@ -152,12 +153,11 @@ class AutoRuleCreator
         string $severity,
         int $frequency,
         array $ruleConfig
-    ): array
-    {
+    ): array {
         // Get business type for context
         $business = \App\Models\Business::find($businessId);
         $businessType = $business ? ($business->business_type ?? 'Business') : 'Business';
-        
+
         // Prepare rule data for explanation generation
         $ruleData = [
             'business_type' => $businessType,
@@ -171,23 +171,23 @@ class AutoRuleCreator
             'severity' => $severity,
             'frequency' => $frequency
         ];
-        
+
         // Try to generate AI explanations using OpenAI
-        $explanations = RuleExplanationHelper::generateExplanations($ruleData);
-        
+        $explanations = RuleExplanationService::generateExplanations($ruleData);
+
         // Fallback to template-based explanations if AI fails
         if (!$explanations) {
             \Log::warning('OpenAI explanation generation failed, using fallback', [
                 'business_id' => $businessId,
                 'main_category' => $mainCategory
             ]);
-            
-            $explanations = RuleExplanationHelper::generateFallbackExplanations($ruleData);
+
+            $explanations = RuleExplanationService::generateFallbackExplanations($ruleData);
         }
-        
+
         return $explanations;
     }
-    
+
     /**
      * Find if similar rule already exists
      */
@@ -195,23 +195,23 @@ class AutoRuleCreator
     {
         return AiRule::where('business_id', $businessId)
             ->where('scope', 'business')
-            ->where(function($query) use ($mainCategory, $subCategory) {
+            ->where(function ($query) use ($mainCategory, $subCategory) {
                 $query->whereJsonContains('conditions->category_match->main_category', $mainCategory);
-                
+
                 if ($subCategory) {
                     $query->whereJsonContains('conditions->category_match->sub_category', $subCategory);
                 }
             })
             ->first();
     }
-    
+
     /**
      * Generate rule configuration
      */
     private static function generateRuleConfig(string $mainCategory, ?string $subCategory, string $severity, int $frequency): array
     {
         $minMentions = max(2, ceil($frequency * 0.7)); // 70% of observed frequency
-        
+
         $conditions = [
             'category_match' => [
                 'main_category' => $mainCategory,
@@ -222,18 +222,18 @@ class AutoRuleCreator
                 'within_days' => 30
             ]
         ];
-        
+
         if ($subCategory) {
             $conditions['category_match']['sub_category'] = $subCategory;
         }
-        
+
         // Add severity condition for high/medium severity issues
         if (in_array($severity, ['high', 'medium'])) {
             $conditions['severity'] = $severity;
         }
-        
+
         $templateId = self::determineTemplateId($mainCategory, $subCategory);
-        
+
         return [
             'conditions' => $conditions,
             'actions' => [
@@ -252,7 +252,7 @@ class AutoRuleCreator
             ]
         ];
     }
-    
+
     /**
      * Determine rule category based on content
      */
@@ -260,42 +260,46 @@ class AutoRuleCreator
     {
         $staffKeywords = ['staff', 'service', 'attitude', 'rude', 'friendly', 'helpful'];
         $categoryLower = strtolower($mainCategory . ' ' . $subCategory);
-        
+
         foreach ($staffKeywords as $keyword) {
             if (str_contains($categoryLower, $keyword)) {
                 return 'staff';
             }
         }
-        
+
         if (str_contains($categoryLower, 'clean') || str_contains($categoryLower, 'dirty')) {
             return 'area';
         }
-        
+
         return 'trend';
     }
-    
+
     /**
      * Determine action type
      */
     private static function determineActionType(string $mainCategory, ?string $subCategory): string
     {
         $categoryLower = strtolower($mainCategory . ' ' . $subCategory);
-        
-        if (str_contains($categoryLower, 'staff') || 
+
+        if (
+            str_contains($categoryLower, 'staff') ||
             str_contains($categoryLower, 'service') ||
-            str_contains($categoryLower, 'attitude')) {
+            str_contains($categoryLower, 'attitude')
+        ) {
             return 'staff';
         }
-        
-        if (str_contains($categoryLower, 'clean') ||
+
+        if (
+            str_contains($categoryLower, 'clean') ||
             str_contains($categoryLower, 'maintenance') ||
-            str_contains($categoryLower, 'facility')) {
+            str_contains($categoryLower, 'facility')
+        ) {
             return 'area';
         }
-        
+
         return 'business';
     }
-    
+
     /**
      * Determine template ID based on category
      */
@@ -303,7 +307,7 @@ class AutoRuleCreator
     {
         $mainLower = strtolower($mainCategory);
         $subLower = strtolower($subCategory ?? '');
-        
+
         // Map categories to template IDs
         $templateMap = [
             'food' => 'FOOD_TEMP_IMPROVEMENT',
@@ -312,25 +316,25 @@ class AutoRuleCreator
             'staff' => 'STAFF_TRAINING_GENERAL',
             'wait' => 'CLINIC_WAIT_TIME'
         ];
-        
+
         foreach ($templateMap as $keyword => $templateId) {
             if (str_contains($mainLower, $keyword) || str_contains($subLower, $keyword)) {
                 return $templateId;
             }
         }
-        
+
         // Check for generic patterns
         if (str_contains($mainLower, 'room') || str_contains($subLower, 'noise')) {
             return 'HOTEL_NOISE_CONTROL';
         }
-        
+
         if (str_contains($mainLower, 'quality') || str_contains($subLower, 'quality')) {
             return 'RESTAURANT_FOOD_QUALITY';
         }
-        
+
         return 'GENERAL';
     }
-    
+
     /**
      * Determine priority based on severity and frequency
      */
@@ -339,18 +343,18 @@ class AutoRuleCreator
         if ($severity === 'high' && $frequency >= 3) {
             return 'critical';
         }
-        
+
         if ($severity === 'high' || ($severity === 'medium' && $frequency >= 4)) {
             return 'high';
         }
-        
+
         if ($severity === 'medium' || $frequency >= 3) {
             return 'medium';
         }
-        
+
         return 'low';
     }
-    
+
     /**
      * Generate unique rule ID
      */
@@ -359,10 +363,10 @@ class AutoRuleCreator
         $timestamp = time();
         $mainSlug = substr(preg_replace('/[^A-Z]/', '', strtoupper($mainCategory)), 0, 10);
         $subSlug = $subCategory ? substr(preg_replace('/[^A-Z]/', '', strtoupper($subCategory)), 0, 5) : 'GEN';
-        
+
         return sprintf('AUTO_%s_%s_%s_%d', $mainSlug, $subSlug, $businessId, $timestamp);
     }
-    
+
     /**
      * Generate rule name
      */
@@ -373,10 +377,10 @@ class AutoRuleCreator
             $name .= " - $subCategory";
         }
         $name .= " ($frequency mentions)";
-        
+
         return $name;
     }
-    
+
     /**
      * Generate rule description
      */
@@ -388,25 +392,25 @@ class AutoRuleCreator
             $frequency
         );
     }
-    
+
     /**
      * Clean up old auto-created rules that haven't triggered
      */
     public static function cleanupInactiveRules(int $daysInactive = 90): int
     {
         $cutoffDate = Carbon::now()->subDays($daysInactive);
-        
+
         $deleted = AiRule::where('created_by', 'auto_creator')
             ->where('created_at', '<', $cutoffDate)
-            ->whereDoesntHave('evaluations', function($query) use ($cutoffDate) {
+            ->whereDoesntHave('evaluations', function ($query) use ($cutoffDate) {
                 $query->where('triggered', true)
-                      ->where('created_at', '>=', $cutoffDate->subDays(30));
+                    ->where('created_at', '>=', $cutoffDate->subDays(30));
             })
             ->delete();
-        
+
         return $deleted;
     }
-    
+
     /**
      * Generate rules from existing insights (for migration or bulk creation)
      */
@@ -416,9 +420,9 @@ class AutoRuleCreator
             ->where('mentions_count', '>=', $minMentions)
             ->where('time_window_end', '>=', Carbon::now()->subDays(60))
             ->get();
-        
+
         $createdRules = [];
-        
+
         foreach ($insights as $insight) {
             $rule = self::createRuleFromPattern(
                 $businessId,
@@ -427,12 +431,12 @@ class AutoRuleCreator
                 $insight->severity ?? 'medium',
                 $insight->mentions_count
             );
-            
+
             if ($rule) {
                 $createdRules[] = $rule;
             }
         }
-        
+
         return $createdRules;
     }
 }

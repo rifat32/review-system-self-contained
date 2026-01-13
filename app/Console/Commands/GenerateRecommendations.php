@@ -4,8 +4,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Helpers\InsightAggregationHelper;
-use App\Helpers\RecommendationGenerator;
+use App\Services\AIProcessor\InsightAggregationService;
+use App\Services\AIProcessor\RecommendationGeneratorService;
 use App\Models\Business;
 use Carbon\Carbon;
 
@@ -21,9 +21,9 @@ class GenerateRecommendations extends Command
     public function handle()
     {
         $this->info('Starting recommendation generation...');
-        
+
         $businesses = $this->getBusinessesToProcess();
-        
+
         if ($businesses->isEmpty()) {
             $this->error('No businesses found.');
             return 1;
@@ -42,8 +42,8 @@ class GenerateRecommendations extends Command
 
                 // 1. Aggregate insights (last 30 days)
                 $this->line("  → Aggregating insights...");
-                $aggResult = InsightAggregationHelper::aggregateReviewsForBusiness($business->id, 30);
-                
+                $aggResult = InsightAggregationService::aggregateReviewsForBusiness($business->id, 30);
+
                 if ($aggResult['insights_created'] === 0) {
                     $this->line("  → No new insights found");
                     continue;
@@ -51,8 +51,8 @@ class GenerateRecommendations extends Command
 
                 // 2. Generate recommendations
                 $this->line("  → Generating recommendations...");
-                $recs = RecommendationGenerator::generateFromInsights($business->id, 30);
-                
+                $recs = RecommendationGeneratorService::generateFromInsights($business->id, 30);
+
                 // Update last processed
                 $business->update(['last_recommendation_at' => now()]);
 
@@ -85,7 +85,7 @@ class GenerateRecommendations extends Command
             // Default: process businesses not updated in last 12 hours
             $query->where(function ($q) {
                 $q->whereNull('last_recommendation_at')
-                  ->orWhere('last_recommendation_at', '<', Carbon::now()->subHours(12));
+                    ->orWhere('last_recommendation_at', '<', Carbon::now()->subHours(12));
             })->limit(50); // Process max 50 per run
         }
 
@@ -94,14 +94,17 @@ class GenerateRecommendations extends Command
 
     private function shouldProcess($business)
     {
-        if ($this->option('force')) return true;
-        
+        if ($this->option('force'))
+            return true;
+
         // Skip if processed in last 6 hours
-        if ($business->last_recommendation_at && 
-            $business->last_recommendation_at->gt(Carbon::now()->subHours(6))) {
+        if (
+            $business->last_recommendation_at &&
+            $business->last_recommendation_at->gt(Carbon::now()->subHours(6))
+        ) {
             return false;
         }
-        
+
         return true;
     }
 }

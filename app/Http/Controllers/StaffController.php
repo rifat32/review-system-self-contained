@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateStaffRequest;
 use App\Models\BranchMember;
 use App\Models\ReviewNew;
 use App\Models\User;
+use App\Services\Review\ReviewService;
 use App\Services\Staff\StaffService;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -1611,7 +1612,7 @@ class StaffController extends Controller
             ->withCalculatedRating()
             ->get();
 
-        $topStaff = getTopStaffByRatingFromReviewValue($currentReviews, $limit);
+        $topStaff = ReviewService::getTopStaffByRatingFromReviewValue($currentReviews, $limit);
 
         // SEND RESPONSE
         return response()->json([

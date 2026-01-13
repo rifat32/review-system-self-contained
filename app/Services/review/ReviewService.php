@@ -7,6 +7,7 @@ use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
 use App\Models\Tag;
 use App\Models\User;
+use App\Services\AIProcessor\AIProcessorService;
 use Carbon\Carbon;
 
 class ReviewService
@@ -804,7 +805,7 @@ class ReviewService
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
                 'total_reviews' => $staffReviews->count(),
-                'sentiment_score' => \App\Services\AIProcessorService::getSentimentLabel($staffReviews->avg('sentiment_score')),
+                'sentiment_score' => AIProcessorService::getSentimentLabel($staffReviews->avg('sentiment_score')),
                 'image' => $staff->image ?? null
             ];
         })
