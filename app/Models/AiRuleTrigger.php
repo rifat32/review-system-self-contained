@@ -17,7 +17,13 @@ class AiRuleTrigger extends Model
         'outcome',
         'verified_by',
         'verified_at',
-        'verification_notes'
+        'verification_notes',
+        // Deduplication & suppression fields
+        'dedup_key',
+        'was_suppressed',
+        'suppressed_reason',
+        'staff_id',
+        'category'
     ];
 
     protected $casts = [
@@ -25,6 +31,7 @@ class AiRuleTrigger extends Model
         'matched_conditions' => 'array',
         'actions_triggered' => 'array',
         'verified_at' => 'datetime',
+        'was_suppressed' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

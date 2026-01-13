@@ -27,7 +27,13 @@ class AiRule extends Model
         'why_it_matters',
         'explanation_generated_at',
         'created_by',
-        'version'
+        'version',
+        // Execution control fields
+        'run_frequency',
+        'cooldown_days',
+        'deduplication_scope',
+        'last_run_at',
+        'next_run_at'
     ];
 
     protected $casts = [

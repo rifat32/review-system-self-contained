@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 // ============================================================================
 // AI RULE WIZARD ROUTES - Guided 4-step rule creation
 // ============================================================================
-Route::prefix('rule-wizard')->group(function () {
+Route::prefix('/v1.0/rule-wizard')->group(function () {
     Route::post('/step1', [RuleWizardController::class, 'storeStep1']);
     Route::post('/step2', [RuleWizardController::class, 'storeStep2']);
     Route::post('/step3', [RuleWizardController::class, 'storeStep3']);
@@ -19,7 +19,7 @@ Route::prefix('rule-wizard')->group(function () {
 // ============================================================================
 // BULK RULE OPERATIONS - Cross-branch rule management
 // ============================================================================
-Route::prefix('ai-rules')->group(function () {
+Route::prefix('/v1.0/ai-rules')->group(function () {
     Route::post('/bulk-apply', [BulkRuleController::class, 'bulkApplyRule']);
     Route::get('/cross-branch', [BulkRuleController::class, 'getCrossBranchRules']);
     Route::post('/bulk-enable', [BulkRuleController::class, 'bulkEnableRules']);
@@ -31,7 +31,7 @@ Route::prefix('ai-rules')->group(function () {
 // ============================================================================
 // AI RULE METRICS & PERFORMANCE - Analytics and verification
 // ============================================================================
-Route::prefix('ai-rules')->group(function () {
+Route::prefix('/v1.0/ai-rules')->group(function () {
     Route::get('/{ruleId}/metrics', [AiRuleMetricsController::class, 'getRuleMetrics']);
     Route::get('/{ruleId}/trigger-history', [AiRuleMetricsController::class, 'getTriggerHistory']);
     Route::post('/triggers/{triggerId}/verify', [AiRuleMetricsController::class, 'verifyTrigger']);
