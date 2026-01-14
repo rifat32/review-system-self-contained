@@ -1171,42 +1171,42 @@ class AIProcessorService
     /**
      * Get previous period reviews
      */
-    public static function getPreviousPeriodReviews($businessId, $period = null)
-    {
-        if ($period === null) {
-            return ReviewNew::where('business_id', $businessId)
-                ->whereNotNull('staff_id')
-                ->whereNotNull('sentiment_score')
-                ->globalFilters(0, $businessId)
-                ->withCalculatedRating()
-                ->get();
-        }
+    // public static function getPreviousPeriodReviews($businessId, $period = null)
+    // {
+    //     if ($period === null) {
+    //         return ReviewNew::where('business_id', $businessId)
+    //             ->whereNotNull('staff_id')
+    //             ->whereNotNull('sentiment_score')
+    //             ->globalFilters(0, $businessId)
+    //             ->withCalculatedRating()
+    //             ->get();
+    //     }
 
-        $startDate = match ($period) {
-            'this_week' => Carbon::now()->subWeek()->startOfWeek(),
-            'this_month' => Carbon::now()->subMonth()->startOfMonth(),
-            'last_week' => Carbon::now()->subWeeks(2)->startOfWeek(),
-            'last_month' => Carbon::now()->subMonths(2)->startOfMonth(),
-            default => Carbon::now()->subMonth()->startOfMonth()
-        };
+    //     $startDate = match ($period) {
+    //         'this_week' => Carbon::now()->subWeek()->startOfWeek(),
+    //         'this_month' => Carbon::now()->subMonth()->startOfMonth(),
+    //         'last_week' => Carbon::now()->subWeeks(2)->startOfWeek(),
+    //         'last_month' => Carbon::now()->subMonths(2)->startOfMonth(),
+    //         default => Carbon::now()->subMonth()->startOfMonth()
+    //     };
 
-        $endDate = match ($period) {
-            'this_week' => Carbon::now()->subWeek()->endOfWeek(),
-            'this_month' => Carbon::now()->subMonth()->endOfMonth(),
-            'last_week' => Carbon::now()->subWeeks(2)->endOfWeek(),
-            'last_month' => Carbon::now()->subMonths(2)->endOfMonth(),
-            default => Carbon::now()->subMonth()->endOfMonth()
-        };
+    //     $endDate = match ($period) {
+    //         'this_week' => Carbon::now()->subWeek()->endOfWeek(),
+    //         'this_month' => Carbon::now()->subMonth()->endOfMonth(),
+    //         'last_week' => Carbon::now()->subWeeks(2)->endOfWeek(),
+    //         'last_month' => Carbon::now()->subMonths(2)->endOfMonth(),
+    //         default => Carbon::now()->subMonth()->endOfMonth()
+    //     };
 
-        return ReviewNew::where('business_id', $businessId)
-            ->whereNotNull('staff_id')
-            ->whereNotNull('sentiment_score')
-            ->globalFilters(0, $businessId)
-            ->whereDate('created_at', '>=', $startDate)
-            ->whereDate('created_at', '<=', $endDate)
-            ->withCalculatedRating()
-            ->get();
-    }
+    //     return ReviewNew::where('business_id', $businessId)
+    //         ->whereNotNull('staff_id')
+    //         ->whereNotNull('sentiment_score')
+    //         ->globalFilters(0, $businessId)
+    //         ->whereDate('created_at', '>=', $startDate)
+    //         ->whereDate('created_at', '<=', $endDate)
+    //         ->withCalculatedRating()
+    //         ->get();
+    // }
 
     /**
      * Calculate overall metrics from review value dynamically
@@ -1402,110 +1402,6 @@ class AIProcessorService
         ];
     }
 
-    /**
-     * Get submissions over time
-     */
-    public static function getSubmissionsOverTime($reviews, $period)
-    {
-        $endDate = Carbon::now();
-        $startDate = match ($period) {
-            '7d' => Carbon::now()->subDays(7),
-            '90d' => Carbon::now()->subDays(90),
-            '1y' => Carbon::now()->subYear(),
-            default => Carbon::now()->subDays(30)
-        };
-
-        $groupFormat = match ($period) {
-            '7d' => 'd-m-Y',
-            '90d', '1y' => 'm-Y',
-            default => 'd-m-Y'
-        };
-
-        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
-            $reviews = $reviews->get();
-        }
-
-        $reviewsArray = is_array($reviews) ? $reviews : $reviews->toArray();
-
-        $filteredReviews = [];
-        foreach ($reviewsArray as $review) {
-            $createdAt = is_array($review)
-                ? ($review['created_at'] ?? null)
-                : ($review->created_at ?? null);
-
-            if (!$createdAt)
-                continue;
-
-            $reviewDate = Carbon::parse($createdAt);
-            if ($reviewDate->between($startDate, $endDate)) {
-                $filteredReviews[] = $review;
-            }
-        }
-
-        $submissionsByPeriod = [];
-        foreach ($filteredReviews as $review) {
-            $createdAt = is_array($review)
-                ? ($review['created_at'] ?? null)
-                : ($review->created_at ?? null);
-
-            if (!$createdAt)
-                continue;
-
-            $periodKey = Carbon::parse($createdAt)->format($groupFormat);
-
-            if (!isset($submissionsByPeriod[$periodKey])) {
-                $submissionsByPeriod[$periodKey] = [
-                    'total_rating' => 0,
-                    'total_sentiment' => 0,
-                    'count' => 0
-                ];
-            }
-
-            $rating = is_array($review)
-                ? ($review['calculated_rating'] ?? 0)
-                : ($review->calculated_rating ?? 0);
-
-            $sentiment = is_array($review)
-                ? ($review['sentiment_score'] ?? 0)
-                : ($review->sentiment_score ?? 0);
-
-            $submissionsByPeriod[$periodKey]['total_rating'] += $rating;
-            $submissionsByPeriod[$periodKey]['total_sentiment'] += $sentiment;
-            $submissionsByPeriod[$periodKey]['count']++;
-        }
-
-        $formattedData = [];
-        $peakSubmissions = 0;
-
-        foreach ($submissionsByPeriod as $periodKey => $data) {
-            $count = $data['count'];
-            $avgRating = $count > 0 ? $data['total_rating'] / $count : 0;
-            $avgSentiment = $count > 0 ? $data['total_sentiment'] / $count : 0;
-
-            $formattedData[$periodKey] = [
-                'submissions_count' => $count,
-                'average_rating' => round($avgRating, 1),
-                'sentiment_score' => round($avgSentiment * 100, 1)
-            ];
-
-            if ($count > $peakSubmissions) {
-                $peakSubmissions = $count;
-            }
-        }
-
-        $filledData = ReviewService::fillMissingPeriods($formattedData, $startDate, $endDate, $groupFormat);
-
-        return [
-            'period' => $period,
-            'data' => $filledData,
-            'total_submissions' => count($filteredReviews),
-            'peak_submissions' => $peakSubmissions,
-            'date_range' => [
-                'start' => $startDate->format('d-m-Y'),
-                'end' => $endDate->format('d-m-Y')
-            ]
-        ];
-    }
 
     /**
      * Get recent submissions

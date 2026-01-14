@@ -3608,7 +3608,7 @@ class ReviewNewController extends Controller
             ->withCalculatedRating();
 
         // GENERATE DATA FOR TRENDS
-        $reviewTrends = getSubmissionsOverTime((clone $reviewsQuery), $request->get('period', '30d'));
+        $reviewTrends = \App\Services\Review\ReviewMetricsService::getSubmissionsOverTime((clone $reviewsQuery), $request->get('period', '30d'));
 
 
         return response()->json([

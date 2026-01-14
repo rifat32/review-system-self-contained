@@ -1895,104 +1895,6 @@ class DashboardController extends Controller
 
     /**
      * @OA\Get(
-     *      path="/v1.0/reports/staff-dashboard/{businessId}",
-     *      operationId="staffDashboard",
-     *      tags={"z.unused"},
-     *      summary="Get staff performance dashboard",
-     *      description="Get overall staff performance metrics and rankings",
-     *      @OA\Parameter(
-     *          name="businessId",
-     *          in="path",
-     *          required=true,
-     *          example="1"
-     *      ),
-     *      @OA\Parameter(
-     *          name="period",
-     *          in="query",
-     *          required=false,
-     *          description="Period for comparison: last_week, last_month, last_quarter",
-     *          example="last_month"
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="Staff dashboard report retrieved successfully"),
-     *              @OA\Property(property="data", type="object",
-     *                  @OA\Property(property="business_id", type="integer", example=1),
-     *                  @OA\Property(property="business_name", type="string", example="Business Name"),
-     *                  @OA\Property(property="period", type="string", example="last_month"),
-     *                  @OA\Property(property="overall_metrics", type="object",
-     *                      @OA\Property(property="overall_rating", type="object",
-     *                          @OA\Property(property="value", type="number", example=4.2),
-     *                          @OA\Property(property="change", type="number", example=5.5),
-     *                          @OA\Property(property="change_type", type="string", example="positive")
-     *                      ),
-     *                      @OA\Property(property="overall_sentiment", type="object",
-     *                          @OA\Property(property="value", type="integer", example=75),
-     *                          @OA\Property(property="change", type="number", example=2.1),
-     *                          @OA\Property(property="change_type", type="string", example="positive")
-     *                      ),
-     *                      @OA\Property(property="total_reviews", type="object",
-     *                          @OA\Property(property="value", type="integer", example=150),
-     *                          @OA\Property(property="change", type="integer", example=25),
-     *                          @OA\Property(property="change_type", type="string", example="positive")
-     *                      )
-     *                  ),
-     *                  @OA\Property(property="compliment_ratio", type="object",
-     *                      @OA\Property(property="compliments_percentage", type="integer", example=70),
-     *                      @OA\Property(property="complaints_percentage", type="integer", example=15),
-     *                      @OA\Property(property="neutral_percentage", type="integer", example=15),
-     *                      @OA\Property(property="compliments_count", type="integer", example=105),
-     *                      @OA\Property(property="complaints_count", type="integer", example=22),
-     *                      @OA\Property(property="neutral_count", type="integer", example=23)
-     *                  ),
-     *                  @OA\Property(property="top_staff", type="array", @OA\Items(type="object")),
-     *                  @OA\Property(property="all_staff", type="array", @OA\Items(type="object"))
-     *              )
-     *          )
-     *       ),
-     *      @OA\Response(response=404, description="Not Found")
-     * )
-     */
-    public function staffDashboard($businessId, Request $request)
-    {
-        $business = Business::findOrFail($businessId);
-        $period = $request->get('period', 'last_month');
-
-        $currentReviews = ReviewNew::where('business_id', $businessId)
-            ->whereNotNull('staff_id')
-            ->globalFilters(0, $businessId)
-            ->withCalculatedRating()
-            ->get();
-
-        $previousReviews = getPreviousPeriodReviews($businessId, $period);
-
-        // Calculate overall metrics using ReviewValueNew
-        $overallMetrics = calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews);
-        $complimentRatio = calculateComplimentRatio($currentReviews);
-        $topStaff = ReviewService::getTopStaffByRatingFromReviewValue($currentReviews);
-        $allStaff = getAllStaffMetricsFromReviewValue($currentReviews);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Staff dashboard report retrieved successfully',
-            'data' => [
-                'business_id' => (int) $businessId,
-                'business_name' => $business->name,
-                'period' => $period,
-                'overall_metrics' => $overallMetrics,
-                'compliment_ratio' => $complimentRatio,
-                'top_staff' => $topStaff,
-                'all_staff' => $allStaff
-            ]
-        ], 200);
-    }
-
-
-    /**
-     * @OA\Get(
      *      path="/v1.0/reports/review-analytics/{businessId}",
      *      operationId="reviewAnalytics",
      *      tags={"Reports"},
@@ -2086,7 +1988,7 @@ class DashboardController extends Controller
         // Calculate performance overview using ReviewValueNew
         $performance_overview = calculatePerformanceOverviewFromReviewValue($reviews);
 
-        $submissionsOverTime = getSubmissionsOverTime((clone $reviewsQuery), $filters['period']);
+        $submissionsOverTime = \App\Services\Review\ReviewMetricsService::getSubmissionsOverTime((clone $reviewsQuery), $filters['period']);
 
         $recentSubmissions = getRecentSubmissions($reviews);
 

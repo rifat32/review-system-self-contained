@@ -436,7 +436,6 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/v1.0/reports/staff-comparison/{businessId}', [DashboardController::class, 'staffComparison']);
     Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [DashboardController::class, 'staffPerformance']);
-    Route::get('/v1.0/reports/staff-dashboard/{businessId}', [DashboardController::class, 'staffDashboard']);
     Route::get('/v1.0/reports/review-analytics/{businessId}', [DashboardController::class, 'reviewAnalytics']);
     Route::get('/v1.0/branch-dashboard/{branchId}', [DashboardController::class, 'getBranchDashboard']);
     Route::get('/v1.0/reports/branch-comparison', [DashboardController::class, 'branchComparison']);

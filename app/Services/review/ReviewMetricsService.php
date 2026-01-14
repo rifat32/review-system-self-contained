@@ -212,4 +212,97 @@ class ReviewMetricsService
             'change_type' => $change >= 0 ? 'positive' : 'negative'
         ];
     }
+
+    /**
+     * Get submissions over time
+     * 
+     * @param mixed $reviews Reviews collection or query builder
+     * @param string $period Period (7d, 30d, 90d, 1y)
+     * @return array Time-series data with ratings and sentiment
+     */
+    public static function getSubmissionsOverTime($reviews, $period)
+    {
+        $endDate = Carbon::now();
+        $startDate = match ($period) {
+            '7d' => Carbon::now()->subDays(7),
+            '90d' => Carbon::now()->subDays(90),
+            '1y' => Carbon::now()->subYear(),
+            default => Carbon::now()->subDays(30)
+        };
+
+        $groupFormat = match ($period) {
+            '7d' => 'd-m-Y',
+            '90d', '1y' => 'm-Y',
+            default => 'd-m-Y'
+        };
+
+        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            $reviews = $reviews->get();
+        }
+
+        $reviewsArray = is_array($reviews) ? $reviews : $reviews->toArray();
+
+        $filteredReviews = [];
+        foreach ($reviewsArray as $review) {
+            $createdAt = is_array($review)
+                ? ($review['created_at'] ?? null)
+                : ($review->created_at ?? null);
+
+            if (!$createdAt)
+                continue;
+
+            $reviewDate = Carbon::parse($createdAt);
+            if ($reviewDate->between($startDate, $endDate)) {
+                $filteredReviews[] = $review;
+            }
+        }
+
+        $submissionsByPeriod = [];
+        foreach ($filteredReviews as $review) {
+            $createdAt = is_array($review)
+                ? ($review['created_at'] ?? null)
+                : ($review->created_at ?? null);
+
+            if (!$createdAt)
+                continue;
+
+            $periodKey = Carbon::parse($createdAt)->format($groupFormat);
+
+            if (!isset($submissionsByPeriod[$periodKey])) {
+                $submissionsByPeriod[$periodKey] = [
+                    'total_rating' => 0,
+                    'total_sentiment' => 0,
+                    'count' => 0
+                ];
+            }
+
+            $rating = is_array($review)
+                ? ($review['calculated_rating'] ?? 0)
+                : ($review->calculated_rating ?? 0);
+
+            $sentiment = is_array($review)
+                ? ($review['sentiment_score'] ?? 0)
+                : ($review->sentiment_score ?? 0);
+
+            $submissionsByPeriod[$periodKey]['total_rating'] += $rating;
+            $submissionsByPeriod[$periodKey]['total_sentiment'] += $sentiment;
+            $submissionsByPeriod[$periodKey]['count']++;
+        }
+
+        $data = [];
+        foreach ($submissionsByPeriod as $period => $values) {
+            $data[] = [
+                'period' => $period,
+                'count' => $values['count'],
+                'avg_rating' => $values['count'] > 0
+                    ? round($values['total_rating'] / $values['count'], 1)
+                    : 0,
+                'avg_sentiment' => $values['count'] > 0
+                    ? round($values['total_sentiment'] / $values['count'], 2)
+                    : 0
+            ];
+        }
+
+        return $data;
+    }
 }
