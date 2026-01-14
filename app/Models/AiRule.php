@@ -33,7 +33,13 @@ class AiRule extends Model
         'cooldown_days',
         'deduplication_scope',
         'last_run_at',
-        'next_run_at'
+        'next_run_at',
+        // Proposal fields
+        'ai_explanation_title',
+        'ai_plain_explanation',
+        'ai_why_it_matters',
+        'ai_when_it_triggers',
+        'ai_generated_at'
     ];
 
     protected $casts = [
@@ -45,7 +51,8 @@ class AiRule extends Model
         'last_run_at' => 'datetime',
         'next_run_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'ai_generated_at' => 'datetime'
     ];
 
     /**

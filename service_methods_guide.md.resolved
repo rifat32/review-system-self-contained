@@ -1,0 +1,147 @@
+# AI & Rule Services: Method Documentation
+
+This guide provides a detailed description of every method within the core AI processing and Rule engine services.
+
+---
+
+## 🧠 AI Processor Services
+
+### 1. [AIProcessorService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#24-2885)
+*Main orchestrator for business-level and staff-level AI insights.*
+
+| Method | Description |
+| :--- | :--- |
+| [getSentimentLabel(?float $score)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#28-40) | Converts a numeric sentiment score into a human-readable label (e.g., "positive") via the Rule Engine. |
+| [analyzeBusinessServicesPerformance(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#41-182) | Calculates average ratings, sentiment, and common tags for each business service. |
+| [getTopMentionedStaff($positiveReviews)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#183-211) | Identifies staff members frequently praised in positive feedback using Rule Engine extraction. |
+| [extractRecommendedTraining($suggestions)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#212-225) | Maps AI-generated suggestions to specific training needs based on skill gaps. |
+| [getStaffPerformanceSnapshot(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#226-337) | Aggregates reviews for individual staff or groups, including sentiment breakdown and skill gaps. |
+| [extractSkillGapsFromSuggestions($suggestions)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#338-382) | Decodes JSON/string suggestions and maps them to predefined skill categories. |
+| [extractOpportunitiesFromSuggestions($suggestions)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#383-403) | Filters suggestions for growth keywords (e.g., "upsell", "expand"). |
+| [generatePredictions($reviews)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#404-432) | Uses historical data and rules to predict potential future ratings if issues are fixed. |
+| [getTopTopic($businessId, $startDate, $endDate)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#433-488) | Identifies the most discussed tag or AI-detected topic in a given period. |
+| [transcribeAudio($filePath)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#488-542) | Uses HuggingFace/Whisper API to convert audio reviews into text. |
+| [getAiInsightsPanel(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/AIProcessorService.php#543-582) | Generates a consolidated dashboard panel with summary, issues, opportunities, and predictions. |
+
+### 2. [ConfidenceCalculatorService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/ConfidenceCalculatorService.php#8-151)
+*Quantifies the reliability of AI-generated insights.*
+
+| Method | Description |
+| :--- | :--- |
+| [calculateInsightConfidence(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/ConfidenceCalculatorService.php#10-23) | Returns a consolidated object with level, score, and contributing factors. |
+| [calculateScore(InsightRecord $insight)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/ConfidenceCalculatorService.php#24-61) | Numeric scoring logic based on mention count, severity, trend, and freshness. |
+| [getConfidenceLevel(int $score)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/ConfidenceCalculatorService.php#62-73) | Maps a 0-100 score to 'low', 'medium', or 'high'. |
+| [getConfidenceFactors(InsightRecord $insight)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/ConfidenceCalculatorService.php#74-104) | Lists specific reasons (e.g., "High mention count") for the calculated score. |
+| [calculateRecommendationConfidence(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/ConfidenceCalculatorService.php#105-124) | Determines how reliable a specific business recommendation is based on evidence. |
+
+### 3. [EmotionAnalysisService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/EmotionAnalysisService.php#11-333)
+*Analyzes the emotional tone and detects rating mismatches.*
+
+| Method | Description |
+| :--- | :--- |
+| [detectEmotions(string $text, ...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/EmotionAnalysisService.php#15-163) | Scans text for primary emotions (joy, anger, etc.) and calculates intensity. |
+| [getIntensityLevel(float $score)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/EmotionAnalysisService.php#164-178) | Maps numeric emotion intensity to 'low', 'medium', or 'high'. |
+| [storeEmotions(int $reviewId, array $emotions)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/EmotionAnalysisService.php#179-199) | Persists detected emotions to the `review_emotions` table. |
+| [detectRatingMismatch(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/EmotionAnalysisService.php#202-258) | Compares star rating against AI sentiment to find contradictions (e.g., 5-star with negative text). |
+| [calculateMismatchSeverity(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/EmotionAnalysisService.php#259-283) | Determines the "gap" size between a rating and its associated sentiment. |
+| [storeMismatch(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/EmotionAnalysisService.php#306-332) | Records detected mismatches for dashboard reporting and manager alerts. |
+
+### 4. [InsightAggregationService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/InsightAggregationService.php#10-211)
+*Groups individual AI results into actionable business patterns.*
+
+| Method | Description |
+| :--- | :--- |
+| [aggregateReviewsForBusiness(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/InsightAggregationService.php#12-46) | Top-level method that scans reviews and generates/updates `InsightRecord`s. |
+| [extractCategoryPatterns($reviews)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/InsightAggregationService.php#47-89) | Groups reviews by shared main category, sub-category, and staff involvement. |
+| [createPatternKey(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/InsightAggregationService.php#90-103) | Logic for generating unique grouping keys for review patterns. |
+| [createInsightFromPattern(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/InsightAggregationService.php#104-146) | Converts a grouped pattern of reviews into a single persisted `InsightRecord`. |
+| [calculateTrend(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/InsightAggregationService.php#164-181) | Logic to detect if an issue is 'emerging', 'increasing', or 'stable'. |
+| [getDashboardInsights(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/InsightAggregationService.php#182-210) | Fetches the most significant aggregated insights for display. |
+
+### 5. [OpenAIProcessorService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/OpenAIProcessorService.php#15-2039)
+*Direct gateway to OpenAI API with advanced recovery logic.*
+
+| Method | Description |
+| :--- | :--- |
+| [processReviewWithOpenAI(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/OpenAIProcessorService.php#102-387) | Core method: builds payload, manages caching, and executes API request. |
+| [calculateDynamicMaxTokens(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/OpenAIProcessorService.php#394-434) | Adjusts token limits based on which AI modules (moderation, staff, etc.) are enabled. |
+| [fixTruncatedJson(string $content)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/OpenAIProcessorService.php#462-499) | Attempts to close open braces and quotes if the API hits a length limit. |
+| [fixCommonJsonIssues(string $content)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/OpenAIProcessorService.php#501-565) | Cleans illegal characters and fixes malformed JSON property names. |
+| [trackTokenUsage(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/OpenAIProcessorService.php#697-737) | Records token counts and estimated costs for billing and optimization. |
+| [getSystemPrompt(array $enabledModules)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/OpenAIProcessorService.php#758-1166) | Dynamically constructs the "Persona" and Instructions for the AI. |
+| [analyzeReview(ReviewNew $review, ...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/OpenAIProcessorService.php#1327-1411) | Wrapper that handles database persistence of AI results on the Review model. |
+
+### 6. [RecommendationGeneratorService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/RecommendationGeneratorService.php#11-127)
+*Turns insights into specific business actions.*
+
+| Method | Description |
+| :--- | :--- |
+| [generateFromInsights(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/RecommendationGeneratorService.php#13-60) | Scans aggregated insights and matches them against `AiRule` templates. |
+| [createRecommendation(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/RecommendationGeneratorService.php#61-101) | Validates and persists a suggested action to the database. |
+| [getDashboardRecommendations(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/AIProcessor/RecommendationGeneratorService.php#102-126) | Fetches the highest priority recent recommendations for the user. |
+
+---
+
+## ⚖️ Rule Engine Services
+
+### 7. `RuleEngineService` (Helper)
+*Core matching engine for all rule-based logic.*
+
+| Method | Description |
+| :--- | :--- |
+| [matchRulesToInsight(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleEngineService.php#14-32) | Finds all enabled rules that apply to a specific aggregated insight. |
+| [generateRecommendation(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleEngineService.php#33-57) | Fills a rule's template with specific data (category, count, etc.) for the user. |
+| [evaluateReviewRules(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleEngineService.php#58-75) | Real-time evaluation of a single review during ingestion to trigger alerts. |
+| [getApplicableRules(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleEngineService.php#78-96) | Filters rules based on scope (System, Business Type, or specific Business). |
+| [ruleMatchesInsight(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleEngineService.php#97-118) | Bool check verifying if an insight satisfies a rule's JSON conditions. |
+| [triggerRuleActions(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleEngineService.php#375-418) | Executes side effects (Email, Slack, Alert creation) when a rule triggers. |
+
+### 8. [AutoRuleCreatorService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/AutoRuleCreatorService.php#11-443)
+*Automatically generates new rules based on recurring patterns.*
+
+| Method | Description |
+| :--- | :--- |
+| [checkAndCreateRules(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/AutoRuleCreatorService.php#13-47) | Monitors incoming reviews to identify new recurring issues. |
+| [checkPatternFrequency(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/AutoRuleCreatorService.php#48-71) | Queries history to see if a specific issue has reached the threshold for a new rule. |
+| [createRuleFromPattern(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/AutoRuleCreatorService.php#85-145) | Instantiates a new `AiRule` with appropriate conditions, priority, and explanations. |
+| [generateRuleConfig(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/AutoRuleCreatorService.php#208-255) | Generates the complex JSON `conditions` and `actions` for a new auto-rule. |
+| [cleanupInactiveRules(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/AutoRuleCreatorService.php#396-413) | Deletes auto-created rules that haven't triggered in a long period. |
+
+### 9. [ConditionBuilderService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/ConditionBuilderService.php#7-304)
+*Provides utilities for building and evaluating rule logic.*
+
+| Method | Description |
+| :--- | :--- |
+| [validateConditionTree(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/ConditionBuilderService.php#11-66) | Ensures the JSON structure of a rule's conditions is valid and safe. |
+| [evaluateConditions(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/ConditionBuilderService.php#69-104) | Recursively evaluates a nested "AND/OR" tree of conditions against data. |
+| [evaluateSingleCondition(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/ConditionBuilderService.php#105-159) | Handles specific matching logic for sentiment scores, ratings, and text. |
+| [getSupportedTypes()](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/ConditionBuilderService.php#229-273) | Returns a list of all fields and operators supported by the builder UI. |
+
+### 10. [RuleExecutionService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleExecutionService.php#10-409)
+*Handles the high-frequency execution and deduplication of rules.*
+
+| Method | Description |
+| :--- | :--- |
+| [executeRule(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleExecutionService.php#21-102) | Runs a specific rule against a collection of reviews. |
+| [checkCooldown(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleExecutionService.php#135-176) | Prevents redundant alerts (e.g., don't alert for the same staff 5 times in an hour). |
+| [executeActions(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleExecutionService.php#179-212) | Dispatches the specific activities (Email, Flagging, etc.) defined in the rule. |
+| [getReviewsForRule(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleExecutionService.php#385-408) | Optimized query to fetch only relevant unscanned reviews for evaluation. |
+
+### 11. [RuleExplanationService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleExplanationService.php#9-467)
+*Uses AI to explain "Why" a rule was created or triggered.*
+
+| Method | Description |
+| :--- | :--- |
+| [generateExplanations(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleExplanationService.php#11-52) | Calls OpenAI to generate human-friendly descriptions for a rule's logic. |
+| [regenerateForRule($rule)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleExplanationService.php#352-386) | Refreshes the explanations if the rule's conditions have changed. |
+| [parseOpenAIResponse(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleExplanationService.php#141-220) | Extracts structured explanation text from various AI response formats. |
+
+### 12. [RuleMetricsService](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleMetricsService.php#8-301)
+*Tracks the performance and precision of rules.*
+
+| Method | Description |
+| :--- | :--- |
+| [recordTrigger(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleMetricsService.php#12-51) | Logs the fact that a rule triggered, including matched conditions and context. |
+| [verifyTriggerOutcome(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleMetricsService.php#78-116) | Allows users to flag a trigger as "True Positive" or "False Positive". |
+| [calculatePrecisionRate(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleMetricsService.php#119-142) | Computes the % of triggers that were actually valid/useful. |
+| [getRulesNeedingAttention(...)](file:///home/rifat/rifat/uk_client/review/backend/review-system/app/Services/Rule/RuleMetricsService.php#267-300) | Identifies rules with low precision or high false-positive rates for tuning. |
