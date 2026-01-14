@@ -12,6 +12,8 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Dashboard\DashboardService;
+use App\Services\Review\RecentReviewService;
+use App\Services\Review\ReviewMetricsService;
 use App\Services\Review\ReviewService;
 use App\Services\Staff\StaffPerformanceService;
 use App\Services\Business\BusinessAnalyticsService;
@@ -880,7 +882,7 @@ class DashboardController extends Controller
 
         $staffReviews = $staffReviewQuery->get();
         // Calculate overall sentiment
-        $sentiment_data = calculateAggregatedSentiment($staffReviews);
+        $sentiment_data = AIProcessorService::calculateAggregatedSentiment($staffReviews);
         $sentiment_status = is_array($sentiment_data) ? $sentiment_data['sentiment_label'] : $sentiment_data;
 
         $topPerformer = null;
@@ -1897,7 +1899,7 @@ class DashboardController extends Controller
      * @OA\Get(
      *      path="/v1.0/reports/review-analytics/{businessId}",
      *      operationId="reviewAnalytics",
-     *      tags={"Reports"},
+     *      tags={"review_management"},
      *      summary="Get review analytics with flexible filtering",
      *      description="Get performance overview and recent submissions with optional filters for survey, guest reviews, user reviews, and overall reviews",
      *      @OA\Parameter(
@@ -1982,18 +1984,18 @@ class DashboardController extends Controller
             ->with(['user', 'guest_user', 'survey'])
             ->withCalculatedRating();
 
-        $reviewsQuery = \App\Services\Review\ReviewService::applyFilters($reviewsQuery, $filters);
+        $reviewsQuery = ReviewService::applyFilters($reviewsQuery, $filters);
         $reviews = (clone $reviewsQuery)->get();
 
         // Calculate performance overview using ReviewValueNew
-        $performance_overview = calculatePerformanceOverviewFromReviewValue($reviews);
+        $performance_overview = AIProcessorService::calculatePerformanceOverviewFromReviewValue($reviews);
 
-        $submissionsOverTime = \App\Services\Review\ReviewMetricsService::getSubmissionsOverTime((clone $reviewsQuery), $filters['period']);
+        $submissionsOverTime = ReviewMetricsService::getSubmissionsOverTime((clone $reviewsQuery), $filters['period']);
 
-        $recentSubmissions = getRecentSubmissions($reviews);
+        $recentSubmissions = RecentReviewService::getRecentSubmissions($reviews);
 
         // NEW: Get top three staff
-        $topStaff = getTopThreeStaff($businessId, $filters);
+        $topStaff = StaffPerformanceService::getTopThreeStaff($businessId, $filters);
 
         $filterSummary = $this->getFilterSummary($filters, $business);
 
@@ -2712,11 +2714,11 @@ class DashboardController extends Controller
         $businessId = $user->business_id;
 
         // Validate period and get date range using service
-        $dateRange = $this->dashboardService->validateAndGetDateRange(
+        $dateRange = DashboardService::validateAndGetDateRange(
             $request->get('period', 'last_30_days')
         );
         // Calculate metrics using DashboardService
-        $metrics = $this->dashboardService->calculateMetrics($businessId, $dateRange, $user);
+        $metrics = DashboardService::calculateMetrics($businessId, $dateRange, $user);
 
 
         return response()->json([

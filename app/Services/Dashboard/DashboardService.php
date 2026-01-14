@@ -6,6 +6,7 @@ use App\Http\Utils\DateRangeUtil;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\User;
+use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Business\BusinessAnalyticsService;
 use App\Services\Review\ReviewTopicService;
 use App\Services\Review\ReviewMetricsService;
@@ -31,7 +32,7 @@ class DashboardService
      * @return array|null Returns date range array or null for 'all_time'
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function validateAndGetDateRange(?string $period = 'last_30_days'): ?array
+    public static function validateAndGetDateRange(?string $period = 'last_30_days'): ?array
     {
         $period = $period ?? 'last_30_days';
 
@@ -53,7 +54,7 @@ class DashboardService
      * @param array|null $dateRange Array with 'start' and 'end' Carbon instances
      * @return array
      */
-    public function calculateMetrics($businessId, $dateRange = null, $user)
+    public static function calculateMetrics($businessId, $dateRange = null, $user)
     {
         // Apply branch filter for branch managers
         $userBranchId = $user->hasRole('branch_manager') || $user->hasRole('business_owner')
@@ -99,14 +100,18 @@ class DashboardService
         $topTopicSummary = ReviewTopicService::getTopTopicSummary($reviews);
 
         // Detect repeated issues (minimal data only)
-        $issueAnalysis = BusinessAnalyticsService::extractIssuesFromRuleEngine($businessId, $reviews, [
-            'start' => $reviews->min('created_at'),
-            'end' => $reviews->max('created_at')
-        ]);
+        $issuesArray = BusinessAnalyticsService::extractIssuesFromRuleEngine(
+            $businessId,
+            $reviews,
+            [
+                'start' => $reviews->min('created_at'),
+                'end' => $reviews->max('created_at')
+            ]
+        );
 
-        $topIssue = !empty($issueAnalysis['repeated_issues'])
-            ? $issueAnalysis['repeated_issues'][0]['issue']
-            : null;
+        $topIssue = !empty($issuesArray)
+            ? $issuesArray[0]['issue']
+            : 'No major issues detected';
 
         // Calculate CSAT Score using ReviewMetricsService
         $csatMetrics = ReviewMetricsService::calculateCSATScore(
@@ -204,18 +209,13 @@ class DashboardService
             'top_topic' => $topTopicSummary,
             'repeated_issues' => [
                 'review_count' => $total,
-                'issue_count' => $issueAnalysis['total_issues_found'],
+                'issue_count' => count($issuesArray),
                 'top_issue' => $topIssue,
-                'top_issue_details' => !empty($issueAnalysis['repeated_issues']) ? [
-                    'issue_name' => $issueAnalysis['repeated_issues'][0]['issue'],
-                    'occurrence_count' => $issueAnalysis['repeated_issues'][0]['count'],
-                    'percentage' => $issueAnalysis['repeated_issues'][0]['percentage'],
-                    'severity' => $issueAnalysis['repeated_issues'][0]['severity'],
-                    'priority' => $issueAnalysis['repeated_issues'][0]['priority'],
-                    'sample_review_ids' => array_column(
-                        $issueAnalysis['repeated_issues'][0]['sample_reviews'] ?? [],
-                        'id'
-                    ),
+                'top_issue_details' => !empty($issuesArray) ? [
+                    'issue_name' => $issuesArray[0]['issue'],
+                    'occurrence_count' => $issuesArray[0]['mention_count'] ?? 0,
+                    'severity' => $issuesArray[0]['severity'] ?? 'medium',
+                    'confidence' => $issuesArray[0]['confidence'] ?? 0.7,
                 ] : null
             ],
             'csat_score' => [
@@ -230,12 +230,12 @@ class DashboardService
             ],
             'flagged_reviews' => [
                 'count' => $flaggedReviewsCount,
-                'action_text' => 'Review Now',
+                'action_text' => 'Action Now',
                 'review_count' => $total
             ],
             'all_sentiment' => [
                 'status' => $reviews->isNotEmpty()
-                    ? calculateAggregatedSentiment($reviews)['sentiment_label']
+                    ? AIProcessorService::calculateAggregatedSentiment($reviews)['sentiment_label']
                     : 'neutral',
                 'based_on' => $dateRange !== null
                     ? 'Based on selected period'
