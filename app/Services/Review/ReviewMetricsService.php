@@ -289,8 +289,37 @@ class ReviewMetricsService
             $submissionsByPeriod[$periodKey]['count']++;
         }
 
+        // GENERATE ALL DATES IN RANGE WITH ZERO VALUES
+        $allPeriods = [];
+        $current = $startDate->copy();
+
+        while ($current <= $endDate) {
+            $periodKey = $current->format($groupFormat);
+
+            if (!isset($allPeriods[$periodKey])) {
+                $allPeriods[$periodKey] = [
+                    'total_rating' => 0,
+                    'total_sentiment' => 0,
+                    'count' => 0
+                ];
+            }
+
+            // Increment based on period type
+            if ($groupFormat === 'd-m-Y') {
+                $current->addDay();
+            } else {
+                $current->addMonth();
+            }
+        }
+
+        // MERGE ACTUAL DATA WITH ALL PERIODS
+        foreach ($submissionsByPeriod as $periodKey => $values) {
+            $allPeriods[$periodKey] = $values;
+        }
+
+        // CONVERT TO ARRAY FORMAT
         $data = [];
-        foreach ($submissionsByPeriod as $period => $values) {
+        foreach ($allPeriods as $period => $values) {
             $data[] = [
                 'period' => $period,
                 'count' => $values['count'],
@@ -302,6 +331,13 @@ class ReviewMetricsService
                     : 0
             ];
         }
+
+        // SORT BY PERIOD (CHRONOLOGICALLY)
+        usort($data, function ($a, $b) use ($groupFormat) {
+            $dateA = Carbon::createFromFormat($groupFormat, $a['period']);
+            $dateB = Carbon::createFromFormat($groupFormat, $b['period']);
+            return $dateA <=> $dateB;
+        });
 
         return $data;
     }

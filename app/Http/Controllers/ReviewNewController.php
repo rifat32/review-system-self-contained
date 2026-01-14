@@ -3628,8 +3628,8 @@ class ReviewNewController extends Controller
 
         // GENERATE DATA FOR TRENDS
         $reviewTrends = $this->reviewMetricsService->getSubmissionsOverTime(
-            (clone $reviewsQuery),
-            $request->get('period', '30d')
+            reviews: (clone $reviewsQuery),
+            period: $request->get('period', '30d')
         );
 
 
@@ -3731,13 +3731,13 @@ class ReviewNewController extends Controller
         // GENERATE DATA FOR OVERALL REVIEWS
         $overallReviews = $reviewsQuery->get();
 
-        $totalSubmissions = $reviewsQuery->count();
+        $totalSubmissions = $overallReviews->count();
 
         $averageScore = $totalSubmissions > 0
-            ? round($reviewsQuery->avg('calculated_rating'), 1)
+            ? round($overallReviews->avg('calculated_rating'), 1)
             : 0;
 
-        $staff_link_reviews = $reviewsQuery->whereNotNull('staff_id')->count();
+        $staff_link_reviews = $overallReviews->whereNotNull('staff_id')->count();
 
         return response()->json([
             'success' => true,
