@@ -683,7 +683,7 @@ class DashboardController extends Controller
         $criteria = $request->input('criteria', 'rating');
 
         // Use the updated method
-        $performanceAnalysis = AIProcessor::getTopWorstStaff($businessId, $dateRange, $limit, $criteria);
+        $performanceAnalysis = AIProcessorService::getTopWorstStaff($businessId, $dateRange, $limit, $criteria);
 
         return response()->json([
             'success' => true,
@@ -803,7 +803,7 @@ class DashboardController extends Controller
 
 
         // Get insights overview data
-        $insightsData = AIProcessor::getInsightsOverview($businessId, $dateRange);
+        $insightsData = AIProcessorService::getInsightsOverview($businessId, $dateRange);
 
         return response()->json([
             'success' => true,

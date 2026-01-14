@@ -4,6 +4,7 @@ namespace App\Services\Staff;
 
 use App\Models\ReviewNew;
 use App\Models\User;
+use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Rule\RuleEngineService;
 use App\Services\Review\ReviewService;
 use Carbon\Carbon;
@@ -313,7 +314,7 @@ class StaffPerformanceService
                 'staff_name' => $staff->name,
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
-                'sentiment_score' => \App\Services\AIProcessor\AIProcessorService::getSentimentLabel($avgSentiment),
+                'sentiment_score' => AIProcessorService::getSentimentLabel($avgSentiment),
                 'compliments_count' => $compliments,
                 'complaints_count' => $complaints,
                 'neutral_count' => $neutral,
