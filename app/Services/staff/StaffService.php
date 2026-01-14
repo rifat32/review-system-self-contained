@@ -4,6 +4,7 @@ namespace App\Services\Staff;
 
 use App\Models\ReviewNew;
 use App\Models\User;
+use App\Services\Rule\RuleEngineService;
 use Carbon\Carbon;
 
 class StaffService
@@ -99,7 +100,7 @@ class StaffService
         $reviewCountChange = $currentReviewCount - $comparisonReviewCount;
 
         // Calculate metrics using existing helper function
-        $overallMetrics = calculateOverallMetricsFromReviewValue($currentReviews, $comparisonReviews);
+        $overallMetrics = self::calculateOverallMetricsFromReviewValue($currentReviews, $comparisonReviews);
 
         // Enhance metrics with staff_count and review_count
         if (isset($overallMetrics['overall_rating'])) {
@@ -138,12 +139,10 @@ class StaffService
 
     public static function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
     {
-        // Calculate current period average rating from calculated_rating field
         $currentAvgRating = $currentReviews->isNotEmpty()
             ? round($currentReviews->avg('calculated_rating'), 1)
             : 0;
 
-        // Calculate previous period average rating from calculated_rating field
         $previousAvgRating = $previousReviews->isNotEmpty()
             ? round($previousReviews->avg('calculated_rating'), 1)
             : 0;
@@ -167,17 +166,17 @@ class StaffService
             'overall_rating' => [
                 'value' => $currentAvgRating,
                 'change' => $ratingChange,
-                'change_type' => $ratingChange >= 0 ? 'positive' : 'negative'
+                'change_type' => RuleEngineService::getChangeType($ratingChange)
             ],
             'overall_sentiment' => [
                 'value' => $currentSentiment,
                 'change' => $sentimentChange,
-                'change_type' => $sentimentChange >= 0 ? 'positive' : 'negative'
+                'change_type' => RuleEngineService::getChangeType($sentimentChange)
             ],
             'total_reviews' => [
                 'value' => $currentTotalReviews,
                 'change' => $reviewsChange,
-                'change_type' => $reviewsChange >= 0 ? 'positive' : 'negative'
+                'change_type' => RuleEngineService::getChangeType($reviewsChange)
             ]
         ];
     }
