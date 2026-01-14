@@ -1,5 +1,5 @@
 <?php
-// app/Helpers/InsightAggregationHelper.php
+// app/Services/AIProcessor/InsightAggregationService.php
 
 namespace App\Services\AIProcessor;
 

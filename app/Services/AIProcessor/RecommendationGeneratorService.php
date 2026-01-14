@@ -1,5 +1,5 @@
 <?php
-// app/Helpers/RecommendationGenerator.php
+// app/Services/AIProcessor/RecommendationGeneratorService.php
 
 namespace App\Services\AIProcessor;
 

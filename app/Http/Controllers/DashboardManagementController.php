@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Utils\ErrorUtil;
 use App\Models\Business;
-use App\Services\DashboardService;
+use App\Services\Dashboard\DashboardService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;

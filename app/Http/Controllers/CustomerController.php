@@ -7,7 +7,7 @@ use App\Http\Utils\ErrorUtil;
 use App\Models\Business;
 
 use App\Models\User;
-use App\Services\CustomerService;
+use App\Services\Customer\CustomerService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -277,56 +277,56 @@ class CustomerController extends Controller
     }
 
 
-    public function addCustomerData($user,$business)
+    public function addCustomerData($user, $business)
     {
 
 
-    // Fetch positive reviews separately
-    $positive_reviews = ReviewNew::where('review_news.business_id', $business->id)
-        ->where('review_news.rate', '>=', 4)
-        ->where('review_news.user_id', $user->id)
+        // Fetch positive reviews separately
+        $positive_reviews = ReviewNew::where('review_news.business_id', $business->id)
+            ->where('review_news.rate', '>=', 4)
+            ->where('review_news.user_id', $user->id)
             ->globalFilters()
-        ->count();
-    $user->positive_reviews = $positive_reviews;
+            ->count();
+        $user->positive_reviews = $positive_reviews;
 
-    // Fetch negative reviews separately
-    $negative_reviews = ReviewNew::where('review_news.business_id', $business->id)
-        ->where('review_news.rate', '<=', 2)
-        ->where('review_news.user_id', $user->id)
+        // Fetch negative reviews separately
+        $negative_reviews = ReviewNew::where('review_news.business_id', $business->id)
+            ->where('review_news.rate', '<=', 2)
+            ->where('review_news.user_id', $user->id)
             ->globalFilters()
-        ->count();
-    $user->negative_reviews = $negative_reviews;
+            ->count();
+        $user->negative_reviews = $negative_reviews;
 
-    // Fetch common complaints separately
-    $common_complaints = ReviewNew::selectRaw('COUNT(id) as complaint_count, SUBSTRING_INDEX(comment, " ", 3) as complaint_snippet')
-        ->where('review_news.business_id', $business->id)
-        ->where('review_news.user_id', $user->id)
-        ->groupBy('complaint_snippet')
-        ->havingRaw('complaint_count > 2')
-            ->globalFilters()
-            ->orderBy('order_no', 'asc')
-        ->get();
-    $user->common_complaints = $common_complaints;
-
-    // Fetch satisfaction scores separately
-    $satisfaction_scores = ReviewNew::where('review_news.business_id', $business->id)
-        ->where('review_news.user_id', $user->id)
-            ->globalFilters()
-
-        ->avg('review_news.rate');
-    $user->avg_satisfaction = $satisfaction_scores;
-
-    // Fetch customer comments trends separately
-    $customer_comments_trends = ReviewNew::selectRaw('comment, COUNT(*) as comment_count')
-        ->where('review_news.business_id', $business->id)
-        ->where('review_news.user_id', $user->id)
-        ->groupBy('comment')
-        ->orderByDesc('comment_count')
+        // Fetch common complaints separately
+        $common_complaints = ReviewNew::selectRaw('COUNT(id) as complaint_count, SUBSTRING_INDEX(comment, " ", 3) as complaint_snippet')
+            ->where('review_news.business_id', $business->id)
+            ->where('review_news.user_id', $user->id)
+            ->groupBy('complaint_snippet')
+            ->havingRaw('complaint_count > 2')
             ->globalFilters()
             ->orderBy('order_no', 'asc')
-        ->limit(5)
-        ->get();
-    $user->customer_comments_trends = $customer_comments_trends;
+            ->get();
+        $user->common_complaints = $common_complaints;
+
+        // Fetch satisfaction scores separately
+        $satisfaction_scores = ReviewNew::where('review_news.business_id', $business->id)
+            ->where('review_news.user_id', $user->id)
+            ->globalFilters()
+
+            ->avg('review_news.rate');
+        $user->avg_satisfaction = $satisfaction_scores;
+
+        // Fetch customer comments trends separately
+        $customer_comments_trends = ReviewNew::selectRaw('comment, COUNT(*) as comment_count')
+            ->where('review_news.business_id', $business->id)
+            ->where('review_news.user_id', $user->id)
+            ->groupBy('comment')
+            ->orderByDesc('comment_count')
+            ->globalFilters()
+            ->orderBy('order_no', 'asc')
+            ->limit(5)
+            ->get();
+        $user->customer_comments_trends = $customer_comments_trends;
 
         return $user;
     }

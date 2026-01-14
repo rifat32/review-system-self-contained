@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Business;
 
 use App\Models\Branch;
 use App\Models\Business;
@@ -31,9 +31,9 @@ class BusinessService
         foreach (Star::get() as $star) {
             $selectedCount = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->where([
-                    "review_news.business_id" => $business->id,
-                    "star_id" => $star->id,
-                ])
+                        "review_news.business_id" => $business->id,
+                        "star_id" => $star->id,
+                    ])
                 ->distinct("review_value_news.review_id", "review_value_news.question_id");
 
             if ($request->filled('start_date') && $request->filled('end_date')) {

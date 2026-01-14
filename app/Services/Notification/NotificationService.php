@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Notification;
 
 use App\Models\Notification;
 use App\Models\User;
@@ -115,9 +115,9 @@ class NotificationService
         return Notification::where('receiver_id', $userId)
             ->where('status', 'unread')
             ->update([
-                'status' => 'read',
-                'read_at' => now(),
-            ]);
+                    'status' => 'read',
+                    'read_at' => now(),
+                ]);
     }
 
     /**

@@ -18,7 +18,7 @@ use App\Models\User;
 use App\Http\Requests\StoreBusinessRequest;
 use App\Http\Requests\StoreBusinessByOwnerRequest;
 use App\Http\Requests\UpdateBusinessRequest;
-use App\Services\BusinessService;
+use App\Services\Business\BusinessService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

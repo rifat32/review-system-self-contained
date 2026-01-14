@@ -11,8 +11,11 @@ use App\Models\Survey;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\AIProcessor\AIProcessorService;
-use App\Services\DashboardService;
+use App\Services\Dashboard\DashboardService;
 use App\Services\Review\ReviewService;
+use App\Services\Staff\StaffPerformanceService;
+use App\Services\Business\BusinessAnalyticsService;
+use App\Services\Review\ReviewFeedService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -551,7 +554,7 @@ class DashboardController extends Controller
         );
 
         // Analyze services performance
-        $servicesAnalysis = AIProcessorService::analyzeBusinessServicesPerformance($businessId, $dateRange);
+        $servicesAnalysis = BusinessAnalyticsService::analyzeBusinessServicesPerformance($businessId, $dateRange);
 
         // Apply minimum reviews filter if specified
         $minReviews = $request->input('min_reviews', 3);
@@ -2267,13 +2270,13 @@ class DashboardController extends Controller
         $tagsBreakdown = ReviewService::extractTagsBreakdown($businessId, $dateRange, $user);
 
         // Get AI insights using existing AI pipeline
-        $aiInsights = AIProcessorService::getAiInsightsPanel($businessId, $dateRange);
+        $aiInsights = BusinessAnalyticsService::getAiInsightsPanel($businessId, $dateRange);
 
         // Get staff performance using existing staff suggestions
-        $staffPerformance = AIProcessorService::getStaffPerformanceSnapshot($businessId, $dateRange);
+        $staffPerformance = StaffPerformanceService::getStaffPerformanceSnapshot($businessId, $dateRange);
 
         // Get recent reviews feed
-        $reviewFeed = AIProcessorService::getReviewFeed($businessId, $dateRange);
+        $reviewFeed = ReviewFeedService::getReviewFeed($businessId, $dateRange);
 
         // Get available filters
         $filters = ReviewService::getAvailableFilters($businessId);
@@ -2374,7 +2377,7 @@ class DashboardController extends Controller
         );
 
         // Get recent reviews feed
-        $reviewFeed = AIProcessorService::getReviewFeed(
+        $reviewFeed = ReviewFeedService::getReviewFeed(
             businessId: $businessId,
             dateRange: $dateRange,
             limit: 10,
@@ -2614,7 +2617,7 @@ class DashboardController extends Controller
         );
 
         // Get AI insights
-        $aiInsights = AIProcessorService::getAiInsightsPanel($businessId, $dateRange, $user);
+        $aiInsights = BusinessAnalyticsService::getAiInsightsPanel($businessId, $dateRange, $user);
 
         return response()->json([
             'success' => true,
@@ -2689,7 +2692,7 @@ class DashboardController extends Controller
         $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
 
         // Get staff performance
-        $staffPerformance = AIProcessorService::getStaffPerformanceSnapshot($businessId, $dateRange);
+        $staffPerformance = StaffPerformanceService::getStaffPerformanceSnapshot($businessId, $dateRange);
 
         return response()->json([
             'success' => true,

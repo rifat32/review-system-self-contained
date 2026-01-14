@@ -1,5 +1,5 @@
 <?php
-// app/Helpers/ConfidenceCalculator.php
+// app/Services/AIProcessor/ConfidenceCalculatorService.php
 
 namespace App\Services\AIProcessor;
 

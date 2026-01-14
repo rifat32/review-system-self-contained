@@ -7,7 +7,7 @@ use App\Services\AIProcessor\ConfidenceCalculatorService;
 use App\Services\Rule\AutoRuleCreatorService;
 
 
-class RuleEngineHelper
+class RuleEngineService
 {
     // PUBLIC METHODS
 
@@ -214,6 +214,53 @@ class RuleEngineHelper
             $adjustedScore >= 60 => 'medium',
             default => 'low'
         };
+    }
+
+    private static function determineSeverity(AiRule $rule, InsightRecord $insight): string
+    {
+        // Start with the insight's severity
+        $baseSeverity = $insight->severity ?? 'medium';
+
+        // Adjust severity based on rule priority
+        if ($rule->priority === 'critical') {
+            return 'critical';
+        }
+
+        if ($rule->priority === 'high') {
+            // If rule is high priority, escalate severity
+            return match ($baseSeverity) {
+                'low' => 'medium',
+                'medium' => 'high',
+                'high' => 'critical',
+                'critical' => 'critical',
+                default => 'high'
+            };
+        }
+
+        // Adjust based on mentions count
+        $mentionsCount = $insight->mentions_count ?? 0;
+
+        if ($mentionsCount >= 10) {
+            // High frequency issues should be escalated
+            return match ($baseSeverity) {
+                'low' => 'medium',
+                'medium' => 'high',
+                'high' => 'critical',
+                'critical' => 'critical',
+                default => 'high'
+            };
+        }
+
+        if ($mentionsCount >= 5) {
+            // Moderate frequency issues
+            return match ($baseSeverity) {
+                'low' => 'medium',
+                default => $baseSeverity
+            };
+        }
+
+        // Return base severity for low frequency issues
+        return $baseSeverity;
     }
 
     private static function generateExplainability(AiRule $rule, InsightRecord $insight): array

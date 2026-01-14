@@ -10,8 +10,8 @@ use App\Mail\NotifyMail;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\User;
-use App\Services\BusinessService;
-use App\Services\UserService;
+use App\Services\Business\BusinessService;
+use App\Services\User\UserService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -75,7 +75,7 @@ class OwnerController extends Controller
         // CREATE USER
         $validatedData['password'] = Hash::make($validatedData['password']);
         $validatedData['remember_token'] = Str::random(10);
-        $user =  User::create($validatedData);
+        $user = User::create($validatedData);
 
         // GENERATE ACCESS TOKEN
         $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
@@ -269,7 +269,7 @@ class OwnerController extends Controller
      *      @OA\Response(response=404, description="Not found")
      * )
      */
-    public function createUserWithBusiness(CreateUserWithBusinessRequest $request,)
+    public function createUserWithBusiness(CreateUserWithBusinessRequest $request, )
     {
         return DB::transaction(function () use ($request) {
             $validatedData = $request->validated();
@@ -363,7 +363,7 @@ class OwnerController extends Controller
      *      @OA\Response(response=404, description="Not found")
      * )
      */
-    public function createUserWithBusinessClient(CreateUserWithBusinessRequest $request,)
+    public function createUserWithBusinessClient(CreateUserWithBusinessRequest $request, )
     {
         return DB::transaction(function () use ($request) {
             $validatedData = $request->validated();
@@ -485,7 +485,7 @@ class OwnerController extends Controller
         $validatedData['remember_token'] = Str::random(10);
 
         // CREATE USER
-        $user =  User::create($validatedData);
+        $user = User::create($validatedData);
         // GENERATE ACCESS TOKEN
         $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
 
@@ -690,7 +690,7 @@ class OwnerController extends Controller
         $imageName = "img/user/" . $imageName;
 
         // GET USER
-        $user =    User::when(
+        $user = User::when(
             request()->filled("owner_id"),
             function ($query) {
                 $query->where([
@@ -807,7 +807,7 @@ class OwnerController extends Controller
             $request_payload = $request->validated();
 
             // CHECK BUSINESS OWNERSHIP
-            $checkBusiness =    Business::where(["id" => $business_id])->first();
+            $checkBusiness = Business::where(["id" => $business_id])->first();
 
             if ($checkBusiness->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
                 return response()->json([
@@ -816,7 +816,7 @@ class OwnerController extends Controller
                 ], 401);
             }
 
-            $location =  "header_image";
+            $location = "header_image";
 
             $new_file_name = time() . '_' . $request_payload["image"]->getClientOriginalName();
 
@@ -919,7 +919,7 @@ class OwnerController extends Controller
             $request_payload = $request->validated();
 
             // CHECK BUSINESS OWNERSHIP
-            $checkBusiness =    Business::where(["id" => $business_id])->first();
+            $checkBusiness = Business::where(["id" => $business_id])->first();
 
             if ($checkBusiness->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
                 return response()->json([
@@ -928,7 +928,7 @@ class OwnerController extends Controller
                 ], 401);
             }
 
-            $location =  "placeholder_image";
+            $location = "placeholder_image";
 
             $new_file_name = time() . '_' . $request_payload["image"]->getClientOriginalName();
 
@@ -1036,7 +1036,7 @@ class OwnerController extends Controller
             $request_payload = $request->validated();
 
             // CHECK BUSINESS OWNERSHIP
-            $checkBusiness =    Business::where(["id" => $business_id])->first();
+            $checkBusiness = Business::where(["id" => $business_id])->first();
 
             if ($checkBusiness->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {
                 return response()->json([
@@ -1045,7 +1045,7 @@ class OwnerController extends Controller
                 ], 401);
             }
 
-            $location =  "rating_page_image";
+            $location = "rating_page_image";
 
             $new_file_name = time() . '_' . $request_payload["image"]->getClientOriginalName();
 
@@ -1125,7 +1125,7 @@ class OwnerController extends Controller
      */
     public function getOwnerById($id)
     {
-        $user =   User::where(["id" => $id])->first();
+        $user = User::where(["id" => $id])->first();
 
         if (!$user) {
             return response(["message" => "No User Found"], 404);
@@ -1192,7 +1192,7 @@ class OwnerController extends Controller
         // @@@@@@@@@@
         // where not in restaurent select id
         $userIdsToExclude = Business::pluck('OwnerID')->toArray();
-        $user =      User::whereNotIn('id', $userIdsToExclude)->get();
+        $user = User::whereNotIn('id', $userIdsToExclude)->get();
 
         // foreach($data["user"] as $deletableUser) {
         //     $deletableUser->delete();
@@ -1257,7 +1257,7 @@ class OwnerController extends Controller
 
     public function getOwnerByPhoneNumber($phoneNumber)
     {
-        $user =   User::where(["phone" => $phoneNumber])->first();
+        $user = User::where(["phone" => $phoneNumber])->first();
 
 
         if (!$user) {
@@ -1373,7 +1373,7 @@ class OwnerController extends Controller
 
 
 
-        $user =    tap(User::where(["id" => $request->id]))->update(
+        $user = tap(User::where(["id" => $request->id]))->update(
             $updatableData
         )
             // ->with("somthing")
@@ -1468,22 +1468,22 @@ class OwnerController extends Controller
 
         // Validate input
         $validated = $request->validate([
-            'first_Name'    => 'required|string|max:255',
-            'last_Name'     => 'required|string|max:255',
-            'phone'         => 'required|string|max:20',
-            'Address'       => 'required|string|max:255',
-            'door_no'       => 'nullable|string|max:50',
-            'post_code'     => 'nullable|string|max:20',
-            'password'      => 'nullable|string|min:8|confirmed', // assumes password_confirmation is sent if needed
-            'old_password'  => 'required_with:password|string',
+            'first_Name' => 'required|string|max:255',
+            'last_Name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'Address' => 'required|string|max:255',
+            'door_no' => 'nullable|string|max:50',
+            'post_code' => 'nullable|string|max:20',
+            'password' => 'nullable|string|min:8|confirmed', // assumes password_confirmation is sent if needed
+            'old_password' => 'required_with:password|string',
         ]);
 
         // GET VALIDATED DATA
         $updatableData = [
             'first_Name' => $validated['first_Name'],
-            'last_Name'  => $validated['last_Name'],
-            'phone'      => $validated['phone'],
-            'Address'    => $validated['Address'],
+            'last_Name' => $validated['last_Name'],
+            'phone' => $validated['phone'],
+            'Address' => $validated['Address'],
         ];
 
         if (!empty($validated['post_code'])) {
@@ -1511,7 +1511,7 @@ class OwnerController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'User updated successfully',
-            'data'    => $updatedUser
+            'data' => $updatedUser
         ], 200);
     }
 

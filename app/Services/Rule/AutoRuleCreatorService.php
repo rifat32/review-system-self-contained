@@ -1,5 +1,5 @@
 <?php
-// app/Helpers/AutoRuleCreator.php
+// app/Services/Rule/AutoRuleCreatorService.php
 
 namespace App\Services\Rule;
 
