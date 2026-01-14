@@ -1517,7 +1517,7 @@ class StaffController extends Controller
             })
             ->get();
 
-        $complimentRatio = calculateComplimentRatio($currentReviews);
+        $complimentRatio = AIProcessorService::calculateComplimentRatio($currentReviews);
 
         return response()->json([
             'success' => true,

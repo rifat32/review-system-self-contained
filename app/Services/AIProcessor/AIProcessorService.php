@@ -1242,32 +1242,32 @@ class AIProcessorService
     /**
      * Extract staff topics dynamically
      */
-    public static function extractStaffTopics($staffReviews)
-    {
-        $allTopics = [];
+    // public static function extractStaffTopics($staffReviews)
+    // {
+    //     $allTopics = [];
 
-        foreach ($staffReviews as $review) {
-            if ($review->topics && is_array($review->topics)) {
-                foreach ($review->topics as $topic) {
-                    $allTopics[$topic] = ($allTopics[$topic] ?? 0) + 1;
-                }
-            }
+    //     foreach ($staffReviews as $review) {
+    //         if ($review->topics && is_array($review->topics)) {
+    //             foreach ($review->topics as $topic) {
+    //                 $allTopics[$topic] = ($allTopics[$topic] ?? 0) + 1;
+    //             }
+    //         }
 
-            if (empty($review->topics) && $review->comment) {
-                $commonWords = RuleEngineService::getCommonStaffTopicKeywords();
-                $comment = strtolower($review->comment);
+    //         if (empty($review->topics) && $review->comment) {
+    //             $commonWords = RuleEngineService::getCommonStaffTopicKeywords();
+    //             $comment = strtolower($review->comment);
 
-                foreach ($commonWords as $word) {
-                    if (strpos($comment, $word) !== false) {
-                        $allTopics[$word] = ($allTopics[$word] ?? 0) + 1;
-                    }
-                }
-            }
-        }
+    //             foreach ($commonWords as $word) {
+    //                 if (strpos($comment, $word) !== false) {
+    //                     $allTopics[$word] = ($allTopics[$word] ?? 0) + 1;
+    //                 }
+    //             }
+    //         }
+    //     }
 
-        arsort($allTopics);
-        return $allTopics;
-    }
+    //     arsort($allTopics);
+    //     return $allTopics;
+    // }
 
     /**
      * Calculate performance overview from review value dynamically
@@ -1375,31 +1375,31 @@ class AIProcessorService
     /**
      * Get recent submissions
      */
-    public static function getRecentSubmissions($reviews, $limit = 5)
-    {
-        return $reviews->sortByDesc('created_at')
-            ->take($limit)
-            ->map(function ($review) {
-                $userName = ReviewService::getUserName($review);
+    // public static function getRecentSubmissions($reviews, $limit = 5)
+    // {
+    //     return $reviews->sortByDesc('created_at')
+    //         ->take($limit)
+    //         ->map(function ($review) {
+    //             $userName = ReviewService::getUserName($review);
 
-                return [
-                    'review_id' => $review->id,
-                    'user_name' => $userName,
-                    'rating' => $review->calculated_rating,
-                    'comment' => $review->comment,
-                    'submission_date' => $review->created_at->diffForHumans(),
-                    'exact_date' => $review->created_at->format('d-m-Y H:i:s'),
-                    'is_guest' => !is_null($review->guest_id),
-                    'is_overall' => (bool) $review->is_overall,
-                    'sentiment_score' => $review->sentiment_score,
-                    'survey_name' => $review->survey ? $review->survey->name : null,
-                    'staff_name' => $review->staff ? $review->staff->name : null,
-                    "calculated_rating" => $review->calculated_rating ?? null,
-                ];
-            })
-            ->values()
-            ->toArray();
-    }
+    //             return [
+    //                 'review_id' => $review->id,
+    //                 'user_name' => $userName,
+    //                 'rating' => $review->calculated_rating,
+    //                 'comment' => $review->comment,
+    //                 'submission_date' => $review->created_at->diffForHumans(),
+    //                 'exact_date' => $review->created_at->format('d-m-Y H:i:s'),
+    //                 'is_guest' => !is_null($review->guest_id),
+    //                 'is_overall' => (bool) $review->is_overall,
+    //                 'sentiment_score' => $review->sentiment_score,
+    //                 'survey_name' => $review->survey ? $review->survey->name : null,
+    //                 'staff_name' => $review->staff ? $review->staff->name : null,
+    //                 "calculated_rating" => $review->calculated_rating ?? null,
+    //             ];
+    //         })
+    //         ->values()
+    //         ->toArray();
+    // }
 
     /**
      * Get rating gap message dynamically
@@ -1602,52 +1602,56 @@ class AIProcessorService
     /**
      * Get review feed
      */
-    public static function getReviewFeed($businessId, $dateRange = null, $limit = 10, $user = null)
-    {
-        $userBranchId = ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')))
-            ? $user->default_branch_id
-            : null;
+    // public static function getReviewFeed(
+    //     $businessId,
+    //     $dateRange = null,
+    //     $limit = 10,
+    //     $user = null
+    // ) {
+    //     $userBranchId = ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')))
+    //         ? $user->default_branch_id
+    //         : null;
 
-        $query = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tags', 'value'])
-            ->where('business_id', $businessId)
-            ->orderBy('created_at', 'desc')
-            ->globalFilters(0, $businessId)
-            ->limit($limit)
-            ->withCalculatedRating();
+    //     $query = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tags', 'value'])
+    //         ->where('business_id', $businessId)
+    //         ->orderBy('created_at', 'desc')
+    //         ->globalFilters(0, $businessId)
+    //         ->limit($limit)
+    //         ->withCalculatedRating();
 
-        if ($dateRange) {
-            $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-        }
+    //     if ($dateRange) {
+    //         $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+    //     }
 
-        if ($userBranchId) {
-            $query->where('branch_id', $userBranchId);
-        }
+    //     if ($userBranchId) {
+    //         $query->where('branch_id', $userBranchId);
+    //     }
 
-        $reviews = $query->get();
+    //     $reviews = $query->get();
 
-        return $reviews->map(function ($review) {
-            $calculatedRating = (float) $review->calculated_rating;
-            $user = $review->user;
+    //     return $reviews->map(function ($review) {
+    //         $calculatedRating = (float) $review->calculated_rating;
+    //         $user = $review->user;
 
-            return [
-                'id' => $review->id,
-                'responded_at' => $review->responded_at,
-                'rating' => ($calculatedRating ?? 0) . '/5',
-                'calculated_rating' => $calculatedRating,
-                'author' => $review->user?->name ?? $review->guest_user?->full_name ?? 'Anonymous',
-                'author_image' => $review->user?->image ?? null,
-                'time_ago' => $review->created_at->diffForHumans(),
-                'comment' => $review->comment,
-                'staff_name' => $review->staff?->name,
-                'tags' => $review->value->flatMap(function ($value) {
-                    return $value->tags->pluck('tag')->all();
-                })->filter()->unique()->values()->toArray(),
-                'is_voice' => $review->is_voice_review,
-                'sentiment' => self::getSentimentLabel($review->sentiment_score),
-                'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])
-            ];
-        });
-    }
+    //         return [
+    //             'id' => $review->id,
+    //             'responded_at' => $review->responded_at,
+    //             'rating' => ($calculatedRating ?? 0) . '/5',
+    //             'calculated_rating' => $calculatedRating,
+    //             'author' => $review->user?->name ?? $review->guest_user?->full_name ?? 'Anonymous',
+    //             'author_image' => $review->user?->image ?? null,
+    //             'time_ago' => $review->created_at->diffForHumans(),
+    //             'comment' => $review->comment,
+    //             'staff_name' => $review->staff?->name,
+    //             'tags' => $review->value->flatMap(function ($value) {
+    //                 return $value->tags->pluck('tag')->all();
+    //             })->filter()->unique()->values()->toArray(),
+    //             'is_voice' => $review->is_voice_review,
+    //             'sentiment' => self::getSentimentLabel($review->sentiment_score),
+    //             'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])
+    //         ];
+    //     });
+    // }
 
     /**
      * Get audio duration
@@ -2082,7 +2086,7 @@ class AIProcessorService
                 'negative_reviews' => $negativeCount,
                 'common_praise' => array_slice($commonPraise, 0, 3),
                 'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'No reviews',
-                'rating_trend' => \App\Services\Staff\StaffPerformanceService::calculateStaffRatingTrend(collect($reviews)),
+                'rating_trend' => StaffPerformanceService::calculateStaffRatingTrend(collect($reviews)),
                 'performance_level' => RuleEngineService::identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage)
             ];
         }

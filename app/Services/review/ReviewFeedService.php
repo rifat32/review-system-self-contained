@@ -12,8 +12,12 @@ class ReviewFeedService
     /**
      * Get review feed
      */
-    public static function getReviewFeed($businessId, $dateRange = null, $limit = 10, $user = null)
-    {
+    public static function getReviewFeed(
+        $businessId,
+        $dateRange = null,
+        $limit = 10,
+        $user = null
+    ) {
         $userBranchId = ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')))
             ? $user->default_branch_id
             : null;

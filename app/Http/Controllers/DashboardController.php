@@ -1861,10 +1861,10 @@ class DashboardController extends Controller
 
         $tenure = ReviewService::calculateTenure($staff->join_date);
         $ratingTrend = ReviewService::getRatingTrendFromReviewValue($reviews);
-        $reviewSamples = getReviewSamples($reviews);
-        $recommendedTraining = getRecommendedTraining($reviews);
-        $skillGapAnalysis = analyzeSkillGaps($reviews);
-        $customerTone = calculateCustomerTone($reviews);
+        $reviewSamples = AIProcessorService::getReviewSamples($reviews);
+        $recommendedTraining = AIProcessorService::getRecommendedTraining($reviews);
+        $skillGapAnalysis = AIProcessorService::analyzeSkillGaps($reviews);
+        $customerTone = AIProcessorService::calculateCustomerTone($reviews);
 
         return response()->json([
             "success" => true,
