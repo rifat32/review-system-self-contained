@@ -10,6 +10,7 @@ use App\Models\ReviewNew;
 use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Branch\BranchService;
 use App\Services\Review\ReviewService;
+use App\Services\Review\RecentReviewService;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -19,12 +20,19 @@ class BranchController extends Controller
 {
     private $branchService;
     private $reviewService;
+    private AIProcessorService $aiProcessorService;
+    private $recentReviewService;
+
     public function __construct(
         BranchService $branchService,
-        ReviewService $reviewService
+        ReviewService $reviewService,
+        AIProcessorService $aiProcessorService,
+        RecentReviewService $recentReviewService
     ) {
         $this->branchService = $branchService;
         $this->reviewService = $reviewService;
+        $this->aiProcessorService = $aiProcessorService;
+        $this->recentReviewService = $recentReviewService;
     }
 
     /**
@@ -937,7 +945,7 @@ class BranchController extends Controller
 
             // ==================== GENERATE AI INSIGHTS ====================
             // Use existing AIProcessor instead of duplicating logic
-            $insights = AIProcessorService::generateAiInsights($reviews);
+            $insights = $this->aiProcessorService->generateAiInsights($reviews);
 
             // ==================== RETURN RESPONSE ====================
             return response()->json([
@@ -945,7 +953,6 @@ class BranchController extends Controller
                 'message' => 'AI insights generated successfully',
                 'data' => $insights
             ], 200);
-
         } catch (Exception $e) {
             throw $e;
         }
@@ -1085,7 +1092,7 @@ class BranchController extends Controller
         $startDate = $dateRange['start'];
         $endDate = $dateRange['end'];
 
-        $staffPerformance = AIProcessorService::getStaffPerformance(
+        $staffPerformance = $this->aiProcessorService->getStaffPerformance(
             branchId: $branchId,
             businessId: $businessId,
             startDate: $startDate,
@@ -1231,14 +1238,14 @@ class BranchController extends Controller
 
 
         // ==================== GET REVIEWS ====================
-        $reviews = ReviewService::getCurrentPeriodReviews(
+        $reviews = $this->reviewService->getCurrentPeriodReviews(
             businessId: $businessId,
             branchId: $branchId,
             dateRange: $dateRange === 'all_time' ? null : $dateRange,
         );
 
         // ==================== GET RECENT REVIEWS ====================
-        $recentReviews = \App\Services\Review\RecentReviewService::getRecentReviews(
+        $recentReviews = $this->recentReviewService->getRecentReviews(
             reviews: $reviews,
             limit: $request->get('limit', 5)
         );
@@ -1373,14 +1380,14 @@ class BranchController extends Controller
 
 
         // ==================== GET REVIEWS ====================
-        $reviews = ReviewService::getCurrentPeriodReviews(
+        $reviews = $this->reviewService->getCurrentPeriodReviews(
             businessId: $businessId,
             branchId: $branchId,
             dateRange: $dateRange === 'all_time' ? null : $dateRange,
         );
 
         // ==================== GET RECENT REVIEWS ====================
-        $branchRecommendations = AIProcessorService::generateBranchRecommendationsFromRuleEngine(
+        $branchRecommendations = $this->aiProcessorService->generateBranchRecommendationsFromRuleEngine(
             reviews: $reviews,
             businessId: $businessId,
             branchId: $branchId,

@@ -29,10 +29,32 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class DashboardController extends Controller
 {
     private $dashboardService;
+    private $aiProcessorService;
+    private $businessAnalyticsService;
+    private $recentReviewService;
+    private $reviewMetricsService;
+    private $reviewService;
+    private $staffPerformanceService;
+    private $reviewFeedService;
 
-    public function __construct(DashboardService $dashboardService)
-    {
+    public function __construct(
+        DashboardService $dashboardService,
+        AIProcessorService $aiProcessorService,
+        BusinessAnalyticsService $businessAnalyticsService,
+        RecentReviewService $recentReviewService,
+        ReviewMetricsService $reviewMetricsService,
+        ReviewService $reviewService,
+        StaffPerformanceService $staffPerformanceService,
+        ReviewFeedService $reviewFeedService
+    ) {
         $this->dashboardService = $dashboardService;
+        $this->aiProcessorService = $aiProcessorService;
+        $this->businessAnalyticsService = $businessAnalyticsService;
+        $this->recentReviewService = $recentReviewService;
+        $this->reviewMetricsService = $reviewMetricsService;
+        $this->reviewService = $reviewService;
+        $this->staffPerformanceService = $staffPerformanceService;
+        $this->reviewFeedService = $reviewFeedService;
     }
 
     private function getBaseQueries(Request $request)
@@ -556,7 +578,7 @@ class DashboardController extends Controller
         );
 
         // Analyze services performance
-        $servicesAnalysis = BusinessAnalyticsService::analyzeBusinessServicesPerformance($businessId, $dateRange);
+        $servicesAnalysis = $this->businessAnalyticsService->analyzeBusinessServicesPerformance($businessId, $dateRange);
 
         // Apply minimum reviews filter if specified
         $minReviews = $request->input('min_reviews', 3);
@@ -685,7 +707,7 @@ class DashboardController extends Controller
         $criteria = $request->input('criteria', 'rating');
 
         // Use the updated method
-        $performanceAnalysis = AIProcessorService::getTopWorstStaff($businessId, $dateRange, $limit, $criteria);
+        $performanceAnalysis = $this->aiProcessorService->getTopWorstStaff($businessId, $dateRange, $limit, $criteria);
 
         return response()->json([
             'success' => true,
@@ -805,7 +827,7 @@ class DashboardController extends Controller
 
 
         // Get insights overview data
-        $insightsData = AIProcessorService::getInsightsOverview($businessId, $dateRange);
+        $insightsData = $this->aiProcessorService->getInsightsOverview($businessId, $dateRange);
 
         return response()->json([
             'success' => true,
@@ -882,7 +904,7 @@ class DashboardController extends Controller
 
         $staffReviews = $staffReviewQuery->get();
         // Calculate overall sentiment
-        $sentiment_data = AIProcessorService::calculateAggregatedSentiment($staffReviews);
+        $sentiment_data = $this->aiProcessorService->calculateAggregatedSentiment($staffReviews);
         $sentiment_status = is_array($sentiment_data) ? $sentiment_data['sentiment_label'] : $sentiment_data;
 
         $topPerformer = null;
@@ -1331,7 +1353,7 @@ class DashboardController extends Controller
         }
 
         // Format period display text
-        $periodDisplayText = \App\Services\Review\ReviewService::formatPeriodDisplay($startDate, $endDate);
+        $periodDisplayText = $this->reviewService->formatPeriodDisplay($startDate, $endDate);
 
         $data = [
             'period' => [
@@ -1495,22 +1517,22 @@ class DashboardController extends Controller
         $allBranchMetrics = [];
 
         foreach ($branches as $branch) {
-            $branchData = AIProcessorService::getBranchComparisonData($branch, $startDate, $endDate);
+            $branchData = $this->aiProcessorService->getBranchComparisonData($branch, $startDate, $endDate);
             $comparisonData[] = $branchData;
             $allBranchMetrics[$branch->id] = $branchData['metrics'];
         }
 
         // Generate AI insights based on comparison
-        $aiInsights = AIProcessorService::generateBranchComparisonInsights($comparisonData, $allBranchMetrics);
+        $aiInsights = $this->aiProcessorService->generateBranchComparisonInsights($comparisonData, $allBranchMetrics);
 
         // Generate comparison highlights
-        $comparisonHighlights = AIProcessorService::generateComparisonHighlights($comparisonData);
+        $comparisonHighlights = $this->aiProcessorService->generateComparisonHighlights($comparisonData);
 
         // Get sentiment trend over time (for chart)
-        $sentimentTrend = AIProcessorService::getSentimentTrendOverTime($branches, $startDate, $endDate);
+        $sentimentTrend = $this->aiProcessorService->getSentimentTrendOverTime($branches, $startDate, $endDate);
 
         // Get staff performance complaints
-        $staffComplaints = AIProcessorService::getStaffComplaintsByBranch($branches, $startDate, $endDate);
+        $staffComplaints = $this->aiProcessorService->getStaffComplaintsByBranch($branches, $startDate, $endDate);
 
         $data = [
             'selected_branches' => $branches->pluck('name'),
@@ -1630,7 +1652,7 @@ class DashboardController extends Controller
         $recommendations = generateBranchRecommendations($reviews, $branchId);
 
         // Get recent reviews (last 5)
-        $recentReviews = \App\Services\Review\RecentReviewService::getRecentReviews($reviews);
+        $recentReviews = $this->recentReviewService->getRecentReviews($reviews);
 
         // Get staff performance (top 5)
         $staffPerformance = getStaffPerformance($branchId, $businessId, $startDate, $endDate);
@@ -1861,12 +1883,12 @@ class DashboardController extends Controller
             ? round($reviews->avg('calculated_rating'), 1)
             : 0;
 
-        $tenure = ReviewService::calculateTenure($staff->join_date);
-        $ratingTrend = ReviewService::getRatingTrendFromReviewValue($reviews);
-        $reviewSamples = AIProcessorService::getReviewSamples($reviews);
-        $recommendedTraining = AIProcessorService::getRecommendedTraining($reviews);
-        $skillGapAnalysis = AIProcessorService::analyzeSkillGaps($reviews);
-        $customerTone = AIProcessorService::calculateCustomerTone($reviews);
+        $tenure = $this->reviewService->calculateTenure($staff->join_date);
+        $ratingTrend = $this->reviewService->getRatingTrendFromReviewValue($reviews);
+        $reviewSamples = $this->aiProcessorService->getReviewSamples($reviews);
+        $recommendedTraining = $this->aiProcessorService->getRecommendedTraining($reviews);
+        $skillGapAnalysis = $this->aiProcessorService->analyzeSkillGaps($reviews);
+        $customerTone = $this->aiProcessorService->calculateCustomerTone($reviews);
 
         return response()->json([
             "success" => true,
@@ -1984,18 +2006,18 @@ class DashboardController extends Controller
             ->with(['user', 'guest_user', 'survey'])
             ->withCalculatedRating();
 
-        $reviewsQuery = ReviewService::applyFilters($reviewsQuery, $filters);
+        $reviewsQuery = $this->reviewService->applyFilters($reviewsQuery, $filters);
         $reviews = (clone $reviewsQuery)->get();
 
         // Calculate performance overview using ReviewValueNew
-        $performance_overview = AIProcessorService::calculatePerformanceOverviewFromReviewValue($reviews);
+        $performance_overview = $this->aiProcessorService->calculatePerformanceOverviewFromReviewValue($reviews);
 
-        $submissionsOverTime = ReviewMetricsService::getSubmissionsOverTime((clone $reviewsQuery), $filters['period']);
+        $submissionsOverTime = $this->reviewMetricsService->getSubmissionsOverTime((clone $reviewsQuery), $filters['period']);
 
-        $recentSubmissions = RecentReviewService::getRecentSubmissions($reviews);
+        $recentSubmissions = $this->recentReviewService->getRecentSubmissions($reviews);
 
         // NEW: Get top three staff
-        $topStaff = StaffPerformanceService::getTopThreeStaff($businessId, $filters);
+        $topStaff = $this->staffPerformanceService->getTopThreeStaff($businessId, $filters);
 
         $filterSummary = $this->getFilterSummary($filters, $business);
 
@@ -2160,10 +2182,10 @@ class DashboardController extends Controller
         $dateRange = getDateRangeByPeriod($period);
 
         // Calculate metrics using existing methods
-        $metrics = ReviewService::calculateDashboardMetrics($businessId, $dateRange);
+        $metrics = $this->reviewService->calculateDashboardMetrics($businessId, $dateRange);
 
         // Get rating breakdown using existing getAverage method logic
-        $ratingBreakdown = ReviewService::extractRatingBreakdown(
+        $ratingBreakdown = $this->reviewService->extractRatingBreakdown(
             ReviewNew::withCalculatedRating()
                 ->globalFilters(0, $businessId)
                 ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
@@ -2171,19 +2193,19 @@ class DashboardController extends Controller
         );
 
         // Get tags breakdown (NEW)
-        $tagsBreakdown = ReviewService::extractTagsBreakdown($businessId, $dateRange, $user);
+        $tagsBreakdown = $this->reviewService->extractTagsBreakdown($businessId, $dateRange, $user);
 
         // Get AI insights using existing AI pipeline
-        $aiInsights = BusinessAnalyticsService::getAiInsightsPanel($businessId, $dateRange);
+        $aiInsights = $this->businessAnalyticsService->getAiInsightsPanel($businessId, $dateRange);
 
         // Get staff performance using existing staff suggestions
-        $staffPerformance = StaffPerformanceService::getStaffPerformanceSnapshot($businessId, $dateRange);
+        $staffPerformance = $this->staffPerformanceService->getStaffPerformanceSnapshot($businessId, $dateRange);
 
         // Get recent reviews feed
-        $reviewFeed = ReviewFeedService::getReviewFeed($businessId, $dateRange);
+        $reviewFeed = $this->reviewFeedService->getReviewFeed($businessId, $dateRange);
 
         // Get available filters
-        $filters = ReviewService::getAvailableFilters($businessId);
+        $filters = $this->reviewService->getAvailableFilters($businessId);
 
         return response()->json([
             'success' => true,
@@ -2281,7 +2303,7 @@ class DashboardController extends Controller
         );
 
         // Get recent reviews feed
-        $reviewFeed = ReviewFeedService::getReviewFeed(
+        $reviewFeed = $this->reviewFeedService->getReviewFeed(
             businessId: $businessId,
             dateRange: $dateRange,
             limit: 10,
@@ -2376,7 +2398,7 @@ class DashboardController extends Controller
             $reviewsQuery->where('branch_id', $userBranchId);
         }
 
-        $ratingBreakdown = \App\Services\Review\ReviewService::extractRatingBreakdown($reviewsQuery->get());
+        $ratingBreakdown = $this->reviewService->extractRatingBreakdown($reviewsQuery->get());
 
         return response()->json([
             'success' => true,
@@ -2451,7 +2473,7 @@ class DashboardController extends Controller
         );
 
         // Get tags breakdown
-        $tagsBreakdown = \App\Services\Review\ReviewService::extractTagsBreakdown($businessId, $dateRange, $user);
+        $tagsBreakdown = $this->reviewService->extractTagsBreakdown($businessId, $dateRange, $user);
 
         return response()->json([
             'success' => true,
@@ -2521,7 +2543,7 @@ class DashboardController extends Controller
         );
 
         // Get AI insights
-        $aiInsights = BusinessAnalyticsService::getAiInsightsPanel($businessId, $dateRange, $user);
+        $aiInsights = $this->businessAnalyticsService->getAiInsightsPanel($businessId, $dateRange, $user);
 
         return response()->json([
             'success' => true,
@@ -2596,7 +2618,7 @@ class DashboardController extends Controller
         $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
 
         // Get staff performance
-        $staffPerformance = StaffPerformanceService::getStaffPerformanceSnapshot($businessId, $dateRange);
+        $staffPerformance = $this->staffPerformanceService->getStaffPerformanceSnapshot($businessId, $dateRange);
 
         return response()->json([
             'success' => true,
@@ -2714,11 +2736,11 @@ class DashboardController extends Controller
         $businessId = $user->business_id;
 
         // Validate period and get date range using service
-        $dateRange = DashboardService::validateAndGetDateRange(
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
             $request->get('period', 'last_30_days')
         );
         // Calculate metrics using DashboardService
-        $metrics = DashboardService::calculateMetrics($businessId, $dateRange, $user);
+        $metrics = $this->dashboardService->calculateMetrics($businessId, $dateRange, $user);
 
 
         return response()->json([
@@ -2810,7 +2832,7 @@ class DashboardController extends Controller
             $query->where('branch_id', $userBranchId);
         }
 
-        $data = extractRatingBreakdown($query->get());
+        $data = $this->reviewService->extractRatingBreakdown($query->get());
 
         return response($data, 200);
     }

@@ -11,12 +11,28 @@ use App\Services\Rule\RuleEngineService;
 
 class BusinessAnalyticsService
 {
+    private AIProcessorService $aiProcessorService;
+    private InsightAggregationService $insightAggregationService;
+    private RecommendationGeneratorService $recommendationGeneratorService;
+    private RuleEngineService $ruleEngineService;
+
+    public function __construct(
+        AIProcessorService $aiProcessorService,
+        InsightAggregationService $insightAggregationService,
+        RecommendationGeneratorService $recommendationGeneratorService,
+        RuleEngineService $ruleEngineService
+    ) {
+        $this->aiProcessorService = $aiProcessorService;
+        $this->insightAggregationService = $insightAggregationService;
+        $this->recommendationGeneratorService = $recommendationGeneratorService;
+        $this->ruleEngineService = $ruleEngineService;
+    }
     // ==================== BUSINESS SERVICES PERFORMANCE ====================
 
     /**
      * Analyze business services performance
      */
-    public static function analyzeBusinessServicesPerformance($businessId, $dateRange = null, $user = null)
+    public function analyzeBusinessServicesPerformance($businessId, $dateRange = null, $user = null)
     {
         // Get all business services for this business
         $businessServices = BusinessService::where('business_id', $businessId)
@@ -86,7 +102,7 @@ class BusinessAnalyticsService
                         return [
                             'comment' => substr($review->comment ?? '', 0, 100) . (strlen($review->comment ?? '') > 100 ? '...' : ''),
                             'rating' => round($review->calculated_rating ?? 0, 1),
-                            'sentiment' => AIProcessorService::getSentimentLabel($review->sentiment_score ?? 0),
+                            'sentiment' => $this->aiProcessorService->getSentimentLabel($review->sentiment_score ?? 0),
                             'date' => $review->created_at->format('M d, Y')
                         ];
                     })
@@ -148,7 +164,7 @@ class BusinessAnalyticsService
     /**
      * Get AI insights panel dynamically
      */
-    public static function getAiInsightsPanel($businessId, $dateRange = null, $user = null): array
+    public function getAiInsightsPanel($businessId, $dateRange = null, $user = null): array
     {
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('ai_suggestions')
@@ -170,12 +186,12 @@ class BusinessAnalyticsService
         $reviews = $reviewsQuery->get();
 
         // Get insights from rule engine
-        $insights = InsightAggregationService::getDashboardInsights($businessId, 10);
+        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10);
 
-        $summary = self::generateAiSummaryFromRuleEngine($businessId, $reviews);
-        $issues = self::extractIssuesFromRuleEngine($businessId, $reviews, $dateRange ?? ['start' => now()->subMonth(), 'end' => now()]);
-        $opportunities = AIProcessorService::extractOpportunitiesFromSuggestions($reviews->pluck('ai_suggestions')->flatten());
-        $predictions = AIProcessorService::generatePredictions($reviews);
+        $summary = $this->generateAiSummaryFromRuleEngine($businessId, $reviews);
+        $issues = $this->extractIssuesFromRuleEngine($businessId, $reviews, $dateRange ?? ['start' => now()->subMonth(), 'end' => now()]);
+        $opportunities = $this->aiProcessorService->extractOpportunitiesFromSuggestions($reviews->pluck('ai_suggestions')->flatten());
+        $predictions = $this->aiProcessorService->generatePredictions($reviews);
 
         return [
             'summary' => $summary,
@@ -190,17 +206,17 @@ class BusinessAnalyticsService
     /**
      * Generate AI summary using rule engine insights
      */
-    public static function generateAiSummaryFromRuleEngine(int $businessId, $reviews): string
+    public function generateAiSummaryFromRuleEngine(int $businessId, $reviews): string
     {
-        $insights = InsightAggregationService::getDashboardInsights($businessId, 10);
+        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10);
 
         if (empty($insights)) {
             return 'No reviews to analyze.';
         }
 
         // Use dynamic thresholds
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+        $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
@@ -212,18 +228,18 @@ class BusinessAnalyticsService
         // Get top issue from insights
         $topIssue = null;
         foreach ($insights as $insight) {
-            if ($insight['mentions'] >= RuleEngineService::getHighIssueThreshold() && $insight['severity'] === 'high') {
+            if ($insight['mentions'] >= $this->ruleEngineService->getHighIssueThreshold() && $insight['severity'] === 'high') {
                 $topIssue = "{$insight['category']} - {$insight['sub_category']}";
                 break;
             }
         }
 
-        $summary = RuleEngineService::generateSummaryTemplate($positivePercent, $negativePercent);
+        $summary = $this->ruleEngineService->generateSummaryTemplate($positivePercent, $negativePercent);
 
         if ($topIssue) {
             $summary .= " A recurring concern mentioned is {$topIssue}.";
         } else {
-            $summary .= " " . RuleEngineService::getDefaultSummaryPhrase();
+            $summary .= " " . $this->ruleEngineService->getDefaultSummaryPhrase();
         }
 
         return $summary;
@@ -234,9 +250,9 @@ class BusinessAnalyticsService
     /**
      * Extract issues from rule engine insights
      */
-    public static function extractIssuesFromRuleEngine(int $businessId, $reviews, $dateRange): array
+    public function extractIssuesFromRuleEngine(int $businessId, $reviews, $dateRange): array
     {
-        $insights = InsightAggregationService::getDashboardInsights($businessId, 10);
+        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10);
 
         if (empty($insights)) {
             return [
@@ -265,8 +281,8 @@ class BusinessAnalyticsService
     /**
      * Get recommendations from rule engine
      */
-    public static function getRecommendationsFromRuleEngine(int $businessId, $reviews, $dateRange): array
+    public function getRecommendationsFromRuleEngine(int $businessId, $reviews, $dateRange): array
     {
-        return RecommendationGeneratorService::generateFromInsights($businessId, 30);
+        return $this->recommendationGeneratorService->generateFromInsights($businessId, 30);
     }
 }

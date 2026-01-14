@@ -14,6 +14,22 @@ use Illuminate\Validation\ValidationException;
 
 class BranchService
 {
+    private ReviewService $reviewService;
+    private ReviewMetricsService $reviewMetricsService;
+    private ReviewTopicService $reviewTopicService;
+    private BusinessAnalyticsService $businessAnalyticsService;
+
+    public function __construct(
+        ReviewService $reviewService,
+        ReviewMetricsService $reviewMetricsService,
+        ReviewTopicService $reviewTopicService,
+        BusinessAnalyticsService $businessAnalyticsService
+    ) {
+        $this->reviewService = $reviewService;
+        $this->reviewMetricsService = $reviewMetricsService;
+        $this->reviewTopicService = $reviewTopicService;
+        $this->businessAnalyticsService = $businessAnalyticsService;
+    }
 
     private const FILTERABLE_FIELDS = [
         "last_30_days",
@@ -51,7 +67,7 @@ class BranchService
      * @param User|null $user User for permission checking
      * @return array
      */
-    public static function getBranchMetricsWithComparison(
+    public function getBranchMetricsWithComparison(
         int $branchId,
         ?array $dateRange = null,
         ?User $user = null
@@ -63,7 +79,7 @@ class BranchService
         // ==================== GET REVIEWS USING REVIEW SERVICE ====================
 
         // Get current and previous period reviews using ReviewService
-        $reviews = ReviewService::getCurrentAndComparisonReviews(
+        $reviews = $this->reviewService->getCurrentAndComparisonReviews(
             businessId: $businessId,
             branchId: $branchId,
             dateRange: $dateRange
@@ -73,30 +89,30 @@ class BranchService
         $previousReviews = $reviews['previous'];
 
         // ==================== BASIC COUNTS ====================
-        $reviewCounts = ReviewMetricsService::getReviewCountWithComparison($currentReviews, $previousReviews);
+        $reviewCounts = $this->reviewMetricsService->getReviewCountWithComparison($currentReviews, $previousReviews);
 
         // ==================== AVERAGE RATING ====================
-        $ratingMetrics = ReviewMetricsService::getRatingWithComparison($currentReviews, $previousReviews);
+        $ratingMetrics = $this->reviewMetricsService->getRatingWithComparison($currentReviews, $previousReviews);
 
         // ==================== SENTIMENT ANALYSIS ====================
-        $sentimentMetrics = ReviewMetricsService::getSentimentWithComparison($currentReviews, $previousReviews);
+        $sentimentMetrics = $this->reviewMetricsService->getSentimentWithComparison($currentReviews, $previousReviews);
 
         // ==================== CSAT SCORE ====================
-        $csatMetrics = ReviewMetricsService::calculateCSATScore($businessId, $branchId, $dateRange);
+        $csatMetrics = $this->reviewMetricsService->calculateCSATScore($businessId, $branchId, $dateRange);
 
         // ==================== FLAGGED REVIEWS ====================
-        $flaggedMetrics = ReviewMetricsService::getFlaggedReviews($businessId, $branchId, $dateRange);
+        $flaggedMetrics = $this->reviewMetricsService->getFlaggedReviews($businessId, $branchId, $dateRange);
 
         // ==================== TOP TOPICS ====================
-        $topTopicSummary = ReviewTopicService::getTopTopicSummary($currentReviews);
+        $topTopicSummary = $this->reviewTopicService->getTopTopicSummary($currentReviews);
 
         // ==================== REPEATED ISSUES ====================
-        $issueAnalysis = BusinessAnalyticsService::extractIssuesFromRuleEngine(
+        $issueAnalysis = $this->businessAnalyticsService->extractIssuesFromRuleEngine(
             $businessId,
             $currentReviews,
             [
-                'start' => $currentReviews->min('created_at') ?? now()->subMonth(),
-                'end' => $currentReviews->max('created_at') ?? now()
+                'start' => $currentReviews->min('created_at') ?? \now()->subMonth(),
+                'end' => $currentReviews->max('created_at') ?? \now()
             ]
         );
 
@@ -107,7 +123,7 @@ class BranchService
         $repeatedIssuesCount = count($issueAnalysis['repeated_issues'] ?? []);
 
         // ==================== STAFF METRICS ====================
-        $staffMetrics = ReviewMetricsService::getStaffCountWithComparison($currentReviews, $previousReviews);
+        $staffMetrics = $this->reviewMetricsService->getStaffCountWithComparison($currentReviews, $previousReviews);
 
         // ==================== BUILD RESPONSE ====================
         return [
@@ -141,7 +157,7 @@ class BranchService
     /**
      * Get top performing staff for a branch
      */
-    public static function getTopStaff(
+    public function getTopStaff(
         int $branchId,
         int $businessId,
         ?array $dateRange = null,
@@ -151,8 +167,8 @@ class BranchService
             ->where('branch_id', $branchId)
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = Carbon::parse($dateRange['start'])->startOfDay();
-                $endDate = Carbon::parse($dateRange['end'])->endOfDay();
+                $startDate = \Carbon\Carbon::parse($dateRange['start'])->startOfDay();
+                $endDate = \Carbon\Carbon::parse($dateRange['end'])->endOfDay();
                 return $query->whereBetween('created_at', [$startDate, $endDate]);
             })
             ->globalFilters(0, $businessId)

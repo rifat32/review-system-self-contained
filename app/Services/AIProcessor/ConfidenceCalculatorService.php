@@ -10,21 +10,21 @@ class ConfidenceCalculatorService
     /**
      * Calculate confidence level for insight
      */
-    public static function calculateInsightConfidence(InsightRecord $insight): array
+    public function calculateInsightConfidence(InsightRecord $insight): array
     {
-        $score = self::calculateScore($insight);
+        $score = $this->calculateScore($insight);
 
         return [
-            'level' => self::getConfidenceLevel($score),
+            'level' => $this->getConfidenceLevel($score),
             'score' => $score,
-            'factors' => self::getConfidenceFactors($insight)
+            'factors' => $this->getConfidenceFactors($insight)
         ];
     }
 
     /**
      * Calculate numeric confidence score (0-100)
      */
-    private static function calculateScore(InsightRecord $insight): int
+    private function calculateScore(InsightRecord $insight): int
     {
         $score = 0;
 
@@ -62,7 +62,7 @@ class ConfidenceCalculatorService
     /**
      * Convert score to confidence level
      */
-    private static function getConfidenceLevel(int $score): string
+    private function getConfidenceLevel(int $score): string
     {
         if ($score >= 80)
             return 'high';
@@ -74,7 +74,7 @@ class ConfidenceCalculatorService
     /**
      * Get factors contributing to confidence
      */
-    private static function getConfidenceFactors(InsightRecord $insight): array
+    private function getConfidenceFactors(InsightRecord $insight): array
     {
         $factors = [];
 
@@ -105,7 +105,7 @@ class ConfidenceCalculatorService
     /**
      * Calculate recommendation confidence
      */
-    public static function calculateRecommendationConfidence(array $recommendationData): string
+    public function calculateRecommendationConfidence(array $recommendationData): string
     {
         // Business rules for recommendation confidence
         $mentions = $recommendationData['evidence']['mentions'] ?? 0;
@@ -125,7 +125,7 @@ class ConfidenceCalculatorService
     /**
      * Get confidence badge for display
      */
-    public static function getConfidenceBadge(string $level): array
+    public function getConfidenceBadge(string $level): array
     {
         $badges = [
             'high' => [

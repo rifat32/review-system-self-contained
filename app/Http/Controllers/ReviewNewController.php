@@ -12,6 +12,8 @@ use App\Models\ReviewValueNew;
 use App\Models\Star;
 use App\Models\User;
 use App\Services\Review\ReviewService;
+use App\Services\AIProcessor\AIProcessorService;
+use App\Services\Review\ReviewMetricsService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +22,19 @@ use Illuminate\Validation\ValidationException;
 
 class ReviewNewController extends Controller
 {
+    private AIProcessorService $aiProcessorService;
+    private ReviewService $reviewService;
+    private ReviewMetricsService $reviewMetricsService;
+
+    public function __construct(
+        AIProcessorService $aiProcessorService,
+        ReviewService $reviewService,
+        ReviewMetricsService $reviewMetricsService
+    ) {
+        $this->aiProcessorService = $aiProcessorService;
+        $this->reviewService = $reviewService;
+        $this->reviewMetricsService = $reviewMetricsService;
+    }
 
     /**
      * @OA\Put(
@@ -183,7 +198,7 @@ class ReviewNewController extends Controller
             $duration = getAudioDuration($audioFile->getRealPath());
 
             // Transcribe the audio using existing method
-            $transcribedText = \App\Services\AIProcessorService::transcribeAudio($audioFile->getRealPath());
+            $transcribedText = $this->aiProcessorService->transcribeAudio($audioFile->getRealPath());
 
             // If transcription is empty, try alternative method
             // if (empty($transcribedText)) {
@@ -808,7 +823,7 @@ class ReviewNewController extends Controller
             ->avg();
 
         $review = ReviewNew::create($reviewData);
-        ReviewService::storeReviewValues($review, $request->values, $business);
+        $this->reviewService->storeReviewValues($review, $request->values, $business);
 
         if (!empty($request->business_services)) {
             $businessServicesData = [];
@@ -984,7 +999,7 @@ class ReviewNewController extends Controller
         ];
 
         $review = ReviewNew::create($reviewData);
-        ReviewService::storeReviewValues($review, $request->values, $business);
+        $this->reviewService->storeReviewValues($review, $request->values, $business);
 
         // Attach business services with their respective business_area_id
 
@@ -1455,11 +1470,11 @@ class ReviewNewController extends Controller
                 // --- A. Star Count Calculation ---
                 $starCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                     ->where([
-                            "review_news.business_id" => $businessId,
-                            "question_id" => $question->id,
-                            "star_id" => $star->id,
-                            "review_news." . $idColumnToFilter => $filterValue,
-                        ]);
+                        "review_news.business_id" => $businessId,
+                        "question_id" => $question->id,
+                        "star_id" => $star->id,
+                        "review_news." . $idColumnToFilter => $filterValue,
+                    ]);
 
                 $starCountQuery = $applyDateRangeScope($starCountQuery);
                 $starsCount = $starCountQuery->count();
@@ -1480,11 +1495,11 @@ class ReviewNewController extends Controller
                         $tagCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                             ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
                             ->where([
-                                    "review_news.business_id" => $businessId,
-                                    "question_id" => $question->id,
-                                    "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
-                                    "review_news." . $idColumnToFilter => $filterValue,
-                                ]);
+                                "review_news.business_id" => $businessId,
+                                "question_id" => $question->id,
+                                "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
+                                "review_news." . $idColumnToFilter => $filterValue,
+                            ]);
 
 
 
@@ -1508,12 +1523,12 @@ class ReviewNewController extends Controller
                         $tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                             ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
                             ->where([
-                                    "review_news.business_id" => $businessId,
-                                    "question_id" => $question->id,
-                                    "star_id" => $star->id,
-                                    "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
-                                    "review_news." . $idColumnToFilter => $filterValue,
-                                ]);
+                                "review_news.business_id" => $businessId,
+                                "question_id" => $question->id,
+                                "star_id" => $star->id,
+                                "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
+                                "review_news." . $idColumnToFilter => $filterValue,
+                            ]);
 
 
                         $tagTotalQuery = $applyDateRangeScope($tagTotalQuery);
@@ -1543,10 +1558,10 @@ class ReviewNewController extends Controller
         foreach (Star::get() as $star) {
             $starCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->where([
-                        "review_news.business_id" => $businessId,
-                        "star_id" => $star->id,
-                        "review_news." . $idColumnToFilter => $filterValue,
-                    ])
+                    "review_news.business_id" => $businessId,
+                    "star_id" => $star->id,
+                    "review_news." . $idColumnToFilter => $filterValue,
+                ])
                 ->distinct("review_value_news.review_id", "review_value_news.question_id");
 
             $starCountQuery = $applyDateRangeScope($starCountQuery);
@@ -1564,9 +1579,9 @@ class ReviewNewController extends Controller
         // 4. Fetch Total Comments
         $commentQuery = ReviewNew::with("user", "guest_user")
             ->where([
-                    "business_id" => $businessId,
-                    $idColumnToFilter => $filterValue,
-                ])
+                "business_id" => $businessId,
+                $idColumnToFilter => $filterValue,
+            ])
             ->globalFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment")
@@ -1935,10 +1950,10 @@ class ReviewNewController extends Controller
             foreach (Star::get() as $star) {
                 $selectedCount = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                     ->where([
-                            "review_news.business_id" => $businessId,
-                            "star_id" => $star->id,
-                            "review_news." . $idColumnToFilter => NULL
-                        ])
+                        "review_news.business_id" => $businessId,
+                        "star_id" => $star->id,
+                        "review_news." . $idColumnToFilter => NULL
+                    ])
                     ->whereBetween('review_news.created_at', [$startDate, $endDate])
                     ->distinct("review_value_news.review_id", "review_value_news.question_id")
                     ->count();
@@ -2180,10 +2195,10 @@ class ReviewNewController extends Controller
         $questionQuery = Question::leftjoin('review_value_news', 'questions.id', '=', 'review_value_news.question_id')
             ->leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
             ->where([
-                    "questions.business_id" => $businessId,
-                    "questions.is_default" => false,
-                    "review_news." . $primaryIdColumn => $filterValue // Filter by the specific user/guest ID
-                ])
+                "questions.business_id" => $businessId,
+                "questions.is_default" => false,
+                "review_news." . $primaryIdColumn => $filterValue // Filter by the specific user/guest ID
+            ])
             ->groupBy("questions.id")
             ->select("questions.*");
 
@@ -2205,12 +2220,12 @@ class ReviewNewController extends Controller
                 // --- A. Star Count Calculation ---
                 $starCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                     ->where([
-                            "review_news.business_id" => $businessId,
-                            "question_id" => $question->id,
-                            "star_id" => $star->id,
-                            "review_news." . $primaryIdColumn => $filterValue, // Primary filter (User/Guest ID)
-                            "review_news." . $secondaryIdColumn => $secondaryFilterValue, // Secondary filter (NULL check)
-                        ]);
+                        "review_news.business_id" => $businessId,
+                        "question_id" => $question->id,
+                        "star_id" => $star->id,
+                        "review_news." . $primaryIdColumn => $filterValue, // Primary filter (User/Guest ID)
+                        "review_news." . $secondaryIdColumn => $secondaryFilterValue, // Secondary filter (NULL check)
+                    ]);
 
                 $starsCount = $applyDateRangeScope($starCountQuery)->count();
                 $data[$key1]["stars"][$key2]["stars_count"] = $starsCount;
@@ -2228,12 +2243,12 @@ class ReviewNewController extends Controller
                         $tagCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                             ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
                             ->where([
-                                    "review_news.business_id" => $businessId,
-                                    "question_id" => $question->id,
-                                    "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
-                                    "review_news." . $primaryIdColumn => $filterValue,
-                                    "review_news." . $secondaryIdColumn => $secondaryFilterValue,
-                                ]);
+                                "review_news.business_id" => $businessId,
+                                "question_id" => $question->id,
+                                "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
+                                "review_news." . $primaryIdColumn => $filterValue,
+                                "review_news." . $secondaryIdColumn => $secondaryFilterValue,
+                            ]);
                         $tagCount = $applyDateRangeScope($tagCountQuery)->count();
 
                         if ($tagCount > 0) {
@@ -2249,13 +2264,13 @@ class ReviewNewController extends Controller
                         $tagTotalQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                             ->leftjoin('review_value_tag', 'review_value_news.id', '=', 'review_value_tag.review_value_id')
                             ->where([
-                                    "review_news.business_id" => $businessId,
-                                    "question_id" => $question->id,
-                                    "star_id" => $star->id,
-                                    "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
-                                    "review_news." . $primaryIdColumn => $filterValue,
-                                    "review_news." . $secondaryIdColumn => $secondaryFilterValue,
-                                ]);
+                                "review_news.business_id" => $businessId,
+                                "question_id" => $question->id,
+                                "star_id" => $star->id,
+                                "review_value_tag.tag_id" => $tag->id, // Changed to pivot table column
+                                "review_news." . $primaryIdColumn => $filterValue,
+                                "review_news." . $secondaryIdColumn => $secondaryFilterValue,
+                            ]);
 
                         $tagTotal = $applyDateRangeScope($tagTotalQuery)->count();
 
@@ -2282,11 +2297,11 @@ class ReviewNewController extends Controller
         foreach (Star::get() as $star) {
             $starCountQuery = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->where([
-                        "review_news.business_id" => $businessId,
-                        "star_id" => $star->id,
-                        "review_news." . $primaryIdColumn => $filterValue,
-                        "review_news." . $secondaryIdColumn => $secondaryFilterValue,
-                    ])
+                    "review_news.business_id" => $businessId,
+                    "star_id" => $star->id,
+                    "review_news." . $primaryIdColumn => $filterValue,
+                    "review_news." . $secondaryIdColumn => $secondaryFilterValue,
+                ])
                 ->distinct("review_value_news.review_id", "review_value_news.question_id");
 
             $selectedCount = $applyDateRangeScope($starCountQuery)->count();
@@ -2301,10 +2316,10 @@ class ReviewNewController extends Controller
         // 4. Fetch Total Comments
         $commentQuery = ReviewNew::with("user", "guest_user")
             ->where([
-                    "business_id" => $businessId,
-                    $primaryIdColumn => $filterValue,
-                    $secondaryIdColumn => $secondaryFilterValue,
-                ])
+                "business_id" => $businessId,
+                $primaryIdColumn => $filterValue,
+                $secondaryIdColumn => $secondaryFilterValue,
+            ])
             ->globalFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment")
@@ -3608,7 +3623,7 @@ class ReviewNewController extends Controller
             ->withCalculatedRating();
 
         // GENERATE DATA FOR TRENDS
-        $reviewTrends = \App\Services\Review\ReviewMetricsService::getSubmissionsOverTime((clone $reviewsQuery), $request->get('period', '30d'));
+        $reviewTrends = $this->reviewMetricsService->getSubmissionsOverTime((clone $reviewsQuery), $request->get('period', '30d'));
 
 
         return response()->json([

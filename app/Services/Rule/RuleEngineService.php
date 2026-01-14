@@ -9,20 +9,27 @@ use App\Services\Rule\AutoRuleCreatorService;
 
 class RuleEngineService
 {
+    private ConfidenceCalculatorService $confidenceCalculatorService;
+
+    public function __construct(ConfidenceCalculatorService $confidenceCalculatorService)
+    {
+        $this->confidenceCalculatorService = $confidenceCalculatorService;
+    }
+
     // PUBLIC METHODS
 
-    public static function matchRulesToInsight(InsightRecord $insight): array
+    public function matchRulesToInsight(InsightRecord $insight): array
     {
-        $rules = self::getApplicableRules($insight);
+        $rules = $this->getApplicableRules($insight);
         $matchedRules = [];
 
         foreach ($rules as $rule) {
-            if (self::ruleMatchesInsight($rule, $insight)) {
+            if ($this->ruleMatchesInsight($rule, $insight)) {
                 $matchedRules[] = [
                     'rule' => $rule,
-                    'confidence' => self::calculateRuleConfidence($rule, $insight),
-                    'severity' => self::determineSeverity($rule, $insight),
-                    'explanation' => self::generateRuleExplanation($rule, $insight)
+                    'confidence' => $this->calculateRuleConfidence($rule, $insight),
+                    'severity' => $this->determineSeverity($rule, $insight),
+                    'explanation' => $this->generateRuleExplanation($rule, $insight)
                 ];
             }
         }
@@ -30,40 +37,40 @@ class RuleEngineService
         return $matchedRules;
     }
 
-    public static function generateRecommendation(AiRule $rule, InsightRecord $insight): array
+    public function generateRecommendation(AiRule $rule, InsightRecord $insight): array
     {
         $actions = json_decode($rule->actions, true);
 
         if (!isset($actions['suggest_action']))
             return [];
 
-        $template = self::getRecommendationTemplate($actions['suggest_action']['template_id'] ?? 'GENERAL');
-        $filledTemplate = self::fillTemplate($template, $insight->business_id, $rule, $insight);
+        $template = $this->getRecommendationTemplate($actions['suggest_action']['template_id'] ?? 'GENERAL');
+        $filledTemplate = $this->fillTemplate($template, $insight->business_id, $rule, $insight);
 
         return [
             'type' => $actions['suggest_action']['type'] ?? 'business',
             'text' => $filledTemplate,
             'priority' => $rule->priority,
-            'confidence' => self::calculateRuleConfidence($rule, $insight),
+            'confidence' => $this->calculateRuleConfidence($rule, $insight),
             'evidence' => [
                 'mentions' => $insight->mentions_count,
                 'severity' => $insight->severity,
                 'trend' => $insight->trend,
                 'review_ids' => array_slice($insight->review_ids ?? [], 0, 10)
             ],
-            'explainability' => self::generateExplainability($rule, $insight)
+            'explainability' => $this->generateExplainability($rule, $insight)
         ];
     }
 
-    public static function evaluateReviewRules(ReviewNew $review, array $openaiData): array
+    public function evaluateReviewRules(ReviewNew $review, array $openaiData): array
     {
-        $rules = self::getApplicableRulesForReview($review->business_id);
+        $rules = $this->getApplicableRulesForReview($review->business_id);
         $results = [];
 
         foreach ($rules as $rule) {
-            if (self::ruleMatchesReview($rule, $review, $openaiData)) {
-                $results[] = self::createRuleEvaluation($rule, $review, $openaiData);
-                self::triggerRuleActions($rule, $review, $openaiData);
+            if ($this->ruleMatchesReview($rule, $review, $openaiData)) {
+                $results[] = $this->createRuleEvaluation($rule, $review, $openaiData);
+                $this->triggerRuleActions($rule, $review, $openaiData);
             }
         }
 
@@ -75,7 +82,7 @@ class RuleEngineService
 
     // PRIVATE METHODS
 
-    private static function getApplicableRules(InsightRecord $insight)
+    private function getApplicableRules(InsightRecord $insight)
     {
         $business = Business::find($insight->business_id);
 
@@ -94,29 +101,29 @@ class RuleEngineService
         })->where('enabled', true)->get();
     }
 
-    private static function ruleMatchesInsight(AiRule $rule, InsightRecord $insight): bool
+    private function ruleMatchesInsight(AiRule $rule, InsightRecord $insight): bool
     {
         $conditions = json_decode($rule->conditions, true);
 
         // Dynamic category matching
         if (isset($conditions['category_match'])) {
-            if (!self::matchesCategoryPattern($conditions['category_match'], $insight)) {
+            if (!$this->matchesCategoryPattern($conditions['category_match'], $insight)) {
                 return false;
             }
         }
 
         // Staff condition matching
         if (isset($conditions['staff'])) {
-            if (!self::matchesStaffCondition($conditions['staff'], $insight)) {
+            if (!$this->matchesStaffCondition($conditions['staff'], $insight)) {
                 return false;
             }
         }
 
         // Check all other conditions
-        return self::checkAllConditions($conditions, $insight);
+        return $this->checkAllConditions($conditions, $insight);
     }
 
-    private static function matchesCategoryPattern(array $condition, InsightRecord $insight): bool
+    private function matchesCategoryPattern(array $condition, InsightRecord $insight): bool
     {
         $mainCat = $condition['main_category'] ?? null;
         $subCat = $condition['sub_category'] ?? null;
@@ -145,7 +152,7 @@ class RuleEngineService
         return false;
     }
 
-    private static function matchesStaffCondition(array $condition, InsightRecord $insight): bool
+    private function matchesStaffCondition(array $condition, InsightRecord $insight): bool
     {
         // Generic staff/process detection
         if (isset($condition['generic_type'])) {
@@ -165,7 +172,7 @@ class RuleEngineService
         return true;
     }
 
-    private static function checkAllConditions(array $conditions, InsightRecord $insight): bool
+    private function checkAllConditions(array $conditions, InsightRecord $insight): bool
     {
         // Mentions count
         if (isset($conditions['repeat_occurrence']['count'])) {
@@ -186,7 +193,7 @@ class RuleEngineService
 
         // Confidence level
         if (isset($conditions['confidence_min'])) {
-            $confScore = ConfidenceCalculatorService::calculateInsightConfidence($insight)['score'];
+            $confScore = $this->confidenceCalculatorService->calculateInsightConfidence($insight)['score'];
             if ($confScore < $conditions['confidence_min']) {
                 return false;
             }
@@ -195,10 +202,10 @@ class RuleEngineService
         return true;
     }
 
-    private static function calculateRuleConfidence(AiRule $rule, InsightRecord $insight): string
+    private function calculateRuleConfidence(AiRule $rule, InsightRecord $insight): string
     {
         // Use ConfidenceCalculator for consistency
-        $confidenceData = ConfidenceCalculatorService::calculateInsightConfidence($insight);
+        $confidenceData = $this->confidenceCalculatorService->calculateInsightConfidence($insight);
 
         // Rule-specific confidence adjustment
         $adjustment = match ($rule->priority) {
@@ -216,7 +223,7 @@ class RuleEngineService
         };
     }
 
-    private static function determineSeverity(AiRule $rule, InsightRecord $insight): string
+    private function determineSeverity(AiRule $rule, InsightRecord $insight): string
     {
         // Start with the insight's severity
         $baseSeverity = $insight->severity ?? 'medium';
@@ -263,7 +270,7 @@ class RuleEngineService
         return $baseSeverity;
     }
 
-    private static function generateExplainability(AiRule $rule, InsightRecord $insight): array
+    private function generateExplainability(AiRule $rule, InsightRecord $insight): array
     {
         $conditions = json_decode($rule->conditions, true);
 
@@ -277,7 +284,7 @@ class RuleEngineService
                 'trend' => $insight->trend,
                 'staff_related' => $insight->staff_blame_detected
             ],
-            'confidence_factors' => ConfidenceCalculatorService::calculateInsightConfidence($insight)['factors'],
+            'confidence_factors' => $this->confidenceCalculatorService->calculateInsightConfidence($insight)['factors'],
             'time_period' => [
                 'start' => $insight->time_window_start?->format('Y-m-d'),
                 'end' => $insight->time_window_end?->format('Y-m-d')
@@ -285,7 +292,7 @@ class RuleEngineService
         ];
     }
 
-    private static function fillTemplate(string $template, int $businessId, AiRule $rule, InsightRecord $insight): string
+    private function fillTemplate(string $template, int $businessId, AiRule $rule, InsightRecord $insight): string
     {
         $business = Business::find($businessId);
         $conditions = json_decode($rule->conditions, true);
@@ -303,7 +310,7 @@ class RuleEngineService
         return str_replace(array_keys($replacements), array_values($replacements), $template);
     }
 
-    private static function getRecommendationTemplate(string $templateId): string
+    private function getRecommendationTemplate(string $templateId): string
     {
         $templates = [
             // System templates
@@ -331,7 +338,7 @@ class RuleEngineService
 
     // REVIEW-LEVEL RULE MATCHING (for real-time evaluation)
 
-    private static function getApplicableRulesForReview(int $businessId)
+    private function getApplicableRulesForReview(int $businessId)
     {
         $business = Business::find($businessId);
 
@@ -350,13 +357,13 @@ class RuleEngineService
         })->where('enabled', true)->where('category', '!=', 'trend')->get(); // Exclude trend rules for single reviews
     }
 
-    private static function ruleMatchesReview(AiRule $rule, ReviewNew $review, array $openaiData): bool
+    private function ruleMatchesReview(AiRule $rule, ReviewNew $review, array $openaiData): bool
     {
         $conditions = json_decode($rule->conditions, true);
 
         // Check rating conditions
         if (isset($conditions['rating'])) {
-            if (!self::checkRatingCondition($conditions['rating'], $review->rating ?? 0)) {
+            if (!$this->checkRatingCondition($conditions['rating'], $review->rating ?? 0)) {
                 return false;
             }
         }
@@ -371,7 +378,7 @@ class RuleEngineService
 
         // Check category match in review
         if (isset($conditions['category_match'])) {
-            if (!self::reviewContainsCategory($openaiData, $conditions['category_match'])) {
+            if (!$this->reviewContainsCategory($openaiData, $conditions['category_match'])) {
                 return false;
             }
         }
@@ -379,7 +386,7 @@ class RuleEngineService
         return true;
     }
 
-    private static function reviewContainsCategory(array $openaiData, array $condition): bool
+    private function reviewContainsCategory(array $openaiData, array $condition): bool
     {
         $categories = $openaiData['category_analysis'] ?? [];
 
@@ -401,7 +408,7 @@ class RuleEngineService
         return false;
     }
 
-    private static function createRuleEvaluation(AiRule $rule, ReviewNew $review, array $openaiData): array
+    private function createRuleEvaluation(AiRule $rule, ReviewNew $review, array $openaiData): array
     {
         return [
             'rule_id' => $rule->rule_id,
@@ -419,7 +426,7 @@ class RuleEngineService
         ];
     }
 
-    private static function triggerRuleActions(AiRule $rule, ReviewNew $review, array $openaiData): void
+    private function triggerRuleActions(AiRule $rule, ReviewNew $review, array $openaiData): void
     {
         $actions = json_decode($rule->actions, true);
 
@@ -463,7 +470,7 @@ class RuleEngineService
         }
     }
 
-    private static function checkRatingCondition(array $condition, float $rating): bool
+    private function checkRatingCondition(array $condition, float $rating): bool
     {
         $operator = $condition['operator'] ?? 'eq';
         $value = $condition['value'] ?? 0;
@@ -479,7 +486,7 @@ class RuleEngineService
         };
     }
 
-    private static function generateRuleExplanation(AiRule $rule, InsightRecord $insight): string
+    private function generateRuleExplanation(AiRule $rule, InsightRecord $insight): string
     {
         $conditions = json_decode($rule->conditions, true);
 
@@ -502,43 +509,43 @@ class RuleEngineService
 
     // Add to RuleEngineHelper class
 
-    public static function getPositiveSentimentThreshold(): float
+    public function getPositiveSentimentThreshold(): float
     {
         return (float) AiRule::where('key_name', 'positive_sentiment_threshold')
             ->value('value') ?? 0.7;
     }
 
-    public static function getNegativeSentimentThreshold(): float
+    public function getNegativeSentimentThreshold(): float
     {
         return (float) AiRule::where('key_name', 'negative_sentiment_threshold')
             ->value('value') ?? 0.4;
     }
 
-    public static function getNeutralLowerThreshold(): float
+    public function getNeutralLowerThreshold(): float
     {
         return (float) AiRule::where('key_name', 'neutral_lower_threshold')
             ->value('value') ?? 2.1;
     }
 
-    public static function getNeutralUpperThreshold(): float
+    public function getNeutralUpperThreshold(): float
     {
         return (float) AiRule::where('key_name', 'neutral_upper_threshold')
             ->value('value') ?? 3.9;
     }
 
-    public static function getCsatThreshold(): float
+    public function getCsatThreshold(): float
     {
         return (float) AiRule::where('key_name', 'csat_threshold')
             ->value('value') ?? 4.0;
     }
 
-    public static function getDefaultSentimentLabel(): string
+    public function getDefaultSentimentLabel(): string
     {
         return AiRule::where('key_name', 'default_sentiment_label')
             ->value('value') ?? 'neutral';
     }
 
-    public static function extractStaffMentions($reviews): array
+    public function extractStaffMentions($reviews): array
     {
         $staffMentions = [];
 
@@ -551,13 +558,13 @@ class RuleEngineService
         return $staffMentions;
     }
 
-    public static function getDefaultTrainingRecommendation(): string
+    public function getDefaultTrainingRecommendation(): string
     {
         return AiRule::where('key_name', 'default_training_recommendation')
             ->value('value') ?? 'General Training';
     }
 
-    public static function mapSuggestionsToSkillGaps($suggestions): array
+    public function mapSuggestionsToSkillGaps($suggestions): array
     {
         $skillGaps = [];
         $skillMap = AiRule::where('category', 'skill_mapping')
@@ -578,14 +585,14 @@ class RuleEngineService
         return array_unique($skillGaps);
     }
 
-    public static function getOpportunityKeywords(): array
+    public function getOpportunityKeywords(): array
     {
         return AiRule::where('category', 'opportunity_keywords')
             ->pluck('value')
             ->toArray();
     }
 
-    public static function generateRatingPrediction(float $avgRating): array
+    public function generateRatingPrediction(float $avgRating): array
     {
         $predictionRules = AiRule::where('category', 'rating_prediction')
             ->get();
@@ -608,25 +615,25 @@ class RuleEngineService
         ];
     }
 
-    public static function getMinimumPraiseForRecommendation(): int
+    public function getMinimumPraiseForRecommendation(): int
     {
         return (int) AiRule::where('key_name', 'min_praise_recommendation')
             ->value('value') ?? 2;
     }
 
-    public static function getMinimumMentionsForIssue(): int
+    public function getMinimumMentionsForIssue(): int
     {
         return (int) AiRule::where('key_name', 'min_mentions_issue')
             ->value('value') ?? 2;
     }
 
-    public static function getHighPriorityThreshold(): int
+    public function getHighPriorityThreshold(): int
     {
         return (int) AiRule::where('key_name', 'high_priority_threshold')
             ->value('value') ?? 4;
     }
 
-    public static function getIssuePatterns(): array
+    public function getIssuePatterns(): array
     {
         $patterns = AiRule::where('category', 'issue_patterns')
             ->get();
@@ -640,7 +647,7 @@ class RuleEngineService
         return $result;
     }
 
-    public static function detectStaffPraise($reviews): array
+    public function detectStaffPraise($reviews): array
     {
         $praiseRules = AiRule::where('category', 'staff_praise_detection')
             ->get();
@@ -669,14 +676,14 @@ class RuleEngineService
         ];
     }
 
-    public static function getCommonTopicKeywords(): array
+    public function getCommonTopicKeywords(): array
     {
         return AiRule::where('category', 'common_topics')
             ->pluck('value')
             ->toArray();
     }
 
-    public static function generateBranchComparisonInsights($branchesData): array
+    public function generateBranchComparisonInsights($branchesData): array
     {
         $insightTemplates = AiRule::where('category', 'branch_comparison_templates')
             ->get();
@@ -697,12 +704,12 @@ class RuleEngineService
         ];
     }
 
-    public static function generateComparisonHighlights($branchesData): array
+    public function generateComparisonHighlights($branchesData): array
     {
         return []; // Return empty for now, implement dynamic logic as needed
     }
 
-    public static function determineOverallSentiment(int $positiveReviews, int $totalReviews): string
+    public function determineOverallSentiment(int $positiveReviews, int $totalReviews): string
     {
         if ($totalReviews === 0)
             return 'Neutral';
@@ -721,7 +728,7 @@ class RuleEngineService
         return 'Neutral';
     }
 
-    public static function getSentimentDescription(float $percentage): string
+    public function getSentimentDescription(float $percentage): string
     {
         $descriptions = AiRule::where('category', 'sentiment_descriptions')
             ->get();
@@ -736,43 +743,43 @@ class RuleEngineService
         return 'mixed';
     }
 
-    public static function getTrendThreshold(): float
+    public function getTrendThreshold(): float
     {
         return (float) AiRule::where('key_name', 'trend_threshold')
             ->value('value') ?? 0.1;
     }
 
-    public static function getImprovingTrendMessage(): string
+    public function getImprovingTrendMessage(): string
     {
         return AiRule::where('key_name', 'improving_trend_message')
             ->value('value') ?? 'Improving sentiment trend';
     }
 
-    public static function getDecliningTrendMessage(): string
+    public function getDecliningTrendMessage(): string
     {
         return AiRule::where('key_name', 'declining_trend_message')
             ->value('value') ?? 'Declining sentiment trend';
     }
 
-    public static function getFrequentIssueThreshold(): int
+    public function getFrequentIssueThreshold(): int
     {
         return (int) AiRule::where('key_name', 'frequent_issue_threshold')
             ->value('value') ?? 5;
     }
 
-    public static function getMinimumReviewsForStaffEvaluation(): int
+    public function getMinimumReviewsForStaffEvaluation(): int
     {
         return (int) AiRule::where('key_name', 'min_reviews_staff_eval')
             ->value('value') ?? 3;
     }
 
-    public static function getInsufficientDataMessage(): string
+    public function getInsufficientDataMessage(): string
     {
         return AiRule::where('key_name', 'insufficient_data_message')
             ->value('value') ?? 'Insufficient Data';
     }
 
-    public static function getStaffEvaluationFromRating(float $rating): string
+    public function getStaffEvaluationFromRating(float $rating): string
     {
         $evaluations = AiRule::where('category', 'staff_evaluations')
             ->get();
@@ -787,7 +794,7 @@ class RuleEngineService
         return 'Consistent';
     }
 
-    public static function generateActionForIssue(string $issue, int $evidenceCount): ?array
+    public function generateActionForIssue(string $issue, int $evidenceCount): ?array
     {
         $actions = AiRule::where('category', 'action_items')
             ->where('key_name', $issue)
@@ -804,43 +811,43 @@ class RuleEngineService
         ];
     }
 
-    public static function getMinimumReviewsForTrendAnalysis(): int
+    public function getMinimumReviewsForTrendAnalysis(): int
     {
         return (int) AiRule::where('key_name', 'min_reviews_trend')
             ->value('value') ?? 4;
     }
 
-    public static function getInsufficientDataForTrendMessage(): string
+    public function getInsufficientDataForTrendMessage(): string
     {
         return AiRule::where('key_name', 'insufficient_trend_data')
             ->value('value') ?? 'insufficient_data';
     }
 
-    public static function getStableTrendMessage(): string
+    public function getStableTrendMessage(): string
     {
         return AiRule::where('key_name', 'stable_trend_message')
             ->value('value') ?? 'stable';
     }
 
-    public static function getChangeType($value): string
+    public function getChangeType($value): string
     {
         return $value >= 0 ? 'positive' : 'negative';
     }
 
-    public static function getCommonStaffTopicKeywords(): array
+    public function getCommonStaffTopicKeywords(): array
     {
         return AiRule::where('category', 'staff_topic_keywords')
             ->pluck('value')
             ->toArray();
     }
 
-    public static function getMinimumReviewsForTopStaff(): int
+    public function getMinimumReviewsForTopStaff(): int
     {
         return (int) AiRule::where('key_name', 'min_reviews_top_staff')
             ->value('value') ?? 5;
     }
 
-    public static function getSentimentLabelByPercentage(float $percentage): string
+    public function getSentimentLabelByPercentage(float $percentage): string
     {
         $labels = AiRule::where('category', 'percentage_sentiment_labels')
             ->get();
@@ -855,7 +862,7 @@ class RuleEngineService
         return 'Average';
     }
 
-    public static function getSentimentLabelFromScore(float $score): string
+    public function getSentimentLabelFromScore(float $score): string
     {
         $labels = AiRule::where('category', 'score_sentiment_labels')
             ->get();
@@ -870,14 +877,14 @@ class RuleEngineService
         return 'neutral';
     }
 
-    public static function getIssueKeywords(): array
+    public function getIssueKeywords(): array
     {
         return AiRule::where('category', 'issue_keywords')
             ->pluck('value')
             ->toArray();
     }
 
-    public static function getTrainingRecommendations($reviews): array
+    public function getTrainingRecommendations($reviews): array
     {
         $recommendations = AiRule::where('category', 'training_recommendations')
             ->get();
@@ -896,7 +903,7 @@ class RuleEngineService
         return $result;
     }
 
-    public static function analyzeSkillGaps($reviews): array
+    public function analyzeSkillGaps($reviews): array
     {
         return [
             'strengths' => [],
@@ -904,12 +911,12 @@ class RuleEngineService
         ];
     }
 
-    public static function calculateCustomerTone($reviews): array
+    public function calculateCustomerTone($reviews): array
     {
         return []; // Implement dynamic tone analysis
     }
 
-    public static function getSentimentGapMessage($gap): string
+    public function getSentimentGapMessage($gap): string
     {
         if ($gap > 0) {
             return "Staff A has more positive reviews";
@@ -920,7 +927,7 @@ class RuleEngineService
         }
     }
 
-    public static function getRatingGapMessage($gap): string
+    public function getRatingGapMessage($gap): string
     {
         if ($gap > 0) {
             return "Staff A is performing better";
@@ -931,7 +938,7 @@ class RuleEngineService
         }
     }
 
-    public static function generateSummaryTemplate(float $positivePercent, float $negativePercent): string
+    public function generateSummaryTemplate(float $positivePercent, float $negativePercent): string
     {
         $template = AiRule::where('key_name', 'summary_template')
             ->value('value') ?? "Customers are {$positivePercent}% positive and {$negativePercent}% negative.";
@@ -943,25 +950,25 @@ class RuleEngineService
         );
     }
 
-    public static function getDefaultSummaryPhrase(): string
+    public function getDefaultSummaryPhrase(): string
     {
         return AiRule::where('key_name', 'default_summary_phrase')
             ->value('value') ?? "Common themes include staff friendliness, service speed, and occasional cleanliness concerns.";
     }
 
-    public static function getHighIssueThreshold(): int
+    public function getHighIssueThreshold(): int
     {
         return (int) AiRule::where('key_name', 'high_issue_threshold')
             ->value('value') ?? 3;
     }
 
-    public static function getMinimumMentionsForRecommendation(): int
+    public function getMinimumMentionsForRecommendation(): int
     {
         return (int) AiRule::where('key_name', 'min_mentions_recommendation')
             ->value('value') ?? 2;
     }
 
-    public static function getStaffTrainingRecommendations(int $staffId, int $businessId): array
+    public function getStaffTrainingRecommendations(int $staffId, int $businessId): array
     {
         $trainings = AiRule::where('category', 'staff_training')
             ->get();
@@ -979,7 +986,7 @@ class RuleEngineService
         return $result;
     }
 
-    public static function extractCommonPraise($reviews): array
+    public function extractCommonPraise($reviews): array
     {
         $praisePatterns = AiRule::where('category', 'praise_patterns')
             ->get();
@@ -1015,7 +1022,7 @@ class RuleEngineService
         return $result;
     }
 
-    public static function identifyPerformanceLevel(float $avgRating, float $avgSentiment, float $negativePercentage): string
+    public function identifyPerformanceLevel(float $avgRating, float $avgSentiment, float $negativePercentage): string
     {
         $levels = AiRule::where('category', 'performance_levels')
             ->get();
@@ -1035,7 +1042,7 @@ class RuleEngineService
         return 'Average - Room for Improvement';
     }
 
-    public static function generateTopWorstSummary($topStaff, $worstStaff, $allStaff): array
+    public function generateTopWorstSummary($topStaff, $worstStaff, $allStaff): array
     {
         return [
             'overall_status' => 'Performance analysis completed',
@@ -1045,7 +1052,7 @@ class RuleEngineService
         ];
     }
 
-    public static function getPerformanceCategories(): array
+    public function getPerformanceCategories(): array
     {
         $categories = AiRule::where('category', 'performance_categories')
             ->get();
@@ -1058,7 +1065,7 @@ class RuleEngineService
         return $result;
     }
 
-    public static function extractTopicsV2($reviews, $limit = 5): array
+    public function extractTopicsV2($reviews, $limit = 5): array
     {
         $topicConfig = AiRule::where('key_name', 'topic_extraction_config')
             ->first();
@@ -1081,13 +1088,13 @@ class RuleEngineService
         ];
     }
 
-    public static function getMinimumReviewsForStaffAnalysis(): int
+    public function getMinimumReviewsForStaffAnalysis(): int
     {
         return (int) AiRule::where('key_name', 'min_reviews_staff_analysis')
             ->value('value') ?? 3;
     }
 
-    public static function generateDashboardInsights($sentimentData, $topTopics, $totalReviews): array
+    public function generateDashboardInsights($sentimentData, $topTopics, $totalReviews): array
     {
         $templates = AiRule::where('category', 'dashboard_insight_templates')
             ->get();

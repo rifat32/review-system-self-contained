@@ -15,7 +15,7 @@ class ReviewMetricsService
      * @param array|null $dateRange Optional date range with 'start' and 'end'
      * @return array ['score' => percentage, 'qualifying_count' => int, 'total_count' => int]
      */
-    public static function calculateCSATScore(
+    public function calculateCSATScore(
         int $businessId,
         ?int $branchId = null,
         ?array $dateRange = null
@@ -54,7 +54,7 @@ class ReviewMetricsService
      * @param array|null $dateRange Optional date range with 'start' and 'end'
      * @return array ['count' => int, 'percentage' => float]
      */
-    public static function getFlaggedReviews(
+    public function getFlaggedReviews(
         int $businessId,
         ?int $branchId = null,
         ?array $dateRange = null
@@ -90,7 +90,7 @@ class ReviewMetricsService
      * @param \Illuminate\Support\Collection $reviews
      * @return array
      */
-    public static function calculateSentimentBreakdown($reviews): array
+    public function calculateSentimentBreakdown($reviews): array
     {
         $positiveCount = $reviews->where('sentiment', 'positive')->count();
         $negativeCount = $reviews->where('sentiment', 'negative')->count();
@@ -119,7 +119,7 @@ class ReviewMetricsService
      * @param \Illuminate\Support\Collection $reviews
      * @return float
      */
-    public static function calculateAverageRating($reviews): float
+    public function calculateAverageRating($reviews): float
     {
         return $reviews->isNotEmpty()
             ? round($reviews->avg('calculated_rating'), 1)
@@ -133,7 +133,7 @@ class ReviewMetricsService
      * @param \Illuminate\Support\Collection $previousReviews
      * @return array
      */
-    public static function getReviewCountWithComparison($currentReviews, $previousReviews): array
+    public function getReviewCountWithComparison($currentReviews, $previousReviews): array
     {
         $currentTotal = $currentReviews->count();
         $previousTotal = $previousReviews->count();
@@ -157,10 +157,10 @@ class ReviewMetricsService
      * @param \Illuminate\Support\Collection $previousReviews
      * @return array
      */
-    public static function getRatingWithComparison($currentReviews, $previousReviews): array
+    public function getRatingWithComparison($currentReviews, $previousReviews): array
     {
-        $currentAvgRating = self::calculateAverageRating($currentReviews);
-        $previousAvgRating = self::calculateAverageRating($previousReviews);
+        $currentAvgRating = $this->calculateAverageRating($currentReviews);
+        $previousAvgRating = $this->calculateAverageRating($previousReviews);
         $change = round($currentAvgRating - $previousAvgRating, 1);
 
         return [
@@ -178,9 +178,9 @@ class ReviewMetricsService
      * @param \Illuminate\Support\Collection $previousReviews
      * @return array
      */
-    public static function getSentimentWithComparison($currentReviews, $previousReviews): array
+    public function getSentimentWithComparison($currentReviews, $previousReviews): array
     {
-        $currentBreakdown = self::calculateSentimentBreakdown($currentReviews);
+        $currentBreakdown = $this->calculateSentimentBreakdown($currentReviews);
         $previousScore = $previousReviews->avg('sentiment_score') ?? 0;
 
         $change = round($currentBreakdown['score'] - $previousScore, 2);
@@ -199,7 +199,7 @@ class ReviewMetricsService
      * @param \Illuminate\Support\Collection $previousReviews
      * @return array
      */
-    public static function getStaffCountWithComparison($currentReviews, $previousReviews): array
+    public function getStaffCountWithComparison($currentReviews, $previousReviews): array
     {
         $currentStaffCount = $currentReviews->pluck('staff_id')->filter()->unique()->count();
         $previousStaffCount = $previousReviews->pluck('staff_id')->filter()->unique()->count();
@@ -220,7 +220,7 @@ class ReviewMetricsService
      * @param string $period Period (7d, 30d, 90d, 1y)
      * @return array Time-series data with ratings and sentiment
      */
-    public static function getSubmissionsOverTime($reviews, $period)
+    public function getSubmissionsOverTime($reviews, $period)
     {
         $endDate = Carbon::now();
         $startDate = match ($period) {

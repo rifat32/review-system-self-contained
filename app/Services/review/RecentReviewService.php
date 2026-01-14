@@ -14,7 +14,7 @@ class RecentReviewService
      * @param int $limit Number of reviews to return
      * @return array
      */
-    public static function getRecentReviews($reviews, $limit = 5)
+    public function getRecentReviews($reviews, $limit = 5)
     {
         return $reviews->sortByDesc('created_at')
             ->take($limit)
@@ -28,7 +28,7 @@ class RecentReviewService
                     'review_text' => $review->comment ?? $review->raw_text ?? 'No comment',
                     'staff_name' => $review->staff ? $review->staff->name : 'Not assigned',
                     'staff_id' => $review->staff_id,
-                    'sentiment' => static::getSentimentLabel($review->sentiment_score),
+                    'sentiment' => $this->getSentimentLabel($review->sentiment_score),
                     'date' => $review->created_at->diffForHumans(),
                     'exact_date' => $review->created_at->format('Y-m-d H:i:s'),
                     'is_flagged' => $review->status === 'flagged',
@@ -46,7 +46,7 @@ class RecentReviewService
      * @param float $score Sentiment score (0-1)
      * @return string
      */
-    private static function getSentimentLabel($score)
+    private function getSentimentLabel($score)
     {
         if ($score >= 0.7)
             return 'Positive';
@@ -62,7 +62,7 @@ class RecentReviewService
      * @param int $limit Number of submissions to return
      * @return array
      */
-    public static function getRecentSubmissions($reviews, $limit = 5)
+    public function getRecentSubmissions($reviews, $limit = 5)
     {
         return $reviews->sortByDesc('created_at')
             ->take($limit)

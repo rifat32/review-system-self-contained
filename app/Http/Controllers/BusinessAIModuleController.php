@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\Log;
 
 class BusinessAIModuleController extends Controller
 {
+    private OpenAIProcessorService $openAiProcessorService;
+
+    public function __construct(OpenAIProcessorService $openAiProcessorService)
+    {
+        $this->openAiProcessorService = $openAiProcessorService;
+    }
     /**
      * @OA\Get(
      *     path="/v1.0/business-ai-modules/{businessId}",
@@ -297,7 +303,7 @@ class BusinessAIModuleController extends Controller
 
         try {
             // UPDATE BUSINESS AI MODULES USING HELPER
-            $result = OpenAIProcessorService::updateBusinessAiModules($businessId, $validated);
+            $result = $this->openAiProcessorService->updateBusinessAiModules($businessId, $validated);
 
             if (!$result) {
                 return response()->json([
@@ -573,7 +579,7 @@ class BusinessAIModuleController extends Controller
             $period = $request->input('period', 'month');
 
             // GET TOKEN USAGE STATISTICS
-            $usageStats = OpenAIProcessorService::getTokenUsageStatistics($businessId, $period);
+            $usageStats = $this->openAiProcessorService->getTokenUsageStatistics($businessId, $period);
 
             return response()->json([
                 "success" => true,

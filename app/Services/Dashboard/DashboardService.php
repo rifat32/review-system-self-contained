@@ -15,6 +15,25 @@ use Illuminate\Validation\ValidationException;
 
 class DashboardService
 {
+    private ReviewService $reviewService;
+    private ReviewMetricsService $reviewMetricsService;
+    private ReviewTopicService $reviewTopicService;
+    private BusinessAnalyticsService $businessAnalyticsService;
+    private AIProcessorService $aiProcessorService;
+
+    public function __construct(
+        ReviewService $reviewService,
+        ReviewMetricsService $reviewMetricsService,
+        ReviewTopicService $reviewTopicService,
+        BusinessAnalyticsService $businessAnalyticsService,
+        AIProcessorService $aiProcessorService
+    ) {
+        $this->reviewService = $reviewService;
+        $this->reviewMetricsService = $reviewMetricsService;
+        $this->reviewTopicService = $reviewTopicService;
+        $this->businessAnalyticsService = $businessAnalyticsService;
+        $this->aiProcessorService = $aiProcessorService;
+    }
     // ==================== PERIOD VALIDATION ====================
 
     private const FILTERABLE_FIELDS = [
@@ -32,7 +51,7 @@ class DashboardService
      * @return array|null Returns date range array or null for 'all_time'
      * @throws \Illuminate\Validation\ValidationException
      */
-    public static function validateAndGetDateRange(?string $period = 'last_30_days'): ?array
+    public function validateAndGetDateRange(?string $period = 'last_30_days'): ?array
     {
         $period = $period ?? 'last_30_days';
 
@@ -54,7 +73,7 @@ class DashboardService
      * @param array|null $dateRange Array with 'start' and 'end' Carbon instances
      * @return array
      */
-    public static function calculateMetrics($businessId, $dateRange = null, $user)
+    public function calculateMetrics($businessId, $dateRange = null, $user)
     {
         // Apply branch filter for branch managers
         $userBranchId = $user->hasRole('branch_manager') || $user->hasRole('business_owner')
@@ -64,7 +83,7 @@ class DashboardService
         // ==================== GET REVIEWS USING REVIEWSERVICE ====================
 
         // Get current and previous period reviews using ReviewService
-        $reviewsData = ReviewService::getCurrentAndComparisonReviews(
+        $reviewsData = $this->reviewService->getCurrentAndComparisonReviews(
             businessId: $businessId,
             branchId: $userBranchId,
             dateRange: $dateRange
@@ -76,19 +95,19 @@ class DashboardService
         // ==================== USE REVIEW METRICS SERVICE ====================
 
         // Get review counts with comparison
-        $reviewCounts = ReviewMetricsService::getReviewCountWithComparison($reviews, $previousReviews);
+        $reviewCounts = $this->reviewMetricsService->getReviewCountWithComparison($reviews, $previousReviews);
         $total = $reviewCounts['current'];
         $previousTotal = $reviewCounts['previous'];
 
         // Get rating with comparison  
-        $ratingMetrics = ReviewMetricsService::getRatingWithComparison($reviews, $previousReviews);
+        $ratingMetrics = $this->reviewMetricsService->getRatingWithComparison($reviews, $previousReviews);
         $currentAvgRating = $ratingMetrics['current'];
         $previousAvgRating = $ratingMetrics['previous'];
         $ratingChange = $ratingMetrics['change'];
         $ratingChangeType = $ratingMetrics['change_type'];
 
         // Get sentiment with comparison
-        $sentimentMetrics = ReviewMetricsService::getSentimentWithComparison($reviews, $previousReviews);
+        $sentimentMetrics = $this->reviewMetricsService->getSentimentWithComparison($reviews, $previousReviews);
         $current_sentiment_score = $sentimentMetrics['score'];
         $previous_sentiment_score = $sentimentMetrics['previous_score'];
         $positiveReviewsCount = $sentimentMetrics['positive'];
@@ -97,10 +116,10 @@ class DashboardService
         $sentimentChangeType = $sentimentMetrics['change_type'];
 
         // Top Topic (minimal summary)
-        $topTopicSummary = ReviewTopicService::getTopTopicSummary($reviews);
+        $topTopicSummary = $this->reviewTopicService->getTopTopicSummary($reviews);
 
         // Detect repeated issues (minimal data only)
-        $issuesArray = BusinessAnalyticsService::extractIssuesFromRuleEngine(
+        $issuesArray = $this->businessAnalyticsService->extractIssuesFromRuleEngine(
             $businessId,
             $reviews,
             [
@@ -114,7 +133,7 @@ class DashboardService
             : 'No major issues detected';
 
         // Calculate CSAT Score using ReviewMetricsService
-        $csatMetrics = ReviewMetricsService::calculateCSATScore(
+        $csatMetrics = $this->reviewMetricsService->calculateCSATScore(
             businessId: $businessId,
             branchId: $userBranchId,
             dateRange: $dateRange
@@ -123,7 +142,7 @@ class DashboardService
         $csatReviewsCount = $csatMetrics['qualifying_count'];
 
         // Calculate Flagged Reviews using ReviewMetricsService
-        $flaggedMetrics = ReviewMetricsService::getFlaggedReviews(
+        $flaggedMetrics = $this->reviewMetricsService->getFlaggedReviews(
             businessId: $businessId,
             branchId: $userBranchId,
             dateRange: $dateRange
@@ -139,9 +158,9 @@ class DashboardService
             $previousPeriodCSATCount = ReviewNew::globalFilters(0, $businessId)
                 ->where('business_id', $businessId)
                 ->whereBetween('created_at', [
-                        $dateRange['start']->copy()->subDays(30),
-                        $dateRange['end']->copy()->subDays(30)
-                    ])
+                    $dateRange['start']->copy()->subDays(30),
+                    $dateRange['end']->copy()->subDays(30)
+                ])
                 ->whereMeetsThreshold($businessId)
                 ->count();
 
@@ -159,7 +178,7 @@ class DashboardService
         return [
             'avg_overall_rating' => [
                 'value' => $currentAvgRating,
-                'change' => $dateRange !== null ? ReviewService::calculatePercentageChange(
+                'change' => $dateRange !== null ? $this->reviewService->calculatePercentageChange(
                     $currentAvgRating,
                     $previousAvgRating
                 ) : null,
@@ -178,7 +197,7 @@ class DashboardService
             ],
             'total_reviews' => [
                 'value' => $total,
-                'change' => $dateRange !== null ? ReviewService::calculatePercentageChange($total, $previousTotal) : null
+                'change' => $dateRange !== null ? $this->reviewService->calculatePercentageChange($total, $previousTotal) : null
             ],
             'positive_negative_ratio' => [
                 'positive' => $total > 0 ? round(($positiveReviewsCount / $total) * 100) : 0,
@@ -235,7 +254,7 @@ class DashboardService
             ],
             'all_sentiment' => [
                 'status' => $reviews->isNotEmpty()
-                    ? AIProcessorService::calculateAggregatedSentiment($reviews)['sentiment_label']
+                    ? $this->aiProcessorService->calculateAggregatedSentiment($reviews)['sentiment_label']
                     : 'neutral',
                 'based_on' => $dateRange !== null
                     ? 'Based on selected period'

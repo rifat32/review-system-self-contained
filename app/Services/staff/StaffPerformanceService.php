@@ -8,15 +8,29 @@ use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Rule\RuleEngineService;
 use App\Services\Review\ReviewService;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class StaffPerformanceService
 {
+    private AIProcessorService $aiProcessorService;
+    private RuleEngineService $ruleEngineService;
+    private ReviewService $reviewService;
+
+    public function __construct(
+        AIProcessorService $aiProcessorService,
+        RuleEngineService $ruleEngineService,
+        ReviewService $reviewService
+    ) {
+        $this->aiProcessorService = $aiProcessorService;
+        $this->ruleEngineService = $ruleEngineService;
+        $this->reviewService = $reviewService;
+    }
     // ==================== STAFF PERFORMANCE SNAPSHOT ====================
 
     /**
      * Get staff performance snapshot dynamically
      */
-    public static function getStaffPerformanceSnapshot($businessId, $dateRange, ?int $staffId = null)
+    public function getStaffPerformanceSnapshot($businessId, $dateRange, ?int $staffId = null)
     {
         $query = ReviewNew::with('staff')
             ->where('business_id', $businessId)
@@ -53,14 +67,14 @@ class StaffPerformanceService
                 : 0;
 
             // Use dynamic thresholds from rule engine
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+            $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+            $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
             $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
             $negativeReviews = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
-            $neutralLower = RuleEngineService::getNeutralLowerThreshold();
-            $neutralUpper = RuleEngineService::getNeutralUpperThreshold();
+            $neutralLower = $this->ruleEngineService->getNeutralLowerThreshold();
+            $neutralUpper = $this->ruleEngineService->getNeutralUpperThreshold();
             $neutralReviews = $reviews->whereBetween('calculated_rating', [$neutralLower, $neutralUpper])->count();
 
             $staff_suggestions = $reviews->pluck('staff_suggestions')->flatten()->unique();
@@ -87,10 +101,10 @@ class StaffPerformanceService
                 ],
                 'positive_count' => $positiveReviews,
                 'negative_count' => $negativeReviews,
-                'skill_gaps' => self::extractSkillGapsFromSuggestions($staff_suggestions),
-                'recommended_training' => self::extractRecommendedTraining($staff_suggestions),
+                'skill_gaps' => $this->extractSkillGapsFromSuggestions($staff_suggestions),
+                'recommended_training' => $this->extractRecommendedTraining($staff_suggestions),
                 'last_review_date' => $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans(),
-                'rating_trend' => self::calculateStaffRatingTrend($reviews)
+                'rating_trend' => $this->calculateStaffRatingTrend($reviews)
             ];
         }
 
@@ -130,14 +144,14 @@ class StaffPerformanceService
     /**
      * Get top three staff dynamically
      */
-    public static function getTopThreeStaff($businessId, $filters = [])
+    public function getTopThreeStaff($businessId, $filters = [])
     {
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->globalFilters(0, $businessId)
             ->withCalculatedRating();
 
-        $reviewsQuery = ReviewService::applyFilters($reviewsQuery, $filters);
+        $reviewsQuery = $this->reviewService->applyFilters($reviewsQuery, $filters);
         $reviews = $reviewsQuery->get();
 
         if ($reviews->isEmpty()) {
@@ -168,7 +182,7 @@ class StaffPerformanceService
             $latestReviewDate = null;
             $allTopics = [];
 
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+            $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
 
             foreach ($reviewsArray as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
@@ -189,12 +203,12 @@ class StaffPerformanceService
             $avgRating = $totalReviews > 0 ? $totalRating / $totalReviews : 0;
             $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
 
-            $minimumReviews = RuleEngineService::getMinimumReviewsForTopStaff();
+            $minimumReviews = $this->ruleEngineService->getMinimumReviewsForTopStaff();
             if ($totalReviews < $minimumReviews) {
                 continue;
             }
 
-            $topTopics = self::extractStaffTopics(collect($reviewsArray));
+            $topTopics = $this->extractStaffTopics(\collect($reviewsArray));
 
             $staffPerformance[] = [
                 'staff_id' => $staffId,
@@ -204,7 +218,7 @@ class StaffPerformanceService
                 'avg_rating' => round($avgRating, 1),
                 'review_count' => $totalReviews,
                 'sentiment_score' => $sentimentPercentage,
-                'sentiment_label' => self::getSentimentLabelByPercentage($sentimentPercentage),
+                'sentiment_label' => $this->getSentimentLabelByPercentage($sentimentPercentage),
                 'top_topics' => array_slice($topTopics, 0, 3),
                 'recent_activity' => $latestReviewDate
                     ? $latestReviewDate->diffForHumans()
@@ -232,7 +246,7 @@ class StaffPerformanceService
     /**
      * Extract staff topics dynamically
      */
-    public static function extractStaffTopics($staffReviews)
+    public function extractStaffTopics($staffReviews)
     {
         $allTopics = [];
 
@@ -244,7 +258,7 @@ class StaffPerformanceService
             }
 
             if (empty($review->topics) && $review->comment) {
-                $commonWords = RuleEngineService::getCommonStaffTopicKeywords();
+                $commonWords = $this->ruleEngineService->getCommonStaffTopicKeywords();
                 $comment = strtolower($review->comment);
 
                 foreach ($commonWords as $word) {
@@ -264,7 +278,7 @@ class StaffPerformanceService
     /**
      * Get all staff metrics from review value dynamically
      */
-    public static function getAllStaffMetricsFromReviewValue($reviews)
+    public function getAllStaffMetricsFromReviewValue($reviews)
     {
         $staffGroups = [];
         foreach ($reviews as $review) {
@@ -288,8 +302,8 @@ class StaffPerformanceService
             $complaints = 0;
             $neutral = 0;
 
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+            $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+            $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
             foreach ($reviewsArray as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
@@ -314,7 +328,7 @@ class StaffPerformanceService
                 'staff_name' => $staff->name,
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
-                'sentiment_score' => AIProcessorService::getSentimentLabel($avgSentiment),
+                'sentiment_score' => $this->aiProcessorService->getSentimentLabel($avgSentiment),
                 'compliments_count' => $compliments,
                 'complaints_count' => $complaints,
                 'neutral_count' => $neutral,
@@ -335,18 +349,18 @@ class StaffPerformanceService
     /**
      * Get sentiment label by percentage dynamically
      */
-    public static function getSentimentLabelByPercentage($percentage)
+    public function getSentimentLabelByPercentage($percentage)
     {
-        return RuleEngineService::getSentimentLabelByPercentage($percentage);
+        return $this->ruleEngineService->getSentimentLabelByPercentage($percentage);
     }
 
     /**
      * Calculate staff rating trend dynamically
      */
-    public static function calculateStaffRatingTrend($reviews)
+    public function calculateStaffRatingTrend($reviews)
     {
-        if ($reviews->count() < RuleEngineService::getMinimumReviewsForTrendAnalysis()) {
-            return RuleEngineService::getInsufficientDataForTrendMessage();
+        if ($reviews->count() < $this->ruleEngineService->getMinimumReviewsForTrendAnalysis()) {
+            return $this->ruleEngineService->getInsufficientDataForTrendMessage();
         }
 
         $sortedReviews = $reviews->sortBy('created_at');
@@ -358,27 +372,27 @@ class StaffPerformanceService
         $firstHalfAvg = $firstHalf->avg('calculated_rating') ?? 0;
         $secondHalfAvg = $secondHalf->avg('calculated_rating') ?? 0;
 
-        $trendThreshold = RuleEngineService::getTrendThreshold();
+        $trendThreshold = $this->ruleEngineService->getTrendThreshold();
 
         if ($secondHalfAvg > $firstHalfAvg + $trendThreshold) {
-            return RuleEngineService::getImprovingTrendMessage();
+            return $this->ruleEngineService->getImprovingTrendMessage();
         } elseif ($secondHalfAvg < $firstHalfAvg - $trendThreshold) {
-            return RuleEngineService::getDecliningTrendMessage();
+            return $this->ruleEngineService->getDecliningTrendMessage();
         } else {
-            return RuleEngineService::getStableTrendMessage();
+            return $this->ruleEngineService->getStableTrendMessage();
         }
     }
 
     /**
      * Extract skill gaps from suggestions dynamically
      */
-    public static function extractSkillGapsFromSuggestions($suggestions)
+    public function extractSkillGapsFromSuggestions($suggestions)
     {
         if (empty($suggestions)) {
             return [];
         }
 
-        $suggestions = collect($suggestions)
+        $suggestions = \collect($suggestions)
             ->filter(function ($suggestion) {
                 if (is_string($suggestion)) {
                     $clean = trim($suggestion);
@@ -409,7 +423,7 @@ class StaffPerformanceService
         }
 
         // Use rule engine to map suggestions to skill gaps
-        $skillGaps = RuleEngineService::mapSuggestionsToSkillGaps($suggestions);
+        $skillGaps = $this->ruleEngineService->mapSuggestionsToSkillGaps($suggestions);
 
         return $skillGaps;
     }
@@ -417,14 +431,14 @@ class StaffPerformanceService
     /**
      * Extract recommended training dynamically
      */
-    private static function extractRecommendedTraining($suggestions)
+    private function extractRecommendedTraining($suggestions)
     {
-        $skillGaps = self::extractSkillGapsFromSuggestions($suggestions);
+        $skillGaps = $this->extractSkillGapsFromSuggestions($suggestions);
 
         if (!empty($skillGaps)) {
             return $skillGaps[0] . ' Training';
         }
 
-        return RuleEngineService::getDefaultTrainingRecommendation();
+        return $this->ruleEngineService->getDefaultTrainingRecommendation();
     }
 }

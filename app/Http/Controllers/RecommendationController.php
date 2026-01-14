@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
@@ -13,11 +14,24 @@ use Carbon\Carbon;
 
 class RecommendationController extends Controller
 {
+    private InsightAggregationService $insightAggregationService;
+    private RecommendationGeneratorService $recommendationGeneratorService;
+    private ConfidenceCalculatorService $confidenceCalculatorService;
+
+    public function __construct(
+        InsightAggregationService $insightAggregationService,
+        RecommendationGeneratorService $recommendationGeneratorService,
+        ConfidenceCalculatorService $confidenceCalculatorService
+    ) {
+        $this->insightAggregationService = $insightAggregationService;
+        $this->recommendationGeneratorService = $recommendationGeneratorService;
+        $this->confidenceCalculatorService = $confidenceCalculatorService;
+    }
+
     /**
      * Generate recommendations
      * POST /api/recommendations/generate
      */
-
     public function generate(Request $request)
     {
         $request->validate([
@@ -30,10 +44,10 @@ class RecommendationController extends Controller
 
         try {
             // Step 1: Aggregate insights
-            $aggregationResult = InsightAggregationService::aggregateReviewsForBusiness($businessId, $days);
+            $aggregationResult = $this->insightAggregationService->aggregateReviewsForBusiness($businessId, $days);
 
             // Step 2: Generate recommendations
-            $recommendations = RecommendationGeneratorService::generateFromInsights($businessId, $days);
+            $recommendations = $this->recommendationGeneratorService->generateFromInsights($businessId, $days);
 
             return response()->json([
                 'success' => true,
@@ -41,7 +55,6 @@ class RecommendationController extends Controller
                 'recommendations' => $recommendations,
                 'generated_at' => now()->toISOString()
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -103,7 +116,7 @@ class RecommendationController extends Controller
         $insight = $recommendation->insight;
 
         // Get confidence analysis
-        $confidence = ConfidenceCalculatorService::calculateInsightConfidence($insight);
+        $confidence = $this->confidenceCalculatorService->calculateInsightConfidence($insight);
 
         // Get rule that triggered this
         $rule = $recommendation->rule;
@@ -154,8 +167,8 @@ class RecommendationController extends Controller
             'business_id' => 'required|integer|exists:businesses,id'
         ]);
 
-        $insights = InsightAggregationService::getDashboardInsights($request->business_id, 5);
-        $recommendations = RecommendationGeneratorService::getDashboardRecommendations($request->business_id, 3);
+        $insights = $this->insightAggregationService->getDashboardInsights($request->business_id, 5);
+        $recommendations = $this->recommendationGeneratorService->getDashboardRecommendations($request->business_id, 3);
 
         return response()->json([
             'success' => true,

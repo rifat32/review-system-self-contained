@@ -6,20 +6,29 @@ use App\Models\BusinessAiModule;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Models\OpenAITokenUsage;
+use App\Models\Tag;
 use App\Services\Rule\RuleEngineService;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 
 class OpenAIProcessorService
 {
+    private RuleEngineService $ruleEngineService;
+
+    public function __construct(RuleEngineService $ruleEngineService)
+    {
+        $this->ruleEngineService = $ruleEngineService;
+    }
+
     /**
      * Debug method to check OpenAI status
      */
-    public static function debugOpenAIStatus(): array
+    public function debugOpenAIStatus(): array
     {
-        $apiKey = config('services.openai.api_key');
+        $apiKey = \config('services.openai.api_key');
 
         if (empty($apiKey)) {
             return ['status' => 'error', 'message' => 'API key not configured'];
@@ -33,12 +42,12 @@ class OpenAIProcessorService
             ])
                 ->timeout(10)
                 ->post('https://api.openai.com/v1/chat/completions', [
-                        'model' => 'gpt-4o-mini',
-                        'messages' => [
-                            ['role' => 'user', 'content' => 'Say "Test successful"']
-                        ],
-                        'max_tokens' => 10
-                    ]);
+                    'model' => 'gpt-4o-mini',
+                    'messages' => [
+                        ['role' => 'user', 'content' => 'Say "Test successful"']
+                    ],
+                    'max_tokens' => 10
+                ]);
 
             if ($response->successful()) {
                 return [
@@ -62,14 +71,11 @@ class OpenAIProcessorService
             ];
         }
     }
-    /**
-     * Process review with OpenAI
-     */
 
     /**
      * Get business AI modules with fallback to defaults
      */
-    public static function getBusinessAiModules(int $businessId): array
+    public function getBusinessAiModules(int $businessId): array
     {
         try {
 
@@ -95,14 +101,12 @@ class OpenAIProcessorService
         }
     }
 
-
-
     // In processReviewWithOpenAI method, update caching:
 
-    public static function processReviewWithOpenAI(array $payload, array $enabledModules): array
+    public function processReviewWithOpenAI(array $payload, array $enabledModules): array
     {
-        $apiKey = config('services.openai.api_key');
-        $model = config('services.openai.model', 'gpt-4o-mini');
+        $apiKey = \config('services.openai.api_key');
+        $model = \config('services.openai.model', 'gpt-4o-mini');
 
         if (empty($apiKey)) {
             throw new \Exception('OpenAI API key not configured');
@@ -121,11 +125,11 @@ class OpenAIProcessorService
                 }
             }
 
-            $systemPrompt = self::getSystemPrompt($enabledModules);
-            $userMessage = self::createUserMessage($payload, $enabledModules);
+            $systemPrompt = $this->getSystemPrompt($enabledModules);
+            $userMessage = $this->createUserMessage($payload, $enabledModules);
 
             // Calculate dynamic max_tokens based on enabled modules
-            // $dynamicMaxTokens = self::calculateDynamicMaxTokens($enabledModules, strlen($payload['review_text'] ?? ''));
+            // $dynamicMaxTokens = $this->calculateDynamicMaxTokens($enabledModules, strlen($payload['review_text'] ?? ''));
 
             $dynamicMaxTokens = 2500;
 
@@ -135,7 +139,7 @@ class OpenAIProcessorService
                 'system_prompt_length' => strlen($systemPrompt),
                 'user_message_length' => strlen($userMessage),
                 'dynamic_max_tokens' => $dynamicMaxTokens,
-                'estimated_completion_tokens' => self::estimateCompletionTokens($enabledModules, $payload)
+                'estimated_completion_tokens' => $this->estimateCompletionTokens($enabledModules, $payload)
             ]);
 
             $response = Http::withHeaders([
@@ -144,21 +148,21 @@ class OpenAIProcessorService
             ])
                 ->timeout(60)
                 ->post('https://api.openai.com/v1/chat/completions', [
-                        'model' => $model,
-                        'temperature' => 0.1,
-                        'max_tokens' => $dynamicMaxTokens, // Dynamic based on modules
-                        'response_format' => ['type' => 'json_object'],
-                        'messages' => [
-                            [
-                                'role' => 'system',
-                                'content' => $systemPrompt
-                            ],
-                            [
-                                'role' => 'user',
-                                'content' => $userMessage
-                            ]
+                    'model' => $model,
+                    'temperature' => 0.1,
+                    'max_tokens' => $dynamicMaxTokens, // Dynamic based on modules
+                    'response_format' => ['type' => 'json_object'],
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => $systemPrompt
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $userMessage
                         ]
-                    ]);
+                    ]
+                ]);
 
             if ($response->failed()) {
                 Log::error('OpenAI API failed', [
@@ -215,25 +219,13 @@ class OpenAIProcessorService
                 ]);
 
                 // Try to fix truncated JSON
-                $content = self::fixTruncatedJson($content);
+                $content = $this->fixTruncatedJson($content);
             }
 
             // Clean the content before JSON parsing
-            $cleanedContent = self::cleanJsonContent($content);
-
-            // Check if content was truncated
-            if (strlen($content) < 100) {
-                Log::warning('Content may be truncated', [
-                    'original_length' => strlen($content),
-                    'finish_reason' => $finishReason
-                ]);
-            }
+            $cleanedContent = $this->cleanJsonContent($content);
 
             // Try to parse JSON
-            $result = json_decode($cleanedContent, true);
-
-            // In OpenAIProcessor::processReviewWithOpenAI() method
-            // After this line:
             $result = json_decode($cleanedContent, true);
 
             // Add this validation check:
@@ -284,17 +276,17 @@ class OpenAIProcessorService
                 ]);
 
                 // Try to fix common JSON issues
-                $fixedContent = self::fixCommonJsonIssues($cleanedContent);
+                $fixedContent = $this->fixCommonJsonIssues($cleanedContent);
                 $result = json_decode($fixedContent, true);
 
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     // Last attempt: extract JSON from string
-                    $extractedJson = self::extractJsonFromString($cleanedContent);
+                    $extractedJson = $this->extractJsonFromString($cleanedContent);
                     $result = json_decode($extractedJson, true);
 
                     if (json_last_error() !== JSON_ERROR_NONE) {
                         // Log the problematic content
-                        $errorLine = self::findJsonErrorLine($cleanedContent);
+                        $errorLine = $this->findJsonErrorLine($cleanedContent);
                         throw new \Exception('Invalid JSON from OpenAI: ' . json_last_error_msg() .
                             ' (Code: ' . json_last_error() . ') at approximately position: ' . $errorLine .
                             ' (Finish reason: ' . $finishReason . ')');
@@ -318,7 +310,7 @@ class OpenAIProcessorService
             $totalTokens = $usage['total_tokens'] ?? 0;
 
             // Track token usage
-            self::trackTokenUsage(
+            $this->trackTokenUsage(
                 businessId: $payload['business_id'] ?? null,
                 reviewId: $payload['review_id'] ?? null,
                 branchId: $payload['metadata']['branch_id'] ?? null,
@@ -348,7 +340,7 @@ class OpenAIProcessorService
                 'prompt_tokens' => $promptTokens,
                 'completion_tokens' => $completionTokens,
                 'enabled_modules' => $enabledModules,
-                'processing_time' => now()->toISOString(),
+                'processing_time' => \now()->toISOString(),
                 'business_id' => $payload['business_id'] ?? null,
                 'review_id' => $payload['review_id'] ?? null,
                 'finish_reason' => $finishReason,
@@ -372,12 +364,12 @@ class OpenAIProcessorService
                 'enabled_modules' => $enabledModules
             ]);
 
-            $fallback = self::getFallbackAnalysis($payload, $enabledModules);
+            $fallback = $this->getFallbackAnalysis($payload, $enabledModules);
             $fallback['_error'] = $e->getMessage();
             $fallback['_error_type'] = 'openai_json_parse';
             $fallback['_metadata'] = [
                 'error' => $e->getMessage(),
-                'processing_time' => now()->toISOString(),
+                'processing_time' => \now()->toISOString(),
                 'enabled_modules' => $enabledModules
             ];
 
@@ -391,7 +383,7 @@ class OpenAIProcessorService
      * Calculate dynamic max_tokens based on enabled modules
      */
 
-    private static function calculateDynamicMaxTokens(array $enabledModules, int $reviewTextLength): int
+    private function calculateDynamicMaxTokens(array $enabledModules, int $reviewTextLength): int
     {
         // Base tokens for required modules - INCREASED
         $baseTokens = 1000; // Increased from 500
@@ -436,7 +428,7 @@ class OpenAIProcessorService
      * Estimate completion tokens needed
      */
 
-    private static function estimateCompletionTokens(array $enabledModules, array $payload): int
+    private function estimateCompletionTokens(array $enabledModules, array $payload): int
     {
         $estimate = 800; // Increased from 500 (base for required modules)
 
@@ -462,7 +454,7 @@ class OpenAIProcessorService
     /**
      * Fix truncated JSON response
      */
-    private static function fixTruncatedJson(string $content): string
+    private function fixTruncatedJson(string $content): string
     {
         // Remove trailing incomplete structures
         $content = rtrim($content);
@@ -501,7 +493,7 @@ class OpenAIProcessorService
     /**
      * Fix common JSON issues in OpenAI responses
      */
-    private static function fixCommonJsonIssues(string $content): string
+    private function fixCommonJsonIssues(string $content): string
     {
         // Remove any leading/trailing whitespace
         $content = trim($content);
@@ -566,7 +558,7 @@ class OpenAIProcessorService
     /**
      * Extract JSON from a string that might have other text
      */
-    private static function extractJsonFromString(string $content): string
+    private function extractJsonFromString(string $content): string
     {
         // Try to find the JSON object
         $startPos = strpos($content, '{');
@@ -600,7 +592,7 @@ class OpenAIProcessorService
     /**
      * Find approximate line of JSON error
      */
-    private static function findJsonErrorLine(string $content): string
+    private function findJsonErrorLine(string $content): string
     {
         $lines = explode("\n", $content);
         $position = 0;
@@ -627,7 +619,7 @@ class OpenAIProcessorService
     /**
      * Clean JSON content from OpenAI response
      */
-    private static function cleanJsonContent(string $content): string
+    private function cleanJsonContent(string $content): string
     {
         // Remove any leading/trailing whitespace and control characters
         $content = trim($content);
@@ -663,7 +655,7 @@ class OpenAIProcessorService
     /**
      * Sanitize JSON string when initial parsing fails
      */
-    private static function sanitizeJsonString(string $content): string
+    private function sanitizeJsonString(string $content): string
     {
         // Try to extract JSON from text if it's wrapped
         if (preg_match('/\{.*\}/s', $content, $matches)) {
@@ -694,71 +686,12 @@ class OpenAIProcessorService
     }
 
 
-    /**
-     * Track token usage in database
-     */
-    private static function trackTokenUsage(
-        ?int $businessId,
-        ?int $reviewId,
-        ?int $branchId,
-        string $model,
-        int $promptTokens,
-        int $completionTokens,
-        int $totalTokens,
-        array $metadata = []
-    ): OpenAITokenUsage {
-        try {
-            // Use your existing calculateCost method or adjust as needed
-            $estimatedCost = self::calculateEstimatedCost($model, $promptTokens, $completionTokens);
-
-            return OpenAITokenUsage::create([
-                'business_id' => $businessId,
-                'review_id' => $reviewId,
-                'branch_id' => $branchId,
-                'model' => $model,
-                'prompt_tokens' => $promptTokens,
-                'completion_tokens' => $completionTokens,
-                'total_tokens' => $totalTokens,
-                'estimated_cost' => $estimatedCost,
-                'metadata' => $metadata,
-                'created_at' => now()
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Failed to track token usage', [
-                'error' => $e->getMessage(),
-                'business_id' => $businessId,
-                'review_id' => $reviewId
-            ]);
-
-            // Return a dummy instance to avoid breaking the flow
-            return new OpenAITokenUsage();
-        }
-    }
-
-    /**
-     * Calculate estimated cost (if not already in your model)
-     */
-    private static function calculateEstimatedCost(string $model, int $promptTokens, int $completionTokens): float
-    {
-        $pricing = [
-            'gpt-4o-mini' => ['input' => 0.00015, 'output' => 0.0006],
-            'gpt-4o' => ['input' => 0.0025, 'output' => 0.010],
-            'gpt-3.5-turbo' => ['input' => 0.0005, 'output' => 0.0015],
-        ];
-
-        $modelPricing = $pricing[$model] ?? $pricing['gpt-4o-mini'];
-
-        $inputCost = ($promptTokens / 1000) * $modelPricing['input'];
-        $outputCost = ($completionTokens / 1000) * $modelPricing['output'];
-
-        return $inputCost + $outputCost;
-    }
 
 
     /**
      * Get system prompt based on enabled modules
      */
-    private static function getSystemPrompt(array $enabledModules): string
+    private function getSystemPrompt(array $enabledModules): string
     {
         $prompt = <<<PROMPT
 You are an AI Experience Intelligence Engine. Analyze customer reviews and return ONLY valid JSON in this exact structure:
@@ -1167,7 +1100,7 @@ PROMPT;
      * Create user message for OpenAI
      */
 
-    private static function createUserMessage(array $payload, array $enabledModules): string
+    private function createUserMessage(array $payload, array $enabledModules): string
     {
         $text = $payload['review_text'] ?? '';
         $rating = $payload['rating'] ?? 0;
@@ -1211,7 +1144,7 @@ PROMPT;
      * Create payload from ReviewNew model
      */
 
-    public static function createPayloadFromReview(ReviewNew $review): array
+    public function createPayloadFromReview(ReviewNew $review): array
     {
         $text = $review->raw_text ?? $review->comment ?? '';
 
@@ -1270,7 +1203,7 @@ PROMPT;
                 'language' => $review->language,
                 'review_type' => $review->review_type ?? 'text',
                 'is_voice' => $review->is_voice_review ?? false,
-                'submitted_at' => $review->responded_at ?? now()->toISOString(),
+                'submitted_at' => $review->responded_at ?? \now()->toISOString(),
                 'branch_id' => $review->branch_id
             ]
         ];
@@ -1279,7 +1212,7 @@ PROMPT;
     /**
      * Extract rating-comment mismatch insights
      */
-    public static function extractMismatchInsights(array $aiResult, ReviewNew $review): array
+    public function extractMismatchInsights(array $aiResult, ReviewNew $review): array
     {
         $mismatchData = $aiResult['rating_comment_alignment'] ?? null;
 
@@ -1324,7 +1257,7 @@ PROMPT;
 
     // In analyzeReview method, add debugging:
 
-    public static function analyzeReview(ReviewNew $review, bool $forceReprocess = false): array
+    public function analyzeReview(ReviewNew $review, bool $forceReprocess = false): array
     {
         if ($review->is_ai_processed && !$forceReprocess) {
             return [
@@ -1339,7 +1272,7 @@ PROMPT;
         }
 
         try {
-            $payload = self::createPayloadFromReview($review);
+            $payload = $this->createPayloadFromReview($review);
             // Log the payload for debugging
             Log::debug('Review payload for OpenAI', [
                 'review_id' => $review->id,
@@ -1350,7 +1283,7 @@ PROMPT;
             $businessId = $review->business_id;
 
             // Get enabled modules for this business
-            $enabledModules = self::getBusinessAiModules($businessId);
+            $enabledModules = $this->getBusinessAiModules($businessId);
 
             Log::debug('Analyzing review with modules', [
                 'review_id' => $review->id,
@@ -1358,14 +1291,14 @@ PROMPT;
                 'enabled_modules' => $enabledModules
             ]);
 
-            $openAIResult = self::processReviewWithOpenAI($payload, $enabledModules);
+            $openAIResult = $this->processReviewWithOpenAI($payload, $enabledModules);
 
             // Convert to database format
-            $dbData = self::convertForDatabase($openAIResult, $review, $enabledModules);
+            $dbData = $this->convertForDatabase($openAIResult, $review, $enabledModules);
 
 
-            $ruleResults = RuleEngineService::evaluateReviewRules($review, $openAIResult);
-            \Log::info('Review rules evaluated', ['results' => $ruleResults]);
+            $ruleResults = $this->ruleEngineService->evaluateReviewRules($review, $openAIResult);
+            Log::info('Review rules evaluated', ['results' => $ruleResults]);
 
             // Update the review
             $review->fill($dbData);
@@ -1392,10 +1325,10 @@ PROMPT;
 
 
             // Get enabled modules for fallback
-            $enabledModules = self::getBusinessAiModules($review->business_id);
-            $payload = self::createPayloadFromReview($review);
-            $fallback = self::getFallbackAnalysis($payload, $enabledModules);
-            $dbData = self::convertForDatabase($fallback, $review, $enabledModules);
+            $enabledModules = $this->getBusinessAiModules($review->business_id);
+            $payload = $this->createPayloadFromReview($review);
+            $fallback = $this->getFallbackAnalysis($payload, $enabledModules);
+            $dbData = $this->convertForDatabase($fallback, $review, $enabledModules);
 
             // Update the review
             $review->fill($dbData);
@@ -1409,7 +1342,7 @@ PROMPT;
         }
     }
 
-    private static function extractIssuesFromExplanation(string $explanation): array
+    private function extractIssuesFromExplanation(string $explanation): array
     {
         $issues = [];
 
@@ -1443,7 +1376,7 @@ PROMPT;
         return array_unique($issues);
     }
 
-    private static function generateMismatchRecommendations(
+    private function generateMismatchRecommendations(
         int $mismatchCount,
         int $totalReviews,
         array $commonIssues,
@@ -1506,7 +1439,7 @@ PROMPT;
         return $recommendations;
     }
 
-    public static function getMismatchInsightsForDashboard(int $businessId, $startDate, $endDate): array
+    public function getMismatchInsightsForDashboard(int $businessId, $startDate, $endDate): array
     {
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
@@ -1558,7 +1491,7 @@ PROMPT;
             // Extract common issues
             $explanation = $insights['explanation'] ?? '';
             if ($explanation) {
-                $issues = self::extractIssuesFromExplanation($explanation);
+                $issues = $this->extractIssuesFromExplanation($explanation);
                 foreach ($issues as $issue) {
                     $commonIssues[$issue] = ($commonIssues[$issue] ?? 0) + 1;
                 }
@@ -1599,7 +1532,7 @@ PROMPT;
         $mostCommonType = array_keys($mismatchByType, max($mismatchByType))[0] ?? 'none';
 
         // Generate recommendations
-        $recommendations = self::generateMismatchRecommendations(
+        $recommendations = $this->generateMismatchRecommendations(
             $totalMismatches,
             $totalReviews,
             $commonIssues,
@@ -1642,7 +1575,7 @@ PROMPT;
         ];
     }
 
-    private static function extractCommonMismatchIssues($mismatchReviews)
+    public function extractCommonMismatchIssues($mismatchReviews): array
     {
         $issues = [];
 
@@ -1650,8 +1583,9 @@ PROMPT;
             $insights = json_decode($review->mismatch_insights ?? '{}', true);
             $explanation = $insights['explanation'] ?? '';
 
-            if (empty($explanation))
+            if (empty($explanation)) {
                 continue;
+            }
 
             // Extract common keywords from explanation
             $keywords = [
@@ -1683,11 +1617,10 @@ PROMPT;
         return $issues;
     }
 
-    // In your existing AIProcessor class, add this method:
     /**
      * Get rating mismatch alert for dashboard
      */
-    public static function getRatingMismatchAlert($reviews, $businessId = null, $dateRange = null)
+    public function getRatingMismatchAlert($reviews, $businessId = null, $dateRange = null)
     {
         if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
             $reviews = $reviews->get();
@@ -1703,7 +1636,7 @@ PROMPT;
         $percentage = $totalCount > 0 ? round(($mismatchCount / $totalCount) * 100) : 0;
 
         // Get common issues from mismatched reviews
-        $commonIssues = self::extractCommonMismatchIssues($reviews->where('rating_comment_mismatch', true));
+        $commonIssues = $this->extractCommonMismatchIssues($reviews->where('rating_comment_mismatch', true));
 
         return [
             'type' => 'insight',
@@ -1715,201 +1648,232 @@ PROMPT;
             'common_issues' => array_slice($commonIssues, 0, 3),
             'recommendation' => 'Review flagged comments for hidden operational issues',
             'icon' => '⚠️',
-            'link' => $businessId ? route('dashboard.mismatch.insights', ['business' => $businessId, 'start_date' => $dateRange['start'] ?? null, 'end_date' => $dateRange['end'] ?? null]) : null
+            'link' => $businessId ? \route('dashboard.mismatch.insights', ['business' => $businessId, 'start_date' => $dateRange['start'] ?? null, 'end_date' => $dateRange['end'] ?? null]) : null
         ];
     }
-    /**
-     * Convert AI result to database format considering enabled modules
-     */
-    private static function convertForDatabase(array $aiResult, ReviewNew $review, array $enabledModules): array
+
+    public function generateRecommendations(array $aiResult, array $enabledModules): array
     {
-
-        // Get raw score from OpenAI (-1 to 1)
-        $rawScore = $aiResult['sentiment']['score'] ?? 0.0;
-        $sentimentLabel = $aiResult['sentiment']['label'] ?? 'neutral';
-        $dbSentimentScore = ($rawScore + 1) / 2;
-
-        Log::debug('Score conversion debug', [
-            'raw_score' => $rawScore,
-            'db_score' => $dbSentimentScore,
-            'sentiment_label' => $sentimentLabel,
-            'score_type' => gettype($dbSentimentScore)
-        ]);
-
-        // Validate range
-        if ($rawScore < -1 || $rawScore > 1) {
-            Log::warning('Invalid sentiment score from OpenAI', [
-                'score' => $rawScore,
-                'review_id' => $review->id
-            ]);
-            $rawScore = max(-1, min(1, $rawScore));
+        if (!in_array('recommendations', $enabledModules)) {
+            return [];
         }
 
-
-        // Get confidence
-        $confidence = $aiResult['explainability']['confidence_score'] ?? 0.0;
-
-        // Get emotion
-        $emotion = $aiResult['emotion']['primary'] ?? 'neutral';
-
-        // Extract key phrases only if enabled
-        $keyPhrases = [];
-        if (!empty($aiResult['themes'])) {
-            foreach ($aiResult['themes'] ?? [] as $theme) {
-                if (!empty($theme['topic'])) {
-                    $keyPhrases[] = $theme['topic'];
-                }
-            }
-        }
-
-        // Extract topics
-        $topics = array_map(function ($theme) {
-            return $theme['topic'] ?? '';
-        }, $aiResult['themes'] ?? []);
+        return $aiResult['recommendations'] ?? [];
+    }
 
 
-        // Extract mismatch insights
-        $mismatchInsights = self::extractMismatchInsights($aiResult, $review);
+    /**
+     * Convert OpenAI result to database format
+     */
+    public function convertForDatabase(array $result, ReviewNew $review, array $enabledModules = []): array
+    {
+        $mismatchInsights = $this->extractMismatchInsights($result, $review);
 
-        // Prepare data based on enabled modules
         $dbData = [
-            'sentiment_score' => $dbSentimentScore, // Store as float, not string
-            'sentiment_label' => $sentimentLabel,
-            'sentiment' => $aiResult['sentiment'] ?? ['label' => 'neutral', 'score' => 0],
-            'emotion' => $emotion,
-            'key_phrases' => json_encode(array_slice($keyPhrases, 0, 5)),
-            'topics' => json_encode(array_slice($topics, 0, 5)),
-            'moderation_results' => json_encode($aiResult['moderation'] ?? []),
-            'language' => $aiResult['language']['detected'] ?? 'en',
-            'openai_raw_response' => json_encode($aiResult),
+            'sentiment_score' => $result['sentiment']['score'] ?? 0,
+            'sentiment_label' => $result['sentiment']['label'] ?? 'Neutral',
+            'emotion' => $result['emotion'] ?? 'neutral',
+            'is_abusive' => $result['flagging']['is_abusive'] ?? false,
             'is_ai_processed' => true,
-            'is_abusive' => $aiResult['moderation']['is_abusive'] ?? false,
-            'ai_confidence' => $confidence,
-            'summary' => $aiResult['summary']['one_line'] ?? '',
-            // Add mismatch data
-            'rating_comment_mismatch' => $mismatchInsights['has_mismatch'] ?? false,
+            'ai_confidence' => $result['confidence_score'] ?? 0.8,
+            'ai_processed_at' => \now(),
+            'ai_model' => Config::get('services.openai.model', 'gpt-4o-mini'),
+
+            // Mismatch data
+            'rating_comment_mismatch' => $mismatchInsights['has_mismatch'],
             'mismatch_insights' => json_encode($mismatchInsights),
+
+            // Store detailed insights and tags
+            'ai_insights' => json_encode($this->extractInsights($result, $enabledModules)),
+            'ai_recommendations' => json_encode($this->generateRecommendations($result, $enabledModules))
         ];
 
-        // Add flag to review if mismatch detected
-        if ($mismatchInsights['should_flag'] ?? false) {
-            $dbData['status'] = 'flagged';
-            $dbData['flag_type'] = $mismatchInsights['flag_type'] ?? 'insight';
-            $dbData['flag_reason'] = $mismatchInsights['explanation'] ?? 'Rating-comment mismatch detected';
-        }
-
-        // Add optional fields only if modules are enabled
-        if ($enabledModules['staff_intelligence'] && isset($aiResult['staff_intelligence'])) {
-            $dbData['staff_suggestions'] = json_encode($aiResult['staff_intelligence']['training_recommendations'] ?? []);
-        }
-
-        if ($enabledModules['business_recommendations'] && isset($aiResult['recommendations'])) {
-            $dbData['ai_suggestions'] = json_encode($aiResult['recommendations'] ?? []);
+        // Process tags if present
+        if (isset($result['tags']) && is_array($result['tags'])) {
+            $this->processReviewTags($review, $result['tags']);
         }
 
         return $dbData;
     }
 
+    /**
+     * Process tags from AI result
+     */
+    private function processReviewTags(ReviewNew $review, array $aiTags): void
+    {
+        try {
+            foreach ($aiTags as $tagName) {
+                $tag = Tag::firstOrCreate(
+                    ['name' => $tagName, 'business_id' => $review->business_id],
+                    ['type' => 'ai_generated', 'color' => '#E5E7EB']
+                );
+
+                $review->tags()->syncWithoutDetaching([$tag->id]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to process AI tags', [
+                'review_id' => $review->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
 
     /**
-     * Fallback analysis when OpenAI fails - ensure 0 confidence
+     * Fallback analysis if OpenAI fails
      */
-    private static function getFallbackAnalysis(array $payload, array $enabledModules): array
+    public function getFallbackAnalysis(array $payload, array $enabledModules): array
     {
-        $text = $payload['review_text'] ?? '';
-        $rating = $payload['rating'] ?? 0;
+        $rating = $payload['rating'] ?? 3;
 
-        // Simple sentiment analysis based on rating
+        // Simple sentiment mapping based on rating
+        $sentimentLabel = 'Neutral';
+        $sentimentScore = 0;
+
         if ($rating >= 4) {
-            $sentiment = 'positive';
+            $sentimentLabel = 'Positive';
             $sentimentScore = 0.8;
-        } elseif ($rating >= 3) {
-            $sentiment = 'neutral';
-            $sentimentScore = 0.0;
-        } else {
-            $sentiment = 'negative';
+        } elseif ($rating <= 2) {
+            $sentimentLabel = 'Negative';
             $sentimentScore = -0.8;
         }
 
-        // Base result with required modules
-        $result = [
-            'language' => [
-                'detected' => 'en',
-                'translated_text' => $text
-            ],
+        return [
             'sentiment' => [
-                'label' => $sentiment,
-                'score' => $sentimentScore
+                'score' => $sentimentScore,
+                'label' => $sentimentLabel,
+                'details' => 'Analyzed using rule-based fallback'
             ],
-            'emotion' => [
-                'primary' => 'neutral',
-                'intensity' => 'low'
-            ],
-            'moderation' => [
-                'is_abusive' => false,
-                'safe_for_public_display' => true,
-                'issues_found' => [],
-                'severity' => 'low'
-            ],
-            'themes' => [],
-            'explainability' => [
-                'decision_basis' => ['Fallback rating-based analysis'],
-                'confidence_score' => 0.0,
-                'key_factors' => ['rating']
-            ],
-            'summary' => [
-                'one_line' => 'Analysis unavailable',
-                'manager_summary' => 'Could not perform AI analysis. Using fallback.',
-                'customer_sentiment_summary' => 'Based on rating only'
-            ],
+            'emotion' => 'neutral',
+            'flagging' => ['is_abusive' => false],
+            'confidence_score' => 0.5,
             '_fallback' => true
         ];
-
-        // Add optional modules based on enabledModules
-        $result['category_analysis'] = $enabledModules['category_analysis'] ? [] : null;
-        $result['staff_intelligence'] = $enabledModules['staff_intelligence'] ? null : null;
-        $result['service_unit_intelligence'] = $enabledModules['service_unit_intelligence'] ? null : null;
-
-        if ($enabledModules['business_recommendations']) {
-            $result['business_insights'] = [
-                'root_cause' => 'Unable to analyze',
-                'repeat_issue_likelihood' => 'low',
-                'impact_level' => 'low'
-            ];
-            $result['recommendations'] = [
-                'business_actions' => [],
-                'staff_actions' => [],
-                'immediate_actions' => []
-            ];
-        }
-
-        if ($enabledModules['alerts']) {
-            $result['alerts'] = [
-                'triggered' => false,
-                'type' => 'info',
-                'priority' => 'low',
-                'message' => 'Fallback analysis used'
-            ];
-        }
-
-        return $result;
     }
 
+    /**
+     * Track token usage for business
+     */
+    public function trackTokenUsage(
+        ?int $businessId,
+        ?int $reviewId,
+        ?int $branchId,
+        string $model,
+        int $promptTokens,
+        int $completionTokens,
+        int $totalTokens,
+        array $metadata = []
+    ): void {
+        try {
+            $cost = $this->calculateEstimatedCost($model, $promptTokens, $completionTokens);
+
+            OpenAITokenUsage::create([
+                'business_id' => $businessId,
+                'review_id' => $reviewId,
+                'branch_id' => $branchId,
+                'model' => $model,
+                'prompt_tokens' => $promptTokens,
+                'completion_tokens' => $completionTokens,
+                'total_tokens' => $totalTokens,
+                'estimated_cost' => $cost,
+                'metadata' => json_encode($metadata),
+                'used_at' => \now(),
+            ]);
+
+            // Update business running total
+            if ($businessId) {
+                $this->updateBusinessAiModule($businessId, $totalTokens, $cost);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to track token usage', [
+                'business_id' => $businessId,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update business AI module stats
+     */
+    public function updateBusinessAiModule(int $businessId, int $tokens, float $cost): void
+    {
+        try {
+            $module = BusinessAiModule::where('business_id', $businessId)->first();
+            if ($module) {
+                $module->increment('total_tokens_used', $tokens);
+                $module->increment('total_cost_usd', $cost);
+                $module->last_used_at = \now();
+                $module->save();
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to update business AI module stats', [
+                'business_id' => $businessId,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get enabled modules for a business
+     */
+    public function getEnabledModules(int $businessId): array
+    {
+        $modules = BusinessAiModule::where('business_id', $businessId)->first();
+
+        if ($modules) {
+            return $modules->getEnabledModules();
+        }
+
+        return $this->getEnabledModulesFromConfig();
+    }
+
+    /**
+     * Get default enabled modules from config
+     */
+    private function getEnabledModulesFromConfig(): array
+    {
+        return Config::get('services.openai.default_modules', [
+            'sentiment_analysis',
+            'emotion_detection',
+            'tagging',
+            'flagging'
+        ]);
+    }
+
+    /**
+     * Calculate estimated cost based on model and token usage.
+     * This is a placeholder and should be updated with actual pricing.
+     */
+    private function calculateEstimatedCost(string $model, int $promptTokens, int $completionTokens): float
+    {
+        // Example pricing (replace with actual OpenAI pricing)
+        $pricing = [
+            'gpt-4o-mini' => ['input_per_million' => 0.15, 'output_per_million' => 0.60],
+            'gpt-4o' => ['input_per_million' => 5.00, 'output_per_million' => 15.00],
+            // Add other models as needed
+        ];
+
+        $modelPricing = $pricing[$model] ?? $pricing['gpt-4o-mini']; // Default to gpt-4o-mini
+
+        $inputCost = ($promptTokens / 1_000_000) * $modelPricing['input_per_million'];
+        $outputCost = ($completionTokens / 1_000_000) * $modelPricing['output_per_million'];
+
+        return round($inputCost + $outputCost, 6); // Round to 6 decimal places for cents
+    }
 
     /**
      * Get token usage statistics for a business
      */
-    public static function getTokenUsageStatistics(int $businessId, string $period = 'month')
+    public function getTokenUsageStatistics(int $businessId, string $period = 'month'): array
     {
         $query = OpenAITokenUsage::where('business_id', $businessId);
 
         $dateField = match ($period) {
-            'day' => now()->subDay(),
-            'week' => now()->subWeek(),
-            'month' => now()->subMonth(),
-            'quarter' => now()->subQuarter(),
-            'year' => now()->subYear(),
-            default => now()->subMonth()
+            'day' => \now()->subDay(),
+            'week' => \now()->subWeek(),
+            'month' => \now()->subMonth(),
+            'quarter' => \now()->subQuarter(),
+            'year' => \now()->subYear(),
+            default => \now()->subMonth()
         };
 
         $query->where('created_at', '>=', $dateField);
@@ -1937,10 +1901,7 @@ PROMPT;
     /**
      * Update business AI modules
      */
-    /**
-     * Update business AI modules
-     */
-    public static function updateBusinessAiModules(int $businessId, array $modules): bool
+    public function updateBusinessAiModules(int $businessId, array $modules): bool
     {
         try {
             $aiModule = BusinessAiModule::firstOrNew(['business_id' => $businessId]);
@@ -1984,10 +1945,11 @@ PROMPT;
             return false;
         }
     }
+
     /**
      * Legacy compatibility method
      */
-    public static function processReview(string $text, $staffId = null, $businessId = null): array
+    public function processReview(string $text, $staffId = null, $businessId = null): array
     {
         $review = new ReviewNew([
             'raw_text' => $text,
@@ -1996,13 +1958,13 @@ PROMPT;
             'comment' => $text
         ]);
 
-        return self::analyzeReview($review);
+        return $this->analyzeReview($review);
     }
 
     /**
      * Batch process reviews
      */
-    public static function batchProcessReviews(array $reviewIds): array
+    public function batchProcessReviews(array $reviewIds): array
     {
         $results = [];
         $reviews = ReviewNew::whereIn('id', $reviewIds)
@@ -2011,7 +1973,7 @@ PROMPT;
 
         foreach ($reviews as $review) {
             try {
-                $result = self::analyzeReview($review);
+                $result = $this->analyzeReview($review);
                 $results[$review->id] = [
                     'success' => true,
                     'sentiment' => $result['sentiment_label'] ?? 'unknown',

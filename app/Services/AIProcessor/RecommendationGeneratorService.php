@@ -10,10 +10,17 @@ use Carbon\Carbon;
 
 class RecommendationGeneratorService
 {
+    private RuleEngineService $ruleEngineService;
+
+    public function __construct(RuleEngineService $ruleEngineService)
+    {
+        $this->ruleEngineService = $ruleEngineService;
+    }
+
     /**
      * Generate recommendations from insights
      */
-    public static function generateFromInsights(int $businessId, int $days = 30): array
+    public function generateFromInsights(int $businessId, int $days = 30): array
     {
         // Get recent insights
         $insights = InsightRecord::where('business_id', $businessId)
@@ -26,16 +33,16 @@ class RecommendationGeneratorService
         foreach ($insights as $insight) {
 
             // Match rules to insight
-            $matchedRules = RuleEngineService::matchRulesToInsight($insight);
+            $matchedRules = $this->ruleEngineService->matchRulesToInsight($insight);
 
             foreach ($matchedRules as $matched) {
                 $rule = $matched['rule'];
 
                 // Generate recommendation from rule
-                $recData = RuleEngineService::generateRecommendation($rule, $insight);
+                $recData = $this->ruleEngineService->generateRecommendation($rule, $insight);
 
                 if (!empty($recData)) {
-                    $recommendation = self::createRecommendation(
+                    $recommendation = $this->createRecommendation(
                         $businessId,
                         $insight,
                         $rule,
@@ -61,7 +68,7 @@ class RecommendationGeneratorService
     /**
      * Create recommendation record
      */
-    private static function createRecommendation(
+    private function createRecommendation(
         int $businessId,
         InsightRecord $insight,
         $rule,
@@ -88,7 +95,6 @@ class RecommendationGeneratorService
                 'priority' => $recData['priority'],
                 'evidence' => $recData['evidence']
             ];
-
         } catch (\Exception $e) {
             \Log::error('Failed to create recommendation', [
                 'business_id' => $businessId,
@@ -102,7 +108,7 @@ class RecommendationGeneratorService
     /**
      * Get actionable recommendations for dashboard
      */
-    public static function getDashboardRecommendations(int $businessId, int $limit = 3): array
+    public function getDashboardRecommendations(int $businessId, int $limit = 3): array
     {
         $recommendations = Recommendation::where('business_id', $businessId)
             ->where('created_at', '>=', Carbon::now()->subDays(7))

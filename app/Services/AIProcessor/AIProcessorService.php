@@ -25,32 +25,58 @@ use App\Models\Tag;
 
 class AIProcessorService
 {
+    private RuleEngineService $ruleEngineService;
+    private ReviewService $reviewService;
+    private StaffPerformanceService $staffPerformanceService;
+    private BusinessAnalyticsService $businessAnalyticsService;
+    private InsightAggregationService $insightAggregationService;
+    private RecommendationGeneratorService $recommendationGeneratorService;
+    private ConfidenceCalculatorService $confidenceCalculatorService;
+
+    public function __construct(
+        RuleEngineService $ruleEngineService,
+        ReviewService $reviewService,
+        StaffPerformanceService $staffPerformanceService,
+        BusinessAnalyticsService $businessAnalyticsService,
+        InsightAggregationService $insightAggregationService,
+        RecommendationGeneratorService $recommendationGeneratorService,
+        ConfidenceCalculatorService $confidenceCalculatorService
+    ) {
+        $this->ruleEngineService = $ruleEngineService;
+        $this->reviewService = $reviewService;
+        $this->staffPerformanceService = $staffPerformanceService;
+        $this->businessAnalyticsService = $businessAnalyticsService;
+        $this->insightAggregationService = $insightAggregationService;
+        $this->recommendationGeneratorService = $recommendationGeneratorService;
+        $this->confidenceCalculatorService = $confidenceCalculatorService;
+    }
+
     // ========== CORE DYNAMIC METHODS ==========
 
     /**
      * Get sentiment label from score - Dynamic version
      */
-    public static function getSentimentLabel(?float $score): string
+    public function getSentimentLabel(?float $score): string
     {
         if ($score === null) {
-            return RuleEngineService::getDefaultSentimentLabel();
+            return $this->ruleEngineService->getDefaultSentimentLabel();
         }
 
         // Use rule engine to determine sentiment label
-        return RuleEngineService::getSentimentLabelFromScore($score);
+        return $this->ruleEngineService->getSentimentLabelFromScore($score);
     }
 
     /**
      * Get top mentioned staff dynamically
      */
-    public static function getTopMentionedStaff($positiveReviews)
+    public function getTopMentionedStaff($positiveReviews)
     {
         if ($positiveReviews->isEmpty()) {
             return [];
         }
 
         // Use rule engine to extract staff mentions
-        $staffMentions = RuleEngineService::extractStaffMentions($positiveReviews);
+        $staffMentions = $this->ruleEngineService->extractStaffMentions($positiveReviews);
 
         if (empty($staffMentions)) {
             return [];
@@ -72,23 +98,23 @@ class AIProcessorService
     /**
      * Extract recommended training dynamically
      */
-    private static function extractRecommendedTraining($suggestions)
+    private function extractRecommendedTraining($suggestions)
     {
-        $skillGaps = StaffPerformanceService::extractSkillGapsFromSuggestions($suggestions);
+        $skillGaps = $this->staffPerformanceService->extractSkillGapsFromSuggestions($suggestions);
 
         if (!empty($skillGaps)) {
             return $skillGaps[0] . ' Training';
         }
 
-        return RuleEngineService::getDefaultTrainingRecommendation();
+        return $this->ruleEngineService->getDefaultTrainingRecommendation();
     }
 
     /**
      * Extract opportunities from suggestions dynamically
      */
-    public static function extractOpportunitiesFromSuggestions($suggestions)
+    public function extractOpportunitiesFromSuggestions($suggestions)
     {
-        $opportunityKeywords = RuleEngineService::getOpportunityKeywords();
+        $opportunityKeywords = $this->ruleEngineService->getOpportunityKeywords();
 
         return collect($suggestions)
             ->filter(function ($s) use ($opportunityKeywords) {
@@ -107,7 +133,7 @@ class AIProcessorService
     /**
      * Generate predictions dynamically
      */
-    public static function generatePredictions($reviews)
+    public function generatePredictions($reviews)
     {
         if ($reviews->isEmpty()) {
             return [
@@ -121,7 +147,7 @@ class AIProcessorService
         $avgRating = $reviews->avg('calculated_rating') ?? 0;
 
         // Use rule engine for prediction calculation
-        $predictionData = RuleEngineService::generateRatingPrediction($avgRating);
+        $predictionData = $this->ruleEngineService->generateRatingPrediction($avgRating);
 
         return [
             [
@@ -136,13 +162,13 @@ class AIProcessorService
     /**
      * Transcribe audio - Keep as is (external API)
      */
-    public static function transcribeAudio($filePath)
+    public function transcribeAudio($filePath)
     {
         try {
             $api_key = env('HF_API_KEY');
             $audio = file_get_contents($filePath);
 
-            \Log::info("HF Transcription Started", [
+            Log::info("HF Transcription Started", [
                 'file_path' => $filePath,
                 'file_size' => strlen($audio),
                 'mime' => mime_content_type($filePath)
@@ -164,26 +190,26 @@ class AIProcessorService
             $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
-            \Log::info("HF Whisper API Response", [
+            Log::info("HF Whisper API Response", [
                 'http_status' => $status,
                 'curl_error' => $error,
                 'raw_result' => $result
             ]);
 
             if ($error) {
-                \Log::error("HF Whisper CURL Error: $error");
+                Log::error("HF Whisper CURL Error: $error");
                 return '';
             }
 
             $data = json_decode($result, true);
 
-            \Log::info("HF Whisper Decoded Response", [
+            Log::info("HF Whisper Decoded Response", [
                 'decoded' => $data
             ]);
 
             return $data['text'] ?? '';
         } catch (\Exception $e) {
-            \Log::error("transcribeAudio() exception: " . $e->getMessage());
+            Log::error("transcribeAudio() exception: " . $e->getMessage());
             return '';
         }
     }
@@ -191,15 +217,15 @@ class AIProcessorService
     /**
      * Get recommendations from rule engine
      */
-    public static function getRecommendationsFromRuleEngine(int $businessId, $reviews, $dateRange): array
+    public function getRecommendationsFromRuleEngine(int $businessId, $reviews, $dateRange): array
     {
-        return RecommendationGeneratorService::generateFromInsights($businessId, 30);
+        return $this->recommendationGeneratorService->generateFromInsights($businessId, 30);
     }
 
     /**
      * Generate branch recommendations dynamically
      */
-    public static function generateBranchRecommendations($reviews): array
+    public function generateBranchRecommendations($reviews): array
     {
         $totalReviews = $reviews->count();
 
@@ -218,16 +244,16 @@ class AIProcessorService
         $branchId = $firstReview->branch_id ?? 0;
 
         if ($businessId && $branchId) {
-            return self::generateBranchRecommendationsFromRuleEngine($reviews, $businessId, $branchId);
+            return $this->generateBranchRecommendationsFromRuleEngine($reviews, $businessId, $branchId);
         }
 
-        return self::generateDynamicRecommendations($reviews);
+        return $this->generateDynamicRecommendations($reviews);
     }
 
     /**
      * Generate branch recommendations using rule engine
      */
-    public static function generateBranchRecommendationsFromRuleEngine($reviews, int $businessId, int $branchId): array
+    public function generateBranchRecommendationsFromRuleEngine($reviews, int $businessId, int $branchId): array
     {
         $recommendations = [];
 
@@ -251,12 +277,12 @@ class AIProcessorService
         }
 
         foreach ($branchInsights as $insight) {
-            if ($insight->mentions_count >= RuleEngineService::getMinimumMentionsForRecommendation()) {
-                $matchedRules = RuleEngineService::matchRulesToInsight($insight);
+            if ($insight->mentions_count >= $this->ruleEngineService->getMinimumMentionsForRecommendation()) {
+                $matchedRules = $this->ruleEngineService->matchRulesToInsight($insight);
 
                 foreach ($matchedRules as $matched) {
                     $rule = $matched['rule'];
-                    $recData = RuleEngineService::generateRecommendation($rule, $insight);
+                    $recData = $this->ruleEngineService->generateRecommendation($rule, $insight);
 
                     if (!empty($recData)) {
                         $recommendations[] = [
@@ -282,7 +308,7 @@ class AIProcessorService
                     'description' => 'Not enough reviews to generate specific recommendations.'
                 ];
             } else {
-                $staffTrainings = RuleEngineService::getStaffTrainingRecommendations(0, $businessId);
+                $staffTrainings = $this->ruleEngineService->getStaffTrainingRecommendations(0, $businessId);
 
                 if (!empty($staffTrainings)) {
                     foreach (array_slice($staffTrainings, 0, 2) as $training) {
@@ -303,7 +329,7 @@ class AIProcessorService
     /**
      * Generate dynamic recommendations without hardcoding
      */
-    private static function generateDynamicRecommendations($reviews): array
+    private function generateDynamicRecommendations($reviews): array
     {
         $recommendations = [];
         $totalReviews = $reviews->count();
@@ -315,7 +341,7 @@ class AIProcessorService
         ];
 
         // Get thresholds from rule engine
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold);
         $debugInfo['positive_reviews'] = $positiveReviews->count();
 
@@ -325,9 +351,9 @@ class AIProcessorService
         $debugInfo['has_comments'] = $reviewsWithComments->count();
 
         // Use rule engine to detect staff praise
-        $staffPraise = RuleEngineService::detectStaffPraise($positiveReviews);
+        $staffPraise = $this->ruleEngineService->detectStaffPraise($positiveReviews);
 
-        if ($staffPraise['count'] >= RuleEngineService::getMinimumPraiseForRecommendation()) {
+        if ($staffPraise['count'] >= $this->ruleEngineService->getMinimumPraiseForRecommendation()) {
             $recommendations[] = [
                 'type' => 'Strength',
                 'title' => $staffPraise['title'],
@@ -338,16 +364,16 @@ class AIProcessorService
         }
 
         // Find common issues dynamically
-        $issues = self::findCommonIssues($reviews);
+        $issues = $this->findCommonIssues($reviews);
 
         foreach ($issues as $issue) {
-            if ($issue['count'] >= RuleEngineService::getMinimumMentionsForIssue() && count($recommendations) < 3) {
+            if ($issue['count'] >= $this->ruleEngineService->getMinimumMentionsForIssue() && count($recommendations) < 3) {
                 $recommendations[] = [
                     'type' => 'Weak Area',
                     'title' => $issue['topic'],
                     'description' => $issue['description'] . " (mentioned {$issue['count']} times)",
                     'evidence_count' => $issue['count'],
-                    'priority' => $issue['count'] >= RuleEngineService::getHighPriorityThreshold() ? 'high' : 'medium'
+                    'priority' => $issue['count'] >= $this->ruleEngineService->getHighPriorityThreshold() ? 'high' : 'medium'
                 ];
             }
         }
@@ -367,14 +393,14 @@ class AIProcessorService
     /**
      * Find common issues dynamically
      */
-    public static function findCommonIssues($reviews)
+    public function findCommonIssues($reviews)
     {
         if ($reviews->isEmpty()) {
             return [];
         }
 
         // Get issue patterns from rule engine
-        $issuePatterns = RuleEngineService::getIssuePatterns();
+        $issuePatterns = $this->ruleEngineService->getIssuePatterns();
 
         $results = [];
 
@@ -421,7 +447,7 @@ class AIProcessorService
     /**
      * Get branch comparison data dynamically
      */
-    public static function getBranchComparisonData($branch, $startDate, $endDate)
+    public function getBranchComparisonData($branch, $startDate, $endDate)
     {
         $businessId = $branch->business_id;
 
@@ -436,19 +462,19 @@ class AIProcessorService
         $averageRating = $reviews->avg('calculated_rating') ?? 0;
 
         // Use dynamic thresholds
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $aiSentimentScore = $totalReviews > 0 ? round(($positiveReviews / $totalReviews) * 100) : 0;
 
-        $csatThreshold = RuleEngineService::getCsatThreshold();
+        $csatThreshold = $this->ruleEngineService->getCsatThreshold();
         $csatCount = $reviews->filter(function ($review) use ($csatThreshold) {
             return ($review->calculated_rating ?? 0) >= $csatThreshold;
         })->count();
 
         $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
 
-        $staffPerformance = self::getBranchStaffPerformance($branch->id, $businessId, $startDate, $endDate);
-        $topTopics = self::extractBranchTopics($reviews);
+        $staffPerformance = $this->getBranchStaffPerformance($branch->id, $businessId, $startDate, $endDate);
+        $topTopics = $this->extractBranchTopics($reviews);
 
         return [
             'branch' => [
@@ -474,7 +500,7 @@ class AIProcessorService
     /**
      * Get branch staff performance dynamically
      */
-    public static function getBranchStaffPerformance($branchId, $businessId, $startDate, $endDate)
+    public function getBranchStaffPerformance($branchId, $businessId, $startDate, $endDate)
     {
         $staffReviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branchId)
@@ -504,7 +530,7 @@ class AIProcessorService
             $positiveCount = 0;
             $latestReviewDate = null;
 
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+            $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
 
             foreach ($reviews as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
@@ -540,7 +566,7 @@ class AIProcessorService
     /**
      * Extract branch topics dynamically
      */
-    public static function extractBranchTopics($reviews)
+    public function extractBranchTopics($reviews)
     {
         $topicCounts = [];
 
@@ -552,7 +578,7 @@ class AIProcessorService
             }
 
             if ($review->comment) {
-                $commonTopics = RuleEngineService::getCommonTopicKeywords();
+                $commonTopics = $this->ruleEngineService->getCommonTopicKeywords();
                 $comment = strtolower($review->comment);
 
                 foreach ($commonTopics as $topic) {
@@ -570,7 +596,7 @@ class AIProcessorService
     /**
      * Generate branch comparison insights dynamically
      */
-    public static function generateBranchComparisonInsights($branchesData, $allMetrics)
+    public function generateBranchComparisonInsights($branchesData, $allMetrics)
     {
         if (count($branchesData) === 0) {
             return [
@@ -579,25 +605,25 @@ class AIProcessorService
             ];
         }
 
-        return RuleEngineService::generateBranchComparisonInsights($branchesData);
+        return $this->ruleEngineService->generateBranchComparisonInsights($branchesData);
     }
 
     /**
      * Generate comparison highlights dynamically
      */
-    public static function generateComparisonHighlights($branchesData)
+    public function generateComparisonHighlights($branchesData)
     {
         if (count($branchesData) < 2) {
             return [];
         }
 
-        return RuleEngineService::generateComparisonHighlights($branchesData);
+        return $this->ruleEngineService->generateComparisonHighlights($branchesData);
     }
 
     /**
      * Get sentiment trend over time dynamically
      */
-    public static function getSentimentTrendOverTime($branches, $startDate, $endDate)
+    public function getSentimentTrendOverTime($branches, $startDate, $endDate)
     {
         $months = [];
         $current = $startDate->copy();
@@ -624,7 +650,7 @@ class AIProcessorService
                     ->withCalculatedRating()
                     ->get();
 
-                $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+                $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
                 $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
                 $totalReviews = $reviews->count();
                 $sentimentScore = $totalReviews > 0 ? round(($positiveReviews / $totalReviews) * 100) : 0;
@@ -648,7 +674,7 @@ class AIProcessorService
     /**
      * Get staff complaints by branch dynamically
      */
-    public static function getStaffComplaintsByBranch($branches, $startDate, $endDate)
+    public function getStaffComplaintsByBranch($branches, $startDate, $endDate)
     {
         $complaintsByBranch = [];
 
@@ -660,7 +686,7 @@ class AIProcessorService
                 ->withCalculatedRating()
                 ->get();
 
-            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+            $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
             $negativeReviews = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
             $totalReviews = $reviews->count();
 
@@ -682,20 +708,20 @@ class AIProcessorService
     /**
      * Calculate branch summary dynamically
      */
-    public static function calculateBranchSummary($reviews)
+    public function calculateBranchSummary($reviews)
     {
         $totalReviews = $reviews->count();
         $averageRating = $reviews->avg('calculated_rating') ?? 0;
 
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
 
 
-        $sentiment = RuleEngineService::determineOverallSentiment($positiveReviews, $totalReviews);
+        $sentiment = $this->ruleEngineService->determineOverallSentiment($positiveReviews, $totalReviews);
 
 
 
-        $csatThreshold = RuleEngineService::getCsatThreshold();
+        $csatThreshold = $this->ruleEngineService->getCsatThreshold();
         $csatCount = $reviews->filter(function ($review) use ($csatThreshold) {
             return ($review->calculated_rating ?? 0) >= $csatThreshold;
         })->count();
@@ -703,7 +729,7 @@ class AIProcessorService
 
         $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
 
-        $topTopic = self::extractTopTopic($reviews);
+        $topTopic = $this->extractTopTopic($reviews);
 
 
         $flagged = $reviews->where('status', 'flagged')->count();
@@ -723,7 +749,7 @@ class AIProcessorService
     /**
      * Extract top topic dynamically
      */
-    public static function extractTopTopic($reviews)
+    public function extractTopTopic($reviews)
     {
         $topicCounts = [];
 
@@ -735,7 +761,7 @@ class AIProcessorService
             }
 
             if ($review->comment) {
-                $commonTopics = RuleEngineService::getCommonTopicKeywords();
+                $commonTopics = $this->ruleEngineService->getCommonTopicKeywords();
                 $comment = strtolower($review->comment);
 
                 foreach ($commonTopics as $topic) {
@@ -763,7 +789,7 @@ class AIProcessorService
     /**
      * Generate AI insights dynamically
      */
-    public static function generateAiInsights($reviews)
+    public function generateAiInsights($reviews)
     {
         if ($reviews->isEmpty()) {
             return [
@@ -778,8 +804,8 @@ class AIProcessorService
 
         $totalReviews = $reviews->count();
 
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+        $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
         $positive = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $neutral = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
@@ -791,12 +817,12 @@ class AIProcessorService
             'negative' => round(($negative / $totalReviews) * 100)
         ];
 
-        $summary = self::generateAiSummaryReport($reviews, $sentimentBreakdown);
+        $summary = $this->generateAiSummaryReport($reviews, $sentimentBreakdown);
 
         return [
             'summary' => $summary,
             'sentiment_breakdown' => $sentimentBreakdown,
-            'key_trends' => self::extractKeyTrends($reviews)
+            'key_trends' => $this->extractKeyTrends($reviews)
         ];
     }
 
@@ -964,21 +990,21 @@ class AIProcessorService
     /**
      * Get staff evaluation dynamically
      */
-    public static function getStaffEvaluation($avgRating, $reviewCount)
+    public function getStaffEvaluation($avgRating, $reviewCount)
     {
-        if ($reviewCount < RuleEngineService::getMinimumReviewsForStaffEvaluation()) {
-            return RuleEngineService::getInsufficientDataMessage();
+        if ($reviewCount < $this->ruleEngineService->getMinimumReviewsForStaffEvaluation()) {
+            return $this->ruleEngineService->getInsufficientDataMessage();
         }
 
-        return RuleEngineService::getStaffEvaluationFromRating($avgRating);
+        return $this->ruleEngineService->getStaffEvaluationFromRating($avgRating);
     }
 
     /**
      * Generate action item dynamically
      */
-    public static function generateActionItem($issue, $evidenceCount)
+    public function generateActionItem($issue, $evidenceCount)
     {
-        $actionData = RuleEngineService::generateActionForIssue($issue, $evidenceCount);
+        $actionData = $this->ruleEngineService->generateActionForIssue($issue, $evidenceCount);
 
         if ($actionData) {
             return [
@@ -995,7 +1021,7 @@ class AIProcessorService
     /**
      * Calculate staff metrics from review value dynamically
      */
-    public static function calculateStaffMetricsFromReviewValue($reviews, $staffUser)
+    public function calculateStaffMetricsFromReviewValue($reviews, $staffUser)
     {
         $totalReviews = $reviews->count();
 
@@ -1020,8 +1046,8 @@ class AIProcessorService
 
         $avgRating = $reviews->avg('calculated_rating') ?? 0;
 
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+        $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $neutralCount = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
@@ -1031,9 +1057,9 @@ class AIProcessorService
         $neutralPercentage = round(($neutralCount / $totalReviews) * 100);
         $negativePercentage = round(($negativeCount / $totalReviews) * 100);
 
-        $topics = self::extractTopicsFromReviews($reviews);
-        $performanceByCategory = self::calculatePerformanceByCategory($reviews);
-        $notableReviews = self::getNotableReviews($reviews);
+        $topics = $this->extractTopicsFromReviews($reviews);
+        $performanceByCategory = $this->calculatePerformanceByCategory($reviews);
+        $notableReviews = $this->getNotableReviews($reviews);
 
         return [
             'id' => $staffUser->id,
@@ -1056,7 +1082,7 @@ class AIProcessorService
     /**
      * Extract topics from reviews dynamically
      */
-    public static function extractTopicsFromReviews($reviews)
+    public function extractTopicsFromReviews($reviews)
     {
         $allTopics = [];
 
@@ -1075,9 +1101,9 @@ class AIProcessorService
     /**
      * Calculate performance by category dynamically
      */
-    public static function calculatePerformanceByCategory($reviews)
+    public function calculatePerformanceByCategory($reviews)
     {
-        $performanceCategories = RuleEngineService::getPerformanceCategories();
+        $performanceCategories = $this->ruleEngineService->getPerformanceCategories();
 
         $performance = [];
 
@@ -1112,7 +1138,7 @@ class AIProcessorService
     /**
      * Get notable reviews dynamically
      */
-    public static function getNotableReviews($reviews, $limit = 2)
+    public function getNotableReviews($reviews, $limit = 2)
     {
         return $reviews->whereNotNull('comment')
             ->where('comment', '!=', '')
@@ -1132,9 +1158,9 @@ class AIProcessorService
     /**
      * Get sentiment gap message dynamically
      */
-    public static function getSentimentGapMessage($gap)
+    public function getSentimentGapMessage($gap)
     {
-        return RuleEngineService::getSentimentGapMessage($gap);
+        return $this->ruleEngineService->getSentimentGapMessage($gap);
     }
 
     /**
@@ -1272,7 +1298,7 @@ class AIProcessorService
     /**
      * Calculate performance overview from review value dynamically
      */
-    public static function calculatePerformanceOverviewFromReviewValue($reviews)
+    public function calculatePerformanceOverviewFromReviewValue($reviews)
     {
         if ($reviews instanceof Builder) {
             $reviews = $reviews->get();
@@ -1284,8 +1310,8 @@ class AIProcessorService
             ? round($reviews->avg('calculated_rating'), 1)
             : 0;
 
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+        $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $neutralCount = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
@@ -1323,10 +1349,10 @@ class AIProcessorService
     /**
      * Get review samples dynamically
      */
-    public static function getReviewSamples($reviews, $limit = 2)
+    public function getReviewSamples($reviews, $limit = 2)
     {
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+        $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)
             ->sortByDesc('created_at')
@@ -1404,39 +1430,39 @@ class AIProcessorService
     /**
      * Get rating gap message dynamically
      */
-    public static function getRatingGapMessage($gap)
+    public function getRatingGapMessage($gap)
     {
-        return RuleEngineService::getRatingGapMessage($gap);
+        return $this->ruleEngineService->getRatingGapMessage($gap);
     }
 
     /**
      * Get recommended training dynamically
      */
-    public static function getRecommendedTraining($reviews)
+    public function getRecommendedTraining($reviews)
     {
-        return RuleEngineService::getTrainingRecommendations($reviews);
+        return $this->ruleEngineService->getTrainingRecommendations($reviews);
     }
 
     /**
      * Analyze skill gaps dynamically
      */
-    public static function analyzeSkillGaps($reviews)
+    public function analyzeSkillGaps($reviews)
     {
-        return RuleEngineService::analyzeSkillGaps($reviews);
+        return $this->ruleEngineService->analyzeSkillGaps($reviews);
     }
 
     /**
      * Calculate customer tone dynamically
      */
-    public static function calculateCustomerTone($reviews)
+    public function calculateCustomerTone($reviews)
     {
-        return RuleEngineService::calculateCustomerTone($reviews);
+        return $this->ruleEngineService->calculateCustomerTone($reviews);
     }
 
     /**
      * Calculate sentiment distribution dynamically
      */
-    public static function calculateSentimentDistribution($reviews)
+    public function calculateSentimentDistribution($reviews)
     {
         $total = $reviews->count();
 
@@ -1444,8 +1470,8 @@ class AIProcessorService
             return ['positive' => 0, 'neutral' => 0, 'negative' => 0];
         }
 
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+        $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
         $positive = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $neutral = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
@@ -1461,7 +1487,7 @@ class AIProcessorService
     /**
      * Calculate compliment ratio dynamically
      */
-    public static function calculateComplimentRatio($reviews)
+    public function calculateComplimentRatio($reviews)
     {
         $totalReviews = $reviews->count();
 
@@ -1474,8 +1500,8 @@ class AIProcessorService
             ];
         }
 
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+        $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
         $compliments = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
         $complaints = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
@@ -1494,7 +1520,7 @@ class AIProcessorService
     /**
      * Get all staff metrics from review value dynamically
      */
-    public static function getAllStaffMetricsFromReviewValue($reviews)
+    public function getAllStaffMetricsFromReviewValue($reviews)
     {
         $staffGroups = [];
         foreach ($reviews as $review) {
@@ -1518,8 +1544,8 @@ class AIProcessorService
             $complaints = 0;
             $neutral = 0;
 
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+            $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+            $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
             foreach ($reviewsArray as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
@@ -1544,7 +1570,7 @@ class AIProcessorService
                 'staff_name' => $staff->name,
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
-                'sentiment_score' => self::getSentimentLabel($avgSentiment),
+                'sentiment_score' => $this->getSentimentLabel($avgSentiment),
                 'compliments_count' => $compliments,
                 'complaints_count' => $complaints,
                 'neutral_count' => $neutral,
@@ -1563,17 +1589,17 @@ class AIProcessorService
     /**
      * Generate AI summary dynamically
      */
-    public static function generateAiSummary($reviews)
+    public function generateAiSummary($reviews)
     {
-        return BusinessAnalyticsService::generateAiSummaryFromRuleEngine(0, $reviews);
+        return $this->businessAnalyticsService->generateAiSummaryFromRuleEngine(0, $reviews);
     }
 
     /**
      * Extract issues from suggestions dynamically
      */
-    public static function extractIssuesFromSuggestions($suggestions)
+    public function extractIssuesFromSuggestions($suggestions)
     {
-        $issueKeywords = RuleEngineService::getIssueKeywords();
+        $issueKeywords = $this->ruleEngineService->getIssueKeywords();
 
         $issues = collect($suggestions)
             ->filter(function ($s) use ($issueKeywords) {
@@ -1656,10 +1682,11 @@ class AIProcessorService
     /**
      * Get audio duration
      */
-    public static function getAudioDuration($filePath)
+    public function getAudioDuration($filePath)
     {
         try {
-            $getID3 = new getID3();
+            // This is external library, not a service, so direct instantiation is fine
+            $getID3 = new \getID3();
             $fileInfo = $getID3->analyze($filePath);
             return $fileInfo['playtime_seconds'] ?? null;
         } catch (\Exception $e) {
@@ -1670,15 +1697,15 @@ class AIProcessorService
     /**
      * Get sentiment label by percentage dynamically
      */
-    public static function getSentimentLabelByPercentage($percentage)
+    public function getSentimentLabelByPercentage($percentage)
     {
-        return RuleEngineService::getSentimentLabelByPercentage($percentage);
+        return $this->ruleEngineService->getSentimentLabelByPercentage($percentage);
     }
 
     /**
      * Calculate aggregated sentiment dynamically
      */
-    public static function calculateAggregatedSentiment($reviews)
+    public function calculateAggregatedSentiment($reviews)
     {
         $total = count($reviews);
         $positive = 0;
@@ -1686,8 +1713,8 @@ class AIProcessorService
         $negative = 0;
         $totalScore = 0;
 
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+        $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
         foreach ($reviews as $review) {
             $score = $review->sentiment_score ?? 0;
@@ -1714,14 +1741,14 @@ class AIProcessorService
             'negative_percentage' => $total > 0 ? round(($negative / $total) * 100) : 0,
             'average_score' => $avgScore,
             'average_percentage' => round($avgScore * 100),
-            'sentiment_label' => self::getSentimentLabel($avgScore)
+            'sentiment_label' => $this->getSentimentLabel($avgScore)
         ];
     }
 
     /**
      * Extract common topics dynamically
      */
-    public static function extractCommonTopics($reviews, $limit = 5)
+    public function extractCommonTopics($reviews, $limit = 5)
     {
         $topicCounts = [];
 
@@ -1743,18 +1770,18 @@ class AIProcessorService
     /**
      * Generate dashboard insights dynamically
      */
-    public static function generateDashboardInsights($reviews)
+    public function generateDashboardInsights($reviews)
     {
-        $sentimentData = self::calculateAggregatedSentiment($reviews);
-        $topTopics = self::extractCommonTopics($reviews, 3);
+        $sentimentData = $this->calculateAggregatedSentiment($reviews);
+        $topTopics = $this->extractCommonTopics($reviews, 3);
 
-        return RuleEngineService::generateDashboardInsights($sentimentData, $topTopics, $reviews->count());
+        return $this->ruleEngineService->generateDashboardInsights($sentimentData, $topTopics, $reviews->count());
     }
 
     /**
      * Get insights overview dynamically
      */
-    public static function getInsightsOverview($businessId, $dateRange)
+    public function getInsightsOverview($businessId, $dateRange)
     {
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
@@ -1763,14 +1790,14 @@ class AIProcessorService
             ->get();
 
 
-        $topIssues = self::extractTopIssuesFromReviews($reviews);
+        $topIssues = $this->extractTopIssuesFromReviews($reviews);
 
-        $performanceByBranch = self::getPerformanceByBranch($businessId, $dateRange);
+        $performanceByBranch = $this->getPerformanceByBranch($businessId, $dateRange);
 
-        $performanceByArea = self::getPerformanceByArea($businessId, $dateRange);
+        $performanceByArea = $this->getPerformanceByArea($businessId, $dateRange);
 
 
-        $topPerformingStaff = self::getTopPerformingStaffFromTopWorst($businessId, $dateRange);
+        $topPerformingStaff = $this->getTopPerformingStaffFromTopWorst($businessId, $dateRange);
 
         return [
             'top_issues' => $topIssues,
@@ -1783,7 +1810,7 @@ class AIProcessorService
     /**
      * Extract top issues from reviews dynamically
      */
-    public static function extractTopIssuesFromReviews($reviews)
+    public function extractTopIssuesFromReviews($reviews)
     {
         if ($reviews->isEmpty()) {
             return [
@@ -1791,7 +1818,7 @@ class AIProcessorService
             ];
         }
 
-        $commonIssues = self::findCommonIssues($reviews);
+        $commonIssues = $this->findCommonIssues($reviews);
         $totalReviews = $reviews->count();
         $issuesWithPercentages = [];
 
@@ -1808,7 +1835,7 @@ class AIProcessorService
         return array_slice($issuesWithPercentages, 0, 3);
     }
 
-    public static function getPerformanceByBranch($businessId, $dateRange)
+    public function getPerformanceByBranch($businessId, $dateRange)
     {
         // KEEP EXACTLY AS IS
         $branches = Branch::where('business_id', $businessId)
@@ -1828,7 +1855,7 @@ class AIProcessorService
 
             if ($reviews->isNotEmpty()) {
 
-                $branchSummary = self::calculateBranchSummary($reviews);
+                $branchSummary = $this->calculateBranchSummary($reviews);
 
 
                 $performanceData[] = [
@@ -1849,7 +1876,7 @@ class AIProcessorService
     /**
      * Get performance by area dynamically
      */
-    public static function getPerformanceByArea($businessId, $dateRange)
+    public function getPerformanceByArea($businessId, $dateRange)
     {
         $areasWithReviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
@@ -1956,9 +1983,9 @@ class AIProcessorService
     /**
      * Get top performing staff from top/worst analysis dynamically
      */
-    public static function getTopPerformingStaffFromTopWorst($businessId, $dateRange)
+    public function getTopPerformingStaffFromTopWorst($businessId, $dateRange)
     {
-        $staffAnalysis = self::getTopWorstStaff($businessId, $dateRange, 3, 'rating');
+        $staffAnalysis = $this->getTopWorstStaff($businessId, $dateRange, 3, 'rating');
 
         if (empty($staffAnalysis['top_staff'])) {
             return [];
@@ -1997,7 +2024,7 @@ class AIProcessorService
     /**
      * Get top and worst staff dynamically
      */
-    public static function getTopWorstStaff($businessId, $dateRange, $limit = 3, $criteria = 'rating')
+    public function getTopWorstStaff($businessId, $dateRange, $limit = 3, $criteria = 'rating')
     {
         $staffReviews = ReviewNew::with('staff')
             ->where('business_id', $businessId)
@@ -2037,8 +2064,8 @@ class AIProcessorService
             $totalSentiment = 0;
             $latestReviewDate = null;
 
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+            $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+            $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
             foreach ($reviews as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
@@ -2060,7 +2087,7 @@ class AIProcessorService
             $avgRating = $reviewCount > 0 ? $totalRating / $reviewCount : 0;
             $avgSentiment = $reviewCount > 0 ? $totalSentiment / $reviewCount : 0;
 
-            $minimumReviews = RuleEngineService::getMinimumReviewsForStaffAnalysis();
+            $minimumReviews = $this->ruleEngineService->getMinimumReviewsForStaffAnalysis();
             if ($reviewCount < $minimumReviews) {
                 continue;
             }
@@ -2068,7 +2095,7 @@ class AIProcessorService
             $sentimentPercentage = $reviewCount > 0 ? round(($positiveCount / $reviewCount) * 100) : 0;
             $negativePercentage = $reviewCount > 0 ? round(($negativeCount / $reviewCount) * 100) : 0;
 
-            $commonPraise = RuleEngineService::extractCommonPraise(collect($reviews));
+            $commonPraise = $this->ruleEngineService->extractCommonPraise(collect($reviews));
 
             $staffPerformance[] = [
                 'staff_id' => $staffId,
@@ -2078,7 +2105,7 @@ class AIProcessorService
                 'image' => $staff->image,
                 'avg_rating' => round($avgRating, 2),
                 'avg_sentiment' => round($avgSentiment, 3),
-                'sentiment_label' => self::getSentimentLabel($avgSentiment),
+                'sentiment_label' => $this->getSentimentLabel($avgSentiment),
                 'sentiment_percentage' => $sentimentPercentage,
                 'negative_percentage' => $negativePercentage,
                 'review_count' => $reviewCount,
@@ -2086,8 +2113,8 @@ class AIProcessorService
                 'negative_reviews' => $negativeCount,
                 'common_praise' => array_slice($commonPraise, 0, 3),
                 'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'No reviews',
-                'rating_trend' => StaffPerformanceService::calculateStaffRatingTrend(collect($reviews)),
-                'performance_level' => RuleEngineService::identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage)
+                'rating_trend' => $this->staffPerformanceService->calculateStaffRatingTrend(collect($reviews)),
+                'performance_level' => $this->ruleEngineService->identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage)
             ];
         }
 
@@ -2123,7 +2150,7 @@ class AIProcessorService
             $worstStaff = array_slice($staffPerformance, 0, $limit);
         }
 
-        $summary = RuleEngineService::generateTopWorstSummary($topStaff, $worstStaff, $staffPerformance);
+        $summary = $this->ruleEngineService->generateTopWorstSummary($topStaff, $worstStaff, $staffPerformance);
 
         return [
             'top_staff' => $topStaff,
@@ -2141,7 +2168,7 @@ class AIProcessorService
     /**
      * Extract top topic V2 dynamically
      */
-    public static function extractTopTopicV2($reviews, $limit = 5)
+    public function extractTopTopicV2($reviews, $limit = 5)
     {
         $totalReviews = is_countable($reviews) ? count($reviews) : $reviews->count();
 
@@ -2153,6 +2180,6 @@ class AIProcessorService
             ];
         }
 
-        return RuleEngineService::extractTopicsV2($reviews, $limit);
+        return $this->ruleEngineService->extractTopicsV2($reviews, $limit);
     }
 }

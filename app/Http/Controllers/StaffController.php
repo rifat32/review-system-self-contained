@@ -27,6 +27,22 @@ use Carbon\Carbon;
 
 class StaffController extends Controller
 {
+    private $aiProcessorService;
+    private $staffPerformanceService;
+    private $staffService;
+    private $reviewService;
+
+    public function __construct(
+        AIProcessorService $aiProcessorService,
+        StaffPerformanceService $staffPerformanceService,
+        StaffService $staffService,
+        ReviewService $reviewService
+    ) {
+        $this->aiProcessorService = $aiProcessorService;
+        $this->staffPerformanceService = $staffPerformanceService;
+        $this->staffService = $staffService;
+        $this->reviewService = $reviewService;
+    }
     /**
      * @OA\Post(
      *   path="/v1.0/staffs",
@@ -265,7 +281,6 @@ class StaffController extends Controller
                     'user_id' => $user->id,
                     'branch_id' => $request_payload["branch_id"],
                 ]);
-
             }
 
             DB::commit();
@@ -968,7 +983,7 @@ class StaffController extends Controller
 
         $dateRange = getDateRangeByPeriod($period);
         // Get staff performance using existing staff suggestions
-        $data["staff_performance"] = StaffPerformanceService::getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
+        $data["staff_performance"] = $this->staffPerformanceService->getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
 
         $staff = User::with("branches")->find($staffId);
 
@@ -1427,7 +1442,7 @@ class StaffController extends Controller
         $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
 
         // Use StaffService to get metrics with named arguments (PHP 8.0+)
-        $overallMetrics = StaffService::getStaffMetricsWithComparison(
+        $overallMetrics = $this->staffService->getStaffMetricsWithComparison(
             businessId: $businessId,
             dateRange: $dateRange,
             user: $user
@@ -1517,7 +1532,7 @@ class StaffController extends Controller
             })
             ->get();
 
-        $complimentRatio = AIProcessorService::calculateComplimentRatio($currentReviews);
+        $complimentRatio = $this->aiProcessorService->calculateComplimentRatio($currentReviews);
 
         return response()->json([
             'success' => true,
@@ -1614,7 +1629,7 @@ class StaffController extends Controller
             ->withCalculatedRating()
             ->get();
 
-        $topStaff = ReviewService::getTopStaffByRatingFromReviewValue($currentReviews, $limit);
+        $topStaff = $this->reviewService->getTopStaffByRatingFromReviewValue($currentReviews, $limit);
 
         // SEND RESPONSE
         return response()->json([
@@ -1623,5 +1638,4 @@ class StaffController extends Controller
             'data' => $topStaff
         ], 200);
     }
-
 }

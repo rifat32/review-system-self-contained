@@ -12,7 +12,7 @@ class InsightAggregationService
     /**
      * Main aggregation business logic
      */
-    public static function aggregateReviewsForBusiness(int $businessId, int $days = 30): array
+    public function aggregateReviewsForBusiness(int $businessId, int $days = 30): array
     {
         $startDate = Carbon::now()->subDays($days);
         $endDate = Carbon::now();
@@ -24,12 +24,12 @@ class InsightAggregationService
             ->get();
 
         // Group reviews by category patterns
-        $categoryPatterns = self::extractCategoryPatterns($reviews);
+        $categoryPatterns = $this->extractCategoryPatterns($reviews);
 
         // Create insight records
         $insightsCreated = 0;
         foreach ($categoryPatterns as $pattern) {
-            $insight = self::createInsightFromPattern($businessId, $pattern, $startDate, $endDate);
+            $insight = $this->createInsightFromPattern($businessId, $pattern, $startDate, $endDate);
             if ($insight) {
                 $insightsCreated++;
             }
@@ -47,7 +47,7 @@ class InsightAggregationService
     /**
      * Extract patterns: Group reviews by (main_category + sub_category + staff_blame)
      */
-    private static function extractCategoryPatterns($reviews): array
+    private function extractCategoryPatterns($reviews): array
     {
         $patterns = [];
 
@@ -56,7 +56,7 @@ class InsightAggregationService
             $categories = $openaiData['category_analysis'] ?? [];
 
             foreach ($categories as $category) {
-                $key = self::createPatternKey($category, $openaiData);
+                $key = $this->createPatternKey($category, $openaiData);
 
                 if (!isset($patterns[$key])) {
                     $patterns[$key] = [
@@ -90,7 +90,7 @@ class InsightAggregationService
     /**
      * Create unique pattern key
      */
-    private static function createPatternKey(array $category, array $openaiData): string
+    private function createPatternKey(array $category, array $openaiData): string
     {
         $staffBlame = $openaiData['staff_intelligence']['blame_detected'] ?? false;
         return sprintf(
@@ -104,7 +104,7 @@ class InsightAggregationService
     /**
      * Create insight record from pattern
      */
-    private static function createInsightFromPattern(int $businessId, array $pattern, Carbon $startDate, Carbon $endDate): ?InsightRecord
+    private function createInsightFromPattern(int $businessId, array $pattern, Carbon $startDate, Carbon $endDate): ?InsightRecord
     {
         $mentions = count($pattern['review_ids']);
 
@@ -119,10 +119,10 @@ class InsightAggregationService
         $severity = key($severityCounts) ?: 'medium';
 
         // Calculate confidence (business rule)
-        $confidence = self::calculateConfidence($mentions, $severity);
+        $confidence = $this->calculateConfidence($mentions, $severity);
 
         // Check trend
-        $trend = self::calculateTrend($pattern['first_seen'], $pattern['last_seen'], $mentions);
+        $trend = $this->calculateTrend($pattern['first_seen'], $pattern['last_seen'], $mentions);
 
         // Find or create insight
         return InsightRecord::updateOrCreate(
@@ -150,7 +150,7 @@ class InsightAggregationService
      * - Medium: ≥3 mentions OR medium severity  
      * - Low: everything else
      */
-    private static function calculateConfidence(int $mentions, string $severity): string
+    private function calculateConfidence(int $mentions, string $severity): string
     {
         if ($mentions >= 5 && $severity === 'high') {
             return 'high';
@@ -164,7 +164,7 @@ class InsightAggregationService
     /**
      * Trend calculation: If issue appeared recently and frequently
      */
-    private static function calculateTrend(Carbon $firstSeen, Carbon $lastSeen, int $mentions): string
+    private function calculateTrend(Carbon $firstSeen, Carbon $lastSeen, int $mentions): string
     {
         $daysDiff = $firstSeen->diffInDays($lastSeen);
 
@@ -182,7 +182,7 @@ class InsightAggregationService
     /**
      * Get aggregated insights for dashboard
      */
-    public static function getDashboardInsights(int $businessId, int $limit = 10): array
+    public function getDashboardInsights(int $businessId, int $limit = 10): array
     {
         $insights = InsightRecord::where('business_id', $businessId)
             ->where('mentions_count', '>=', 2) // Business rule: show only significant

@@ -13,6 +13,19 @@ use Carbon\Carbon;
 
 class ReviewService
 {
+    private AIProcessorService $aiProcessorService;
+    private BusinessAnalyticsService $businessAnalyticsService;
+    private ReviewTopicService $reviewTopicService;
+
+    public function __construct(
+        AIProcessorService $aiProcessorService,
+        BusinessAnalyticsService $businessAnalyticsService,
+        ReviewTopicService $reviewTopicService
+    ) {
+        $this->aiProcessorService = $aiProcessorService;
+        $this->businessAnalyticsService = $businessAnalyticsService;
+        $this->reviewTopicService = $reviewTopicService;
+    }
     /**
      * Get current period reviews
      * 
@@ -22,7 +35,7 @@ class ReviewService
      * @param bool $withCalculatedRating Whether to include calculated rating
      * @return \Illuminate\Support\Collection
      */
-    public static function getCurrentPeriodReviews(
+    public function getCurrentPeriodReviews(
         int $businessId,
         ?int $branchId = null,
         ?array $dateRange = null,
@@ -60,7 +73,7 @@ class ReviewService
      * @param bool $withCalculatedRating Whether to include calculated rating
      * @return \Illuminate\Support\Collection
      */
-    public static function getComparisonPeriodReviews(
+    public function getComparisonPeriodReviews(
         int $businessId,
         ?int $branchId = null,
         ?array $dateRange = null,
@@ -103,7 +116,7 @@ class ReviewService
      * @param array $with Relations to eager load
      * @return \Illuminate\Support\Collection
      */
-    public static function getReviewsWithFilters(
+    public function getReviewsWithFilters(
         int $businessId,
         array $filters = [],
         ?array $dateRange = null,
@@ -149,20 +162,20 @@ class ReviewService
      * @param int $comparisonDaysOffset Number of days to go back for comparison (default 30)
      * @return array ['current' => Collection, 'previous' => Collection]
      */
-    public static function getCurrentAndComparisonReviews(
+    public function getCurrentAndComparisonReviews(
         int $businessId,
         ?int $branchId = null,
         ?array $dateRange = null,
         bool $withCalculatedRating = true,
     ): array {
         return [
-            'current' => self::getCurrentPeriodReviews(
+            'current' => $this->getCurrentPeriodReviews(
                 businessId: $businessId,
                 branchId: $branchId,
                 dateRange: $dateRange,
                 withCalculatedRating: $withCalculatedRating
             ),
-            'previous' => self::getComparisonPeriodReviews(
+            'previous' => $this->getComparisonPeriodReviews(
                 businessId: $businessId,
                 branchId: $branchId,
                 dateRange: $dateRange,
@@ -176,7 +189,7 @@ class ReviewService
     /**
      * Calculate percentage change between current and previous values
      */
-    public static function calculatePercentageChange($current, $previous)
+    public function calculatePercentageChange($current, $previous)
     {
         if ($previous == 0) {
             return 0;
@@ -187,7 +200,7 @@ class ReviewService
     /**
      * Extract rating breakdown from reviews
      */
-    public static function extractRatingBreakdown($reviews)
+    public function extractRatingBreakdown($reviews)
     {
         $breakdown = [
             'excellent' => 0, // 4.5-5.0
@@ -246,7 +259,7 @@ class ReviewService
     /**
      * Extract tags breakdown with mentions and percentages
      */
-    public static function extractTagsBreakdown($businessId, $dateRange, $user = null)
+    public function extractTagsBreakdown($businessId, $dateRange, $user = null)
     {
         // Determine branch filter for branch managers
         $userBranchId = ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')))
@@ -256,17 +269,17 @@ class ReviewService
         // Get all tags with their mention counts
         $tags = Tag::where('business_id', $businessId)
             ->withCount([
-                    'review_values' => function ($query) use ($dateRange, $userBranchId) {
-                        $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
+                'review_values' => function ($query) use ($dateRange, $userBranchId) {
+                    $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
 
-                        // Filter by branch if user is branch manager
-                        if ($userBranchId) {
-                            $query->whereHas('review', function ($q) use ($userBranchId) {
-                                $q->where('branch_id', $userBranchId);
-                            });
-                        }
+                    // Filter by branch if user is branch manager
+                    if ($userBranchId) {
+                        $query->whereHas('review', function ($q) use ($userBranchId) {
+                            $q->where('branch_id', $userBranchId);
+                        });
                     }
-                ])
+                }
+            ])
             ->orderByDesc('review_values_count')
             ->get();
 
@@ -331,7 +344,7 @@ class ReviewService
     /**
      * Format period display for date ranges
      */
-    public static function formatPeriodDisplay($startDate, $endDate)
+    public function formatPeriodDisplay($startDate, $endDate)
     {
         // Check if it's all-time data (start date is very old)
         $veryOldDate = Carbon::createFromTimestamp(0)->addDay();
@@ -364,7 +377,7 @@ class ReviewService
     /**
      * Calculate dashboard metrics
      */
-    public static function calculateDashboardMetrics($businessId, $dateRange = null)
+    public function calculateDashboardMetrics($businessId, $dateRange = null)
     {
         // Get current period reviews WITH calculated rating
         $reviewsQuery = ReviewNew::globalFilters(0, $businessId)
@@ -388,9 +401,9 @@ class ReviewService
             $previousReviews = ReviewNew::globalFilters(0, $businessId)
                 ->where('business_id', $businessId)
                 ->whereBetween('created_at', [
-                        $dateRange['start']->copy()->subDays(30),
-                        $dateRange['end']->copy()->subDays(30)
-                    ])
+                    $dateRange['start']->copy()->subDays(30),
+                    $dateRange['end']->copy()->subDays(30)
+                ])
                 ->globalFilters(0, $businessId)
                 ->withCalculatedRating()
                 ->get();
@@ -421,11 +434,11 @@ class ReviewService
         $negativeReviewsCount = $reviews->where('calculated_rating', '<=', 2)->count();
 
         // Top Topic (minimal summary)
-        $topTopicSummary = ReviewTopicService::getTopTopicSummary($reviews);
+        $topTopicSummary = $this->reviewTopicService->getTopTopicSummary($reviews);
 
         // Detect repeated issues (minimal data only)
         $businessId = $reviews->first()->business_id ?? 0;
-        $issueAnalysis = BusinessAnalyticsService::extractIssuesFromRuleEngine(
+        $issueAnalysis = $this->businessAnalyticsService->extractIssuesFromRuleEngine(
             $businessId,
             $reviews,
             [
@@ -441,7 +454,7 @@ class ReviewService
         return [
             'avg_overall_rating' => [
                 'value' => $currentAvgRating,
-                'change' => $dateRange !== null ? self::calculatePercentageChange(
+                'change' => $dateRange !== null ? $this->calculatePercentageChange(
                     $currentAvgRating,
                     $previousAvgRating
                 ) : null,
@@ -452,7 +465,7 @@ class ReviewService
             'ai_sentiment_score' => [
                 'value' => round($current_sentiment_score * 10, 1),
                 'max' => 10,
-                'change' => $dateRange !== null ? self::calculatePercentageChange(
+                'change' => $dateRange !== null ? $this->calculatePercentageChange(
                     $current_sentiment_score,
                     $previous_sentiment_score
                 ) : null,
@@ -460,7 +473,7 @@ class ReviewService
             ],
             'total_reviews' => [
                 'value' => $total,
-                'change' => $dateRange !== null ? self::calculatePercentageChange($total, $previousTotal) : null
+                'change' => $dateRange !== null ? $this->calculatePercentageChange($total, $previousTotal) : null
             ],
             'positive_negative_ratio' => [
                 'positive' => $total > 0 ? round(($positiveReviewsCount / $total) * 100) : 0,
@@ -500,7 +513,7 @@ class ReviewService
     /**
      * Store review values (question/star)
      */
-    public static function storeReviewValues($review, $values, $business)
+    public function storeReviewValues($review, $values, $business)
     {
         $averageRating = collect($values)
             ->pluck('star_id')
@@ -586,7 +599,7 @@ class ReviewService
     /**
      * Get available filters for the business
      */
-    public static function getAvailableFilters($businessId)
+    public function getAvailableFilters($businessId)
     {
         return [
             'periods' => ['Last 30 Days', 'Last 7 Days', 'This Month', 'Last Month', 'Custom Range'],
@@ -606,7 +619,7 @@ class ReviewService
     /**
      * Calculate response rate
      */
-    public static function calculateResponseRate($reviews)
+    public function calculateResponseRate($reviews)
     {
         $total = $reviews->count();
         if ($total === 0) {
@@ -620,7 +633,7 @@ class ReviewService
     /**
      * Calculate tenure from join date
      */
-    public static function calculateTenure($joinDate)
+    public function calculateTenure($joinDate)
     {
         if (!$joinDate) {
             return 'Not specified';
@@ -638,7 +651,7 @@ class ReviewService
     /**
      * Get rating trend from review values
      */
-    public static function getRatingTrendFromReviewValue($reviews)
+    public function getRatingTrendFromReviewValue($reviews)
     {
         $sixMonthsAgo = Carbon::now()->subMonths(6);
 
@@ -659,14 +672,14 @@ class ReviewService
         return [
             'period' => 'last_6_months',
             'data' => $monthlyRatings,
-            'trend_direction' => self::calculateTrendDirection($monthlyRatings)
+            'trend_direction' => $this->calculateTrendDirection($monthlyRatings)
         ];
     }
 
     /**
      * Calculate trend direction from monthly ratings
      */
-    public static function calculateTrendDirection($monthlyRatings)
+    public function calculateTrendDirection($monthlyRatings)
     {
         if (count($monthlyRatings) < 2) {
             return 'stable';
@@ -688,7 +701,7 @@ class ReviewService
     /**
      * Fill missing periods in data
      */
-    public static function fillMissingPeriods($data, $startDate, $endDate, $format)
+    public function fillMissingPeriods($data, $startDate, $endDate, $format)
     {
         $filledData = [];
         $current = $startDate->copy();
@@ -714,7 +727,7 @@ class ReviewService
     /**
      * Apply filters to query
      */
-    public static function applyFilters($query, $filters)
+    public function applyFilters($query, $filters)
     {
         // Survey filter
         if (!empty($filters['survey_id'])) {
@@ -791,7 +804,7 @@ class ReviewService
     /**
      * Get top staff by rating from review values
      */
-    public static function getTopStaffByRatingFromReviewValue($reviews, $limit = 5)
+    public function getTopStaffByRatingFromReviewValue($reviews, $limit = 5)
     {
         $staffGroups = $reviews->groupBy('staff_id');
 
@@ -810,7 +823,7 @@ class ReviewService
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
                 'total_reviews' => $staffReviews->count(),
-                'sentiment_score' => AIProcessorService::getSentimentLabel($staffReviews->avg('sentiment_score')),
+                'sentiment_score' => $this->aiProcessorService->getSentimentLabel($staffReviews->avg('sentiment_score')),
                 'image' => $staff->image ?? null
             ];
         })
@@ -828,7 +841,7 @@ class ReviewService
     /**
      * Get user name from review
      */
-    public static function getUserName($review)
+    public function getUserName($review)
     {
         if ($review->user) {
             return $review->user->name;

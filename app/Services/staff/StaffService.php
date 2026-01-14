@@ -9,11 +9,17 @@ use Carbon\Carbon;
 
 class StaffService
 {
+    private RuleEngineService $ruleEngineService;
+
+    public function __construct(RuleEngineService $ruleEngineService)
+    {
+        $this->ruleEngineService = $ruleEngineService;
+    }
 
     /**
      * Get reviews for current period
      */
-    public static function getCurrentPeriodReviews(
+    public function getCurrentPeriodReviews(
         int $businessId,
         array $dateRange = null,
         ?User $user = null
@@ -23,8 +29,8 @@ class StaffService
         return ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = Carbon::parse($dateRange['start'])->startOfDay();
-                $endDate = Carbon::parse($dateRange['end'])->endOfDay();
+                $startDate = \Carbon\Carbon::parse($dateRange['start'])->startOfDay();
+                $endDate = \Carbon\Carbon::parse($dateRange['end'])->endOfDay();
                 return $query->whereBetween('created_at', [$startDate, $endDate]);
             })
             ->when($userBranchId, function ($query) use ($userBranchId) {
@@ -38,7 +44,7 @@ class StaffService
     /**
      * Get reviews for comparison (previous) period
      */
-    public static function getComparisonPeriodReviews(
+    public function getComparisonPeriodReviews(
         int $businessId,
         array $dateRange = null,
         ?User $user = null
@@ -48,8 +54,8 @@ class StaffService
         return ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = Carbon::parse($dateRange['start'])->subMonth()->startOfDay();
-                $endDate = Carbon::parse($dateRange['end'])->subMonth()->endOfDay();
+                $startDate = \Carbon\Carbon::parse($dateRange['start'])->subMonth()->startOfDay();
+                $endDate = \Carbon\Carbon::parse($dateRange['end'])->subMonth()->endOfDay();
                 return $query->whereBetween('created_at', [$startDate, $endDate]);
             })
             ->when($userBranchId, function ($query) use ($userBranchId) {
@@ -69,20 +75,20 @@ class StaffService
      * @param User|null $user User for branch filtering
      * @return array
      */
-    public static function getStaffMetricsWithComparison(
+    public function getStaffMetricsWithComparison(
         int $businessId,
         ?array $dateRange = null,
         ?User $user = null
     ): array {
         // Get current period reviews
-        $currentReviews = self::getCurrentPeriodReviews(
+        $currentReviews = $this->getCurrentPeriodReviews(
             businessId: $businessId,
             dateRange: $dateRange,
             user: $user
         );
 
         // Get comparison period reviews
-        $comparisonReviews = self::getComparisonPeriodReviews(
+        $comparisonReviews = $this->getComparisonPeriodReviews(
             businessId: $businessId,
             dateRange: $dateRange,
             user: $user
@@ -100,7 +106,7 @@ class StaffService
         $reviewCountChange = $currentReviewCount - $comparisonReviewCount;
 
         // Calculate metrics using existing helper function
-        $overallMetrics = self::calculateOverallMetricsFromReviewValue($currentReviews, $comparisonReviews);
+        $overallMetrics = $this->calculateOverallMetricsFromReviewValue($currentReviews, $comparisonReviews);
 
         // Enhance metrics with staff_count and review_count
         if (isset($overallMetrics['overall_rating'])) {
@@ -137,7 +143,7 @@ class StaffService
         return $overallMetrics;
     }
 
-    public static function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
+    public function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
     {
         $currentAvgRating = $currentReviews->isNotEmpty()
             ? round($currentReviews->avg('calculated_rating'), 1)
@@ -147,10 +153,10 @@ class StaffService
             ? round($previousReviews->avg('calculated_rating'), 1)
             : 0;
 
-        $currentSentiment = self::calculateAverageSentiment($currentReviews);
+        $currentSentiment = $this->calculateAverageSentiment($currentReviews);
         $currentTotalReviews = $currentReviews->count();
 
-        $previousSentiment = self::calculateAverageSentiment($previousReviews);
+        $previousSentiment = $this->calculateAverageSentiment($previousReviews);
         $previousTotalReviews = $previousReviews->count();
 
         $ratingChange = $previousAvgRating > 0 ?
@@ -166,21 +172,21 @@ class StaffService
             'overall_rating' => [
                 'value' => $currentAvgRating,
                 'change' => $ratingChange,
-                'change_type' => RuleEngineService::getChangeType($ratingChange)
+                'change_type' => $this->ruleEngineService->getChangeType($ratingChange)
             ],
             'overall_sentiment' => [
                 'value' => $currentSentiment,
                 'change' => $sentimentChange,
-                'change_type' => RuleEngineService::getChangeType($sentimentChange)
+                'change_type' => $this->ruleEngineService->getChangeType($sentimentChange)
             ],
             'total_reviews' => [
                 'value' => $currentTotalReviews,
                 'change' => $reviewsChange,
-                'change_type' => RuleEngineService::getChangeType($reviewsChange)
+                'change_type' => $this->ruleEngineService->getChangeType($reviewsChange)
             ]
         ];
     }
-    public static function calculateAverageSentiment($reviews)
+    public function calculateAverageSentiment($reviews)
     {
         if ($reviews->isEmpty()) {
             return 0;

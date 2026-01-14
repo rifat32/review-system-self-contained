@@ -12,7 +12,7 @@ class ReviewTopicService
     /**
      * Get top topic summary from reviews collection
      */
-    public static function getTopTopicSummary($reviews)
+    public function getTopTopicSummary($reviews)
     {
         if ($reviews->isEmpty()) {
             return [
@@ -46,15 +46,15 @@ class ReviewTopicService
                     ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
             })
             ->withCount([
-                    'review_values' => function ($query) use ($businessId, $startDate, $endDate) {
-                        $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
-                            $q->where('business_id', $businessId)
-                                ->whereBetween('created_at', [$startDate, $endDate])
-                                ->globalFilters(0, $businessId);
-                        })
-                            ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
-                    }
-                ])
+                'review_values' => function ($query) use ($businessId, $startDate, $endDate) {
+                    $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
+                        $q->where('business_id', $businessId)
+                            ->whereBetween('created_at', [$startDate, $endDate])
+                            ->globalFilters(0, $businessId);
+                    })
+                        ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
+                }
+            ])
             ->orderByDesc('review_values_count')
             ->first();
 
@@ -100,7 +100,7 @@ class ReviewTopicService
     /**
      * Extract common keywords from review comments
      */
-    private static function extractCommonKeywords($reviews, $limit = 1)
+    private function extractCommonKeywords($reviews, $limit = 1)
     {
         $stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'it', 'its', 'they', 'their', 'them', 'very', 'good', 'bad', 'great', 'nice'];
 
@@ -141,13 +141,13 @@ class ReviewTopicService
     /**
      * Get top topic using business ID and date range (for backward compatibility)
      */
-    public static function getTopTopic($businessId, $startDate, $endDate)
+    public function getTopTopic($businessId, $startDate, $endDate)
     {
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->globalFilters(0, $businessId)
             ->get();
 
-        return self::getTopTopicSummary($reviews);
+        return $this->getTopTopicSummary($reviews);
     }
 }
