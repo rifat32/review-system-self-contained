@@ -1493,22 +1493,22 @@ class DashboardController extends Controller
         $allBranchMetrics = [];
 
         foreach ($branches as $branch) {
-            $branchData = getBranchComparisonData($branch, $startDate, $endDate);
+            $branchData = AIProcessorService::getBranchComparisonData($branch, $startDate, $endDate);
             $comparisonData[] = $branchData;
             $allBranchMetrics[$branch->id] = $branchData['metrics'];
         }
 
         // Generate AI insights based on comparison
-        $aiInsights = generateBranchComparisonInsights($comparisonData, $allBranchMetrics);
+        $aiInsights = AIProcessorService::generateBranchComparisonInsights($comparisonData, $allBranchMetrics);
 
         // Generate comparison highlights
-        $comparisonHighlights = generateComparisonHighlights($comparisonData);
+        $comparisonHighlights = AIProcessorService::generateComparisonHighlights($comparisonData);
 
         // Get sentiment trend over time (for chart)
-        $sentimentTrend = getSentimentTrendOverTime($branches, $startDate, $endDate);
+        $sentimentTrend = AIProcessorService::getSentimentTrendOverTime($branches, $startDate, $endDate);
 
         // Get staff performance complaints
-        $staffComplaints = getStaffComplaintsByBranch($branches, $startDate, $endDate);
+        $staffComplaints = AIProcessorService::getStaffComplaintsByBranch($branches, $startDate, $endDate);
 
         $data = [
             'selected_branches' => $branches->pluck('name'),
@@ -1628,7 +1628,7 @@ class DashboardController extends Controller
         $recommendations = generateBranchRecommendations($reviews, $branchId);
 
         // Get recent reviews (last 5)
-        $recentReviews = getRecentReviews($reviews);
+        $recentReviews = \App\Services\Review\RecentReviewService::getRecentReviews($reviews);
 
         // Get staff performance (top 5)
         $staffPerformance = getStaffPerformance($branchId, $businessId, $startDate, $endDate);

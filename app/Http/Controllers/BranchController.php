@@ -1238,7 +1238,7 @@ class BranchController extends Controller
         );
 
         // ==================== GET RECENT REVIEWS ====================
-        $recentReviews = AIProcessorService::getRecentReviews(
+        $recentReviews = \App\Services\Review\RecentReviewService::getRecentReviews(
             reviews: $reviews,
             limit: $request->get('limit', 5)
         );

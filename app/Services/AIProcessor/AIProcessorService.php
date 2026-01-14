@@ -9,6 +9,7 @@ use App\Models\ReviewNew;
 use App\Models\User;
 use App\Services\Business\BusinessAnalyticsService;
 use App\Services\Review\ReviewService;
+use App\Services\Staff\StaffPerformanceService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -73,7 +74,7 @@ class AIProcessorService
      */
     private static function extractRecommendedTraining($suggestions)
     {
-        $skillGaps = self::extractSkillGapsFromSuggestions($suggestions);
+        $skillGaps = StaffPerformanceService::extractSkillGapsFromSuggestions($suggestions);
 
         if (!empty($skillGaps)) {
             return $skillGaps[0] . ' Training';
@@ -715,7 +716,7 @@ class AIProcessorService
             'csat_score' => $csatScore,
             'top_topic' => $topTopic['topic'] ?? 'General',
             'flagged' => $flagged,
-            'response_rate' => \App\Services\Review\ReviewService::calculateResponseRate($reviews)
+            'response_rate' => ReviewService::calculateResponseRate($reviews)
         ];
     }
 
@@ -888,109 +889,77 @@ class AIProcessorService
         return sprintf('%02d:00', $peakHour);
     }
 
-    /**
-     * Get recent reviews dynamically
-     */
-    public static function getRecentReviews($reviews, $limit = 5)
-    {
-        return $reviews->sortByDesc('created_at')
-            ->take($limit)
-            ->map(function ($review) {
-                $rating = $review->calculated_rating;
+    // public static function getStaffPerformance($branchId, $businessId, $startDate, $endDate, $limit = 5)
+    // {
+    //     $staffReviews = ReviewNew::where('business_id', $businessId)
+    //         ->where('branch_id', $branchId)
+    //         ->globalFilters(0, $businessId, 1)
+    //         ->whereNotNull('staff_id')
+    //         // ->whereBetween('created_at', [$startDate, $endDate])
+    //         ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
+    //             return $query->whereBetween('created_at', [$startDate, $endDate]);
+    //         })
+    //         ->withCalculatedRating()
+    //         ->get();
 
-                return [
-                    'id' => $review->id,
-                    'rating' => $rating,
-                    'stars' => str_repeat('★', floor($rating)) . str_repeat('☆', 5 - floor($rating)),
-                    'review_text' => $review->comment ?? $review->raw_text ?? 'No comment',
-                    'staff_name' => $review->staff ? $review->staff->name : 'Not assigned',
-                    'staff_id' => $review->staff_id,
-                    'sentiment' => self::getSentimentLabel($review->sentiment_score),
-                    'date' => $review->created_at->diffForHumans(),
-                    'exact_date' => $review->created_at->format('Y-m-d H:i:s'),
-                    'is_flagged' => $review->status === 'flagged',
-                    'has_actions' => true,
-                    'user_type' => $review->user_id ? 'Registered' : ($review->guest_id ? 'Guest' : 'Anonymous')
-                ];
-            })
-            ->values()
-            ->toArray();
-    }
+    //     $staffPerformance = [];
+    //     $groupedReviews = [];
 
-    /**
-     * Get staff performance dynamically
-     */
-    public static function getStaffPerformance($branchId, $businessId, $startDate, $endDate, $limit = 5)
-    {
-        $staffReviews = ReviewNew::where('business_id', $businessId)
-            ->where('branch_id', $branchId)
-            ->globalFilters(0, $businessId, 1)
-            ->whereNotNull('staff_id')
-            // ->whereBetween('created_at', [$startDate, $endDate])
-            ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
-                return $query->whereBetween('created_at', [$startDate, $endDate]);
-            })
-            ->withCalculatedRating()
-            ->get();
+    //     foreach ($staffReviews as $review) {
+    //         if ($review->staff_id) {
+    //             $groupedReviews[$review->staff_id][] = $review;
+    //         }
+    //     }
 
-        $staffPerformance = [];
-        $groupedReviews = [];
+    //     foreach ($groupedReviews as $staffId => $reviews) {
+    //         $staff = User::find($staffId);
+    //         if (!$staff) {
+    //             continue;
+    //         }
 
-        foreach ($staffReviews as $review) {
-            if ($review->staff_id) {
-                $groupedReviews[$review->staff_id][] = $review;
-            }
-        }
+    //         $totalRating = 0;
+    //         $reviewCount = count($reviews);
+    //         $positiveReviews = 0;
+    //         $latestReviewDate = null;
 
-        foreach ($groupedReviews as $staffId => $reviews) {
-            $staff = User::find($staffId);
-            if (!$staff) {
-                continue;
-            }
+    //         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
 
-            $totalRating = 0;
-            $reviewCount = count($reviews);
-            $positiveReviews = 0;
-            $latestReviewDate = null;
+    //         foreach ($reviews as $review) {
+    //             $totalRating += $review->calculated_rating ?? 0;
+    //             if (isset($review->sentiment_score) && $review->sentiment_score >= $positiveThreshold) {
+    //                 $positiveReviews++;
+    //             }
+    //             if (!$latestReviewDate || $review->created_at > $latestReviewDate) {
+    //                 $latestReviewDate = $review->created_at;
+    //             }
+    //         }
 
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+    //         $avgRating = $reviewCount > 0 ? $totalRating / $reviewCount : 0;
 
-            foreach ($reviews as $review) {
-                $totalRating += $review->calculated_rating ?? 0;
-                if (isset($review->sentiment_score) && $review->sentiment_score >= $positiveThreshold) {
-                    $positiveReviews++;
-                }
-                if (!$latestReviewDate || $review->created_at > $latestReviewDate) {
-                    $latestReviewDate = $review->created_at;
-                }
-            }
+    //         if ($reviewCount < RuleEngineService::getMinimumReviewsForStaffEvaluation()) {
+    //             continue;
+    //         }
 
-            $avgRating = $reviewCount > 0 ? $totalRating / $reviewCount : 0;
+    //         $staffPerformance[] = [
+    //             'staff_id' => $staffId,
+    //             'staff_name' => $staff->name,
+    //             'staff_code' => $staff->employee_code ?? 'EMP-' . $staffId,
+    //             'avg_rating' => round($avgRating, 1),
+    //             'rating_out_of' => 5,
+    //             'reviews_count' => $reviewCount,
+    //             'ai_evaluation' => self::getStaffEvaluation($avgRating, $reviewCount),
+    //             'has_profile' => true,
+    //             'positive_percentage' => $reviewCount > 0 ? round(($positiveReviews / $reviewCount) * 100) : 0,
+    //             'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'Never'
+    //         ];
+    //     }
 
-            if ($reviewCount < RuleEngineService::getMinimumReviewsForStaffEvaluation()) {
-                continue;
-            }
+    //     usort($staffPerformance, function ($a, $b) {
+    //         return $b['avg_rating'] <=> $a['avg_rating'];
+    //     });
 
-            $staffPerformance[] = [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'staff_code' => $staff->employee_code ?? 'EMP-' . $staffId,
-                'avg_rating' => round($avgRating, 1),
-                'rating_out_of' => 5,
-                'reviews_count' => $reviewCount,
-                'ai_evaluation' => self::getStaffEvaluation($avgRating, $reviewCount),
-                'has_profile' => true,
-                'positive_percentage' => $reviewCount > 0 ? round(($positiveReviews / $reviewCount) * 100) : 0,
-                'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'Never'
-            ];
-        }
-
-        usort($staffPerformance, function ($a, $b) {
-            return $b['avg_rating'] <=> $a['avg_rating'];
-        });
-
-        return array_slice($staffPerformance, 0, $limit);
-    }
+    //     return array_slice($staffPerformance, 0, $limit);
+    // }
 
     /**
      * Get staff evaluation dynamically
