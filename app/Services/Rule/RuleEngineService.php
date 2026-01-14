@@ -509,13 +509,13 @@ class RuleEngineService
 
     // Add to RuleEngineHelper class
 
-    public function getPositiveSentimentThreshold(): float
+    public static function getPositiveSentimentThreshold(): float
     {
         return (float) AiRule::where('key_name', 'positive_sentiment_threshold')
             ->value('value') ?? 0.7;
     }
 
-    public function getNegativeSentimentThreshold(): float
+    public static function getNegativeSentimentThreshold(): float
     {
         return (float) AiRule::where('key_name', 'negative_sentiment_threshold')
             ->value('value') ?? 0.4;
@@ -539,7 +539,7 @@ class RuleEngineService
             ->value('value') ?? 4.0;
     }
 
-    public function getDefaultSentimentLabel(): string
+    public static function getDefaultSentimentLabel(): string
     {
         return AiRule::where('key_name', 'default_sentiment_label')
             ->value('value') ?? 'neutral';
@@ -633,7 +633,7 @@ class RuleEngineService
             ->value('value') ?? 4;
     }
 
-    public function getIssuePatterns(): array
+    public static function getIssuePatterns(): array
     {
         $patterns = AiRule::where('category', 'issue_patterns')
             ->get();
@@ -728,7 +728,7 @@ class RuleEngineService
         return 'Neutral';
     }
 
-    public function getSentimentDescription(float $percentage): string
+    public static function getSentimentDescription(float $percentage): string
     {
         $descriptions = AiRule::where('category', 'sentiment_descriptions')
             ->get();
@@ -743,25 +743,25 @@ class RuleEngineService
         return 'mixed';
     }
 
-    public function getTrendThreshold(): float
+    public static function getTrendThreshold(): float
     {
         return (float) AiRule::where('key_name', 'trend_threshold')
             ->value('value') ?? 0.1;
     }
 
-    public function getImprovingTrendMessage(): string
+    public static function getImprovingTrendMessage(): string
     {
         return AiRule::where('key_name', 'improving_trend_message')
             ->value('value') ?? 'Improving sentiment trend';
     }
 
-    public function getDecliningTrendMessage(): string
+    public static function  getDecliningTrendMessage(): string
     {
         return AiRule::where('key_name', 'declining_trend_message')
             ->value('value') ?? 'Declining sentiment trend';
     }
 
-    public function getFrequentIssueThreshold(): int
+    public static function getFrequentIssueThreshold(): int
     {
         return (int) AiRule::where('key_name', 'frequent_issue_threshold')
             ->value('value') ?? 5;
@@ -862,7 +862,7 @@ class RuleEngineService
         return 'Average';
     }
 
-    public function getSentimentLabelFromScore(float $score): string
+    public static function getSentimentLabelFromScore(float $score): string
     {
         $labels = AiRule::where('category', 'score_sentiment_labels')
             ->get();

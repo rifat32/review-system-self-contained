@@ -945,7 +945,7 @@ class BranchController extends Controller
 
             // ==================== GENERATE AI INSIGHTS ====================
             // Use existing AIProcessor instead of duplicating logic
-            $insights = $this->aiProcessorService->generateAiInsights($reviews);
+            $insights = AIProcessorService::generateAiInsights($reviews);
 
             // ==================== RETURN RESPONSE ====================
             return response()->json([

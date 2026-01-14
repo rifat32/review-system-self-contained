@@ -18,6 +18,7 @@ use App\Services\Review\ReviewService;
 use App\Services\Staff\StaffPerformanceService;
 use App\Services\Business\BusinessAnalyticsService;
 use App\Services\Review\ReviewFeedService;
+use App\Services\Review\ReviewTopicService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -36,6 +37,7 @@ class DashboardController extends Controller
     private $reviewService;
     private $staffPerformanceService;
     private $reviewFeedService;
+    private $reviewTopicService;
 
     public function __construct(
         DashboardService $dashboardService,
@@ -45,7 +47,8 @@ class DashboardController extends Controller
         ReviewMetricsService $reviewMetricsService,
         ReviewService $reviewService,
         StaffPerformanceService $staffPerformanceService,
-        ReviewFeedService $reviewFeedService
+        ReviewFeedService $reviewFeedService,
+        ReviewTopicService $reviewTopicService
     ) {
         $this->dashboardService = $dashboardService;
         $this->aiProcessorService = $aiProcessorService;
@@ -55,6 +58,7 @@ class DashboardController extends Controller
         $this->reviewService = $reviewService;
         $this->staffPerformanceService = $staffPerformanceService;
         $this->reviewFeedService = $reviewFeedService;
+        $this->reviewTopicService = $reviewTopicService;
     }
 
     private function getBaseQueries(Request $request)
@@ -63,7 +67,7 @@ class DashboardController extends Controller
 
         $baseReviewQuery = ReviewNew::query()
             ->when(
-                !$request->user()->hasRole('superadmin'),
+                $request->user() && !$request->user()->hasRole('superadmin'),
                 fn($q) => $q->where('review_news.business_id', $businessId)
             )
             ->globalFilters(0, $businessId)
@@ -78,12 +82,12 @@ class DashboardController extends Controller
             'customer_review' => (clone $baseReviewQuery)->whereNull('guest_id'),
             'authenticated_customer' => (clone $baseReviewQuery)->whereNotNull('user_id'),
             'question' => Question::when(
-                !$request->user()->hasRole('superadmin'),
+                $request->user() && !$request->user()->hasRole('superadmin'),
                 fn($q) => $q->where('business_id', $businessId)
             )
                 ->filterByOverall(),
             'tag' => Tag::when(
-                !$request->user()->hasRole('superadmin'),
+                $request->user() && !$request->user()->hasRole('superadmin'),
                 fn($q) => $q->where('business_id', $businessId)
             )->filterByOverall()
         ];
@@ -1232,7 +1236,7 @@ class DashboardController extends Controller
             : 0;
 
         // 3. Top Topic from tags in current period
-        $topTopic = getTopTopic($businessId, $startDate, $endDate);
+        $topTopic = $this->reviewTopicService->getTopTopic($businessId, $startDate, $endDate);
 
         // 4. New Reviews this week (always calculated for current week, regardless of selected period)
         $weekStart = Carbon::now()->startOfWeek();
@@ -1243,7 +1247,7 @@ class DashboardController extends Controller
             ->count();
 
         // 5. All Sentiment analysis for current period
-        $sentiment_data = calculateAggregatedSentiment($currentPeriodReviewsWithRating);
+        $sentiment_data = $this->aiProcessorService->calculateAggregatedSentiment($currentPeriodReviewsWithRating);
         $sentiment_status = is_array($sentiment_data) ? $sentiment_data['sentiment_label'] : $sentiment_data;
 
         // 6. Flagged reviews (reviews below threshold)
@@ -1646,7 +1650,7 @@ class DashboardController extends Controller
         $summary = calculateBranchSummary($reviews);
 
         // Get AI insights
-        $aiInsights = generateAiInsights($reviews);
+        $aiInsights = AIProcessorService::generateAiInsights($reviews);
 
         // Get recommendations
         $recommendations = generateBranchRecommendations($reviews, $branchId);

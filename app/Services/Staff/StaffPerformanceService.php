@@ -64,8 +64,8 @@ class StaffPerformanceService
                 : 0;
 
             // Use dynamic thresholds from rule engine
-            $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
-            $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
+            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
             $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
             $negativeReviews = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
@@ -179,7 +179,7 @@ class StaffPerformanceService
             $latestReviewDate = null;
             $allTopics = [];
 
-            $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
 
             foreach ($reviewsArray as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
@@ -299,8 +299,8 @@ class StaffPerformanceService
             $complaints = 0;
             $neutral = 0;
 
-            $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
-            $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
+            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
             foreach ($reviewsArray as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
@@ -325,7 +325,7 @@ class StaffPerformanceService
                 'staff_name' => $staff->name,
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
-                'sentiment_score' => $this->ruleEngineService->getSentimentLabelFromScore($avgSentiment),
+                'sentiment_score' => RuleEngineService::getSentimentLabelFromScore($avgSentiment),
                 'compliments_count' => $compliments,
                 'complaints_count' => $complaints,
                 'neutral_count' => $neutral,
@@ -369,15 +369,26 @@ class StaffPerformanceService
         $firstHalfAvg = $firstHalf->avg('calculated_rating') ?? 0;
         $secondHalfAvg = $secondHalf->avg('calculated_rating') ?? 0;
 
-        $trendThreshold = $this->ruleEngineService->getTrendThreshold();
+        $trendThreshold = RuleEngineService::getTrendThreshold();
 
         if ($secondHalfAvg > $firstHalfAvg + $trendThreshold) {
-            return $this->ruleEngineService->getImprovingTrendMessage();
+            return RuleEngineService::getImprovingTrendMessage();
         } elseif ($secondHalfAvg < $firstHalfAvg - $trendThreshold) {
-            return $this->ruleEngineService->getDecliningTrendMessage();
+            return RuleEngineService::getDecliningTrendMessage();
         } else {
-            return $this->ruleEngineService->getStableTrendMessage();
+            return RuleEngineService::getStableTrendMessage();
         }
+    }
+
+    /**
+     * Map suggestions to skill gaps
+     */
+    public function extractSuggestionsFromReviews(Collection $reviews): Collection
+    {
+        return $reviews->pluck('staff_suggestions')
+            ->flatten()
+            ->filter()
+            ->unique();
     }
 
     /**

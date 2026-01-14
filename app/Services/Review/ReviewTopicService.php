@@ -35,7 +35,20 @@ class ReviewTopicService
         $startDate = $reviews->min('created_at');
         $endDate = $reviews->max('created_at');
 
-        // Method 1: Check tags from review values (most accurate)
+        // Method 0: Check InsightRecord for AI-driven top topic (Most Accurate)
+        $aiTopic = \App\Models\InsightRecord::where('business_id', $businessId)
+            ->whereBetween('time_window_start', [$startDate, $endDate])
+            ->orderByDesc('mentions_count')
+            ->first();
+
+        if ($aiTopic) {
+            return [
+                'name' => $aiTopic->main_category,
+                'count' => $aiTopic->mentions_count
+            ];
+        }
+
+        // Method 1: Check tags from review values (Accurate fallback)
         $topTag = Tag::where('business_id', $businessId)
             ->whereHas('review_values', function ($query) use ($businessId, $startDate, $endDate) {
                 $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {

@@ -102,7 +102,7 @@ class BusinessAnalyticsService
                         return [
                             'comment' => substr($review->comment ?? '', 0, 100) . (strlen($review->comment ?? '') > 100 ? '...' : ''),
                             'rating' => round($review->calculated_rating ?? 0, 1),
-                            'sentiment' => $this->aiProcessorService->getSentimentLabel($review->sentiment_score ?? 0),
+                            'sentiment' => AIProcessorService::getSentimentLabel($review->sentiment_score ?? 0),
                             'date' => $review->created_at->format('M d, Y')
                         ];
                     })
@@ -215,7 +215,7 @@ class BusinessAnalyticsService
         }
 
         // Use dynamic thresholds
-        $positiveThreshold = $this->ruleEngineService->getPositiveSentimentThreshold();
+        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
         $negativeThreshold = $this->ruleEngineService->getNegativeSentimentThreshold();
 
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();

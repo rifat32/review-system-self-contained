@@ -18,6 +18,7 @@ use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
 use App\Models\GuestUser;
 use App\Models\Survey;
+use App\Services\AIProcessor\AIProcessorService;
 use Carbon\Carbon;
 
 class DashboardTestSeeder extends Seeder
@@ -28,7 +29,7 @@ class DashboardTestSeeder extends Seeder
     public function run(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        
+
         // Clear existing test data but preserve business and stars
         ReviewValueNew::truncate();
         ReviewNew::truncate();
@@ -39,7 +40,7 @@ class DashboardTestSeeder extends Seeder
         BusinessArea::truncate();
         BusinessService::truncate();
         Survey::truncate();
-        
+
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         // Use existing business ID 3
@@ -70,7 +71,7 @@ class DashboardTestSeeder extends Seeder
                     'value' => $i,
                     'name' => "{$i} Star",
                     'description' => "{$i} out of 5 rating",
-                    'color' => match($i) {
+                    'color' => match ($i) {
                         1 => '#ef4444',
                         2 => '#f97316',
                         3 => '#eab308',
@@ -116,7 +117,7 @@ class DashboardTestSeeder extends Seeder
         foreach ($staffMembers as $staff) {
             $email = Str::slug($staff['first_Name'] . ' ' . $staff['last_Name']) . '@test.com';
             $user = User::where('email', $email)->first();
-            
+
             if (!$user) {
                 $user = User::create([
                     'email' => $email,
@@ -127,7 +128,7 @@ class DashboardTestSeeder extends Seeder
                     'job_title' => $staff['job_title'],
                     'business_id' => $business->id,
                 ]);
-                
+
                 // Assign business_staff role if using Spatie permissions
                 if (class_exists('Spatie\Permission\Models\Role')) {
                     $user->assignRole('business_staff');
@@ -317,19 +318,54 @@ class DashboardTestSeeder extends Seeder
 
         // Sample guest names and phones
         $guestNames = [
-            'John Smith', 'Emma Johnson', 'Michael Brown', 'Sarah Davis', 'David Wilson',
-            'Lisa Martinez', 'Robert Taylor', 'Jennifer Anderson', 'William Thomas',
-            'Maria Jackson', 'James White', 'Patricia Harris', 'Charles Martin',
-            'Susan Thompson', 'Joseph Garcia', 'Margaret Martinez', 'Thomas Robinson',
-            'Dorothy Clark', 'Christopher Rodriguez', 'Nancy Lewis', 'Daniel Lee',
-            'Karen Walker', 'Paul Hall', 'Betty Allen', 'Mark Young', 'Helen King',
-            'Steven Wright', 'Sandra Scott', 'Edward Green', 'Donna Adams',
+            'John Smith',
+            'Emma Johnson',
+            'Michael Brown',
+            'Sarah Davis',
+            'David Wilson',
+            'Lisa Martinez',
+            'Robert Taylor',
+            'Jennifer Anderson',
+            'William Thomas',
+            'Maria Jackson',
+            'James White',
+            'Patricia Harris',
+            'Charles Martin',
+            'Susan Thompson',
+            'Joseph Garcia',
+            'Margaret Martinez',
+            'Thomas Robinson',
+            'Dorothy Clark',
+            'Christopher Rodriguez',
+            'Nancy Lewis',
+            'Daniel Lee',
+            'Karen Walker',
+            'Paul Hall',
+            'Betty Allen',
+            'Mark Young',
+            'Helen King',
+            'Steven Wright',
+            'Sandra Scott',
+            'Edward Green',
+            'Donna Adams',
         ];
 
         $guestPhones = [
-            '555-0101', '555-0102', '555-0103', '555-0104', '555-0105',
-            '555-0106', '555-0107', '555-0108', '555-0109', '555-0110',
-            '555-0111', '555-0112', '555-0113', '555-0114', '555-0115',
+            '555-0101',
+            '555-0102',
+            '555-0103',
+            '555-0104',
+            '555-0105',
+            '555-0106',
+            '555-0107',
+            '555-0108',
+            '555-0109',
+            '555-0110',
+            '555-0111',
+            '555-0112',
+            '555-0113',
+            '555-0114',
+            '555-0115',
         ];
 
         // Generate 100 reviews with realistic distribution
@@ -341,7 +377,7 @@ class DashboardTestSeeder extends Seeder
         for ($i = 1; $i <= 100; $i++) {
             // Decide if this is a registered user or guest review (70% guest, 30% registered)
             $isGuest = rand(1, 100) <= 70;
-            
+
             // Determine rating distribution (more positive than negative for realistic data)
             $ratingRand = rand(1, 100);
             if ($ratingRand <= 60) {
@@ -364,7 +400,7 @@ class DashboardTestSeeder extends Seeder
             // Random date within last 90 days (with some older ones for historical data)
             $daysAgo = $i <= 80 ? rand(0, 90) : rand(91, 180); // 80% within 90 days, 20% older
             $createdAt = $now->copy()->subDays($daysAgo);
-            
+
             // Random time of day
             $hour = rand(11, 22); // Restaurant hours
             $minute = rand(0, 59);
@@ -372,16 +408,16 @@ class DashboardTestSeeder extends Seeder
 
             // Random staff member (some reviews mention staff, some don't)
             $staffId = rand(1, 100) <= 40 ? $staffUsers[rand(0, count($staffUsers) - 1)]->id : null;
-            
+
             // Random business area
             $areaId = $businessAreas[rand(0, count($businessAreas) - 1)]->id;
-            
+
             // Random business service
             $serviceId = $businessServices[rand(0, count($businessServices) - 1)]->id;
-            
+
             // Random comment
             $comment = $comments[rand(0, count($comments) - 1)];
-            
+
             // Add staff name to comment if staff is mentioned
             if ($staffId && rand(1, 100) <= 30) {
                 $staff = User::find($staffId);
@@ -391,11 +427,11 @@ class DashboardTestSeeder extends Seeder
             // Create guest user if needed
             $guestId = null;
             $userId = null;
-            
+
             if ($isGuest) {
                 $guestName = $guestNames[rand(0, count($guestNames) - 1)];
                 $guestPhone = $guestPhones[rand(0, count($guestPhones) - 1)];
-                
+
                 $guest = GuestUser::create([
                     'full_name' => $guestName,
                     'phone' => $guestPhone,
@@ -410,7 +446,7 @@ class DashboardTestSeeder extends Seeder
                 $firstName = $nameParts[0];
                 $lastName = $nameParts[1] ?? 'Smith';
                 $email = Str::slug($firstName . ' ' . $lastName) . rand(100, 999) . '@customer.com';
-                
+
                 $user = User::firstOrCreate(
                     ['email' => $email],
                     [
@@ -441,11 +477,9 @@ class DashboardTestSeeder extends Seeder
                 'business_service_id' => $serviceId,
                 'is_voice_review' => rand(1, 100) <= 10, // 10% are voice reviews
                 'is_ai_processed' => false,
-                'sentiment_score' => $sentiment === 'positive' ? rand(70, 100) / 100 : 
-                                    ($sentiment === 'neutral' ? rand(40, 60) / 100 : rand(0, 30) / 100),
+                'sentiment_score' => $sentiment === 'positive' ? rand(70, 100) / 100 : ($sentiment === 'neutral' ? rand(40, 60) / 100 : rand(0, 30) / 100),
                 'sentiment_label' => $sentiment,
-                'emotion' => $sentiment === 'positive' ? 'joy' : 
-                             ($sentiment === 'neutral' ? 'neutral' : 'sadness'),
+                'emotion' => $sentiment === 'positive' ? 'joy' : ($sentiment === 'neutral' ? 'neutral' : 'sadness'),
                 'ai_confidence' => rand(85, 98) / 100,
                 'is_abusive' => false,
                 'is_private' => rand(1, 100) <= 5, // 5% are private
@@ -460,11 +494,11 @@ class DashboardTestSeeder extends Seeder
                     // For rating questions, give a star rating based on overall rating
                     $questionRating = max(1, min(5, round($rating + (rand(-10, 10) / 10))));
                     $star = $stars->where('value', $questionRating)->first();
-                    
+
                     if ($star) {
                         // Random tag for this question
                         $tagId = $tagModels[rand(0, count($tagModels) - 1)]->id;
-                        
+
                         ReviewValueNew::create([
                             'review_id' => $review->id,
                             'question_id' => $question->id,
@@ -481,7 +515,7 @@ class DashboardTestSeeder extends Seeder
             if (rand(1, 100) <= 40) { // 40% of reviews have replies
                 $replyDays = rand(1, 7);
                 $replyAt = $createdAt->copy()->addDays($replyDays);
-                
+
                 $replyTemplates = [
                     "Thank you for your feedback! We're glad you enjoyed your visit.",
                     "We appreciate you taking the time to share your experience with us.",
@@ -489,7 +523,7 @@ class DashboardTestSeeder extends Seeder
                     "We're delighted you had a great time! Looking forward to serving you again.",
                     "Thank you for your valuable feedback. We're continuously working to improve.",
                 ];
-                
+
                 $review->update([
                     'reply_content' => $replyTemplates[rand(0, count($replyTemplates) - 1)],
                     'responded_at' => $replyAt,
@@ -503,7 +537,7 @@ class DashboardTestSeeder extends Seeder
         $this->command->newLine();
 
         // Generate some AI insights data
-        $this->generateAIInsights($business);
+        AIProcessorService::generateAIInsights($business);
 
         $this->command->info('✅ Successfully seeded 100 reviews with all related data!');
         $this->command->info('📊 Business ID: ' . $business->id);
@@ -512,62 +546,5 @@ class DashboardTestSeeder extends Seeder
         $this->command->info('📝 Questions: ' . count($questionModels));
         $this->command->info('🏷️ Tags: ' . count($tagModels));
         $this->command->info('⭐ Stars used: ' . $stars->pluck('value')->implode(', '));
-    }
-
-    private function generateAIInsights($business): void
-    {
-        // Generate some AI insights data for the dashboard
-        $insights = [
-            'trending_themes' => [
-                'Food Quality' => ['count' => 45, 'sentiment' => 0.85],
-                'Service Speed' => ['count' => 32, 'sentiment' => 0.78],
-                'Staff Friendliness' => ['count' => 28, 'sentiment' => 0.92],
-                'Cleanliness' => ['count' => 18, 'sentiment' => 0.95],
-                'Price Value' => ['count' => 15, 'sentiment' => 0.65],
-            ],
-            'top_positive_aspects' => [
-                'Friendly staff',
-                'Food presentation',
-                'Clean environment',
-                'Atmosphere',
-                'Wine selection',
-            ],
-            'areas_for_improvement' => [
-                'Wait times during peak hours',
-                'Menu item availability',
-                'Temperature consistency',
-                'Parking availability',
-                'Dessert variety',
-            ],
-            'staff_performance' => [
-                'average_rating' => 4.2,
-                'top_performer' => 'Sarah Johnson',
-                'improvement_needed' => 'David Brown',
-                'customer_satisfaction' => 88,
-            ],
-            'sentiment_trends' => [
-                'positive_trend' => '+5%',
-                'response_rate' => '42%',
-                'average_response_time' => '2.3 days',
-            ],
-            'review_distribution' => [
-                '5_star' => 35,
-                '4_star' => 25,
-                '3_star' => 20,
-                '2_star' => 12,
-                '1_star' => 8,
-            ],
-            'response_metrics' => [
-                'total_reviews' => 100,
-                'replied_reviews' => 40,
-                'average_rating' => 4.1,
-                'nps_score' => 68,
-            ],
-        ];
-
-        // Store insights in cache for dashboard display
-        cache()->put('business_' . $business->id . '_ai_insights', $insights, 3600);
-        
-        $this->command->info('🤖 AI insights data generated and cached');
     }
 }

@@ -447,9 +447,11 @@ class ReviewService
             ]
         );
 
-        $topIssue = !empty($issueAnalysis['repeated_issues'])
-            ? $issueAnalysis['repeated_issues'][0]['issue']
-            : null;
+        // Calculate issue count and top issue correctly
+        $isDefaultMessage = (count($issueAnalysis) === 1 && isset($issueAnalysis[0]['issue']) && str_starts_with(trim($issueAnalysis[0]['issue']), 'No major issues'));
+
+        $totalIssues = $isDefaultMessage ? 0 : count($issueAnalysis);
+        $topIssue = $isDefaultMessage ? null : ($issueAnalysis[0]['issue'] ?? null);
 
         return [
             'avg_overall_rating' => [
@@ -504,7 +506,7 @@ class ReviewService
             'top_topic' => $topTopicSummary,
             'repeated_issues' => [
                 'review_count' => $total,
-                'issue_count' => $issueAnalysis['total_issues_found'],
+                'issue_count' => $totalIssues,
                 'top_issue' => $topIssue
             ]
         ];
@@ -685,7 +687,7 @@ class ReviewService
     /**
      * Calculate response rate
      */
-    public function calculateResponseRate($reviews)
+    public static function calculateResponseRate($reviews)
     {
         $total = $reviews->count();
         if ($total === 0) {
@@ -889,7 +891,7 @@ class ReviewService
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
                 'total_reviews' => $staffReviews->count(),
-                'sentiment_score' => $this->ruleEngineService->getSentimentLabelFromScore($staffReviews->avg('sentiment_score')),
+                'sentiment_score' => RuleEngineService::getSentimentLabelFromScore($staffReviews->avg('sentiment_score')),
                 'image' => $staff->image ?? null
             ];
         })
