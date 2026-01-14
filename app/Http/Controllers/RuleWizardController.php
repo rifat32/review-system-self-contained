@@ -11,10 +11,12 @@ use Illuminate\Support\Facades\{DB, Log};
 class RuleWizardController extends Controller
 {
     protected RuleMetricsService $metricsService;
+    protected RulePreviewService $previewService;
 
-    public function __construct(RuleMetricsService $metricsService)
+    public function __construct(RuleMetricsService $metricsService, RulePreviewService $previewService)
     {
         $this->metricsService = $metricsService;
+        $this->previewService = $previewService;
     }
 
     // ==================== STEP 1: NAME & DESCRIPTION ====================
@@ -104,8 +106,8 @@ class RuleWizardController extends Controller
     {
         $validated = $request->validate([
             'conditions' => 'required|array|min:1',
-            'conditions.*.source' => 'required|in:Comment,Rating,Staff,Area,Emotion',
-            'conditions.*.type' => 'required|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type',
+            'conditions.*.source' => 'required|in:Comment,Rating,Staff,Area,Emotion,Trend',
+            'conditions.*.type' => 'required|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
             'conditions.*.operator' => 'required|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
             'conditions.*.value' => 'required',
             'conditions.*.logic' => 'nullable|in:AND,OR',
@@ -170,59 +172,11 @@ class RuleWizardController extends Controller
             ], 400);
         }
 
-        $businessId = $wizardData['business_id'];
-
-        // Get recent reviews for simulation (last 50)
-        $recentReviews = ReviewNew::where('business_id', $businessId)
-            ->orderBy('created_at', 'desc')
-            ->with(['reviewValueNews', 'tags'])
-            ->limit(50)
-            ->get();
-
-        $matchedReviews = [];
-        $estimatedTriggers = 0;
-
-        foreach ($recentReviews as $review) {
-            // Simulate rule matching
-            $aiData = $this->getReviewAIData($review);
-
-            $isMatch = ConditionBuilderService::evaluateConditions(
-                $wizardData['conditions'],
-                $review,
-                $aiData,
-                'AND' // default logic
-            );
-
-            if ($isMatch) {
-                $estimatedTriggers++;
-
-                if (count($matchedReviews) < 5) {
-                    $matchedReviews[] = [
-                        'review_id' => $review->id,
-                        'comment' => substr($review->comment, 0, 150) . '...',
-                        'rating' => $review->rating,
-                        'created_at' => $review->created_at->diffForHumans(),
-                        'sentiment' => $aiData['sentiment'] ?? 'unknown'
-                    ];
-                }
-            }
-        }
-
-        // Calculate estimated precision and impact
-        $precisionEstimate = $this->estimatePrecision($wizardData, $estimatedTriggers);
-        $impactSummary = $this->generateImpactSummary($wizardData, $estimatedTriggers);
+        $preview = $this->previewService->generatePreview($wizardData, $businessId);
 
         return response()->json([
             'success' => true,
-            'preview' => [
-                'estimated_triggers_past_50_reviews' => $estimatedTriggers,
-                'estimated_monthly_triggers' => $this->projectMonthlyTriggers($estimatedTriggers, $recentReviews),
-                'sample_matches' => $matchedReviews,
-                'precision_estimate' => $precisionEstimate,
-                'confidence_level' => $this->calculateConfidenceLevel($estimatedTriggers),
-                'impact_summary' => $impactSummary,
-                'visual_summary' => $this->generateVisualSummary($wizardData)
-            ],
+            'preview' => $preview,
             'message' => 'Preview generated successfully'
         ]);
     }
@@ -273,6 +227,7 @@ class RuleWizardController extends Controller
                 'cooldown_days' => $validated['cooldown_days'] ?? $wizardData['cooldown_days'] ?? 7,
                 'deduplication_scope' => $validated['deduplication_scope'] ?? $wizardData['deduplication_scope'] ?? 'staff',
                 'applies_to' => $validated['applies_to'] ?? $wizardData['applies_to'] ?? 'new_reviews_only',
+                'branch_ids' => $wizardData['branch_ids'] ?? null,
                 'created_by' => $request->user()->id,
                 'version' => 1
             ]);

@@ -2,7 +2,7 @@
 
 namespace App\Services\Rule;
 
-use App\Models\{AiRule, AiRuleTrigger, ReviewNew};
+use App\Models\{AiRule, AiRuleTrigger, ReviewNew, SupportTicket};
 use App\Services\Rule\ConditionBuilderService;
 use App\Services\AIProcessor\EmotionAnalysisService;
 use Illuminate\Support\Facades\{DB, Log};
@@ -124,7 +124,7 @@ class RuleExecutionService
             'branch' => "rule_{$ruleId}_branch_" . ($review->branch_id ?? 'none'),
 
             'staff_category' => "rule_{$ruleId}_staff_" . ($context['staff_id'] ?? 'none') .
-            "_cat_" . ($context['category'] ?? 'general'),
+                "_cat_" . ($context['category'] ?? 'general'),
 
             default => "rule_{$ruleId}_review_{$review->id}"
         };
@@ -194,6 +194,7 @@ class RuleExecutionService
                     'notify_manager' => $this->notifyManager($review, $rule, $context),
                     'recommend_coaching' => $this->recommendCoaching($review, $rule, $context),
                     'link_staff' => $this->linkStaff($review, $context),
+                    'create_support_ticket' => $this->createSupportTicket($review, $rule, $context),
                     'escalate' => $this->escalateIssue($review, $rule, $context),
                     'notify_slack' => $this->notifySlack($review, $rule, $context),
                     'notify_email' => $this->notifyEmail($review, $rule, $context),
@@ -214,7 +215,8 @@ class RuleExecutionService
 
     private function flagReview(ReviewNew $review, AiRule $rule): void
     {
-        // Flag review in database (you might have a flags table)
+        $review->update(['is_flagged' => true]);
+
         Log::info("Review flagged", [
             'review_id' => $review->id,
             'rule_id' => $rule->rule_id
@@ -252,8 +254,33 @@ class RuleExecutionService
         }
     }
 
+    private function createSupportTicket(ReviewNew $review, AiRule $rule, array $context): void
+    {
+        SupportTicket::create([
+            'business_id' => $rule->business_id,
+            'review_id' => $review->id,
+            'subject' => "AI Rule Alert: {$rule->rule_name}",
+            'description' => "Review #{$review->id} triggered rule '{$rule->rule_name}'. Reason: {$rule->ai_plain_explanation}",
+            'priority' => $rule->priority,
+            'status' => 'open',
+            'metadata' => [
+                'rule_id' => $rule->rule_id,
+                'category' => $rule->category,
+                'applied_branches' => $rule->branch_ids
+            ]
+        ]);
+
+        Log::info("Support ticket created", [
+            'review_id' => $review->id,
+            'rule_id' => $rule->rule_id
+        ]);
+    }
+
     private function escalateIssue(ReviewNew $review, AiRule $rule, array $context): void
     {
+        // Escalation might be creating a high-priority ticket
+        $this->createSupportTicket($review, $rule, array_merge($context, ['priority' => 'high']));
+
         Log::info("Issue escalated", [
             'review_id' => $review->id,
             'rule_id' => $rule->rule_id

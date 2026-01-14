@@ -28,7 +28,7 @@ class ReviewNew extends Model
         'staff_id',
         'order_no',
         "status",
-      
+
 
         'responded_at',
         'review_type',
@@ -74,6 +74,7 @@ class ReviewNew extends Model
         'is_voice_review' => 'boolean',
         'transcription_metadata' => 'array',
         'sentiment_score' => 'float',
+        'is_flagged' => 'boolean',
     ];
 
     public function setSourceAttribute($value)
@@ -263,21 +264,21 @@ class ReviewNew extends Model
 
     // ReviewNews.php (Model)
 
-public function review_values()
-{
-    return $this->hasMany(ReviewValueNew::class, 'review_id');
-}
+    public function review_values()
+    {
+        return $this->hasMany(ReviewValueNew::class, 'review_id');
+    }
 
-public function getCalculatedRatingAttribute()
-{
-    return round(
-        $this->review_values()
-            ->join('stars', 'review_value_news.star_id', '=', 'stars.id')
-            ->distinct('stars.value')
-            ->avg('stars.value') ?? 0,
-        1
-    );
-}
+    public function getCalculatedRatingAttribute()
+    {
+        return round(
+            $this->review_values()
+                ->join('stars', 'review_value_news.star_id', '=', 'stars.id')
+                ->distinct('stars.value')
+                ->avg('stars.value') ?? 0,
+            1
+        );
+    }
 
 
 

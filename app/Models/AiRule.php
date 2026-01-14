@@ -46,7 +46,8 @@ class AiRule extends Model
         'trigger_only_on_first_occurrence',
         'applies_to',
         'precision_rate',
-        'lifetime_triggers'
+        'lifetime_triggers',
+        'branch_ids'
     ];
 
     protected $casts = [
@@ -58,6 +59,7 @@ class AiRule extends Model
         'trigger_only_on_first_occurrence' => 'boolean',
         'precision_rate' => 'float',
         'lifetime_triggers' => 'integer',
+        'branch_ids' => 'array',
         'explanation_generated_at' => 'datetime',
         'last_run_at' => 'datetime',
         'next_run_at' => 'datetime',

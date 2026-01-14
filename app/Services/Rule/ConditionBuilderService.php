@@ -28,7 +28,7 @@ class ConditionBuilderService
 
             // Validate source
             if (isset($condition['source'])) {
-                $validSources = ['Comment', 'Rating', 'Staff', 'Area', 'Emotion'];
+                $validSources = ['Comment', 'Rating', 'Staff', 'Area', 'Emotion', 'Trend'];
                 if (!in_array($condition['source'], $validSources)) {
                     $errors[] = "Condition at index $index has invalid source: {$condition['source']}";
                 }
@@ -40,7 +40,7 @@ class ConditionBuilderService
                 continue;
             }
 
-            $validTypes = ['sentiment', 'rating', 'keyword', 'staff_mention', 'area_mention', 'emotion', 'service_type'];
+            $validTypes = ['sentiment', 'rating', 'keyword', 'staff_mention', 'area_mention', 'emotion', 'service_type', 'frequency', 'trend_direction'];
             if (!in_array($condition['type'], $validTypes)) {
                 $errors[] = "Condition at index $index has invalid type: {$condition['type']}";
             }
@@ -87,6 +87,13 @@ class ConditionBuilderService
     {
         if (empty($conditions)) {
             return true;
+        }
+
+        // Branch filtering
+        if ($review->branch_id && !empty($review->branch_ids)) {
+            if (!in_array($review->branch_id, $review->branch_ids)) {
+                return false;
+            }
         }
 
         $results = [];
@@ -142,6 +149,16 @@ class ConditionBuilderService
                 $emotions = $aiData['emotions'] ?? [];
                 $threshold = $condition['threshold'] ?? 0.5;
                 return isset($emotions[$value]) && $emotions[$value]['score'] >= $threshold;
+            }
+        }
+
+        if ($source === 'Trend' || in_array($type, ['frequency', 'trend_direction'])) {
+            $trendData = $aiData['trend_data'] ?? [];
+            if ($type === 'frequency') {
+                return self::matchNumeric($trendData['frequency'] ?? 0, $operator, $value);
+            }
+            if ($type === 'trend_direction') {
+                return ($trendData['direction'] ?? 'steady') === $value;
             }
         }
 
