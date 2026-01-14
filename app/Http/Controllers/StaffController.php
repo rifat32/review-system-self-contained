@@ -8,7 +8,9 @@ use App\Http\Requests\UpdateStaffRequest;
 use App\Models\BranchMember;
 use App\Models\ReviewNew;
 use App\Models\User;
+use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Review\ReviewService;
+use App\Services\Staff\StaffPerformanceService;
 use App\Services\Staff\StaffService;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -966,7 +968,7 @@ class StaffController extends Controller
 
         $dateRange = getDateRangeByPeriod($period);
         // Get staff performance using existing staff suggestions
-        $data["staff_performance"] = AIProcessor::getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
+        $data["staff_performance"] = StaffPerformanceService::getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
 
         $staff = User::with("branches")->find($staffId);
 

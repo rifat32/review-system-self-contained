@@ -7,6 +7,7 @@ use App\Http\Requests\BranchRequest;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\ReviewNew;
+use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Branch\BranchService;
 use App\Services\Review\ReviewService;
 use Exception;
@@ -936,7 +937,7 @@ class BranchController extends Controller
 
             // ==================== GENERATE AI INSIGHTS ====================
             // Use existing AIProcessor instead of duplicating logic
-            $insights = AIProcessor::generateAiInsights($reviews);
+            $insights = AIProcessorService::generateAiInsights($reviews);
 
             // ==================== RETURN RESPONSE ====================
             return response()->json([
@@ -1084,7 +1085,7 @@ class BranchController extends Controller
         $startDate = $dateRange['start'];
         $endDate = $dateRange['end'];
 
-        $staffPerformance = AIProcessor::getStaffPerformance(
+        $staffPerformance = AIProcessorService::getStaffPerformance(
             branchId: $branchId,
             businessId: $businessId,
             startDate: $startDate,
@@ -1237,7 +1238,7 @@ class BranchController extends Controller
         );
 
         // ==================== GET RECENT REVIEWS ====================
-        $recentReviews = AIProcessor::getRecentReviews(
+        $recentReviews = AIProcessorService::getRecentReviews(
             reviews: $reviews,
             limit: $request->get('limit', 5)
         );
@@ -1379,8 +1380,10 @@ class BranchController extends Controller
         );
 
         // ==================== GET RECENT REVIEWS ====================
-        $branchRecommendations = AIProcessor::generateBranchRecommendations(
+        $branchRecommendations = AIProcessorService::generateBranchRecommendationsFromRuleEngine(
             reviews: $reviews,
+            businessId: $businessId,
+            branchId: $branchId,
         );
 
         // ==================== RETURN RESPONSE ====================
