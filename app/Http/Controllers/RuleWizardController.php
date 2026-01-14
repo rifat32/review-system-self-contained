@@ -4,9 +4,51 @@ namespace App\Http\Controllers;
 
 use App\Models\{AiRule, ReviewNew, Branch};
 use App\Services\Rule\ConditionBuilderService;
-use App\Services\Rule\{RuleExplanationService, RuleMetricsService};
+use App\Services\Rule\{RuleExplanationService, RuleMetricsService, RulePreviewService};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log};
+
+/**
+ * @OA\Schema(
+ *     schema="AiRule",
+ *     type="object",
+ *     title="AI Rule",
+ *     description="AI Rule model",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="rule_id", type="string", example="custom_abc123"),
+ *     @OA\Property(property="rule_name", type="string", example="High Priority Negative Sentiment Alert"),
+ *     @OA\Property(property="description", type="string", example="Alert managers when reviews have negative sentiment"),
+ *     @OA\Property(property="scope", type="string", example="business"),
+ *     @OA\Property(property="business_id", type="integer", example=1),
+ *     @OA\Property(property="category", type="string", enum={"sentiment", "staff", "area", "rating_mismatch", "trend", "quality"}, example="sentiment"),
+ *     @OA\Property(property="priority", type="string", enum={"critical", "high", "medium", "low"}, example="high"),
+ *     @OA\Property(property="enabled", type="boolean", example=true),
+ *     @OA\Property(
+ *         property="conditions",
+ *         type="array",
+ *         @OA\Items(
+ *             type="object",
+ *             @OA\Property(property="source", type="string"),
+ *             @OA\Property(property="type", type="string"),
+ *             @OA\Property(property="operator", type="string"),
+ *             @OA\Property(property="value", type="string"),
+ *             @OA\Property(property="logic", type="string")
+ *         )
+ *     ),
+ *     @OA\Property(property="actions", type="array", @OA\Items(type="string")),
+ *     @OA\Property(property="multi_tag_detection", type="boolean", example=false),
+ *     @OA\Property(property="trigger_only_on_first_occurrence", type="boolean", example=false),
+ *     @OA\Property(property="run_frequency", type="string", enum={"real_time", "hourly", "daily", "weekly"}, example="daily"),
+ *     @OA\Property(property="cooldown_days", type="integer", example=7),
+ *     @OA\Property(property="deduplication_scope", type="string", example="staff"),
+ *     @OA\Property(property="applies_to", type="string", enum={"new_reviews_only", "all_reviews"}, example="new_reviews_only"),
+ *     @OA\Property(property="branch_ids", type="array", @OA\Items(type="integer"), nullable=true),
+ *     @OA\Property(property="created_by", type="integer", example=1),
+ *     @OA\Property(property="version", type="integer", example=1),
+ *     @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-14T10:00:00Z"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time", example="2024-01-14T10:00:00Z")
+ * )
+ */
 
 class RuleWizardController extends Controller
 {
@@ -19,29 +61,102 @@ class RuleWizardController extends Controller
         $this->previewService = $previewService;
     }
 
-    // ==================== STEP 1: NAME & DESCRIPTION ====================
+    // ==================== CREATE RULE ====================
 
     /**
-     * Store rule metadata (Step 1)
-     * POST /api/v1.0/rule-wizard/step1
+     * Create a new AI rule
      * 
      * @OA\Post(
-     *     path="/api/v1.0/rule-wizard/step1",
-     *     tags={"AI Rules - Wizard"},
-     *     summary="Step 1: Store rule name and description",
-     *     @OA\Response(response=200, description="Step 1 completed")
+     *     path="/api/v1.0/ai-rules",
+     *     operationId="createRule",
+     *     tags={"AI Rules"},
+     *     summary="Create new AI rule",
+     *     description="Create a new AI rule with conditions and actions",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"business_id", "rule_name", "category", "priority", "conditions", "actions", "enabled"},
+     *             @OA\Property(property="business_id", type="integer", example=1),
+     *             @OA\Property(property="rule_name", type="string", maxLength=255, example="High Priority Negative Sentiment Alert"),
+     *             @OA\Property(property="description", type="string", maxLength=1000, example="Alert managers when reviews have negative sentiment"),
+     *             @OA\Property(property="category", type="string", enum={"sentiment", "staff", "area", "rating_mismatch", "trend", "quality"}, example="sentiment"),
+     *             @OA\Property(property="priority", type="string", enum={"critical", "high", "medium", "low"}, example="high"),
+     *             @OA\Property(
+     *                 property="conditions",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="source", type="string", enum={"Comment", "Rating", "Staff", "Area", "Emotion", "Trend"}),
+     *                     @OA\Property(property="type", type="string", enum={"sentiment", "rating", "keyword", "staff_mention", "area_mention", "emotion", "service_type", "frequency", "trend_direction"}),
+     *                     @OA\Property(property="operator", type="string", enum={"equals", "contains", "greater_than", "less_than", "between", "not_equals", "starts_with", "ends_with", "regex"}),
+     *                     @OA\Property(property="value", type="string"),
+     *                     @OA\Property(property="logic", type="string", enum={"AND", "OR"})
+     *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="actions",
+     *                 type="array",
+     *                 @OA\Items(type="string", enum={"flag_review", "notify_manager", "recommend_coaching", "link_staff", "escalate", "notify_slack", "notify_email"})
+     *             ),
+     *             @OA\Property(property="enabled", type="boolean", example=true),
+     *             @OA\Property(property="multi_tag_detection", type="boolean", example=false),
+     *             @OA\Property(property="trigger_only_on_first_occurrence", type="boolean", example=false),
+     *             @OA\Property(property="run_frequency", type="string", enum={"real_time", "hourly", "daily", "weekly"}, example="daily"),
+     *             @OA\Property(property="cooldown_days", type="integer", example=7),
+     *             @OA\Property(property="deduplication_scope", type="string", enum={"review", "staff", "category", "branch", "staff_category"}, example="staff"),
+     *             @OA\Property(property="applies_to", type="string", enum={"new_reviews_only", "all_reviews"}, example="new_reviews_only"),
+     *             @OA\Property(property="branch_ids", type="array", @OA\Items(type="integer")),
+     *             @OA\Property(property="sensitivity", type="number", minimum=0, maximum=100, example=70)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Rule created successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Rule created successfully"),
+     *             @OA\Property(property="data", ref="#/components/schemas/AiRule")
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Unauthorized access"),
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=500, description="Server error")
      * )
      */
-    public function storeStep1(Request $request)
+    public function createRule(Request $request)
     {
         $user = $request->user();
 
         $validated = $request->validate([
+            // Basic Information
             'business_id' => 'required|exists:businesses,id',
             'rule_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'category' => 'required|in:sentiment,staff,area,rating_mismatch,trend,quality',
-            'priority' => 'required|in:critical,high,medium,low'
+            'priority' => 'required|in:critical,high,medium,low',
+
+            // Conditions & Actions
+            'conditions' => 'required|array|min:1',
+            'conditions.*.source' => 'required|in:Comment,Rating,Staff,Area,Emotion,Trend',
+            'conditions.*.type' => 'required|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
+            'conditions.*.operator' => 'required|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
+            'conditions.*.value' => 'required',
+            'conditions.*.logic' => 'nullable|in:AND,OR',
+            'conditions.*.analyse_comment_for' => 'nullable|string',
+            'actions' => 'required|array|min:1',
+            'actions.*' => 'required|in:flag_review,notify_manager,recommend_coaching,link_staff,escalate,notify_slack,notify_email',
+
+            // Configuration
+            'enabled' => 'required|boolean',
+            'multi_tag_detection' => 'nullable|boolean',
+            'trigger_only_on_first_occurrence' => 'nullable|boolean',
+            'run_frequency' => 'nullable|in:real_time,hourly,daily,weekly',
+            'cooldown_days' => 'nullable|integer|min:0',
+            'deduplication_scope' => 'nullable|in:review,staff,category,branch,staff_category',
+            'applies_to' => 'nullable|in:new_reviews_only,all_reviews',
+            'branch_ids' => 'nullable|array',
+            'branch_ids.*' => 'exists:branches,id',
+            'sensitivity' => 'nullable|numeric|min:0|max:100'
         ]);
 
         // Verify user has access to business
@@ -52,83 +167,8 @@ class RuleWizardController extends Controller
             ], 403);
         }
 
-        // Store in session
-        session(['rule_wizard' => $validated]);
-
-        return response()->json([
-            'success' => true,
-            'data' => $validated,
-            'next_step' => 'select_data_source',
-            'message' => 'Step 1 completed successfully'
-        ]);
-    }
-
-    // ==================== STEP 2: DATA SOURCE SELECTION ====================
-
-    /**
-     * Select data source (Step 2)
-     * POST /api/v1.0/rule-wizard/step2
-     */
-    public function storeStep2(Request $request)
-    {
-        $validated = $request->validate([
-            'data_source' => 'required|in:comments,ratings,both',
-            'applies_to' => 'required|in:all_reviews,star_ratings,specific_questions,specific_branches'
-        ]);
-
-        $wizardData = session('rule_wizard', []);
-
-        if (empty($wizardData)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Please complete Step 1 first'
-            ], 400);
-        }
-
-        $wizardData['data_source'] = $validated;
-        session(['rule_wizard' => $wizardData]);
-
-        return response()->json([
-            'success' => true,
-            'data' => $validated,
-            'next_step' => 'build_conditions',
-            'message' => 'Step 2 completed successfully'
-        ]);
-    }
-
-    // ==================== STEP 3: BUILD CONDITIONS ====================
-
-    /**
-     * Build conditions (Step 3)
-     * POST /api/v1.0/rule-wizard/step3
-     */
-    public function storeStep3(Request $request)
-    {
-        $validated = $request->validate([
-            'conditions' => 'required|array|min:1',
-            'conditions.*.source' => 'required|in:Comment,Rating,Staff,Area,Emotion,Trend',
-            'conditions.*.type' => 'required|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
-            'conditions.*.operator' => 'required|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
-            'conditions.*.value' => 'required',
-            'conditions.*.logic' => 'nullable|in:AND,OR',
-            'conditions.*.analyse_comment_for' => 'nullable|string', // Additional context for UI
-            'actions' => 'required|array|min:1',
-            'actions.*' => 'required|in:flag_review,notify_manager,recommend_coaching,link_staff,escalate,notify_slack,notify_email',
-            'sensitivity' => 'nullable|numeric|min:0|max:100'
-        ]);
-
-        $wizardData = session('rule_wizard', []);
-
-        if (empty($wizardData)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Please complete previous steps first'
-            ], 400);
-        }
-
         // Validate condition structure
         $errors = ConditionBuilderService::validateConditionTree($validated['conditions']);
-
         if (!empty($errors)) {
             return response()->json([
                 'success' => false,
@@ -137,102 +177,32 @@ class RuleWizardController extends Controller
             ], 422);
         }
 
-        $wizardData['conditions'] = $validated['conditions'];
-        $wizardData['actions'] = $validated['actions'];
-        $wizardData['sensitivity'] = $validated['sensitivity'] ?? 70;
-
-        session(['rule_wizard' => $wizardData]);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'conditions' => $validated['conditions'],
-                'actions' => $validated['actions'],
-                'sensitivity' => $wizardData['sensitivity']
-            ],
-            'next_step' => 'preview_and_activate',
-            'message' => 'Step 3 completed successfully'
-        ]);
-    }
-
-    // ==================== STEP 4: PREVIEW & ACTIVATE ====================
-
-    /**
-     * Preview rule with "what-if" analysis (Step 4)
-     * POST /api/v1.0/rule-wizard/step4/preview
-     */
-    public function previewRule(Request $request)
-    {
-        $wizardData = session('rule_wizard');
-
-        if (empty($wizardData)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No wizard session found. Please start from Step 1'
-            ], 400);
-        }
-
-        $preview = $this->previewService->generatePreview($wizardData, $businessId);
-
-        return response()->json([
-            'success' => true,
-            'preview' => $preview,
-            'message' => 'Preview generated successfully'
-        ]);
-    }
-
-    /**
-     * Finalize and create rule (Step 4)
-     * POST /api/v1.0/rule-wizard/step4/activate
-     */
-    public function activateRule(Request $request)
-    {
-        $wizardData = session('rule_wizard');
-
-        if (empty($wizardData)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No wizard session found'
-            ], 400);
-        }
-
-        $validated = $request->validate([
-            'enabled' => 'required|boolean',
-            'auto_activate' => 'nullable|boolean',
-            'multi_tag_detection' => 'boolean',
-            'trigger_only_on_first_occurrence' => 'boolean',
-            'run_frequency' => 'nullable|in:real_time,hourly,daily,weekly',
-            'cooldown_days' => 'nullable|integer|min:0',
-            'deduplication_scope' => 'nullable|in:review,staff,category,branch,staff_category',
-            'applies_to' => 'nullable|in:new_reviews_only,all_reviews'
-        ]);
-
         DB::beginTransaction();
         try {
-            // Create the actual AI rule
+            // Create the AI rule
             $rule = AiRule::create([
                 'rule_id' => 'custom_' . uniqid(),
-                'rule_name' => $wizardData['rule_name'],
-                'description' => $wizardData['description'] ?? '',
+                'rule_name' => $validated['rule_name'],
+                'description' => $validated['description'] ?? '',
                 'scope' => 'business',
-                'business_id' => $wizardData['business_id'],
-                'category' => $wizardData['category'],
-                'priority' => $wizardData['priority'],
+                'business_id' => $validated['business_id'],
+                'category' => $validated['category'],
+                'priority' => $validated['priority'],
                 'enabled' => $validated['enabled'],
-                'conditions' => $wizardData['conditions'],
-                'actions' => $wizardData['actions'],
-                'multi_tag_detection' => $validated['multi_tag_detection'] ?? $wizardData['multi_tag_detection'] ?? false,
-                'trigger_only_on_first_occurrence' => $validated['trigger_only_on_first_occurrence'] ?? $wizardData['trigger_only_on_first_occurrence'] ?? false,
-                'run_frequency' => $validated['run_frequency'] ?? $wizardData['run_frequency'] ?? 'daily',
-                'cooldown_days' => $validated['cooldown_days'] ?? $wizardData['cooldown_days'] ?? 7,
-                'deduplication_scope' => $validated['deduplication_scope'] ?? $wizardData['deduplication_scope'] ?? 'staff',
-                'applies_to' => $validated['applies_to'] ?? $wizardData['applies_to'] ?? 'new_reviews_only',
-                'branch_ids' => $wizardData['branch_ids'] ?? null,
-                'created_by' => $request->user()->id,
+                'conditions' => $validated['conditions'],
+                'actions' => $validated['actions'],
+                'multi_tag_detection' => $validated['multi_tag_detection'] ?? false,
+                'trigger_only_on_first_occurrence' => $validated['trigger_only_on_first_occurrence'] ?? false,
+                'run_frequency' => $validated['run_frequency'] ?? 'daily',
+                'cooldown_days' => $validated['cooldown_days'] ?? 7,
+                'deduplication_scope' => $validated['deduplication_scope'] ?? 'staff',
+                'applies_to' => $validated['applies_to'] ?? 'new_reviews_only',
+                'branch_ids' => $validated['branch_ids'] ?? null,
+                'created_by' => $user->id,
                 'version' => 1
             ]);
 
-            // Generate AI explanations if RuleExplanationHelper exists
+            // Generate AI explanations
             if (class_exists(RuleExplanationService::class)) {
                 try {
                     app(RuleExplanationService::class)->generateExplanations($rule);
@@ -249,29 +219,20 @@ class RuleWizardController extends Controller
 
             DB::commit();
 
-            // Clear session
-            session()->forget('rule_wizard');
-
-            Log::info("Rule created via wizard", [
+            Log::info("Rule created", [
                 'rule_id' => $rule->rule_id,
-                'created_by' => $request->user()->id
+                'created_by' => $user->id
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Rule created successfully',
-                'data' => [
-                    'rule_id' => $rule->rule_id,
-                    'rule_name' => $rule->rule_name,
-                    'enabled' => $rule->enabled,
-                    'category' => $rule->category,
-                    'priority' => $rule->priority
-                ]
+                'data' => $rule
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error("Failed to create rule via wizard", [
+            Log::error("Failed to create rule", [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -284,160 +245,406 @@ class RuleWizardController extends Controller
         }
     }
 
-    // ==================== WIZARD SESSION MANAGEMENT ====================
+    // ==================== GET ALL RULES ====================
 
     /**
-     * Get current wizard session
-     * GET /api/v1.0/rule-wizard/session
+     * Get all AI rules
+     * 
+     * @OA\Get(
+     *     path="/api/v1.0/ai-rules",
+     *     operationId="getAllRules",
+     *     tags={"AI Rules"},
+     *     summary="Get all AI rules",
+     *     description="Retrieve all AI rules for the authenticated user's business",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="category",
+     *         in="query",
+     *         description="Filter by category",
+     *         @OA\Schema(type="string", enum={"sentiment", "staff", "area", "rating_mismatch", "trend", "quality"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="priority",
+     *         in="query",
+     *         description="Filter by priority",
+     *         @OA\Schema(type="string", enum={"critical", "high", "medium", "low"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="enabled",
+     *         in="query",
+     *         description="Filter by enabled status",
+     *         @OA\Schema(type="boolean")
+     *     ),
+     *     @OA\Parameter(
+     *         name="scope",
+     *         in="query",
+     *         description="Filter by scope",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Rules retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/AiRule")),
+     *             @OA\Property(property="count", type="integer", example=10)
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
-    public function getWizardSession(Request $request)
+    public function getAllRules(Request $request)
     {
-        $wizardData = session('rule_wizard', []);
+        $user = $request->user();
+        $businessId = $user->business_id;
+
+        $query = AiRule::where('business_id', $businessId);
+
+        // Filters
+        if ($request->has('category')) {
+            $query->where('category', $request->category);
+        }
+        if ($request->has('priority')) {
+            $query->where('priority', $request->priority);
+        }
+        if ($request->has('enabled')) {
+            $query->where('enabled', $request->boolean('enabled'));
+        }
+        if ($request->has('scope')) {
+            $query->where('scope', $request->scope);
+        }
+
+        $rules = $query->orderBy('priority', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json([
             'success' => true,
-            'has_session' => !empty($wizardData),
-            'data' => $wizardData,
-            'current_step' => $this->determineCurrentStep($wizardData)
+            'data' => $rules,
+            'count' => $rules->count()
         ]);
     }
 
+    // ==================== GET RULE BY ID ====================
+
     /**
-     * Clear wizard session
-     * DELETE /api/v1.0/rule-wizard/session
+     * Get single AI rule by ID
+     * 
+     * @OA\Get(
+     *     path="/api/v1.0/ai-rules/{id}",
+     *     operationId="getRuleById",
+     *     tags={"AI Rules"},
+     *     summary="Get AI rule by ID",
+     *     description="Retrieve a single AI rule by its ID",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Rule ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Rule retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", ref="#/components/schemas/AiRule")
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Rule not found"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
-    public function clearWizardSession(Request $request)
+    public function getRuleById(Request $request, $id)
     {
-        session()->forget('rule_wizard');
+        $user = $request->user();
+
+        $rule = AiRule::where('id', $id)
+            ->where('business_id', $user->business_id)
+            ->firstOrFail();
 
         return response()->json([
             'success' => true,
-            'message' => 'Wizard session cleared'
+            'data' => $rule
         ]);
     }
 
-    // ==================== HELPER METHODS ====================
+    // ==================== UPDATE RULE ====================
 
     /**
-     * Get AI data for review (simplified)
+     * Update AI rule
+     * 
+     * @OA\Put(
+     *     path="/api/v1.0/ai-rules/{id}",
+     *     operationId="updateRule",
+     *     tags={"AI Rules"},
+     *     summary="Update AI rule",
+     *     description="Update an existing AI rule",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Rule ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="rule_name", type="string", maxLength=255),
+     *             @OA\Property(property="description", type="string", maxLength=1000),
+     *             @OA\Property(property="category", type="string", enum={"sentiment", "staff", "area", "rating_mismatch", "trend", "quality"}),
+     *             @OA\Property(property="priority", type="string", enum={"critical", "high", "medium", "low"}),
+     *             @OA\Property(property="conditions", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="actions", type="array", @OA\Items(type="string")),
+     *             @OA\Property(property="enabled", type="boolean"),
+     *             @OA\Property(property="multi_tag_detection", type="boolean"),
+     *             @OA\Property(property="trigger_only_on_first_occurrence", type="boolean"),
+     *             @OA\Property(property="run_frequency", type="string", enum={"real_time", "hourly", "daily", "weekly"}),
+     *             @OA\Property(property="cooldown_days", type="integer"),
+     *             @OA\Property(property="deduplication_scope", type="string"),
+     *             @OA\Property(property="applies_to", type="string", enum={"new_reviews_only", "all_reviews"}),
+     *             @OA\Property(property="branch_ids", type="array", @OA\Items(type="integer"))
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Rule updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Rule updated successfully"),
+     *             @OA\Property(property="data", ref="#/components/schemas/AiRule")
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Rule not found"),
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=500, description="Server error")
+     * )
      */
-    private function getReviewAIData(ReviewNew $review): array
+    public function updateRule(Request $request, $id)
     {
-        // This would typically call AIProcessor, but we'll simulate for preview
-        return [
-            'sentiment' => $review->sentiment ?? 'neutral',
-            'sentiment_score' => 0.5,
-            'staff_mentions' => [],
-            'areas' => [],
-            'emotions' => []
-        ];
+        $user = $request->user();
+
+        $rule = AiRule::where('id', $id)
+            ->where('business_id', $user->business_id)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'rule_name' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'category' => 'sometimes|required|in:sentiment,staff,area,rating_mismatch,trend,quality',
+            'priority' => 'sometimes|required|in:critical,high,medium,low',
+            'conditions' => 'sometimes|required|array|min:1',
+            'conditions.*.source' => 'required_with:conditions|in:Comment,Rating,Staff,Area,Emotion,Trend',
+            'conditions.*.type' => 'required_with:conditions|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
+            'conditions.*.operator' => 'required_with:conditions|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
+            'conditions.*.value' => 'required_with:conditions',
+            'conditions.*.logic' => 'nullable|in:AND,OR',
+            'actions' => 'sometimes|required|array|min:1',
+            'actions.*' => 'required_with:actions|in:flag_review,notify_manager,recommend_coaching,link_staff,escalate,notify_slack,notify_email',
+            'enabled' => 'sometimes|boolean',
+            'multi_tag_detection' => 'nullable|boolean',
+            'trigger_only_on_first_occurrence' => 'nullable|boolean',
+            'run_frequency' => 'nullable|in:real_time,hourly,daily,weekly',
+            'cooldown_days' => 'nullable|integer|min:0',
+            'deduplication_scope' => 'nullable|in:review,staff,category,branch,staff_category',
+            'applies_to' => 'nullable|in:new_reviews_only,all_reviews',
+            'branch_ids' => 'nullable|array',
+            'branch_ids.*' => 'exists:branches,id'
+        ]);
+
+        // Validate conditions if provided
+        if (isset($validated['conditions'])) {
+            $errors = ConditionBuilderService::validateConditionTree($validated['conditions']);
+            if (!empty($errors)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid condition structure',
+                    'errors' => $errors
+                ], 422);
+            }
+        }
+
+        DB::beginTransaction();
+        try {
+            $rule->update($validated);
+            $rule->version = $rule->version + 1;
+            $rule->save();
+
+            // Regenerate explanations if conditions changed
+            if (isset($validated['conditions']) && class_exists(RuleExplanationService::class)) {
+                try {
+                    app(RuleExplanationService::class)->generateExplanations($rule);
+                } catch (\Exception $e) {
+                    Log::warning("Failed to regenerate rule explanations", [
+                        'rule_id' => $rule->rule_id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            Log::info("Rule updated", [
+                'rule_id' => $rule->rule_id,
+                'updated_by' => $user->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Rule updated successfully',
+                'data' => $rule->fresh()
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error("Failed to update rule", [
+                'rule_id' => $rule->rule_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update rule',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
+    // ==================== DELETE RULE ====================
+
     /**
-     * Estimate precision rate
+     * Delete AI rule
+     * 
+     * @OA\Delete(
+     *     path="/api/v1.0/ai-rules/{id}",
+     *     operationId="deleteRule",
+     *     tags={"AI Rules"},
+     *     summary="Delete AI rule",
+     *     description="Delete an AI rule by ID",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Rule ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Rule deleted successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Rule deleted successfully")
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Rule not found"),
+     *     @OA\Response(response=500, description="Server error")
+     * )
      */
-    private function estimatePrecision(array $ruleData, int $triggers): float
+    public function deleteRule(Request $request, $id)
     {
-        $baseAccuracy = 85.0;
+        $user = $request->user();
 
-        // Adjust based on number of conditions
-        $conditionCount = count($ruleData['conditions'] ?? []);
-        if ($conditionCount > 3) {
-            $baseAccuracy -= 5.0;
+        $rule = AiRule::where('id', $id)
+            ->where('business_id', $user->business_id)
+            ->firstOrFail();
+
+        DB::beginTransaction();
+        try {
+            $ruleId = $rule->rule_id;
+            $ruleName = $rule->rule_name;
+
+            $rule->delete();
+
+            DB::commit();
+
+            Log::info("Rule deleted", [
+                'rule_id' => $ruleId,
+                'deleted_by' => $user->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Rule '$ruleName' deleted successfully"
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error("Failed to delete rule", [
+                'rule_id' => $rule->rule_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete rule',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Adjust based on trigger volume
-        if ($triggers < 5) {
-            $baseAccuracy -= 10.0; // Low confidence with few triggers
-        }
-
-        return min(95.0, max(70.0, $baseAccuracy));
     }
 
-    /**
-     * Generate impact summary
-     */
-    private function generateImpactSummary(array $ruleData, int $triggers): string
-    {
-        $actions = $ruleData['actions'] ?? [];
-        $summaryParts = [];
-
-        if (in_array('flag_review', $actions)) {
-            $summaryParts[] = "$triggers reviews would be flagged for review";
-        }
-        if (in_array('notify_manager', $actions)) {
-            $summaryParts[] = "Managers would receive $triggers notifications";
-        }
-        if (in_array('recommend_coaching', $actions)) {
-            $summaryParts[] = "$triggers coaching recommendations would be generated";
-        }
-        if (in_array('escalate', $actions)) {
-            $summaryParts[] = "$triggers issues would be escalated";
-        }
-
-        return implode('; ', $summaryParts) ?: 'No significant impact detected';
-    }
+    // ==================== PREVIEW RULE ====================
 
     /**
-     * Project monthly triggers
+     * Preview rule with "what-if" analysis
+     * 
+     * @OA\Post(
+     *     path="/api/v1.0/ai-rules/preview",
+     *     operationId="previewRule",
+     *     tags={"AI Rules"},
+     *     summary="Preview AI rule",
+     *     description="Preview how a rule would perform with what-if analysis",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"business_id", "conditions", "actions", "category"},
+     *             @OA\Property(property="business_id", type="integer", example=1),
+     *             @OA\Property(property="conditions", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="actions", type="array", @OA\Items(type="string")),
+     *             @OA\Property(property="category", type="string", enum={"sentiment", "staff", "area", "rating_mismatch", "trend", "quality"})
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Preview generated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="preview", type="object"),
+     *             @OA\Property(property="message", type="string", example="Preview generated successfully")
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Unauthorized access"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
-    private function projectMonthlyTriggers(int $triggers, $reviews): int
+    public function previewRule(Request $request)
     {
-        $reviewCount = is_countable($reviews) ? count($reviews) : $reviews->count();
+        $user = $request->user();
 
-        if ($reviewCount === 0) {
-            return 0;
+        $validated = $request->validate([
+            'business_id' => 'required|exists:businesses,id',
+            'conditions' => 'required|array|min:1',
+            'actions' => 'required|array|min:1',
+            'category' => 'required|in:sentiment,staff,area,rating_mismatch,trend,quality'
+        ]);
+
+        // Verify access
+        if ($user->business_id != $validated['business_id'] && !$user->hasRole('superadmin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access to business'
+            ], 403);
         }
 
-        // Assume 50 reviews represent ~1 week of data
-        $weeksOfData = 1;
-        $monthlyMultiplier = 4; // 4 weeks per month
+        $preview = $this->previewService->generatePreview($validated, $validated['business_id']);
 
-        return (int) round(($triggers / $weeksOfData) * $monthlyMultiplier);
-    }
-
-    /**
-     * Calculate confidence level
-     */
-    private function calculateConfidenceLevel(int $triggers): string
-    {
-        if ($triggers >= 10)
-            return 'high';
-        if ($triggers >= 5)
-            return 'medium';
-        return 'low';
-    }
-
-    /**
-     * Generate visual summary for UI
-     */
-    private function generateVisualSummary(array $ruleData): array
-    {
-        return [
-            'rule_name' => $ruleData['rule_name'],
-            'category' => $ruleData['category'],
-            'priority' => $ruleData['priority'],
-            'condition_count' => count($ruleData['conditions'] ?? []),
-            'action_count' => count($ruleData['actions'] ?? []),
-            'formatted_conditions' => array_map(function ($condition) {
-                return ConditionBuilderService::formatCondition($condition);
-            }, $ruleData['conditions'] ?? [])
-        ];
-    }
-
-    /**
-     * Determine current step from session data
-     */
-    private function determineCurrentStep(array $wizardData): int
-    {
-        if (empty($wizardData))
-            return 0;
-        if (!isset($wizardData['data_source']))
-            return 1;
-        if (!isset($wizardData['conditions']))
-            return 2;
-        if (!isset($wizardData['actions']))
-            return 3;
-        return 4;
+        return response()->json([
+            'success' => true,
+            'preview' => $preview,
+            'message' => 'Preview generated successfully'
+        ]);
     }
 }

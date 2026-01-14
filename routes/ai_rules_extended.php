@@ -4,16 +4,18 @@ use App\Http\Controllers\{RuleWizardController, BulkRuleController, AiRuleMetric
 use Illuminate\Support\Facades\Route;
 
 // ============================================================================
-// AI RULE WIZARD ROUTES - Guided 4-step rule creation
+// AI RULES CRUD - Standard create, read, update, delete operations
 // ============================================================================
-Route::prefix('/v1.0/rule-wizard')->group(function () {
-    Route::post('/step1', [RuleWizardController::class, 'storeStep1']);
-    Route::post('/step2', [RuleWizardController::class, 'storeStep2']);
-    Route::post('/step3', [RuleWizardController::class, 'storeStep3']);
-    Route::post('/step4/preview', [RuleWizardController::class, 'previewRule']);
-    Route::post('/step4/activate', [RuleWizardController::class, 'activateRule']);
-    Route::get('/session', [RuleWizardController::class, 'getWizardSession']);
-    Route::delete('/session', [RuleWizardController::class, 'clearWizardSession']);
+Route::prefix('/v1.0/ai-rules')->group(function () {
+    // CRUD Operations
+    Route::post('/', [RuleWizardController::class, 'createRule']);       // Create rule
+    Route::get('/', [RuleWizardController::class, 'getAllRules']);            // Get all rules
+    Route::get('/{id}', [RuleWizardController::class, 'getRuleById']);       // Get rule by ID
+    Route::put('/{id}', [RuleWizardController::class, 'updateRule']);        // Update rule
+    Route::delete('/{id}', [RuleWizardController::class, 'deleteRule']);     // Delete rule
+
+    // Preview
+    Route::post('/preview', [RuleWizardController::class, 'previewRule']);   // Preview rule
 });
 
 // ============================================================================
