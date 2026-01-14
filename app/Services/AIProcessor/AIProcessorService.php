@@ -7,6 +7,7 @@ use App\Models\BusinessArea;
 use App\Models\BusinessService;
 use App\Models\ReviewNew;
 use App\Models\User;
+use App\Services\Business\BusinessAnalyticsService;
 use App\Services\Review\ReviewService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Http;
@@ -36,148 +37,6 @@ class AIProcessorService
 
         // Use rule engine to determine sentiment label
         return RuleEngineService::getSentimentLabelFromScore($score);
-    }
-
-    public static function analyzeBusinessServicesPerformance($businessId, $dateRange = null, $user = null)
-    {
-        // Get all business services for this business
-        $businessServices = BusinessService::where('business_id', $businessId)
-            ->get(['id', 'name', 'description']);
-
-        if ($businessServices->isEmpty()) {
-            return [
-                'top_services' => [],
-                'worst_services' => [],
-                'message' => 'No business services defined'
-            ];
-        }
-
-        // Get reviews within date range with their associated services
-        $reviewQuery = ReviewNew::where('business_id', $businessId)
-            ->when($dateRange, fn($q) => $q->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
-            ->globalFilters(0, $businessId)
-            ->with(['business_services', 'value']) // Eager load services and values
-            ->withCalculatedRating();
-
-        // ADD BRANCH FILTER
-        if ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner'))) {
-            $reviewQuery->where('branch_id', $user->default_branch_id);
-        }
-
-        $reviews = $reviewQuery->get();
-
-        if ($reviews->isEmpty()) {
-            return [
-                'top_services' => [],
-                'worst_services' => [],
-                'message' => 'No reviews available for the selected period'
-            ];
-        }
-
-        $serviceMetrics = [];
-
-        foreach ($businessServices as $service) {
-            // Find reviews that mention this specific service
-            $serviceReviews = $reviews->filter(function ($review) use ($service) {
-                return $review->business_services->contains('id', $service->id);
-            });
-
-            if ($serviceReviews->isNotEmpty()) {
-                // Calculate average rating for this service
-                $avgRating = round($serviceReviews->avg('calculated_rating'), 2);
-                $totalReviews = $serviceReviews->count();
-
-                // Calculate sentiment for this service
-                $positiveCount = $serviceReviews->where('sentiment_score', '>=', 0.7)->count();
-                $negativeCount = $serviceReviews->where('sentiment_score', '<', 0.4)->count();
-                $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
-
-                // Get common tags for this service - one-liner approach
-                $commonTags = collect($serviceReviews)
-                    ->flatMap(fn($review) => $review->value ? $review->value->flatMap(fn($value) => $value->tags) : [])
-                    ->pluck('tag')
-                    ->countBy()
-                    ->sortDesc();
-
-                $topTags = $commonTags->keys()->take(3)->toArray();
-
-                // Get sample comments
-                $sampleComments = $serviceReviews->sortByDesc('calculated_rating')
-                    ->take(2)
-                    ->map(function ($review) {
-                        return [
-                            'comment' => substr($review->comment ?? '', 0, 100) . (strlen($review->comment ?? '') > 100 ? '...' : ''),
-                            'rating' => round($review->calculated_rating ?? 0, 1),
-                            'sentiment' => self::getSentimentLabel($review->sentiment_score ?? 0),
-                            'date' => $review->created_at->format('M d, Y')
-                        ];
-                    })
-                    ->values()
-                    ->toArray();
-
-                $serviceMetrics[$service->id] = [
-                    'service_id' => $service->id,
-                    'service_name' => $service->name,
-                    'description' => $service->description,
-                    'average_rating' => $avgRating,
-                    'total_reviews' => $totalReviews,
-                    'sentiment_score' => $sentimentPercentage,
-                    'positive_reviews' => $positiveCount,
-                    'negative_reviews' => $negativeCount,
-                    'top_tags' => $topTags,
-                    'sample_comments' => $sampleComments,
-                    'performance_label' => $avgRating >= 4.5 ? 'Excellent' : ($avgRating >= 4.0 ? 'Very Good' : ($avgRating >= 3.5 ? 'Good' : ($avgRating >= 3.0 ? 'Average' : ($avgRating >= 2.0 ? 'Below Average' : 'Poor'))))
-                ];
-            }
-        }
-
-        // Sort by average rating (highest first)
-        uasort($serviceMetrics, function ($a, $b) {
-            // First by rating, then by number of reviews for tie-breaking
-            if ($b['average_rating'] == $a['average_rating']) {
-                return $b['total_reviews'] <=> $a['total_reviews'];
-            }
-            return $b['average_rating'] <=> $a['average_rating'];
-        });
-
-        // Get services with at least 3 reviews for accurate analysis
-        $qualifiedServices = array_filter($serviceMetrics, function ($service) {
-            return $service['total_reviews'] >= 3;
-        });
-
-        // Get top 3 and worst 3
-        if (count($qualifiedServices) >= 6) {
-            $allServices = array_values($qualifiedServices);
-            $topServices = array_slice($allServices, 0, 3);
-            $worstServices = array_slice(array_reverse($allServices), 0, 3);
-        } else {
-            // If not enough qualified services, use all available
-            $allServices = array_values($serviceMetrics);
-            $topServices = array_slice($allServices, 0, min(3, count($allServices)));
-            $worstServices = array_slice(array_reverse($allServices), 0, min(3, count($allServices)));
-        }
-
-        // Calculate overall metrics
-        $allServiceRatings = array_column($serviceMetrics, 'average_rating');
-        $overallServiceRating = count($allServiceRatings) > 0 ?
-            round(array_sum($allServiceRatings) / count($allServiceRatings), 2) : 0;
-
-        return [
-            'top_services' => array_values($topServices),
-            'worst_services' => array_values($worstServices),
-            'all_services' => array_values($serviceMetrics),
-            'summary' => [
-                'total_services_analyzed' => count($serviceMetrics),
-                'services_with_reviews' => count($qualifiedServices),
-                'overall_service_rating' => $overallServiceRating,
-                'best_performing_service' => !empty($topServices) ? $topServices[0]['service_name'] : 'N/A',
-                'worst_performing_service' => !empty($worstServices) ? $worstServices[0]['service_name'] : 'N/A',
-                'period' => $dateRange ? [
-                    'start_date' => $dateRange['start'] ? $dateRange['start']->format('d-m-Y') : null,
-                    'end_date' => $dateRange['end'] ? $dateRange['end']->format('d-m-Y') : null
-                ] : null
-            ]
-        ];
     }
 
     /**
@@ -221,163 +80,6 @@ class AIProcessorService
         }
 
         return RuleEngineService::getDefaultTrainingRecommendation();
-    }
-
-    /**
-     * Get staff performance snapshot dynamically
-     */
-    public static function getStaffPerformanceSnapshot($businessId, $dateRange, ?int $staffId = null)
-    {
-        $query = ReviewNew::with('staff')
-            ->where('business_id', $businessId)
-            ->globalFilters(0, $businessId)
-            ->whereNotNull('staff_id')
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-            ->withCalculatedRating();
-
-        if ($staffId) {
-            $query->where('staff_id', $staffId);
-        }
-
-        $staffReviews = $query->get();
-
-        if ($staffId && $staffReviews->count() < 3) {
-            return null;
-        }
-
-        $staffData = [];
-        $groupedReviews = $staffReviews->groupBy('staff_id');
-
-        foreach ($groupedReviews as $currentStaffId => $reviews) {
-            if ($reviews->count() < 3) {
-                continue;
-            }
-
-            $staff = $reviews->first()->staff;
-            if (!$staff) {
-                continue;
-            }
-
-            $avgRating = $reviews->isNotEmpty()
-                ? round($reviews->avg('calculated_rating'), 1)
-                : 0;
-
-            // Use dynamic thresholds from rule engine
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
-
-            $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-            $negativeReviews = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
-
-            $neutralLower = RuleEngineService::getNeutralLowerThreshold();
-            $neutralUpper = RuleEngineService::getNeutralUpperThreshold();
-            $neutralReviews = $reviews->whereBetween('calculated_rating', [$neutralLower, $neutralUpper])->count();
-
-            $staff_suggestions = $reviews->pluck('staff_suggestions')->flatten()->unique();
-
-            $staffData[] = [
-                'id' => $currentStaffId,
-                'name' => $staff->name,
-                'email' => $staff->email,
-                "branches" => $staff->branches->pluck('name')->toArray(),
-                'job_title' => $staff->job_title ?? 'Staff',
-                'rating' => $avgRating,
-                'image' => $staff->image ?? null,
-                'review_count' => $reviews->count(),
-                'sentiment_breakdown' => [
-                    'positive' => $reviews->count() > 0
-                        ? round(($positiveReviews / $reviews->count()) * 100)
-                        : 0,
-                    'neutral' => $reviews->count() > 0
-                        ? round(($neutralReviews / $reviews->count()) * 100)
-                        : 0,
-                    'negative' => $reviews->count() > 0
-                        ? round(($negativeReviews / $reviews->count()) * 100)
-                        : 0
-                ],
-                'positive_count' => $positiveReviews,
-                'negative_count' => $negativeReviews,
-                'skill_gaps' => self::extractSkillGapsFromSuggestions($staff_suggestions),
-                'recommended_training' => self::extractRecommendedTraining($staff_suggestions),
-                'last_review_date' => $reviews->sortByDesc('created_at')->first()->created_at->diffForHumans(),
-                'rating_trend' => self::calculateStaffRatingTrend($reviews)
-            ];
-        }
-
-        if ($staffId) {
-            return !empty($staffData) ? $staffData[0] : null;
-        }
-
-        usort($staffData, fn($a, $b) => $b['rating'] <=> $a['rating']);
-
-        $top = array_slice($staffData, 0, 3);
-        $needsImprovement = array_slice(array_reverse($staffData), 0, 3);
-
-        $totalStaffWithReviews = count($staffData);
-        $overallAvgRating = $totalStaffWithReviews > 0
-            ? round(array_sum(array_column($staffData, 'rating')) / $totalStaffWithReviews, 1)
-            : 0;
-
-        return [
-            'top_performing' => $top,
-            'needs_improvement' => $needsImprovement,
-            'overall_stats' => [
-                'total_staff_with_reviews' => $totalStaffWithReviews,
-                'overall_average_rating' => $overallAvgRating,
-                'top_performer_rating' => !empty($top) ? $top[0]['rating'] : 0,
-                'lowest_performer_rating' => !empty($needsImprovement)
-                    ? $needsImprovement[0]['rating']
-                    : 0,
-                'rating_gap' => !empty($top) && !empty($needsImprovement)
-                    ? round($top[0]['rating'] - $needsImprovement[0]['rating'], 1)
-                    : 0
-            ]
-        ];
-    }
-
-    /**
-     * Extract skill gaps from suggestions dynamically
-     */
-    public static function extractSkillGapsFromSuggestions($suggestions)
-    {
-        if (empty($suggestions)) {
-            return [];
-        }
-
-        $suggestions = collect($suggestions)
-            ->filter(function ($suggestion) {
-                if (is_string($suggestion)) {
-                    $clean = trim($suggestion);
-                    if ($clean === '[]' || $clean === '' || $clean === '""') {
-                        return false;
-                    }
-
-                    if (str_starts_with($clean, '[') && str_ends_with($clean, ']')) {
-                        $decoded = json_decode($clean, true);
-                        return !empty($decoded) && is_array($decoded);
-                    }
-                }
-                return !empty($suggestion);
-            })
-            ->flatMap(function ($suggestion) {
-                if (is_string($suggestion) && str_starts_with($suggestion, '[')) {
-                    $decoded = json_decode($suggestion, true);
-                    return $decoded ?: [];
-                }
-                return [$suggestion];
-            })
-            ->filter()
-            ->map(fn($s) => trim($s))
-            ->unique();
-
-        if ($suggestions->isEmpty()) {
-            return [];
-        }
-
-        // Use rule engine to map suggestions to skill gaps
-        $skillGaps = RuleEngineService::mapSuggestionsToSkillGaps($suggestions);
-
-        return $skillGaps;
     }
 
     /**
@@ -430,61 +132,6 @@ class AIProcessorService
         ];
     }
 
-    public static function getTopTopic($businessId, $startDate, $endDate)
-    {
-        // Get tag counts using Eloquent relationships
-        $topTag = Tag::where('business_id', $businessId)
-            ->whereHas('review_values', function ($query) use ($businessId, $startDate, $endDate) {
-                $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
-                    $q->where('business_id', $businessId)
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->globalFilters(0, $businessId);
-                })
-                    ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
-            })
-            ->withCount([
-                    'review_values' => function ($query) use ($businessId, $startDate, $endDate) {
-                        $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
-                            $q->where('business_id', $businessId)
-                                ->whereBetween('created_at', [$startDate, $endDate])
-                                ->globalFilters(0, $businessId);
-                        })
-                            ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
-                    }
-                ])
-            ->orderByDesc('review_values_count')
-            ->first();
-
-        if ($topTag && $topTag->review_values_count > 0) {
-            return [
-                'name' => $topTag->name ?? $topTag->tag,
-                'count' => $topTag->review_values_count
-            ];
-        }
-
-        // Fallback: check for common topics from AI analysis
-        $topicCounts = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->whereNotNull('topics')
-            ->globalFilters(0, $businessId)
-            ->get()
-            ->pluck('topics')
-            ->flatten()
-            ->countBy()
-            ->sortDesc();
-
-        if ($topicCounts->isNotEmpty()) {
-            return [
-                'name' => $topicCounts->keys()->first() ?? 'Service',
-                'count' => $topicCounts->first()
-            ];
-        }
-
-        return [
-            'name' => 'Service',
-            'count' => 0
-        ];
-    }
     /**
      * Transcribe audio - Keep as is (external API)
      */
@@ -541,124 +188,11 @@ class AIProcessorService
     }
 
     /**
-     * Get AI insights panel dynamically
-     */
-    public static function getAiInsightsPanel($businessId, $dateRange = null, $user = null): array
-    {
-        $reviewsQuery = ReviewNew::where('business_id', $businessId)
-            ->whereNotNull('ai_suggestions')
-            ->globalFilters(0, $businessId)
-            ->withCalculatedRating();
-
-        if ($dateRange) {
-            $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-        }
-
-        $userBranchId = $user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner'))
-            ? $user->default_branch_id
-            : null;
-
-        if ($userBranchId) {
-            $reviewsQuery->where('branch_id', $userBranchId);
-        }
-
-        $reviews = $reviewsQuery->get();
-
-        // Get insights from rule engine
-        $insights = InsightAggregationService::getDashboardInsights($businessId, 10);
-
-        $summary = self::generateAiSummaryFromRuleEngine($businessId, $reviews);
-        $issues = self::extractIssuesFromRuleEngine($businessId, $reviews, $dateRange ?? ['start' => now()->subMonth(), 'end' => now()]);
-        $opportunities = self::extractOpportunitiesFromSuggestions($reviews->pluck('ai_suggestions')->flatten());
-        $predictions = self::generatePredictions($reviews);
-
-        return [
-            'summary' => $summary,
-            'detected_issues' => $issues,
-            'opportunities' => $opportunities,
-            'predictions' => $predictions
-        ];
-    }
-
-    /**
      * Get recommendations from rule engine
      */
     public static function getRecommendationsFromRuleEngine(int $businessId, $reviews, $dateRange): array
     {
         return RecommendationGeneratorService::generateFromInsights($businessId, 30);
-    }
-
-    /**
-     * Extract issues from rule engine insights
-     */
-    public static function extractIssuesFromRuleEngine(int $businessId, $reviews, $dateRange): array
-    {
-        $insights = InsightAggregationService::getDashboardInsights($businessId, 10);
-
-        if (empty($insights)) {
-            return [
-                [
-                    'issue' => 'No major issues detected.',
-                    'mention_count' => 0
-                ]
-            ];
-        }
-
-        $issues = [];
-        foreach ($insights as $insight) {
-            if ($insight['severity'] === 'high' || $insight['severity'] === 'medium') {
-                $issues[] = [
-                    'issue' => "{$insight['category']} - {$insight['sub_category']}",
-                    'mention_count' => $insight['mentions'],
-                    'severity' => $insight['severity'],
-                    'confidence' => $insight['confidence']
-                ];
-            }
-        }
-
-        return array_slice($issues, 0, 3);
-    }
-
-    /**
-     * Generate AI summary using rule engine insights
-     */
-    public static function generateAiSummaryFromRuleEngine(int $businessId, $reviews): string
-    {
-        $insights = InsightAggregationService::getDashboardInsights($businessId, 10);
-
-        if (empty($insights)) {
-            return 'No reviews to analyze.';
-        }
-
-        // Use dynamic thresholds
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
-
-        $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
-        $total = $reviews->count();
-
-        $positivePercent = $total > 0 ? round(($positiveCount / $total) * 100) : 0;
-        $negativePercent = $total > 0 ? round(($negativeCount / $total) * 100) : 0;
-
-        // Get top issue from insights
-        $topIssue = null;
-        foreach ($insights as $insight) {
-            if ($insight['mentions'] >= RuleEngineService::getHighIssueThreshold() && $insight['severity'] === 'high') {
-                $topIssue = "{$insight['category']} - {$insight['sub_category']}";
-                break;
-            }
-        }
-
-        $summary = RuleEngineService::generateSummaryTemplate($positivePercent, $negativePercent);
-
-        if ($topIssue) {
-            $summary .= " A recurring concern mentioned is {$topIssue}.";
-        } else {
-            $summary .= " " . RuleEngineService::getDefaultSummaryPhrase();
-        }
-
-        return $summary;
     }
 
     /**
@@ -1490,35 +1024,6 @@ class AIProcessorService
     }
 
     /**
-     * Calculate staff rating trend dynamically
-     */
-    public static function calculateStaffRatingTrend($reviews)
-    {
-        if ($reviews->count() < RuleEngineService::getMinimumReviewsForTrendAnalysis()) {
-            return RuleEngineService::getInsufficientDataForTrendMessage();
-        }
-
-        $sortedReviews = $reviews->sortBy('created_at');
-        $half = ceil($sortedReviews->count() / 2);
-
-        $firstHalf = $sortedReviews->slice(0, $half);
-        $secondHalf = $sortedReviews->slice($half);
-
-        $firstHalfAvg = $firstHalf->avg('calculated_rating') ?? 0;
-        $secondHalfAvg = $secondHalf->avg('calculated_rating') ?? 0;
-
-        $trendThreshold = RuleEngineService::getTrendThreshold();
-
-        if ($secondHalfAvg > $firstHalfAvg + $trendThreshold) {
-            return RuleEngineService::getImprovingTrendMessage();
-        } elseif ($secondHalfAvg < $firstHalfAvg - $trendThreshold) {
-            return RuleEngineService::getDecliningTrendMessage();
-        } else {
-            return RuleEngineService::getStableTrendMessage();
-        }
-    }
-
-    /**
      * Calculate staff metrics from review value dynamically
      */
     public static function calculateStaffMetricsFromReviewValue($reviews, $staffUser)
@@ -1793,106 +1298,6 @@ class AIProcessorService
 
         arsort($allTopics);
         return $allTopics;
-    }
-
-    /**
-     * Get top three staff dynamically
-     */
-    public static function getTopThreeStaff($businessId, $filters = [])
-    {
-        $reviewsQuery = ReviewNew::where('business_id', $businessId)
-            ->whereNotNull('staff_id')
-            ->globalFilters(0, $businessId)
-            ->withCalculatedRating();
-
-        $reviewsQuery = ReviewService::applyFilters($reviewsQuery, $filters);
-        $reviews = $reviewsQuery->get();
-
-        if ($reviews->isEmpty()) {
-            return [
-                'message' => 'No staff reviews found',
-                'staff' => []
-            ];
-        }
-
-        $staffGroups = [];
-        foreach ($reviews as $review) {
-            if ($review->staff_id) {
-                $staffGroups[$review->staff_id][] = $review;
-            }
-        }
-
-        $staffPerformance = [];
-
-        foreach ($staffGroups as $staffId => $reviewsArray) {
-            $staff = User::find($staffId);
-            if (!$staff) {
-                continue;
-            }
-
-            $totalRating = 0;
-            $totalReviews = count($reviewsArray);
-            $positiveCount = 0;
-            $latestReviewDate = null;
-            $allTopics = [];
-
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-
-            foreach ($reviewsArray as $review) {
-                $totalRating += $review->calculated_rating ?? 0;
-
-                if (isset($review->sentiment_score) && $review->sentiment_score >= $positiveThreshold) {
-                    $positiveCount++;
-                }
-
-                if (!$latestReviewDate || $review->created_at > $latestReviewDate) {
-                    $latestReviewDate = $review->created_at;
-                }
-
-                if (!empty($review->topics) && is_array($review->topics)) {
-                    $allTopics = array_merge($allTopics, $review->topics);
-                }
-            }
-
-            $avgRating = $totalReviews > 0 ? $totalRating / $totalReviews : 0;
-            $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
-
-            $minimumReviews = RuleEngineService::getMinimumReviewsForTopStaff();
-            if ($totalReviews < $minimumReviews) {
-                continue;
-            }
-
-            $topTopics = self::extractStaffTopics(collect($reviewsArray));
-
-            $staffPerformance[] = [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'position' => $staff->job_title ?? 'Staff',
-                'image' => $staff->image ?? null,
-                'avg_rating' => round($avgRating, 1),
-                'review_count' => $totalReviews,
-                'sentiment_score' => $sentimentPercentage,
-                'sentiment_label' => self::getSentimentLabelByPercentage($sentimentPercentage),
-                'top_topics' => array_slice($topTopics, 0, 3),
-                'recent_activity' => $latestReviewDate
-                    ? $latestReviewDate->diffForHumans()
-                    : 'No recent activity'
-            ];
-        }
-
-        usort($staffPerformance, function ($a, $b) {
-            if ($b['avg_rating'] == $a['avg_rating']) {
-                return $b['review_count'] <=> $a['review_count'];
-            }
-            return $b['avg_rating'] <=> $a['avg_rating'];
-        });
-
-        $staffPerformance = array_slice($staffPerformance, 0, 3);
-
-        return [
-            'total_staff_reviewed' => count($staffGroups),
-            'staff' => $staffPerformance
-        ];
     }
 
     /**
@@ -2295,7 +1700,7 @@ class AIProcessorService
      */
     public static function generateAiSummary($reviews)
     {
-        return self::generateAiSummaryFromRuleEngine(0, $reviews);
+        return BusinessAnalyticsService::generateAiSummaryFromRuleEngine(0, $reviews);
     }
 
     /**
@@ -2812,7 +2217,7 @@ class AIProcessorService
                 'negative_reviews' => $negativeCount,
                 'common_praise' => array_slice($commonPraise, 0, 3),
                 'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'No reviews',
-                'rating_trend' => self::calculateStaffRatingTrend(collect($reviews)),
+                'rating_trend' => \App\Services\Staff\StaffPerformanceService::calculateStaffRatingTrend(collect($reviews)),
                 'performance_level' => RuleEngineService::identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage)
             ];
         }

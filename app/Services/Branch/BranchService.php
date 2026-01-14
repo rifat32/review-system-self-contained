@@ -5,7 +5,7 @@ namespace App\Services\Branch;
 use App\Models\Branch;
 use App\Models\ReviewNew;
 use App\Models\User;
-use App\Services\Review\ReviewIssueDetectionService;
+use App\Services\Business\BusinessAnalyticsService;
 use App\Services\Review\ReviewTopicService;
 use App\Services\Review\ReviewMetricsService;
 use App\Services\Review\ReviewService;
@@ -91,11 +91,14 @@ class BranchService
         $topTopicSummary = ReviewTopicService::getTopTopicSummary($currentReviews);
 
         // ==================== REPEATED ISSUES ====================
-        $issueAnalysis = ReviewIssueDetectionService::detectRepeatedIssues($currentReviews, [
-            'min_occurrences' => 3,
-            'min_percentage' => 5,
-            'include_trend' => false
-        ]);
+        $issueAnalysis = BusinessAnalyticsService::extractIssuesFromRuleEngine(
+            $businessId,
+            $currentReviews,
+            [
+                'start' => $currentReviews->min('created_at') ?? now()->subMonth(),
+                'end' => $currentReviews->max('created_at') ?? now()
+            ]
+        );
 
         $topIssue = !empty($issueAnalysis['repeated_issues'])
             ? $issueAnalysis['repeated_issues'][0]['issue']

@@ -8,6 +8,7 @@ use App\Models\ReviewValueNew;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\AIProcessor\AIProcessorService;
+use App\Services\Business\BusinessAnalyticsService;
 use Carbon\Carbon;
 
 class ReviewService
@@ -255,17 +256,17 @@ class ReviewService
         // Get all tags with their mention counts
         $tags = Tag::where('business_id', $businessId)
             ->withCount([
-                'review_values' => function ($query) use ($dateRange, $userBranchId) {
-                    $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
+                    'review_values' => function ($query) use ($dateRange, $userBranchId) {
+                        $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
 
-                    // Filter by branch if user is branch manager
-                    if ($userBranchId) {
-                        $query->whereHas('review', function ($q) use ($userBranchId) {
-                            $q->where('branch_id', $userBranchId);
-                        });
+                        // Filter by branch if user is branch manager
+                        if ($userBranchId) {
+                            $query->whereHas('review', function ($q) use ($userBranchId) {
+                                $q->where('branch_id', $userBranchId);
+                            });
+                        }
                     }
-                }
-            ])
+                ])
             ->orderByDesc('review_values_count')
             ->get();
 
@@ -387,9 +388,9 @@ class ReviewService
             $previousReviews = ReviewNew::globalFilters(0, $businessId)
                 ->where('business_id', $businessId)
                 ->whereBetween('created_at', [
-                    $dateRange['start']->copy()->subDays(30),
-                    $dateRange['end']->copy()->subDays(30)
-                ])
+                        $dateRange['start']->copy()->subDays(30),
+                        $dateRange['end']->copy()->subDays(30)
+                    ])
                 ->globalFilters(0, $businessId)
                 ->withCalculatedRating()
                 ->get();
@@ -420,14 +421,18 @@ class ReviewService
         $negativeReviewsCount = $reviews->where('calculated_rating', '<=', 2)->count();
 
         // Top Topic (minimal summary)
-        $topTopicSummary = \App\Services\Review\ReviewTopicService::getTopTopicSummary($reviews);
+        $topTopicSummary = ReviewTopicService::getTopTopicSummary($reviews);
 
         // Detect repeated issues (minimal data only)
-        $issueAnalysis = \App\Services\Review\ReviewIssueDetectionService::detectRepeatedIssues($reviews, [
-            'min_occurrences' => 3,
-            'min_percentage' => 5,
-            'include_trend' => false  // Disable trend for performance
-        ]);
+        $businessId = $reviews->first()->business_id ?? 0;
+        $issueAnalysis = BusinessAnalyticsService::extractIssuesFromRuleEngine(
+            $businessId,
+            $reviews,
+            [
+                'start' => $reviews->min('created_at') ?? now()->subMonth(),
+                'end' => $reviews->max('created_at') ?? now()
+            ]
+        );
 
         $topIssue = !empty($issueAnalysis['repeated_issues'])
             ? $issueAnalysis['repeated_issues'][0]['issue']

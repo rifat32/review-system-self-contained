@@ -6,7 +6,7 @@ use App\Http\Utils\DateRangeUtil;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\User;
-use App\Services\Review\ReviewIssueDetectionService;
+use App\Services\Business\BusinessAnalyticsService;
 use App\Services\Review\ReviewTopicService;
 use App\Services\Review\ReviewMetricsService;
 use App\Services\Review\ReviewService;
@@ -99,10 +99,9 @@ class DashboardService
         $topTopicSummary = ReviewTopicService::getTopTopicSummary($reviews);
 
         // Detect repeated issues (minimal data only)
-        $issueAnalysis = ReviewIssueDetectionService::detectRepeatedIssues($reviews, [
-            'min_occurrences' => 3,
-            'min_percentage' => 5,
-            'include_trend' => false  // Disable trend for performance
+        $issueAnalysis = BusinessAnalyticsService::extractIssuesFromRuleEngine($businessId, $reviews, [
+            'start' => $reviews->min('created_at'),
+            'end' => $reviews->max('created_at')
         ]);
 
         $topIssue = !empty($issueAnalysis['repeated_issues'])
