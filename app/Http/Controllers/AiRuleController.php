@@ -106,12 +106,16 @@ class AiRuleController extends Controller
     {
         $validated = $request->validate([
             'rule_name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'category' => 'required|string|in:staff,area,trend,quality',
-            'priority' => 'required|string|in:critical,high,medium,low',
+            'description' => 'required|string',
+            'scope' => 'required|in:system,business_type,business',
+            'business_type' => 'nullable|string|max:50',
+            'business_id' => 'nullable|exists:businesses,id',
+            'category' => 'required|string|max:50',
+            'priority' => 'required|in:critical,high,medium,low',
+            'enabled' => 'boolean',
             'conditions' => 'required|array',
-            'actions' => 'required|array',
-            'enabled' => 'boolean'
+            'conditions.*.source' => 'nullable|in:Comment,Rating,Staff,Area,Emotion',
+            'actions' => 'required|array'
         ]);
 
         $businessId = $request->user()->business_id;

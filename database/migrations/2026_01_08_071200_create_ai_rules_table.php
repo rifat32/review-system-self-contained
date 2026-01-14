@@ -16,8 +16,8 @@ return new class extends Migration {
             $table->string('rule_name', 255);
             $table->text('description')->nullable();
 
-            $table->string('key_name')->nullable()->after('rule_name');
-            $table->text('value')->nullable()->after('key_name');
+            $table->string('key_name')->nullable();
+            $table->text('value')->nullable();
 
             $table->enum('scope', ['system', 'business_type', 'business']);
             $table->string('business_type', 50)->nullable();

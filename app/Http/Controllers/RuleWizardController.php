@@ -104,10 +104,12 @@ class RuleWizardController extends Controller
     {
         $validated = $request->validate([
             'conditions' => 'required|array|min:1',
+            'conditions.*.source' => 'required|in:Comment,Rating,Staff,Area,Emotion',
             'conditions.*.type' => 'required|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type',
             'conditions.*.operator' => 'required|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
             'conditions.*.value' => 'required',
             'conditions.*.logic' => 'nullable|in:AND,OR',
+            'conditions.*.analyse_comment_for' => 'nullable|string', // Additional context for UI
             'actions' => 'required|array|min:1',
             'actions.*' => 'required|in:flag_review,notify_manager,recommend_coaching,link_staff,escalate,notify_slack,notify_email',
             'sensitivity' => 'nullable|numeric|min:0|max:100'
@@ -299,7 +301,6 @@ class RuleWizardController extends Controller
                     'priority' => $rule->priority
                 ]
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
 

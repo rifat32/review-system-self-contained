@@ -26,6 +26,14 @@ class ConditionBuilderService
                 continue;
             }
 
+            // Validate source
+            if (isset($condition['source'])) {
+                $validSources = ['Comment', 'Rating', 'Staff', 'Area', 'Emotion'];
+                if (!in_array($condition['source'], $validSources)) {
+                    $errors[] = "Condition at index $index has invalid source: {$condition['source']}";
+                }
+            }
+
             // Validate condition type
             if (!isset($condition['type'])) {
                 $errors[] = "Condition at index $index is missing 'type' field";
@@ -112,42 +120,49 @@ class ConditionBuilderService
      */
     private static function evaluateSingleCondition(array $condition, ReviewNew $review, array $aiData): bool
     {
+        $source = $condition['source'] ?? null;
         $type = $condition['type'];
         $operator = $condition['operator'];
         $value = $condition['value'] ?? null;
 
-        switch ($type) {
-            case 'sentiment':
+        // Route by source if available, otherwise fallback to type
+        if ($source === 'Rating' || $type === 'rating') {
+            return self::matchNumeric($review->rating, $operator, $value);
+        }
+
+        if ($source === 'Comment' || in_array($type, ['sentiment', 'keyword', 'emotion'])) {
+            if ($type === 'sentiment') {
                 $sentiment = $aiData['sentiment'] ?? 'neutral';
                 return self::matchSentiment($sentiment, $operator, $value);
-
-            case 'rating':
-                return self::matchNumeric($review->rating, $operator, $value);
-
-            case 'keyword':
+            }
+            if ($type === 'keyword') {
                 return self::matchText($review->comment, $operator, $value);
-
-            case 'staff_mention':
-                $staffMentions = $aiData['staff_mentions'] ?? [];
-                if ($value) {
-                    // Check for specific staff member
-                    return in_array($value, array_column($staffMentions, 'name'));
-                }
-                // Any staff mention
-                return !empty($staffMentions);
-
-            case 'area_mention':
-                $areaMentions = $aiData['areas'] ?? [];
-                if (is_array($areaMentions)) {
-                    return in_array($value, array_column($areaMentions, 'name'));
-                }
-                return in_array($value, (array) $areaMentions);
-
-            case 'emotion':
+            }
+            if ($type === 'emotion') {
                 $emotions = $aiData['emotions'] ?? [];
                 $threshold = $condition['threshold'] ?? 0.5;
                 return isset($emotions[$value]) && $emotions[$value]['score'] >= $threshold;
+            }
+        }
 
+        if ($source === 'Staff' || $type === 'staff_mention') {
+            $staffMentions = $aiData['staff_mentions'] ?? [];
+            if ($value) {
+                return in_array($value, array_column($staffMentions, 'name'));
+            }
+            return !empty($staffMentions);
+        }
+
+        if ($source === 'Area' || $type === 'area_mention') {
+            $areaMentions = $aiData['areas'] ?? [];
+            if (is_array($areaMentions)) {
+                return in_array($value, array_column($areaMentions, 'name'));
+            }
+            return in_array($value, (array)$areaMentions);
+        }
+
+        // Fallback for other types
+        switch ($type) {
             case 'service_type':
                 $serviceTypes = $aiData['service_types'] ?? [];
                 return in_array($value, $serviceTypes);

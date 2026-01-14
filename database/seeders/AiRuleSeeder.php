@@ -22,8 +22,15 @@ class AiRuleSeeder extends Seeder
                 'priority' => 'high',
                 'enabled' => true,
                 'conditions' => [
-                    'rating_below' => 3,
-                    'type' => 'rating_based'
+                    'logic' => 'AND',
+                    'conditions' => [
+                        [
+                            'source' => 'Rating',
+                            'type' => 'rating',
+                            'operator' => 'less_than',
+                            'value' => 3
+                        ]
+                    ]
                 ],
                 'actions' => [
                     'suggest_action' => [
@@ -46,9 +53,21 @@ class AiRuleSeeder extends Seeder
                 'priority' => 'critical',
                 'enabled' => true,
                 'conditions' => [
-                    'category_match' => 'staff',
-                    'severity' => 'high',
-                    'type' => 'comment_based'
+                    'logic' => 'AND',
+                    'conditions' => [
+                        [
+                            'source' => 'Comment',
+                            'type' => 'sentiment',
+                            'operator' => 'equals',
+                            'value' => 'negative'
+                        ],
+                        [
+                            'source' => 'Staff',
+                            'type' => 'staff_mention',
+                            'operator' => 'equals',
+                            'value' => null // Any staff mention
+                        ]
+                    ]
                 ],
                 'actions' => [
                     'suggest_action' => [
@@ -60,7 +79,7 @@ class AiRuleSeeder extends Seeder
                 'ai_explanation_title' => 'Critical Staff Issue',
                 'ai_plain_explanation' => 'This rule scans review text for serious complaints directed at staff members or service standards.',
                 'ai_why_it_matters' => 'Recurring staff issues can severely damage your brand reputation and service consistency.',
-                'ai_when_it_triggers' => 'Triggers when AI detects high-severity negative sentiment specifically mentioning staff or service.'
+                'ai_when_it_triggers' => 'Triggers when AI detects negative sentiment specifically mentioning staff or service.'
             ],
             [
                 'rule_id' => 'SYS_CLEANLINESS_WARNING',
@@ -71,9 +90,21 @@ class AiRuleSeeder extends Seeder
                 'priority' => 'high',
                 'enabled' => true,
                 'conditions' => [
-                    'category_match' => 'area',
-                    'keywords' => ['clean', 'dirty', 'messy', 'hygiene', 'smell'],
-                    'type' => 'comment_based'
+                    'logic' => 'AND',
+                    'conditions' => [
+                        [
+                            'source' => 'Comment',
+                            'type' => 'keyword',
+                            'operator' => 'contains',
+                            'value' => 'clean'
+                        ],
+                        [
+                            'source' => 'Comment',
+                            'type' => 'sentiment',
+                            'operator' => 'equals',
+                            'value' => 'negative'
+                        ]
+                    ]
                 ],
                 'actions' => [
                     'suggest_action' => [
@@ -84,7 +115,7 @@ class AiRuleSeeder extends Seeder
                 'ai_explanation_title' => 'Cleanliness Warning',
                 'ai_plain_explanation' => 'This rule keeps an eye on mentions of cleanliness, hygiene, or facility maintenance in your facility.',
                 'ai_why_it_matters' => 'Cleanliness is a top factor for customer trust, especially in hospitality and service industries.',
-                'ai_when_it_triggers' => 'Triggers when customers mention words like "dirty", "unhygienic", or "messy" in their reviews.'
+                'ai_when_it_triggers' => 'Triggers when customers mention words like "clean" with negative sentiment in their reviews.'
             ],
             [
                 'rule_id' => 'SYS_REPEAT_NEGATIVE_FEEDBACK',
@@ -95,11 +126,19 @@ class AiRuleSeeder extends Seeder
                 'priority' => 'high',
                 'enabled' => true,
                 'conditions' => [
+                    'logic' => 'AND',
+                    'conditions' => [
+                        [
+                            'source' => 'Comment',
+                            'type' => 'sentiment',
+                            'operator' => 'equals',
+                            'value' => 'negative'
+                        ]
+                    ],
                     'repeat_occurrence' => [
                         'count' => 3,
                         'within_days' => 7
-                    ],
-                    'type' => 'comment_based'
+                    ]
                 ],
                 'actions' => [
                     'suggest_action' => [
@@ -121,9 +160,21 @@ class AiRuleSeeder extends Seeder
                 'priority' => 'medium',
                 'enabled' => true,
                 'conditions' => [
-                    'rating_above' => 3,
-                    'text_sentiment' => 'negative',
-                    'type' => 'comment_based'
+                    'logic' => 'AND',
+                    'conditions' => [
+                        [
+                            'source' => 'Rating',
+                            'type' => 'rating',
+                            'operator' => 'greater_than',
+                            'value' => 3
+                        ],
+                        [
+                            'source' => 'Comment',
+                            'type' => 'sentiment',
+                            'operator' => 'equals',
+                            'value' => 'negative'
+                        ]
+                    ]
                 ],
                 'actions' => [
                     'suggest_action' => [
@@ -145,9 +196,21 @@ class AiRuleSeeder extends Seeder
                 'priority' => 'medium',
                 'enabled' => true,
                 'conditions' => [
-                    'category_match' => 'service',
-                    'keywords' => ['wait', 'slow', 'delay', 'time', 'long'],
-                    'type' => 'comment_based'
+                    'logic' => 'AND',
+                    'conditions' => [
+                        [
+                            'source' => 'Comment',
+                            'type' => 'keyword',
+                            'operator' => 'contains',
+                            'value' => 'wait'
+                        ],
+                        [
+                            'source' => 'Comment',
+                            'type' => 'sentiment',
+                            'operator' => 'equals',
+                            'value' => 'negative'
+                        ]
+                    ]
                 ],
                 'actions' => [
                     'suggest_action' => [
@@ -158,7 +221,7 @@ class AiRuleSeeder extends Seeder
                 'ai_explanation_title' => 'Service Speed Concern',
                 'ai_plain_explanation' => 'This rule tracks how often customers complain about waiting times or the speed of your service.',
                 'ai_why_it_matters' => 'Slow service is one of the most common reasons for customers to not return, even if the quality is good.',
-                'ai_when_it_triggers' => 'Triggers whenever more than 15% of your reviews in a month mention wait-related frustrations.'
+                'ai_when_it_triggers' => 'Triggers whenever customers mention "wait" with negative sentiment.'
             ],
             [
                 'rule_id' => 'SYS_PEAK_HOUR_STRESS',
@@ -169,8 +232,16 @@ class AiRuleSeeder extends Seeder
                 'priority' => 'medium',
                 'enabled' => true,
                 'conditions' => [
-                    'peak_period_drop' => true,
-                    'type' => 'trend_based'
+                    'logic' => 'AND',
+                    'conditions' => [
+                        [
+                            'source' => 'Rating',
+                            'type' => 'rating',
+                            'operator' => 'less_than',
+                            'value' => 3
+                        ]
+                    ],
+                    'peak_period_only' => true
                 ],
                 'actions' => [
                     'suggest_action' => [
@@ -181,7 +252,7 @@ class AiRuleSeeder extends Seeder
                 'ai_explanation_title' => 'Peak Hour Stress',
                 'ai_plain_explanation' => 'This rule analyzes if your service quality drops significantly during your busiest hours (e.g., weekends or lunch).',
                 'ai_why_it_matters' => 'If complaints only happen during peak times, it suggests you might be understaffed during those periods.',
-                'ai_when_it_triggers' => 'Triggers if the average rating during peak hours is at least 0.5 stars lower than during off-peak hours.'
+                'ai_when_it_triggers' => 'Triggers if the rating is low during designated peak hours.'
             ],
             [
                 'rule_id' => 'SYS_POSITIVE_STAFF_RECOGNITION',
@@ -192,9 +263,21 @@ class AiRuleSeeder extends Seeder
                 'priority' => 'low',
                 'enabled' => true,
                 'conditions' => [
-                    'category_match' => 'staff',
-                    'sentiment' => 'positive',
-                    'type' => 'comment_based'
+                    'logic' => 'AND',
+                    'conditions' => [
+                        [
+                            'source' => 'Staff',
+                            'type' => 'staff_mention',
+                            'operator' => 'equals',
+                            'value' => null
+                        ],
+                        [
+                            'source' => 'Comment',
+                            'type' => 'sentiment',
+                            'operator' => 'equals',
+                            'value' => 'positive'
+                        ]
+                    ]
                 ],
                 'actions' => [
                     'suggest_action' => [
@@ -205,7 +288,7 @@ class AiRuleSeeder extends Seeder
                 'ai_explanation_title' => 'Positive Staff Recognition',
                 'ai_plain_explanation' => 'This rule identifies when customers go out of their way to praise a specific member of your team.',
                 'ai_why_it_matters' => 'Recognizing top performers boosts morale and helps you understand what excellent service looks like to your customers.',
-                'ai_when_it_triggers' => 'Triggers when a review mentions a staff category with a positive sentiment and high confidence.'
+                'ai_when_it_triggers' => 'Triggers when a review mentions a staff category with a positive sentiment.'
             ],
             [
                 'rule_id' => 'SYS_VALUE_FOR_MONEY_TREND',
@@ -216,9 +299,21 @@ class AiRuleSeeder extends Seeder
                 'priority' => 'medium',
                 'enabled' => true,
                 'conditions' => [
-                    'category_match' => 'value',
-                    'keywords' => ['price', 'expensive', 'worth', 'value', 'cheap'],
-                    'type' => 'comment_based'
+                    'logic' => 'AND',
+                    'conditions' => [
+                        [
+                            'source' => 'Comment',
+                            'type' => 'keyword',
+                            'operator' => 'contains',
+                            'value' => 'price'
+                        ],
+                        [
+                            'source' => 'Comment',
+                            'type' => 'sentiment',
+                            'operator' => 'equals',
+                            'value' => 'negative'
+                        ]
+                    ]
                 ],
                 'actions' => [
                     'suggest_action' => [
@@ -229,7 +324,7 @@ class AiRuleSeeder extends Seeder
                 'ai_explanation_title' => 'Value for Money Trend',
                 'ai_plain_explanation' => 'This rule tracks whether customers feel they are getting good value for the price they paid.',
                 'ai_why_it_matters' => 'If "Value for Money" sentiment drops, you may need to adjust your pricing or improve the perceived quality of your service.',
-                'ai_when_it_triggers' => 'Triggers when negative mentions of price or value increase by more than 20% compared to the previous month.'
+                'ai_when_it_triggers' => 'Triggers when negative mentions of price or value are detected.'
             ]
         ];
 
@@ -243,8 +338,8 @@ class AiRuleSeeder extends Seeder
                     'category' => $ruleData['category'],
                     'priority' => $ruleData['priority'],
                     'enabled' => $ruleData['enabled'],
-                    'conditions' => $ruleData['conditions'],
-                    'actions' => $ruleData['actions'],
+                    'conditions' => json_encode($ruleData['conditions']),
+                    'actions' => json_encode($ruleData['actions']),
                     'ai_explanation_title' => $ruleData['ai_explanation_title'],
                     'ai_plain_explanation' => $ruleData['ai_plain_explanation'],
                     'ai_why_it_matters' => $ruleData['ai_why_it_matters'],
