@@ -19,6 +19,21 @@
         }
     ],
     "paths": {
+        "/api/v1.0/ai-rules/{ruleId}/metrics": {
+            "get": {
+                "tags": [
+                    "AI Rules - Metrics"
+                ],
+                "summary": "Get rule performance metrics",
+                "description": "Get rule metrics and performance\nGET /api/v1.0/ai-rules/{ruleId}/metrics",
+                "operationId": "f67dfa4aacba2783235700c529a74c11",
+                "responses": {
+                    "200": {
+                        "description": "Metrics retrieved"
+                    }
+                }
+            }
+        },
         "/resend-email-verify-mail": {
             "post": {
                 "tags": [
@@ -3071,6 +3086,679 @@
                 ]
             }
         },
+        "/v1.0/branches/{branchId}/staff-performance": {
+            "get": {
+                "tags": [
+                    "branch_management"
+                ],
+                "summary": "Get staff performance metrics for a branch",
+                "description": "Retrieves detailed performance metrics for staff members in a specific branch, including ratings, sentiment scores, and trends",
+                "operationId": "getBranchStaffPerformance",
+                "parameters": [
+                    {
+                        "name": "branchId",
+                        "in": "path",
+                        "description": "ID of the branch",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for analysis (last_7_days, last_30_days, last_90_days, this_month, last_month, custom)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_7_days",
+                                "last_30_days",
+                                "last_90_days",
+                                "this_month",
+                                "last_month",
+                                "custom"
+                            ],
+                            "example": "last_30_days"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of staff members to return",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 50,
+                            "minimum": 1,
+                            "example": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff performance retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff performance generated successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "staff_id": {
+                                                        "type": "integer",
+                                                        "example": 42
+                                                    },
+                                                    "staff_name": {
+                                                        "type": "string",
+                                                        "example": "John Doe"
+                                                    },
+                                                    "avg_rating": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 4.5
+                                                    },
+                                                    "reviews_count": {
+                                                        "type": "integer",
+                                                        "example": 25
+                                                    },
+                                                    "positive_percentage": {
+                                                        "type": "integer",
+                                                        "example": 85
+                                                    },
+                                                    "evaluation": {
+                                                        "type": "string",
+                                                        "example": "Top Performer"
+                                                    },
+                                                    "rating_trend": {
+                                                        "type": "string",
+                                                        "example": "improving"
+                                                    },
+                                                    "last_review_date": {
+                                                        "type": "string",
+                                                        "example": "2 days ago"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authorization error - User doesn't have permission",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have permission to view staff performance for this branch"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "authorization_error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Branch not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch not found"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "not_found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid period parameter"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "validation_error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An error occurred while retrieving staff performance"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "server_error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branches/{branchId}/recent-reviews": {
+            "get": {
+                "tags": [
+                    "branch_management"
+                ],
+                "summary": "Get recent reviews for a branch",
+                "description": "Retrieves the most recent reviews for a specific branch, sorted by creation date",
+                "operationId": "getBranchRecentReviews",
+                "parameters": [
+                    {
+                        "name": "branchId",
+                        "in": "path",
+                        "description": "ID of the branch",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for filtering reviews (last_7_days, last_30_days, last_90_days, this_month, last_month, all_time, custom)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_7_days",
+                                "last_30_days",
+                                "last_90_days",
+                                "this_month",
+                                "last_month",
+                                "all_time",
+                                "custom"
+                            ],
+                            "example": "last_30_days"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of recent reviews to return",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 50,
+                            "minimum": 1,
+                            "example": 5
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Recent reviews retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Recent reviews generated successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 123
+                                                    },
+                                                    "customer_name": {
+                                                        "type": "string",
+                                                        "example": "John Doe"
+                                                    },
+                                                    "rating": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 4.5
+                                                    },
+                                                    "comment": {
+                                                        "type": "string",
+                                                        "example": "Great service and friendly staff!"
+                                                    },
+                                                    "sentiment_label": {
+                                                        "type": "string",
+                                                        "example": "positive"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-01-12T15:30:00Z"
+                                                    },
+                                                    "time_ago": {
+                                                        "type": "string",
+                                                        "example": "2 hours ago"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authorization error - User doesn't have permission",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have permission to view reviews for this branch"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "authorization_error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Branch not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch not found"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "not_found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid period parameter"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "validation_error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An error occurred while retrieving recent reviews"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "server_error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branches/{branchId}/recommendations": {
+            "get": {
+                "tags": [
+                    "branch_management"
+                ],
+                "summary": "Get AI recommendations for a branch",
+                "description": "Retrieves AI-generated actionable recommendations for improving branch performance based on review analysis",
+                "operationId": "getBranchRecommendations",
+                "parameters": [
+                    {
+                        "name": "branchId",
+                        "in": "path",
+                        "description": "ID of the branch",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for analysis (last_7_days, last_30_days, last_90_days, this_month, last_month, all_time, custom)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_7_days",
+                                "last_30_days",
+                                "last_90_days",
+                                "this_month",
+                                "last_month",
+                                "all_time",
+                                "custom"
+                            ],
+                            "example": "last_30_days"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Branch recommendations retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch recommendations generated successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "type": {
+                                                        "description": "Recommendation type: Action, Strength, Weak Area, Info",
+                                                        "type": "string",
+                                                        "example": "Action"
+                                                    },
+                                                    "title": {
+                                                        "type": "string",
+                                                        "example": "Optimize Service Flow"
+                                                    },
+                                                    "description": {
+                                                        "type": "string",
+                                                        "example": "Review staffing schedules during peak hours and implement queue management."
+                                                    },
+                                                    "priority": {
+                                                        "description": "Priority level: high, medium, low",
+                                                        "type": "string",
+                                                        "example": "high"
+                                                    },
+                                                    "evidence_count": {
+                                                        "description": "Number of reviews supporting this recommendation",
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authorization error - User doesn't have permission",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have permission to view recommendations for this branch"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "authorization_error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Branch not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch not found"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "not_found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid period parameter"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "validation_error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An error occurred while generating recommendations"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "server_error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/branch-members/assign": {
             "post": {
                 "tags": [
@@ -3645,6 +4333,21 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/api/v1.0/ai-rules/bulk-apply": {
+            "post": {
+                "tags": [
+                    "AI Rules - Bulk"
+                ],
+                "summary": "Apply rule across multiple branches",
+                "description": "Apply rule to multiple branches\nPOST /api/v1.0/ai-rules/bulk-apply",
+                "operationId": "ac0d807f9a49b3143ee18941035be563",
+                "responses": {
+                    "200": {
+                        "description": "Bulk operation completed"
+                    }
+                }
             }
         },
         "/v1.0/business-ai-modules/{businessId}": {
@@ -10040,174 +10743,10 @@
                 }
             }
         },
-        "/v1.0/reports/staff-dashboard/{businessId}": {
-            "get": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "Get staff performance dashboard",
-                "description": "Get overall staff performance metrics and rankings",
-                "operationId": "staffDashboard",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "period",
-                        "in": "query",
-                        "description": "Period for comparison: last_week, last_month, last_quarter",
-                        "required": false,
-                        "example": "last_month"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Staff dashboard report retrieved successfully"
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "business_id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "business_name": {
-                                                    "type": "string",
-                                                    "example": "Business Name"
-                                                },
-                                                "period": {
-                                                    "type": "string",
-                                                    "example": "last_month"
-                                                },
-                                                "overall_metrics": {
-                                                    "properties": {
-                                                        "overall_rating": {
-                                                            "properties": {
-                                                                "value": {
-                                                                    "type": "number",
-                                                                    "example": 4.2
-                                                                },
-                                                                "change": {
-                                                                    "type": "number",
-                                                                    "example": 5.5
-                                                                },
-                                                                "change_type": {
-                                                                    "type": "string",
-                                                                    "example": "positive"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        "overall_sentiment": {
-                                                            "properties": {
-                                                                "value": {
-                                                                    "type": "integer",
-                                                                    "example": 75
-                                                                },
-                                                                "change": {
-                                                                    "type": "number",
-                                                                    "example": 2.1
-                                                                },
-                                                                "change_type": {
-                                                                    "type": "string",
-                                                                    "example": "positive"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        "total_reviews": {
-                                                            "properties": {
-                                                                "value": {
-                                                                    "type": "integer",
-                                                                    "example": 150
-                                                                },
-                                                                "change": {
-                                                                    "type": "integer",
-                                                                    "example": 25
-                                                                },
-                                                                "change_type": {
-                                                                    "type": "string",
-                                                                    "example": "positive"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "compliment_ratio": {
-                                                    "properties": {
-                                                        "compliments_percentage": {
-                                                            "type": "integer",
-                                                            "example": 70
-                                                        },
-                                                        "complaints_percentage": {
-                                                            "type": "integer",
-                                                            "example": 15
-                                                        },
-                                                        "neutral_percentage": {
-                                                            "type": "integer",
-                                                            "example": 15
-                                                        },
-                                                        "compliments_count": {
-                                                            "type": "integer",
-                                                            "example": 105
-                                                        },
-                                                        "complaints_count": {
-                                                            "type": "integer",
-                                                            "example": 22
-                                                        },
-                                                        "neutral_count": {
-                                                            "type": "integer",
-                                                            "example": 23
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "top_staff": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object"
-                                                    }
-                                                },
-                                                "all_staff": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object"
-                                                    }
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found"
-                    }
-                }
-            }
-        },
         "/v1.0/reports/review-analytics/{businessId}": {
             "get": {
                 "tags": [
-                    "Reports"
+                    "review_management"
                 ],
                 "summary": "Get review analytics with flexible filtering",
                 "description": "Get performance overview and recent submissions with optional filters for survey, guest reviews, user reviews, and overall reviews",
@@ -21712,6 +22251,132 @@
                 ]
             }
         },
+        "/v1.0/overall-reviews-metrics": {
+            "get": {
+                "tags": [
+                    "review_management"
+                ],
+                "summary": "Get overall reviews metrics",
+                "description": "Retrieve aggregated metrics for overall reviews including total submissions, average score, and staff-linked reviews count with optional filtering by period, survey, and overall status",
+                "operationId": "getOverallReviewsMetrics",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period filter (e.g., last_7_days, last_30_days, last_90_days, this_month, last_month, this_year, custom)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "last_30_days"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "Filter by overall review status (1 = only overall reviews, 0 = only non-overall reviews, omit for all)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "survey_id",
+                        "in": "query",
+                        "description": "Filter reviews by specific survey ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 5
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Overall reviews metrics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Overall reviews metrics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "total_submissions": {
+                                                    "description": "Total number of review submissions",
+                                                    "type": "integer",
+                                                    "example": 245
+                                                },
+                                                "average_score": {
+                                                    "description": "Average calculated rating score",
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 4.3
+                                                },
+                                                "staff_link_reviews": {
+                                                    "description": "Number of reviews linked to specific staff members",
+                                                    "type": "integer",
+                                                    "example": 187
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/roles": {
             "get": {
                 "tags": [
@@ -22277,6 +22942,676 @@
                                 "schema": {}
                             }
                         }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1.0/ai-rules": {
+            "get": {
+                "tags": [
+                    "AI Rules"
+                ],
+                "summary": "Get all AI rules",
+                "description": "Retrieve all AI rules for the authenticated user's business",
+                "operationId": "getAllRules",
+                "parameters": [
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "description": "Filter by category",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "sentiment",
+                                "staff",
+                                "area",
+                                "rating_mismatch",
+                                "trend",
+                                "quality"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "priority",
+                        "in": "query",
+                        "description": "Filter by priority",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "critical",
+                                "high",
+                                "medium",
+                                "low"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "enabled",
+                        "in": "query",
+                        "description": "Filter by enabled status",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "scope",
+                        "in": "query",
+                        "description": "Filter by scope",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rules retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AiRule"
+                                            }
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 10
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "AI Rules"
+                ],
+                "summary": "Create new AI rule",
+                "description": "Create a new AI rule with conditions and actions",
+                "operationId": "createRule",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "business_id",
+                                    "rule_name",
+                                    "category",
+                                    "priority",
+                                    "conditions",
+                                    "actions",
+                                    "enabled"
+                                ],
+                                "properties": {
+                                    "business_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "rule_name": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "High Priority Negative Sentiment Alert"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "maxLength": 1000,
+                                        "example": "Alert managers when reviews have negative sentiment"
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "enum": [
+                                            "sentiment",
+                                            "staff",
+                                            "area",
+                                            "rating_mismatch",
+                                            "trend",
+                                            "quality"
+                                        ],
+                                        "example": "sentiment"
+                                    },
+                                    "priority": {
+                                        "type": "string",
+                                        "enum": [
+                                            "critical",
+                                            "high",
+                                            "medium",
+                                            "low"
+                                        ],
+                                        "example": "high"
+                                    },
+                                    "conditions": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "source": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Comment",
+                                                        "Rating",
+                                                        "Staff",
+                                                        "Area",
+                                                        "Emotion",
+                                                        "Trend"
+                                                    ]
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "sentiment",
+                                                        "rating",
+                                                        "keyword",
+                                                        "staff_mention",
+                                                        "area_mention",
+                                                        "emotion",
+                                                        "service_type",
+                                                        "frequency",
+                                                        "trend_direction"
+                                                    ]
+                                                },
+                                                "operator": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "equals",
+                                                        "contains",
+                                                        "greater_than",
+                                                        "less_than",
+                                                        "between",
+                                                        "not_equals",
+                                                        "starts_with",
+                                                        "ends_with",
+                                                        "regex"
+                                                    ]
+                                                },
+                                                "value": {
+                                                    "type": "string"
+                                                },
+                                                "logic": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "AND",
+                                                        "OR"
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "actions": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "flag_review",
+                                                "notify_manager",
+                                                "recommend_coaching",
+                                                "link_staff",
+                                                "escalate",
+                                                "notify_slack",
+                                                "notify_email"
+                                            ]
+                                        }
+                                    },
+                                    "enabled": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "multi_tag_detection": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "trigger_only_on_first_occurrence": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "run_frequency": {
+                                        "type": "string",
+                                        "enum": [
+                                            "real_time",
+                                            "hourly",
+                                            "daily",
+                                            "weekly"
+                                        ],
+                                        "example": "daily"
+                                    },
+                                    "cooldown_days": {
+                                        "type": "integer",
+                                        "example": 7
+                                    },
+                                    "deduplication_scope": {
+                                        "type": "string",
+                                        "enum": [
+                                            "review",
+                                            "staff",
+                                            "category",
+                                            "branch",
+                                            "staff_category"
+                                        ],
+                                        "example": "staff"
+                                    },
+                                    "applies_to": {
+                                        "type": "string",
+                                        "enum": [
+                                            "new_reviews_only",
+                                            "all_reviews"
+                                        ],
+                                        "example": "new_reviews_only"
+                                    },
+                                    "branch_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "sensitivity": {
+                                        "type": "number",
+                                        "maximum": 100,
+                                        "minimum": 0,
+                                        "example": 70
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Rule created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Rule created successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/AiRule"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized access"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1.0/ai-rules/{id}": {
+            "get": {
+                "tags": [
+                    "AI Rules"
+                ],
+                "summary": "Get AI rule by ID",
+                "description": "Retrieve a single AI rule by its ID",
+                "operationId": "getRuleById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Rule ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rule retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/AiRule"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rule not found"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "AI Rules"
+                ],
+                "summary": "Update AI rule",
+                "description": "Update an existing AI rule",
+                "operationId": "updateRule",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Rule ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "rule_name": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "enum": [
+                                            "sentiment",
+                                            "staff",
+                                            "area",
+                                            "rating_mismatch",
+                                            "trend",
+                                            "quality"
+                                        ]
+                                    },
+                                    "priority": {
+                                        "type": "string",
+                                        "enum": [
+                                            "critical",
+                                            "high",
+                                            "medium",
+                                            "low"
+                                        ]
+                                    },
+                                    "conditions": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "actions": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "enabled": {
+                                        "type": "boolean"
+                                    },
+                                    "multi_tag_detection": {
+                                        "type": "boolean"
+                                    },
+                                    "trigger_only_on_first_occurrence": {
+                                        "type": "boolean"
+                                    },
+                                    "run_frequency": {
+                                        "type": "string",
+                                        "enum": [
+                                            "real_time",
+                                            "hourly",
+                                            "daily",
+                                            "weekly"
+                                        ]
+                                    },
+                                    "cooldown_days": {
+                                        "type": "integer"
+                                    },
+                                    "deduplication_scope": {
+                                        "type": "string"
+                                    },
+                                    "applies_to": {
+                                        "type": "string",
+                                        "enum": [
+                                            "new_reviews_only",
+                                            "all_reviews"
+                                        ]
+                                    },
+                                    "branch_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Rule updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Rule updated successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/AiRule"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rule not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "AI Rules"
+                ],
+                "summary": "Delete AI rule",
+                "description": "Delete an AI rule by ID",
+                "operationId": "deleteRule",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Rule ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rule deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Rule deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rule not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1.0/ai-rules/preview": {
+            "post": {
+                "tags": [
+                    "AI Rules"
+                ],
+                "summary": "Preview AI rule",
+                "description": "Preview how a rule would perform with what-if analysis",
+                "operationId": "previewRule",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "business_id",
+                                    "conditions",
+                                    "actions",
+                                    "category"
+                                ],
+                                "properties": {
+                                    "business_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "conditions": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "actions": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "enum": [
+                                            "sentiment",
+                                            "staff",
+                                            "area",
+                                            "rating_mismatch",
+                                            "trend",
+                                            "quality"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Preview generated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "preview": {
+                                            "type": "object"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Preview generated successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized access"
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 },
                 "security": [
@@ -29108,6 +30443,151 @@
                 },
                 "type": "object"
             },
+            "AiRule": {
+                "title": "AI Rule",
+                "description": "AI Rule model",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "rule_id": {
+                        "type": "string",
+                        "example": "custom_abc123"
+                    },
+                    "rule_name": {
+                        "type": "string",
+                        "example": "High Priority Negative Sentiment Alert"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Alert managers when reviews have negative sentiment"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "example": "business"
+                    },
+                    "business_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "sentiment",
+                            "staff",
+                            "area",
+                            "rating_mismatch",
+                            "trend",
+                            "quality"
+                        ],
+                        "example": "sentiment"
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": [
+                            "critical",
+                            "high",
+                            "medium",
+                            "low"
+                        ],
+                        "example": "high"
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "conditions": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "source": {
+                                    "type": "string"
+                                },
+                                "type": {
+                                    "type": "string"
+                                },
+                                "operator": {
+                                    "type": "string"
+                                },
+                                "value": {
+                                    "type": "string"
+                                },
+                                "logic": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "actions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "multi_tag_detection": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "trigger_only_on_first_occurrence": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "run_frequency": {
+                        "type": "string",
+                        "enum": [
+                            "real_time",
+                            "hourly",
+                            "daily",
+                            "weekly"
+                        ],
+                        "example": "daily"
+                    },
+                    "cooldown_days": {
+                        "type": "integer",
+                        "example": 7
+                    },
+                    "deduplication_scope": {
+                        "type": "string",
+                        "example": "staff"
+                    },
+                    "applies_to": {
+                        "type": "string",
+                        "enum": [
+                            "new_reviews_only",
+                            "all_reviews"
+                        ],
+                        "example": "new_reviews_only"
+                    },
+                    "branch_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "nullable": true
+                    },
+                    "created_by": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "version": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-14T10:00:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-14T10:00:00Z"
+                    }
+                },
+                "type": "object"
+            },
             "Tag": {
                 "required": [
                     "id",
@@ -29408,6 +30888,10 @@
     },
     "tags": [
         {
+            "name": "AI Rules - Metrics",
+            "description": "AI Rules - Metrics"
+        },
+        {
             "name": "auth",
             "description": "auth"
         },
@@ -29422,6 +30906,10 @@
         {
             "name": "branch_management",
             "description": "branch_management"
+        },
+        {
+            "name": "AI Rules - Bulk",
+            "description": "AI Rules - Bulk"
         },
         {
             "name": "business_ai_modules",
@@ -29462,6 +30950,10 @@
         {
             "name": "Reports",
             "description": "Reports"
+        },
+        {
+            "name": "review_management",
+            "description": "review_management"
         },
         {
             "name": "dashboard_management.staff",
@@ -29508,10 +31000,6 @@
             "description": "z.unsed"
         },
         {
-            "name": "review_management",
-            "description": "review_management"
-        },
-        {
             "name": "question_category_management",
             "description": "question_category_management"
         },
@@ -29546,6 +31034,10 @@
         {
             "name": "user_management.role",
             "description": "user_management.role"
+        },
+        {
+            "name": "AI Rules",
+            "description": "AI Rules"
         },
         {
             "name": "staff_management",

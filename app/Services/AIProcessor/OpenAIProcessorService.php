@@ -2,7 +2,7 @@
 
 namespace App\Services\AIProcessor;
 
-use App\Models\BusinessAiModule;
+use App\Models\BusinessAIModule;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Models\OpenAITokenUsage;
@@ -79,15 +79,15 @@ class OpenAIProcessorService
     {
         try {
 
-            $aiModules = BusinessAiModule::where('business_id', $businessId)->first();
+            $aiModules = BusinessAIModule::where('business_id', $businessId)->first();
 
             if ($aiModules) {
                 return $aiModules->getEnabledModules();
             }
 
             // Create default if not exists
-            $defaultModules = BusinessAiModule::getDefaultForBusiness($businessId);
-            BusinessAiModule::create($defaultModules);
+            $defaultModules = BusinessAIModule::getDefaultForBusiness($businessId);
+            BusinessAIModule::create($defaultModules);
 
             return $defaultModules;
         } catch (\Exception $e) {
@@ -97,7 +97,7 @@ class OpenAIProcessorService
             ]);
 
             // Return all enabled as fallback
-            return BusinessAiModule::getDefaultForBusiness($businessId);
+            return BusinessAIModule::getDefaultForBusiness($businessId);
         }
     }
 
@@ -1797,7 +1797,7 @@ PROMPT;
     public function updateBusinessAiModule(int $businessId, int $tokens, float $cost): void
     {
         try {
-            $module = BusinessAiModule::where('business_id', $businessId)->first();
+            $module = BusinessAIModule::where('business_id', $businessId)->first();
             if ($module) {
                 $module->increment('total_tokens_used', $tokens);
                 $module->increment('total_cost_usd', $cost);
@@ -1817,7 +1817,7 @@ PROMPT;
      */
     public function getEnabledModules(int $businessId): array
     {
-        $modules = BusinessAiModule::where('business_id', $businessId)->first();
+        $modules = BusinessAIModule::where('business_id', $businessId)->first();
 
         if ($modules) {
             return $modules->getEnabledModules();
@@ -1904,7 +1904,7 @@ PROMPT;
     public function updateBusinessAiModules(int $businessId, array $modules): bool
     {
         try {
-            $aiModule = BusinessAiModule::firstOrNew(['business_id' => $businessId]);
+            $aiModule = BusinessAIModule::firstOrNew(['business_id' => $businessId]);
 
             // Only update optional modules (required modules are always true)
             $updatableModules = [

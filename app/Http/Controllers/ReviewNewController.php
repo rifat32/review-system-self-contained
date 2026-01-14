@@ -11,6 +11,7 @@ use App\Models\Survey;
 use App\Models\ReviewValueNew;
 use App\Models\Star;
 use App\Models\User;
+use App\Services\Dashboard\DashboardService;
 use App\Services\Review\ReviewService;
 use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Review\ReviewMetricsService;
@@ -25,15 +26,18 @@ class ReviewNewController extends Controller
     private AIProcessorService $aiProcessorService;
     private ReviewService $reviewService;
     private ReviewMetricsService $reviewMetricsService;
+    private DashboardService $dashboardService;
 
     public function __construct(
         AIProcessorService $aiProcessorService,
         ReviewService $reviewService,
-        ReviewMetricsService $reviewMetricsService
+        ReviewMetricsService $reviewMetricsService,
+        DashboardService $dashboardService
     ) {
         $this->aiProcessorService = $aiProcessorService;
         $this->reviewService = $reviewService;
         $this->reviewMetricsService = $reviewMetricsService;
+        $this->dashboardService = $dashboardService;
     }
 
     /**
@@ -3623,13 +3627,126 @@ class ReviewNewController extends Controller
             ->withCalculatedRating();
 
         // GENERATE DATA FOR TRENDS
-        $reviewTrends = $this->reviewMetricsService->getSubmissionsOverTime((clone $reviewsQuery), $request->get('period', '30d'));
+        $reviewTrends = $this->reviewMetricsService->getSubmissionsOverTime(
+            (clone $reviewsQuery),
+            $request->get('period', '30d')
+        );
 
 
         return response()->json([
             'success' => true,
             'message' => 'Review trends retrieved successfully',
             'data' => $reviewTrends
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/overall-reviews-metrics",
+     *      operationId="getOverallReviewsMetrics",
+     *      tags={"review_management"},
+     *      security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="Get overall reviews metrics",
+     *      description="Retrieve aggregated metrics for overall reviews including total submissions, average score, and staff-linked reviews count with optional filtering by period, survey, and overall status",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Time period filter (e.g., last_7_days, last_30_days, last_90_days, this_month, last_month, this_year, custom)",
+     *          @OA\Schema(type="string"),
+     *          example="last_30_days"
+     *      ),
+     *      @OA\Parameter(
+     *          name="is_overall",
+     *          in="query",
+     *          required=false,
+     *          description="Filter by overall review status (1 = only overall reviews, 0 = only non-overall reviews, omit for all)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0, 1}
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="survey_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by specific survey ID",
+     *          @OA\Schema(type="integer"),
+     *          example=5
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Overall reviews metrics retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Overall reviews metrics retrieved successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="total_submissions", type="integer", example=245, description="Total number of review submissions"),
+     *                  @OA\Property(property="average_score", type="number", format="float", example=4.3, description="Average calculated rating score"),
+     *                  @OA\Property(property="staff_link_reviews", type="integer", example=187, description="Number of reviews linked to specific staff members")
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Forbidden")
+     *          )
+     *      )
+     * )
+     */
+    public function overallReviewsMetrics(Request $request)
+    {
+        $user = $request->user();
+        $businessId = $user->business_id;
+        // Validate period and get date range using service
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
+        // BUILD QUERY WITH FILTERS
+        $reviewsQuery = ReviewNew::where('business_id', $businessId)
+            ->with(['user', 'guest_user', 'survey'])
+            ->withCalculatedRating()
+            ->when($request->has('is_overall'), function ($query) {
+                $query->where('is_overall', 1);
+            })
+            ->when($request->has('survey_id'), function ($query) use ($request) {
+                $query->where('survey_id', $request->input('survey_id'));
+            })
+            ->when($dateRange, function ($query) use ($dateRange) {
+                $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+            });
+
+        // GENERATE DATA FOR OVERALL REVIEWS
+        $overallReviews = $reviewsQuery->get();
+
+        $totalSubmissions = $reviewsQuery->count();
+
+        $averageScore = $totalSubmissions > 0
+            ? round($reviewsQuery->avg('calculated_rating'), 1)
+            : 0;
+
+        $staff_link_reviews = $reviewsQuery->whereNotNull('staff_id')->count();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Overall reviews metrics retrieved successfully',
+            'data' => [
+                'total_submissions' => $totalSubmissions,
+                'average_score' => $averageScore,
+                'staff_link_reviews' => $staff_link_reviews,
+            ]
         ], 200);
     }
 }
