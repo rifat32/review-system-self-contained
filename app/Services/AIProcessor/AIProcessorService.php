@@ -310,11 +310,11 @@ class AIProcessorService
         $recommendations = [];
 
         // Get aggregated insights for this branch
+        // Get aggregated insights for this business (filtering by specific branch reviews in JSON is complex, 
+        // so we retrieve recent business insights and can optionally filter in memory if strictly needed, 
+        // but for recommendations, business-level insights are often relevant enough or the best we can do without a direct relationship)
         $branchInsights = InsightRecord::where('business_id', $businessId)
-            ->whereHas('review_ids', function ($query) use ($branchId) {
-                // This assumes review_ids is JSON and we need to check branch_id
-                // In production, you'd join with reviews table
-            })
+            ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
 
@@ -1005,6 +1005,37 @@ class AIProcessorService
             'top_topics' => array_slice($topics, 0, 5),
             'notable_reviews' => $notableReviews
         ];
+    }
+
+    /**
+     * Get staff performance dynamically for a branch or business
+     */
+    public function getStaffPerformance($branchId, $businessId, $startDate, $endDate, $limit = 10)
+    {
+        /** @var StaffPerformanceService $staffPerformanceService */
+        $staffPerformanceService = app(StaffPerformanceService::class);
+
+        $query = ReviewNew::where('business_id', $businessId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotNull('staff_id')
+            ->with(['staff'])
+            ->withCalculatedRating(); // Ensure metrics use calculated rating
+
+        if ($branchId) {
+            // Filter by reviews where the staff member belongs to this branch
+            $query->whereHas('staff.branches', function ($q) use ($branchId) {
+                $q->where('branches.id', $branchId);
+            });
+        }
+
+        $reviews = $query->get();
+
+        // Calculate metrics using StaffPerformanceService logic
+        $metrics = $staffPerformanceService->getAllStaffMetricsFromReviewValue($reviews);
+
+        // Sort by average rating descending (default from service) but ensure consistency
+        // limit logic
+        return array_slice($metrics, 0, $limit);
     }
 
     /**
