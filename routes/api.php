@@ -508,6 +508,11 @@ Route::middleware(['auth:api'])->group(function () {
         // Regenerate explanations for specific rule
         Route::post('/{ruleId}/regenerate-explanations', [AiRuleController::class, 'regenerateExplanations']);
     });
+
+    // ============================================================================
+    // AI RULES EXTENDED - Wizard, Bulk Operations, Metrics
+    // ============================================================================
+    require __DIR__ . '/ai_rules_extended.php';
 });
 
 // ============================================================================
