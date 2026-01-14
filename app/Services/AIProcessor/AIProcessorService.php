@@ -1180,49 +1180,49 @@ class AIProcessorService
     /**
      * Calculate overall metrics from review value dynamically
      */
-    public static function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
-    {
-        $currentAvgRating = $currentReviews->isNotEmpty()
-            ? round($currentReviews->avg('calculated_rating'), 1)
-            : 0;
+    // public static function calculateOverallMetricsFromReviewValue($currentReviews, $previousReviews)
+    // {
+    //     $currentAvgRating = $currentReviews->isNotEmpty()
+    //         ? round($currentReviews->avg('calculated_rating'), 1)
+    //         : 0;
 
-        $previousAvgRating = $previousReviews->isNotEmpty()
-            ? round($previousReviews->avg('calculated_rating'), 1)
-            : 0;
+    //     $previousAvgRating = $previousReviews->isNotEmpty()
+    //         ? round($previousReviews->avg('calculated_rating'), 1)
+    //         : 0;
 
-        $currentSentiment = self::calculateAverageSentiment($currentReviews);
-        $currentTotalReviews = $currentReviews->count();
+    //     $currentSentiment = self::calculateAverageSentiment($currentReviews);
+    //     $currentTotalReviews = $currentReviews->count();
 
-        $previousSentiment = self::calculateAverageSentiment($previousReviews);
-        $previousTotalReviews = $previousReviews->count();
+    //     $previousSentiment = self::calculateAverageSentiment($previousReviews);
+    //     $previousTotalReviews = $previousReviews->count();
 
-        $ratingChange = $previousAvgRating > 0 ?
-            round((($currentAvgRating - $previousAvgRating) / $previousAvgRating) * 100, 1) : 0;
+    //     $ratingChange = $previousAvgRating > 0 ?
+    //         round((($currentAvgRating - $previousAvgRating) / $previousAvgRating) * 100, 1) : 0;
 
-        $sentimentChange = $previousSentiment > 0 ?
-            round($currentSentiment - $previousSentiment, 1) : 0;
+    //     $sentimentChange = $previousSentiment > 0 ?
+    //         round($currentSentiment - $previousSentiment, 1) : 0;
 
-        $reviewsChange = $previousTotalReviews > 0 ?
-            $currentTotalReviews - $previousTotalReviews : $currentTotalReviews;
+    //     $reviewsChange = $previousTotalReviews > 0 ?
+    //         $currentTotalReviews - $previousTotalReviews : $currentTotalReviews;
 
-        return [
-            'overall_rating' => [
-                'value' => $currentAvgRating,
-                'change' => $ratingChange,
-                'change_type' => RuleEngineService::getChangeType($ratingChange)
-            ],
-            'overall_sentiment' => [
-                'value' => $currentSentiment,
-                'change' => $sentimentChange,
-                'change_type' => RuleEngineService::getChangeType($sentimentChange)
-            ],
-            'total_reviews' => [
-                'value' => $currentTotalReviews,
-                'change' => $reviewsChange,
-                'change_type' => RuleEngineService::getChangeType($reviewsChange)
-            ]
-        ];
-    }
+    //     return [
+    //         'overall_rating' => [
+    //             'value' => $currentAvgRating,
+    //             'change' => $ratingChange,
+    //             'change_type' => RuleEngineService::getChangeType($ratingChange)
+    //         ],
+    //         'overall_sentiment' => [
+    //             'value' => $currentSentiment,
+    //             'change' => $sentimentChange,
+    //             'change_type' => RuleEngineService::getChangeType($sentimentChange)
+    //         ],
+    //         'total_reviews' => [
+    //             'value' => $currentTotalReviews,
+    //             'change' => $reviewsChange,
+    //             'change_type' => RuleEngineService::getChangeType($reviewsChange)
+    //         ]
+    //     ];
+    // }
 
     /**
      * Calculate average sentiment dynamically
