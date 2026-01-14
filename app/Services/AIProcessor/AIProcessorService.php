@@ -35,17 +35,11 @@ class AIProcessorService
 
     public function __construct(
         RuleEngineService $ruleEngineService,
-        ReviewService $reviewService,
-        StaffPerformanceService $staffPerformanceService,
-        BusinessAnalyticsService $businessAnalyticsService,
         InsightAggregationService $insightAggregationService,
         RecommendationGeneratorService $recommendationGeneratorService,
         ConfidenceCalculatorService $confidenceCalculatorService
     ) {
         $this->ruleEngineService = $ruleEngineService;
-        $this->reviewService = $reviewService;
-        $this->staffPerformanceService = $staffPerformanceService;
-        $this->businessAnalyticsService = $businessAnalyticsService;
         $this->insightAggregationService = $insightAggregationService;
         $this->recommendationGeneratorService = $recommendationGeneratorService;
         $this->confidenceCalculatorService = $confidenceCalculatorService;
@@ -100,7 +94,9 @@ class AIProcessorService
      */
     private function extractRecommendedTraining($suggestions)
     {
-        $skillGaps = $this->staffPerformanceService->extractSkillGapsFromSuggestions($suggestions);
+        // Use lazy loading to break circular dependency
+        $staffPerformanceService = app()->make(\App\Services\Staff\StaffPerformanceService::class);
+        $skillGaps = $staffPerformanceService->extractSkillGapsFromSuggestions($suggestions);
 
         if (!empty($skillGaps)) {
             return $skillGaps[0] . ' Training';
@@ -1591,7 +1587,9 @@ class AIProcessorService
      */
     public function generateAiSummary($reviews)
     {
-        return $this->businessAnalyticsService->generateAiSummaryFromRuleEngine(0, $reviews);
+        // Use lazy loading to break circular dependency
+        $businessAnalyticsService = app()->make(\App\Services\Business\BusinessAnalyticsService::class);
+        return $businessAnalyticsService->generateAiSummaryFromRuleEngine(0, $reviews);
     }
 
     /**
@@ -2097,6 +2095,11 @@ class AIProcessorService
 
             $commonPraise = $this->ruleEngineService->extractCommonPraise(collect($reviews));
 
+            // Use lazy loading for StaffPerformanceService
+            $staffPerformanceService = app()->make(\App\Services\Staff\StaffPerformanceService::class);
+            $suggestions = $staffPerformanceService->extractSuggestionsFromReviews(collect($reviews));
+            $performanceScore = $this->ruleEngineService->identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage);
+
             $staffPerformance[] = [
                 'staff_id' => $staffId,
                 'staff_name' => $staff->name,
@@ -2113,8 +2116,10 @@ class AIProcessorService
                 'negative_reviews' => $negativeCount,
                 'common_praise' => array_slice($commonPraise, 0, 3),
                 'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'No reviews',
-                'rating_trend' => $this->staffPerformanceService->calculateStaffRatingTrend(collect($reviews)),
-                'performance_level' => $this->ruleEngineService->identifyPerformanceLevel($avgRating, $avgSentiment, $negativePercentage)
+                'recommended_training' => $this->extractRecommendedTraining($suggestions),
+                'skill_gaps' => $staffPerformanceService->extractSkillGapsFromSuggestions($suggestions),
+                'rating_trend' => $staffPerformanceService->calculateStaffRatingTrend(collect($reviews)),
+                'performance_level' => $performanceScore
             ];
         }
 

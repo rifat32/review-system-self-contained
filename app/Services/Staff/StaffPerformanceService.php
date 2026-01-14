@@ -12,16 +12,13 @@ use Illuminate\Support\Collection;
 
 class StaffPerformanceService
 {
-    private AIProcessorService $aiProcessorService;
     private RuleEngineService $ruleEngineService;
     private ReviewService $reviewService;
 
     public function __construct(
-        AIProcessorService $aiProcessorService,
         RuleEngineService $ruleEngineService,
         ReviewService $reviewService
     ) {
-        $this->aiProcessorService = $aiProcessorService;
         $this->ruleEngineService = $ruleEngineService;
         $this->reviewService = $reviewService;
     }
@@ -328,7 +325,7 @@ class StaffPerformanceService
                 'staff_name' => $staff->name,
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
-                'sentiment_score' => $this->aiProcessorService->getSentimentLabel($avgSentiment),
+                'sentiment_score' => $this->ruleEngineService->getSentimentLabelFromScore($avgSentiment),
                 'compliments_count' => $compliments,
                 'complaints_count' => $complaints,
                 'neutral_count' => $neutral,

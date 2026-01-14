@@ -7,22 +7,22 @@ use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
 use App\Models\Tag;
 use App\Models\User;
-use App\Services\AIProcessor\AIProcessorService;
+use App\Services\Rule\RuleEngineService;
 use App\Services\Business\BusinessAnalyticsService;
 use Carbon\Carbon;
 
 class ReviewService
 {
-    private AIProcessorService $aiProcessorService;
+    private RuleEngineService $ruleEngineService;
     private BusinessAnalyticsService $businessAnalyticsService;
     private ReviewTopicService $reviewTopicService;
 
     public function __construct(
-        AIProcessorService $aiProcessorService,
+        RuleEngineService $ruleEngineService,
         BusinessAnalyticsService $businessAnalyticsService,
         ReviewTopicService $reviewTopicService
     ) {
-        $this->aiProcessorService = $aiProcessorService;
+        $this->ruleEngineService = $ruleEngineService;
         $this->businessAnalyticsService = $businessAnalyticsService;
         $this->reviewTopicService = $reviewTopicService;
     }
@@ -823,7 +823,7 @@ class ReviewService
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
                 'total_reviews' => $staffReviews->count(),
-                'sentiment_score' => $this->aiProcessorService->getSentimentLabel($staffReviews->avg('sentiment_score')),
+                'sentiment_score' => $this->ruleEngineService->getSentimentLabelFromScore($staffReviews->avg('sentiment_score')),
                 'image' => $staff->image ?? null
             ];
         })
