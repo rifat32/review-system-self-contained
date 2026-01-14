@@ -244,7 +244,13 @@ class RuleWizardController extends Controller
 
         $validated = $request->validate([
             'enabled' => 'required|boolean',
-            'auto_activate' => 'nullable|boolean'
+            'auto_activate' => 'nullable|boolean',
+            'multi_tag_detection' => 'boolean',
+            'trigger_only_on_first_occurrence' => 'boolean',
+            'run_frequency' => 'nullable|in:real_time,hourly,daily,weekly',
+            'cooldown_days' => 'nullable|integer|min:0',
+            'deduplication_scope' => 'nullable|in:review,staff,category,branch,staff_category',
+            'applies_to' => 'nullable|in:new_reviews_only,all_reviews'
         ]);
 
         DB::beginTransaction();
@@ -261,6 +267,12 @@ class RuleWizardController extends Controller
                 'enabled' => $validated['enabled'],
                 'conditions' => $wizardData['conditions'],
                 'actions' => $wizardData['actions'],
+                'multi_tag_detection' => $validated['multi_tag_detection'] ?? $wizardData['multi_tag_detection'] ?? false,
+                'trigger_only_on_first_occurrence' => $validated['trigger_only_on_first_occurrence'] ?? $wizardData['trigger_only_on_first_occurrence'] ?? false,
+                'run_frequency' => $validated['run_frequency'] ?? $wizardData['run_frequency'] ?? 'daily',
+                'cooldown_days' => $validated['cooldown_days'] ?? $wizardData['cooldown_days'] ?? 7,
+                'deduplication_scope' => $validated['deduplication_scope'] ?? $wizardData['deduplication_scope'] ?? 'staff',
+                'applies_to' => $validated['applies_to'] ?? $wizardData['applies_to'] ?? 'new_reviews_only',
                 'created_by' => $request->user()->id,
                 'version' => 1
             ]);

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\AiRule;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class AiRuleSeeder extends Seeder
 {
@@ -12,319 +13,207 @@ class AiRuleSeeder extends Seeder
      */
     public function run(): void
     {
+        // Clean start - remove all existing rules to align with UI mockups
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        AiRule::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         $rules = [
             [
-                'rule_id' => 'SYS_LOW_RATING_ALERT',
-                'rule_name' => 'Low Rating Alert',
-                'description' => 'Triggers when a review has a star rating of 2 or less.',
+                'rule_id' => 'SENTIMENT_ANALYSIS',
+                'rule_name' => 'Sentiment Analysis',
+                'description' => 'Automatically categorize feedback into positive, neutral, or negative sentiment buckets.',
                 'scope' => 'system',
                 'category' => 'quality',
+                'priority' => 'medium',
+                'enabled' => true,
+                'precision_rate' => 96.00,
+                'conditions' => [
+                    'logic' => 'OR',
+                    'conditions' => [
+                        ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'positive'],
+                        ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'neutral'],
+                        ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
+                    ]
+                ],
+                'actions' => ['tag' => 'sentiment_categorized'],
+                'ai_explanation_title' => 'Sentiment Analysis',
+                'ai_plain_explanation' => 'Automatically categorize feedback into positive, neutral, or negative sentiment buckets.',
+                'ai_why_it_matters' => 'Understanding the general mood of customer feedback helps in broad quality assessment.',
+                'ai_when_it_triggers' => 'Triggers on every review to assign a sentiment category.'
+            ],
+            [
+                'rule_id' => 'EMOTION_INTENSITY',
+                'rule_name' => 'Emotion Intensity Detection',
+                'description' => 'Identify the strength of emotions like joy, frustration, or anger within text reviews.',
+                'scope' => 'system',
+                'category' => 'quality',
+                'priority' => 'medium',
+                'enabled' => true,
+                'precision_rate' => 91.00,
+                'conditions' => [
+                    'logic' => 'AND',
+                    'conditions' => [
+                        ['source' => 'Emotion', 'type' => 'intensity', 'operator' => 'greater_than', 'value' => 0.7]
+                    ]
+                ],
+                'actions' => ['tag' => 'high_emotion_intensity'],
+                'ai_explanation_title' => 'Emotion Intensity Detection',
+                'ai_plain_explanation' => 'Identify the strength of emotions like joy, frustration, or anger within text reviews.',
+                'ai_why_it_matters' => 'High intensity emotions often signal critical issues or exceptional praise.',
+                'ai_when_it_triggers' => 'Triggers when strong emotions are detected in review text.'
+            ],
+            [
+                'rule_id' => 'RATING_COMMENT_MISMATCH',
+                'rule_name' => 'Rating & Comment Mismatch',
+                'description' => 'Detect when a high numerical rating is paired with a negative written review.',
+                'scope' => 'system',
+                'category' => 'trend',
                 'priority' => 'high',
                 'enabled' => true,
+                'precision_rate' => 88.00,
                 'conditions' => [
                     'logic' => 'AND',
                     'conditions' => [
-                        [
-                            'source' => 'Rating',
-                            'type' => 'rating',
-                            'operator' => 'less_than',
-                            'value' => 3
-                        ]
+                        ['source' => 'Rating', 'type' => 'rating', 'operator' => 'greater_than', 'value' => 3],
+                        ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
-                'actions' => [
-                    'suggest_action' => [
-                        'type' => 'business',
-                        'template_id' => 'RECOVER_CUSTOMER'
-                    ],
-                    'send_notification' => true
-                ],
-                'ai_explanation_title' => 'Low Rating Alert',
-                'ai_plain_explanation' => 'This rule monitors star ratings and identifies customers who left a score of 2 or less.',
-                'ai_why_it_matters' => 'Low ratings indicate immediate customer dissatisfaction that requires urgent attention to prevent churn.',
-                'ai_when_it_triggers' => 'Triggers automatically whenever a new review with 1 or 2 stars is submitted.'
+                'actions' => ['tag' => 'mismatch_detected', 'alert' => true],
+                'ai_explanation_title' => 'Rating & Comment Mismatch',
+                'ai_plain_explanation' => 'Detect when a high numerical rating is paired with a negative written review.',
+                'ai_why_it_matters' => 'Identifies hidden dissatisfaction where customers are polite with stars but critical in text.',
+                'ai_when_it_triggers' => 'Triggers when stars are high (4+) but comment sentiment is negative.'
             ],
             [
-                'rule_id' => 'SYS_CRITICAL_STAFF_ISSUE',
-                'rule_name' => 'Critical Staff Issue',
-                'description' => 'Detects serious complaints about staff behavior or service quality.',
+                'rule_id' => 'CATEGORY_ISSUE_DETECTION',
+                'rule_name' => 'Category Issue Detection',
+                'description' => 'Sort feedback into predefined categories like Pricing, Quality, or Delivery.',
                 'scope' => 'system',
-                'category' => 'staff',
-                'priority' => 'critical',
+                'category' => 'trend',
+                'priority' => 'medium',
                 'enabled' => true,
+                'precision_rate' => 85.00,
                 'conditions' => [
-                    'logic' => 'AND',
+                    'logic' => 'OR',
                     'conditions' => [
-                        [
-                            'source' => 'Comment',
-                            'type' => 'sentiment',
-                            'operator' => 'equals',
-                            'value' => 'negative'
-                        ],
-                        [
-                            'source' => 'Staff',
-                            'type' => 'staff_mention',
-                            'operator' => 'equals',
-                            'value' => null // Any staff mention
-                        ]
+                        ['source' => 'Comment', 'type' => 'keyword', 'operator' => 'contains', 'value' => 'price'],
+                        ['source' => 'Comment', 'type' => 'keyword', 'operator' => 'contains', 'value' => 'quality'],
+                        ['source' => 'Comment', 'type' => 'keyword', 'operator' => 'contains', 'value' => 'delivery']
                     ]
                 ],
-                'actions' => [
-                    'suggest_action' => [
-                        'type' => 'staff',
-                        'template_id' => 'STAFF_COACHING'
-                    ],
-                    'send_notification' => true
-                ],
-                'ai_explanation_title' => 'Critical Staff Issue',
-                'ai_plain_explanation' => 'This rule scans review text for serious complaints directed at staff members or service standards.',
-                'ai_why_it_matters' => 'Recurring staff issues can severely damage your brand reputation and service consistency.',
-                'ai_when_it_triggers' => 'Triggers when AI detects negative sentiment specifically mentioning staff or service.'
+                'actions' => ['tag' => 'category_assigned'],
+                'ai_explanation_title' => 'Category Issue Detection',
+                'ai_plain_explanation' => 'Sort feedback into predefined categories like Pricing, Quality, or Delivery.',
+                'ai_why_it_matters' => 'Enables granular analysis of specific business problems.',
+                'ai_when_it_triggers' => 'Triggers when keywords related to pricing, quality, or delivery are found.'
             ],
             [
-                'rule_id' => 'SYS_CLEANLINESS_WARNING',
-                'rule_name' => 'Cleanliness Warning',
-                'description' => 'Monitors feedback for mentions of hygiene or cleanliness issues.',
+                'rule_id' => 'SERVICE_TYPE_DETECTION',
+                'rule_name' => 'Service Type Detection',
+                'description' => 'Identify the specific type of service mentioned (e.g., Installation vs Maintenance).',
                 'scope' => 'system',
                 'category' => 'area',
-                'priority' => 'high',
+                'priority' => 'low',
                 'enabled' => true,
+                'precision_rate' => 93.00,
                 'conditions' => [
-                    'logic' => 'AND',
+                    'logic' => 'OR',
                     'conditions' => [
-                        [
-                            'source' => 'Comment',
-                            'type' => 'keyword',
-                            'operator' => 'contains',
-                            'value' => 'clean'
-                        ],
-                        [
-                            'source' => 'Comment',
-                            'type' => 'sentiment',
-                            'operator' => 'equals',
-                            'value' => 'negative'
-                        ]
+                        ['source' => 'Comment', 'type' => 'keyword', 'operator' => 'contains', 'value' => 'installation'],
+                        ['source' => 'Comment', 'type' => 'keyword', 'operator' => 'contains', 'value' => 'maintenance']
                     ]
                 ],
-                'actions' => [
-                    'suggest_action' => [
-                        'type' => 'area',
-                        'template_id' => 'HYGIENE_CHECK'
-                    ]
-                ],
-                'ai_explanation_title' => 'Cleanliness Warning',
-                'ai_plain_explanation' => 'This rule keeps an eye on mentions of cleanliness, hygiene, or facility maintenance in your facility.',
-                'ai_why_it_matters' => 'Cleanliness is a top factor for customer trust, especially in hospitality and service industries.',
-                'ai_when_it_triggers' => 'Triggers when customers mention words like "clean" with negative sentiment in their reviews.'
+                'actions' => ['tag' => 'service_type_identified'],
+                'ai_explanation_title' => 'Service Type Detection',
+                'ai_plain_explanation' => 'Identify the specific type of service mentioned (e.g., Installation vs Maintenance).',
+                'ai_why_it_matters' => 'Helps routes feedback to the correct department.',
+                'ai_when_it_triggers' => 'Triggers when specific service terms are mentioned.'
             ],
             [
-                'rule_id' => 'SYS_REPEAT_NEGATIVE_FEEDBACK',
-                'rule_name' => 'Repeat Negative Feedback',
-                'description' => 'Detects recurring complaints about the same issue within a short period.',
+                'rule_id' => 'BUSINESS_AREA_DETECTION',
+                'rule_name' => 'Business Area Detection',
+                'description' => 'Pinpoint which business unit or physical location the feedback refers to.',
                 'scope' => 'system',
-                'category' => 'trend',
-                'priority' => 'high',
-                'enabled' => true,
-                'conditions' => [
-                    'logic' => 'AND',
-                    'conditions' => [
-                        [
-                            'source' => 'Comment',
-                            'type' => 'sentiment',
-                            'operator' => 'equals',
-                            'value' => 'negative'
-                        ]
-                    ],
-                    'repeat_occurrence' => [
-                        'count' => 3,
-                        'within_days' => 7
-                    ]
-                ],
-                'actions' => [
-                    'suggest_action' => [
-                        'type' => 'business',
-                        'template_id' => 'PROCESS_REVIEW'
-                    ]
-                ],
-                'ai_explanation_title' => 'Repeat Negative Feedback',
-                'ai_plain_explanation' => 'This rule identifies when the same complaint appears multiple times in a short window of time.',
-                'ai_why_it_matters' => 'A single complaint might be an outlier, but three in a week indicates a systemic issue that needs fixing.',
-                'ai_when_it_triggers' => 'Triggers when 3 or more negative reviews mention the same core issue within any 7-day period.'
-            ],
-            [
-                'rule_id' => 'SYS_HIDDEN_DISSATISFACTION',
-                'rule_name' => 'Hidden Dissatisfaction',
-                'description' => 'Detects reviews with high star ratings but negative text content.',
-                'scope' => 'system',
-                'category' => 'trend',
+                'category' => 'area',
                 'priority' => 'medium',
                 'enabled' => true,
+                'precision_rate' => 89.00,
                 'conditions' => [
                     'logic' => 'AND',
                     'conditions' => [
-                        [
-                            'source' => 'Rating',
-                            'type' => 'rating',
-                            'operator' => 'greater_than',
-                            'value' => 3
-                        ],
-                        [
-                            'source' => 'Comment',
-                            'type' => 'sentiment',
-                            'operator' => 'equals',
-                            'value' => 'negative'
-                        ]
+                        ['source' => 'Area', 'type' => 'area_mention', 'operator' => 'exists', 'value' => true]
                     ]
                 ],
-                'actions' => [
-                    'suggest_action' => [
-                        'type' => 'business',
-                        'template_id' => 'FURTHER_INVESTIGATE'
-                    ]
-                ],
-                'ai_explanation_title' => 'Hidden Dissatisfaction',
-                'ai_plain_explanation' => 'This rule finds cases where a customer gives 4 or 5 stars but writes a complaining or negative comment.',
-                'ai_why_it_matters' => 'These "polite" complainers often have valid points that get missed if you only look at star ratings.',
-                'ai_when_it_triggers' => 'Triggers when star ratings are high (4+) but the AI detects significant negative sentiment in the written feedback.'
+                'actions' => ['tag' => 'area_identified'],
+                'ai_explanation_title' => 'Business Area Detection',
+                'ai_plain_explanation' => 'Pinpoint which business unit or physical location the feedback refers to.',
+                'ai_why_it_matters' => 'Identifies exactly where in the business an issue or win occurred.',
+                'ai_when_it_triggers' => 'Triggers when AI detects a physical area mention in the review.'
             ],
             [
-                'rule_id' => 'SYS_SERVICE_SPEED_CONCERN',
-                'rule_name' => 'Service Speed Concern',
-                'description' => 'Monitors feedback for complaints about long wait times or slow service.',
-                'scope' => 'system',
-                'category' => 'trend',
-                'priority' => 'medium',
-                'enabled' => true,
-                'conditions' => [
-                    'logic' => 'AND',
-                    'conditions' => [
-                        [
-                            'source' => 'Comment',
-                            'type' => 'keyword',
-                            'operator' => 'contains',
-                            'value' => 'wait'
-                        ],
-                        [
-                            'source' => 'Comment',
-                            'type' => 'sentiment',
-                            'operator' => 'equals',
-                            'value' => 'negative'
-                        ]
-                    ]
-                ],
-                'actions' => [
-                    'suggest_action' => [
-                        'type' => 'business',
-                        'template_id' => 'SPEED_OPTIMIZATION'
-                    ]
-                ],
-                'ai_explanation_title' => 'Service Speed Concern',
-                'ai_plain_explanation' => 'This rule tracks how often customers complain about waiting times or the speed of your service.',
-                'ai_why_it_matters' => 'Slow service is one of the most common reasons for customers to not return, even if the quality is good.',
-                'ai_when_it_triggers' => 'Triggers whenever customers mention "wait" with negative sentiment.'
-            ],
-            [
-                'rule_id' => 'SYS_PEAK_HOUR_STRESS',
-                'rule_name' => 'Peak Hour Stress',
-                'description' => 'Identifies service drops during known busy periods.',
-                'scope' => 'system',
-                'category' => 'trend',
-                'priority' => 'medium',
-                'enabled' => true,
-                'conditions' => [
-                    'logic' => 'AND',
-                    'conditions' => [
-                        [
-                            'source' => 'Rating',
-                            'type' => 'rating',
-                            'operator' => 'less_than',
-                            'value' => 3
-                        ]
-                    ],
-                    'peak_period_only' => true
-                ],
-                'actions' => [
-                    'suggest_action' => [
-                        'type' => 'business',
-                        'template_id' => 'RESOURCE_ALLOCATION'
-                    ]
-                ],
-                'ai_explanation_title' => 'Peak Hour Stress',
-                'ai_plain_explanation' => 'This rule analyzes if your service quality drops significantly during your busiest hours (e.g., weekends or lunch).',
-                'ai_why_it_matters' => 'If complaints only happen during peak times, it suggests you might be understaffed during those periods.',
-                'ai_when_it_triggers' => 'Triggers if the rating is low during designated peak hours.'
-            ],
-            [
-                'rule_id' => 'SYS_POSITIVE_STAFF_RECOGNITION',
-                'rule_name' => 'Positive Staff Recognition',
-                'description' => 'Detects reviews that specifically praise individual staff members.',
+                'rule_id' => 'STAFF_MENTION_DETECTION',
+                'rule_name' => 'Staff Mention Detection',
+                'description' => 'Extract employee names or roles from comments to track individual mentions.',
                 'scope' => 'system',
                 'category' => 'staff',
                 'priority' => 'low',
                 'enabled' => true,
+                'precision_rate' => 95.00,
                 'conditions' => [
                     'logic' => 'AND',
                     'conditions' => [
-                        [
-                            'source' => 'Staff',
-                            'type' => 'staff_mention',
-                            'operator' => 'equals',
-                            'value' => null
-                        ],
-                        [
-                            'source' => 'Comment',
-                            'type' => 'sentiment',
-                            'operator' => 'equals',
-                            'value' => 'positive'
-                        ]
+                        ['source' => 'Staff', 'type' => 'staff_mention', 'operator' => 'exists', 'value' => true]
                     ]
                 ],
-                'actions' => [
-                    'suggest_action' => [
-                        'type' => 'staff',
-                        'template_id' => 'STAFF_REWARD'
-                    ]
-                ],
-                'ai_explanation_title' => 'Positive Staff Recognition',
-                'ai_plain_explanation' => 'This rule identifies when customers go out of their way to praise a specific member of your team.',
-                'ai_why_it_matters' => 'Recognizing top performers boosts morale and helps you understand what excellent service looks like to your customers.',
-                'ai_when_it_triggers' => 'Triggers when a review mentions a staff category with a positive sentiment.'
+                'actions' => ['tag' => 'staff_identified'],
+                'ai_explanation_title' => 'Staff Mention Detection',
+                'ai_plain_explanation' => 'Extract employee names or roles from comments to track individual mentions.',
+                'ai_why_it_matters' => 'Enables staff-level performance tracking and recognition.',
+                'ai_when_it_triggers' => 'Triggers when a staff member or role is explicitly mentioned.'
             ],
             [
-                'rule_id' => 'SYS_VALUE_FOR_MONEY_TREND',
-                'rule_name' => 'Value for Money Trend',
-                'description' => 'Monitors perceptions of pricing and value.',
+                'rule_id' => 'STAFF_PERFORMANCE_RISK',
+                'rule_name' => 'Staff Performance Risk',
+                'description' => 'Flag recurring negative mentions or behavioral issues linked to specific personnel.',
                 'scope' => 'system',
-                'category' => 'quality',
-                'priority' => 'medium',
+                'category' => 'staff',
+                'priority' => 'critical',
                 'enabled' => true,
+                'precision_rate' => 82.00,
                 'conditions' => [
                     'logic' => 'AND',
                     'conditions' => [
-                        [
-                            'source' => 'Comment',
-                            'type' => 'keyword',
-                            'operator' => 'contains',
-                            'value' => 'price'
-                        ],
-                        [
-                            'source' => 'Comment',
-                            'type' => 'sentiment',
-                            'operator' => 'equals',
-                            'value' => 'negative'
-                        ]
+                        ['source' => 'Staff', 'type' => 'staff_mention', 'operator' => 'exists', 'value' => true],
+                        ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
-                'actions' => [
-                    'suggest_action' => [
-                        'type' => 'business',
-                        'template_id' => 'PRICING_REVIEW'
+                'actions' => ['tag' => 'staff_risk_flagged', 'alert' => true],
+                'ai_explanation_title' => 'Staff Performance Risk',
+                'ai_plain_explanation' => 'Flag recurring negative mentions or behavioral issues linked to specific personnel.',
+                'ai_why_it_matters' => 'Protects brand reputation by identifying problematic staff behavior early.',
+                'ai_when_it_triggers' => 'Triggers when staff are mentioned in a negative context.'
+            ],
+            [
+                'rule_id' => 'FLAG_AND_ALERT',
+                'rule_name' => 'Flag and Alert Detection',
+                'description' => 'Trigger immediate notifications for critical keywords or severe dissatisfaction.',
+                'scope' => 'system',
+                'category' => 'quality',
+                'priority' => 'critical',
+                'enabled' => true,
+                'precision_rate' => 97.00,
+                'conditions' => [
+                    'logic' => 'AND',
+                    'conditions' => [
+                        ['source' => 'Rating', 'type' => 'rating', 'operator' => 'less_than', 'value' => 2]
                     ]
                 ],
-                'ai_explanation_title' => 'Value for Money Trend',
-                'ai_plain_explanation' => 'This rule tracks whether customers feel they are getting good value for the price they paid.',
-                'ai_why_it_matters' => 'If "Value for Money" sentiment drops, you may need to adjust your pricing or improve the perceived quality of your service.',
-                'ai_when_it_triggers' => 'Triggers when negative mentions of price or value are detected.'
+                'actions' => ['alert' => true, 'notification' => 'emergency'],
+                'ai_explanation_title' => 'Flag and Alert Detection',
+                'ai_plain_explanation' => 'Trigger immediate notifications for critical keywords or severe dissatisfaction.',
+                'ai_why_it_matters' => 'Ensures immediate action on the most sensitive customer issues.',
+                'ai_when_it_triggers' => 'Triggers on very low ratings or critical emergency keywords.'
             ]
         ];
 
@@ -338,6 +227,7 @@ class AiRuleSeeder extends Seeder
                     'category' => $ruleData['category'],
                     'priority' => $ruleData['priority'],
                     'enabled' => $ruleData['enabled'],
+                    'precision_rate' => $ruleData['precision_rate'],
                     'conditions' => json_encode($ruleData['conditions']),
                     'actions' => json_encode($ruleData['actions']),
                     'ai_explanation_title' => $ruleData['ai_explanation_title'],

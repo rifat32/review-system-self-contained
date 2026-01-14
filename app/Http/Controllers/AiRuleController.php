@@ -115,7 +115,13 @@ class AiRuleController extends Controller
             'enabled' => 'boolean',
             'conditions' => 'required|array',
             'conditions.*.source' => 'nullable|in:Comment,Rating,Staff,Area,Emotion',
-            'actions' => 'required|array'
+            'actions' => 'required|array',
+            'multi_tag_detection' => 'boolean',
+            'trigger_only_on_first_occurrence' => 'boolean',
+            'run_frequency' => 'nullable|in:real_time,hourly,daily,weekly',
+            'cooldown_days' => 'nullable|integer|min:0',
+            'deduplication_scope' => 'nullable|in:review,staff,category,branch,staff_category',
+            'applies_to' => 'nullable|in:new_reviews_only,all_reviews'
         ]);
 
         $businessId = $request->user()->business_id;
@@ -161,6 +167,12 @@ class AiRuleController extends Controller
             'enabled' => $validated['enabled'] ?? true,
             'conditions' => $validated['conditions'],
             'actions' => $validated['actions'],
+            'multi_tag_detection' => $validated['multi_tag_detection'] ?? false,
+            'trigger_only_on_first_occurrence' => $validated['trigger_only_on_first_occurrence'] ?? false,
+            'run_frequency' => $validated['run_frequency'] ?? 'daily',
+            'cooldown_days' => $validated['cooldown_days'] ?? 7,
+            'deduplication_scope' => $validated['deduplication_scope'] ?? 'staff',
+            'applies_to' => $validated['applies_to'] ?? 'new_reviews_only',
             'short_explanation' => $explanations['short_explanation'],
             'detailed_explanation' => $explanations['detailed_explanation'],
             'why_it_matters' => $explanations['why_it_matters'],
@@ -194,7 +206,13 @@ class AiRuleController extends Controller
             'priority' => 'sometimes|string|in:critical,high,medium,low',
             'conditions' => 'sometimes|array',
             'actions' => 'sometimes|array',
-            'enabled' => 'boolean'
+            'enabled' => 'boolean',
+            'multi_tag_detection' => 'boolean',
+            'trigger_only_on_first_occurrence' => 'boolean',
+            'run_frequency' => 'nullable|in:real_time,hourly,daily,weekly',
+            'cooldown_days' => 'nullable|integer|min:0',
+            'deduplication_scope' => 'nullable|in:review,staff,category,branch,staff_category',
+            'applies_to' => 'nullable|in:new_reviews_only,all_reviews'
         ]);
 
         $businessId = $request->user()->business_id;

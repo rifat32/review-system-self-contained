@@ -39,7 +39,14 @@ class AiRule extends Model
         'ai_plain_explanation',
         'ai_why_it_matters',
         'ai_when_it_triggers',
-        'ai_generated_at'
+        'ai_manager_tip',
+        'ai_generated_at',
+        // UI fields
+        'multi_tag_detection',
+        'trigger_only_on_first_occurrence',
+        'applies_to',
+        'precision_rate',
+        'lifetime_triggers'
     ];
 
     protected $casts = [
@@ -47,6 +54,10 @@ class AiRule extends Model
         'actions' => 'array',
         'explainability' => 'array',
         'enabled' => 'boolean',
+        'multi_tag_detection' => 'boolean',
+        'trigger_only_on_first_occurrence' => 'boolean',
+        'precision_rate' => 'float',
+        'lifetime_triggers' => 'integer',
         'explanation_generated_at' => 'datetime',
         'last_run_at' => 'datetime',
         'next_run_at' => 'datetime',
