@@ -115,7 +115,13 @@ class ReviewTopicService
      */
     private function extractCommonKeywords($reviews, $limit = 1)
     {
-        $stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'it', 'its', 'they', 'their', 'them', 'very', 'good', 'bad', 'great', 'nice'];
+        $stopWords = \Illuminate\Support\Facades\Cache::remember('common_topic_stopwords', 3600, function () {
+            $words = \App\Models\AiRule::where('category', 'common_topics')
+                ->where('key_name', 'STOP_WORDS_EN')
+                ->value('value');
+
+            return $words ? json_decode($words, true) : ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'it', 'its', 'they', 'their', 'them', 'very', 'good', 'bad', 'great', 'nice'];
+        });
 
         $wordCounts = [];
 

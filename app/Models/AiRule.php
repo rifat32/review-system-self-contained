@@ -13,6 +13,8 @@ class AiRule extends Model
         'rule_id',
         'rule_name',
         'description',
+        'key_name',
+        'value',
         'scope',
         'business_type',
         'business_id',

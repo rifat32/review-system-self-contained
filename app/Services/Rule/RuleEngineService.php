@@ -312,28 +312,20 @@ class RuleEngineService
 
     private function getRecommendationTemplate(string $templateId): string
     {
-        $templates = [
-            // System templates
-            'FOOD_TEMP_IMPROVEMENT' => 'Review kitchen processes to ensure {{main_category}} is served at correct temperature. Issue mentioned {{count}} times.',
-            'SERVICE_SPEED_IMPROVEMENT' => 'Optimize {{main_category}} flow during peak hours. {{count}} complaints about wait times.',
-            'STAFF_TRAINING_GENERAL' => 'Provide {{sub_category}} training for staff. Mentioned in {{count}} reviews.',
-            'CLEANLINESS_PROTOCOL' => 'Implement regular {{main_category}} checks. {{count}} mentions of cleanliness issues.',
+        return Cache::remember('rec_template_' . $templateId, 3600, function () use ($templateId) {
+            $template = AiRule::where('category', 'recommendation_templates')
+                ->where('key_name', $templateId)
+                ->value('value');
 
-            // Business type templates
-            'HOTEL_NOISE_CONTROL' => 'Address noise concerns in rooms. {{count}} guests mentioned noise issues.',
-            'RESTAURANT_FOOD_QUALITY' => 'Review {{sub_category}} preparation standards. {{count}} quality complaints.',
-            'CLINIC_WAIT_TIME' => 'Reduce wait times for appointments. {{count}} patients reported long waits.',
+            if ($template) {
+                return $template;
+            }
 
-            // Generic templates for unknown categories
-            'GENERIC_MAIN_CATEGORY' => 'Address {{main_category}} issues reported by {{count}} customers.',
-            'GENERIC_STAFF_ISSUE' => 'Provide staff training for {{sub_category}} issues mentioned {{count}} times.',
-            'GENERIC_PROCESS_ISSUE' => 'Review {{main_category}} processes. Issue mentioned {{count}} times.',
-
-            // Fallback
-            'GENERAL' => 'Improve {{main_category}} based on {{count}} customer mentions.'
-        ];
-
-        return $templates[$templateId] ?? $templates['GENERAL'];
+            // Fallback to GENERAL if specific template not found
+            return AiRule::where('category', 'recommendation_templates')
+                ->where('key_name', 'GENERAL')
+                ->value('value') ?? 'Improve {{main_category}} based on {{count}} customer mentions.';
+        });
     }
 
     // REVIEW-LEVEL RULE MATCHING (for real-time evaluation)
@@ -792,6 +784,22 @@ class RuleEngineService
         }
 
         return 'Consistent';
+    }
+
+    public function getPerformanceLabelFromRating(float $rating): string
+    {
+        $labels = Cache::remember('performance_labels', 3600, function () {
+            return AiRule::where('category', 'performance_labels')->get();
+        });
+
+        foreach ($labels as $label) {
+            $conditions = json_decode($label->conditions, true);
+            if ($rating >= ($conditions['min'] ?? 0) && $rating <= ($conditions['max'] ?? 5)) {
+                return $label->value;
+            }
+        }
+
+        return 'Average';
     }
 
     public function generateActionForIssue(string $issue, int $evidenceCount): ?array

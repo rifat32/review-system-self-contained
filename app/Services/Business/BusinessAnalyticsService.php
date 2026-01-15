@@ -120,7 +120,7 @@ class BusinessAnalyticsService
                     'negative_reviews' => $negativeCount,
                     'top_tags' => $topTags,
                     'sample_comments' => $sampleComments,
-                    'performance_label' => $avgRating >= 4.5 ? 'Excellent' : ($avgRating >= 4.0 ? 'Very Good' : ($avgRating >= 3.5 ? 'Good' : ($avgRating >= 3.0 ? 'Average' : ($avgRating >= 2.0 ? 'Below Average' : 'Poor'))))
+                    'performance_label' => $this->ruleEngineService->getPerformanceLabelFromRating($avgRating)
                 ];
             }
         }
