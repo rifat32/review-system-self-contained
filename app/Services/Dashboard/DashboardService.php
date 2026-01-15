@@ -75,12 +75,15 @@ class DashboardService
      */
     public function calculateMetrics($businessId, $dateRange = null, $user)
     {
-        // Apply branch filter for branch managers
+        // Apply branch filter for branch managers or owner branch switch
         $userBranchId = $user->hasRole('branch_manager') || $user->hasRole('business_owner')
             ? $user->default_branch_id
             : null;
 
-        // ==================== GET REVIEWS USING REVIEWSERVICE ====================
+        log_message('User Branch ID: ' . $userBranchId, 'branch.log');
+        log_message($user, 'branch.log');
+
+        // ==================== GET REVIEWS USING REVIEW SERVICE ====================
 
         // Get current and previous period reviews using ReviewService
         $reviewsData = $this->reviewService->getCurrentAndComparisonReviews(

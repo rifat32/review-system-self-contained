@@ -68,6 +68,19 @@ class User extends Authenticatable
     ];
 
 
+    // app/Models/User.php
+    public function getDefaultBranchIdAttribute()
+    {
+        if ($this->hasRole('branch_manager')) {
+            return $this->branch?->branch_id ?? null;
+        }
+
+        if ($this->hasRole('business_owner')) {
+            return $this->business?->default_branch_id ?? null;
+        }
+
+        return null;
+    }
 
     public function ownedBusiness(): HasOne
     {
@@ -101,11 +114,7 @@ class User extends Authenticatable
     public function branch(): HasOne
     {
         return $this->hasOne(BranchMember::class, 'user_id', 'id')
-            ->where('is_active', true)
-            ->select(
-                'branch_id',
-                'is_active'
-            );
+            ->where('is_active', true);
     }
 
     public function branches()
@@ -200,7 +209,7 @@ class User extends Authenticatable
                 $query_param = '='; // Default value for the comparison operator.
                 $min_count = 1;     // Minimum booking count.
                 $max_count = 1;     // Maximum booking count (for regular customers).
-
+    
                 if ($frequency == "New") {
                     // For new customers, the count should be exactly 1.
                     $query_param = '=';

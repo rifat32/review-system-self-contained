@@ -37,6 +37,7 @@ class ReviewFeedService
             $query->where('branch_id', $userBranchId);
         }
 
+
         $reviews = $query->get();
 
         return $reviews->map(function ($review) {

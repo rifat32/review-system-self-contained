@@ -891,7 +891,9 @@ class ReviewService
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
                 'total_reviews' => $staffReviews->count(),
-                'sentiment_score' => RuleEngineService::getSentimentLabelFromScore($staffReviews->avg('sentiment_score')),
+                'sentiment_score' => RuleEngineService::getSentimentLabelFromScore(
+                    score: $staffReviews->avg('sentiment_score') ?? 0.0
+                ),
                 'image' => $staff->image ?? null
             ];
         })

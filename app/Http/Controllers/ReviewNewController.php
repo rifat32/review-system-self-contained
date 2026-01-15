@@ -3617,12 +3617,16 @@ class ReviewNewController extends Controller
     {
         $user = $request->user();
         $businessId = $user->business_id;
+        $userBranchId = $user->default_branch_id;
 
         // CHECK BUSINESS
         Business::findOrFail($businessId);
 
         // 
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
+            ->when($userBranchId, function ($query) use ($userBranchId) {
+                return $query->where('branch_id', $userBranchId);
+            })
             ->with(['user', 'guest_user', 'survey'])
             ->withCalculatedRating();
 

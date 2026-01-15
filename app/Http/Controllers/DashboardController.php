@@ -2242,6 +2242,17 @@ class DashboardController extends Controller
      *          example="last_30_days",
      *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
      *      ),
+     *      @OA\Parameter(
+     *          name="is_overall",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by overall status (1 = overall reviews, 0 = non-overall reviews, not specified = all reviews)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0,1}
+     *          ),
+     *          example=1
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
@@ -2375,7 +2386,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        if (!$user || !$user->business_id) {
+        if (!$user->business_id) {
             throw new AuthorizationException('User does not have an associated business');
         }
 
@@ -2465,7 +2476,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        if (!$user || !$user->business_id) {
+        if (!!$user->business_id) {
             throw new AuthorizationException('User does not have an associated business');
         }
 
