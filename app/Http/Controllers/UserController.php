@@ -684,6 +684,15 @@ class UserController extends Controller
         // Update the user
         $user->update($validatedData);
 
+
+        if (!empty($validatedData['branch_id'])) {
+            BranchMember::updateOrCreate(
+                ['user_id' => $id], // condition to check
+                ['branch_id' => $validatedData['branch_id']] // values to update or create
+            );
+        }
+
+
         // Return success response
         return response()->json([
             'success' => true,
