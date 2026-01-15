@@ -86,10 +86,12 @@ class User extends Authenticatable
     {
         return $this->hasOne(Business::class, "OwnerID", "id");
     }
-    public function business(): BelongsTo
+
+    public function business(): HasOne
     {
-        return $this->belongsTo(Business::class, "business_id", "id");
+        return $this->hasOne(Business::class, "id", "business_id");
     }
+
     public function businesses()
     {
         return $this->hasMany(Business::class, "OwnerID", "id");

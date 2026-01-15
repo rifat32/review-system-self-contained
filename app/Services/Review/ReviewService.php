@@ -270,16 +270,32 @@ class ReviewService
         $tags = Tag::where('business_id', $businessId)
             ->withCount([
                 'review_values' => function ($query) use ($dateRange, $userBranchId) {
-                    $query->whereBetween('review_value_news.created_at', [$dateRange['start'], $dateRange['end']]);
+                    $query->whereHas('review', function ($q) use ($dateRange, $userBranchId) {
+                        // Apply date range filter if provided
+                        $q->when($dateRange, function ($q) use ($dateRange) {
+                            $q->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+                        });
 
-                    // Filter by branch if user is branch manager
-                    if ($userBranchId) {
-                        $query->whereHas('review', function ($q) use ($userBranchId) {
+                        // Apply branch filter if provided
+                        $q->when($userBranchId, function ($q) use ($userBranchId) {
                             $q->where('branch_id', $userBranchId);
                         });
-                    }
+                    });
                 }
             ])
+            ->when($dateRange || $userBranchId, function ($query) use ($dateRange, $userBranchId) {
+                // Only include tags that have at least one matching review
+                $query->whereHas('review_values', function ($q) use ($dateRange, $userBranchId) {
+                    $q->whereHas('review', function ($q) use ($dateRange, $userBranchId) {
+                        $q->when($dateRange, function ($q) use ($dateRange) {
+                            $q->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+                        });
+                        $q->when($userBranchId, function ($q) use ($userBranchId) {
+                            $q->where('branch_id', $userBranchId);
+                        });
+                    });
+                });
+            })
             ->orderByDesc('review_values_count')
             ->get();
 

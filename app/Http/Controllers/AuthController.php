@@ -7,6 +7,7 @@ use App\Http\Requests\AuthRegisterRequest;
 use App\Http\Requests\CheckPinRequest;
 use App\Http\Requests\EmailVerifyTokenRequest;
 use App\Mail\VerifyMail;
+use App\Models\Business;
 use App\Models\User;
 use Carbon\Carbon;
 use Exception;
@@ -339,7 +340,7 @@ class AuthController extends Controller
     {
         try {
             $credentials = $request->validated();
-            $user = User::where('email', $credentials['email'])->first();
+            $user = User::with('business')->where('email', $credentials['email'])->first();
 
             // Check if account is locked due to failed attempts
             if ($user && $this->isAccountLocked($user)) {

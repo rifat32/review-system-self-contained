@@ -333,6 +333,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/v1.0/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurantIdForceDelete"]);
 
     // Parameterized routes come AFTER specific routes
+    Route::get('/v1.0/business/{businessId}', [BusinessController::class, "getBusinessById"]);
     Route::patch('/v1.0/business/{businessId}', [BusinessController::class, "UpdateBusiness"]);
     Route::delete('/v1.0/business/{id}', [BusinessController::class, "deleteBusinessById"]);
     Route::get('/v1.0/restaurants/tables/{businessId}', [BusinessController::class, "getRestaurantTableByBusinessId"]);
@@ -527,10 +528,6 @@ Route::get('/owner/{ownerId}', [OwnerController::class, "getOwnerById"]);
 Route::get('/owner/getAllowner/withourbusiness', [OwnerController::class, "getOwnerNotHaveRestaurent"]);
 Route::get('/owner/loaduser/bynumber/{phoneNumber}', [OwnerController::class, "getOwnerByPhoneNumber"]);
 
-// ============================================================================
-// BusinessController – Public business read
-// ============================================================================
-Route::get('/v1.0/business/{businessId}', [BusinessController::class, "getBusinessById"]);
 
 // ============================================================================
 // ReviewNewController – Public/unauthorized question sets

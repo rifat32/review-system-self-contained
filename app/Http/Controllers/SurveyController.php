@@ -653,11 +653,11 @@ class SurveyController extends Controller
 
             // ==================== APPLY BRANCH FILTER ====================
             // If user is branch manager, only show surveys with reviews from their branch
-            if ($userBranchId) {
-                $query->whereHas('reviews', function ($query) use ($userBranchId) {
-                    $query->where('branch_id', $userBranchId);
-                });
-            }
+            // if ($userBranchId) {
+            //     $query->whereHas('reviews', function ($query) use ($userBranchId) {
+            //         $query->where('branch_id', $userBranchId);
+            //     });
+            // }
 
             // ==================== RETRIEVE PAGINATED DATA ====================
             // Get surveys ordered by order_no with pagination

@@ -41,9 +41,6 @@ class UserRequest extends FormRequest
             'skills' => 'nullable|string',
         ];
 
-        if ($this->isMethod('post')) {
-            $rules['password'] = 'required|string|min:6';
-        }
 
         return $rules;
     }

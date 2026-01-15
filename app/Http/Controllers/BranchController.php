@@ -15,6 +15,7 @@ use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BranchController extends Controller
 {
@@ -131,11 +132,15 @@ class BranchController extends Controller
     public function getBranches(Request $request)
     {
         $user = $request->user();
-        $business = $user->business;
-        $businessId = $business->id;
+        $businessId = $user->business_id;
         $userBranchId = null;
 
-        if ($user->hasRole('branch_manager') || $user->hasRole('business_owner')) {
+        if (!$businessId) {
+            throw new AuthorizationException('No business found for the authenticated user');
+        }
+
+        //|| $user->hasRole('business_owner')
+        if ($user->hasRole('branch_manager')) {
             $userBranchId = $user->default_branch_id;
         }
 

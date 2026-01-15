@@ -2385,19 +2385,21 @@ class DashboardController extends Controller
     public function getRatingBreakdown(Request $request)
     {
         $user = $request->user();
+        $businessId = $user->business_id;
 
-        if (!$user->business_id) {
+        // 
+        if (!$businessId) {
             throw new AuthorizationException('User does not have an associated business');
         }
 
-        $businessId = $user->business_id;
         // Validate period and get date range using service
         $dateRange = $this->dashboardService->validateAndGetDateRange(
             $request->get('period', 'last_30_days')
         );
 
         // Get rating breakdown
-        $reviewsQuery = ReviewNew::withCalculatedRating()
+        $reviewsQuery = ReviewNew::where('business_id', $businessId)
+            ->withCalculatedRating()
             ->globalFilters(0, $businessId);
 
         if ($dateRange !== null) {
@@ -2476,7 +2478,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        if (!!$user->business_id) {
+        if (!$user->business_id) {
             throw new AuthorizationException('User does not have an associated business');
         }
 

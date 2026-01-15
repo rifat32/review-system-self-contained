@@ -899,15 +899,19 @@ class UserController extends Controller
     {
         // Validate request data
         $validatedData = $request->validated();
-        $business_id = $request->user()->business->id;
-        $business_name = $request->user()->business->Name;
+        $business_id = auth()->user()->business_id;
+        $business_name = auth()->user()->business->Name;
 
         // ADD BUSINESS ID
         $validatedData['business_id'] = $business_id;
 
-        // Store plain password before hashing (for email)
-        $plainPassword = '12345678@Welcome';
-
+        // Generate random password: 8 digits + @ + uppercase letter + lowercase letter
+        $plainPassword = sprintf(
+            '%08d@%s%s',
+            rand(10000000, 99999999),
+            chr(rand(65, 90)),  // Random uppercase letter (A-Z)
+            chr(rand(97, 122))  // Random lowercase letter (a-z)
+        );
         // Hash the password
         $validatedData['password'] = Hash::make($plainPassword);
 
