@@ -509,7 +509,14 @@ class UserController extends Controller
         // ]);
 
         // Get the authenticated user's business ID
-        $business_id = $request->user()->business->id;
+        $user = auth()->user();
+        $business_id = $user->business_id;
+
+        $userBranchId = null;
+
+        if ($user->hasRole('branch_manager') || $user->hasRole('business_owner')) {
+            $userBranchId = $user->default_branch_id;
+        }
 
         if (!$business_id) {
             throw new AuthorizationException('No business found for the authenticated user');
@@ -518,7 +525,9 @@ class UserController extends Controller
         // Build query for users in the same business
         $userQuery = User::with([
             'roles:id,name',
-            'branches'
+            'branches',
+            'branch',
+            'branch.branch:id,name'
         ])->where('business_id', $business_id);
 
         // Filter by role - if no role specified, show only staff and manager roles
@@ -548,6 +557,13 @@ class UserController extends Controller
                 $term = $request->search_key;
                 $query->where("first_Name", "like", "%" . $term . "%")
                     ->orWhere("last_Name", "like", "%" . $term . "%");
+            });
+        }
+
+        // Filter users by branch - if user is branch manager or business owner, show only users in their branch
+        if ($userBranchId) {
+            $userQuery->whereHas('staffReviews', function ($query) use ($userBranchId) {
+                $query->where('branch_id', $userBranchId);
             });
         }
 

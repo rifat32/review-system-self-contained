@@ -33,7 +33,7 @@ class CustomerController extends Controller
      * @OA\Get(
      *      path="/v1.0/customers",
      *      operationId="getCustomers",
-     *      tags={"reports"},
+     *      tags={"customer_management"},
      *       security={
      *           {"bearerAuth": {}}
      *       },

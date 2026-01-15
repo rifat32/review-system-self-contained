@@ -10,6 +10,7 @@ use App\Mail\VerifyMail;
 use App\Models\User;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -375,10 +376,7 @@ class AuthController extends Controller
             // Successful login - reset failed attempts and generate token
             return $this->handleSuccessfulLogin($user);
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -446,20 +444,29 @@ class AuthController extends Controller
         // GET USER WITH RELATIONSHIP
         $user = User::with('business', 'branch')->findOrFail($user->id);
 
-        // SET TOKEN AND PERMISSION 
-        $user->setAttribute('token', $user->createToken('authToken')->accessToken);
-        $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
 
-        // SET ROLE AS SINGLE OBJECT
-        $user->setAttribute('role', $user->roles->first());
+
+
+
+
 
         // SET DEFAULT_BRANCH_ID BASED ON ROLE
         if ($user->hasRole('branch_manager')) {
+            // CHECK IF USER HAS A BRANCH ASSIGNED TO THEM
+            if (!$user->branch) {
+                throw new AuthorizationException('You do not have a branch assigned to you');
+            }
             $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);
         } else if ($user->hasRole('business_owner')) {
             $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);
             $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
         }
+
+        // SET TOKEN AND PERMISSION 
+        $user->setAttribute('token', $user->createToken('authToken')->accessToken);
+        $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
+        // SET ROLE AS SINGLE OBJECT
+        $user->setAttribute('role', $user->roles->first());
 
         // SEND RESPONSE
         return response()->json([

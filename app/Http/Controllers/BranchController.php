@@ -130,11 +130,21 @@ class BranchController extends Controller
 
     public function getBranches(Request $request)
     {
-        $business = $request->user()->business;
+        $user = $request->user();
+        $business = $user->business;
         $businessId = $business->id;
+        $userBranchId = null;
+
+        if ($user->hasRole('branch_manager') || $user->hasRole('business_owner')) {
+            $userBranchId = $user->default_branch_id;
+        }
+
 
         // BRANCH QUERY
         $query = Branch::where('business_id', $businessId)
+            ->when($userBranchId, function ($query) use ($userBranchId) {
+                $query->where('id', $userBranchId);
+            })
             ->filters();
 
         // GET BRANCHES WITH PAGINATED DATA

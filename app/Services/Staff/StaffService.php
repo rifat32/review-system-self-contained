@@ -29,8 +29,8 @@ class StaffService
         return ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = \Carbon\Carbon::parse($dateRange['start'])->startOfDay();
-                $endDate = \Carbon\Carbon::parse($dateRange['end'])->endOfDay();
+                $startDate = Carbon::parse($dateRange['start']);
+                $endDate = Carbon::parse($dateRange['end']);
                 return $query->whereBetween('created_at', [$startDate, $endDate]);
             })
             ->when($userBranchId, function ($query) use ($userBranchId) {
@@ -54,8 +54,8 @@ class StaffService
         return ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = \Carbon\Carbon::parse($dateRange['start'])->subMonth()->startOfDay();
-                $endDate = \Carbon\Carbon::parse($dateRange['end'])->subMonth()->endOfDay();
+                $startDate = Carbon::parse($dateRange['start'])->subMonth();
+                $endDate = Carbon::parse($dateRange['end'])->subMonth();
                 return $query->whereBetween('created_at', [$startDate, $endDate]);
             })
             ->when($userBranchId, function ($query) use ($userBranchId) {
@@ -80,12 +80,14 @@ class StaffService
         ?array $dateRange = null,
         ?User $user = null
     ): array {
+
         // Get current period reviews
         $currentReviews = $this->getCurrentPeriodReviews(
             businessId: $businessId,
             dateRange: $dateRange,
             user: $user
         );
+
 
         // Get comparison period reviews
         $comparisonReviews = $this->getComparisonPeriodReviews(
@@ -139,6 +141,11 @@ class StaffService
                 'review_count' => $comparisonReviewCount
             ]
         ];
+
+        // DEBUG: Log final result
+        \Log::info('getStaffMetricsWithComparison result', [
+            'metrics' => $overallMetrics
+        ]);
 
         return $overallMetrics;
     }

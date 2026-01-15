@@ -1565,6 +1565,17 @@ class StaffController extends Controller
      *          example="last_30_days",
      *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
      *      ),
+     *      @OA\Parameter(
+     *          name="is_overall",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by overall status (1 = overall reviews, 0 = non-overall reviews, not specified = all reviews)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0,1}
+     *          ),
+     *          example=1
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
@@ -1629,7 +1640,11 @@ class StaffController extends Controller
             ->withCalculatedRating()
             ->get();
 
-        $topStaff = $this->reviewService->getTopStaffByRatingFromReviewValue($currentReviews, $limit);
+
+        $topStaff = $this->reviewService->getTopStaffByRatingFromReviewValue(
+            reviews: $currentReviews,
+            limit: $limit
+        );
 
         // SEND RESPONSE
         return response()->json([
