@@ -5,6 +5,7 @@ namespace App\Services\Business;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\BusinessDay;
+use App\Models\AiRule;
 use App\Models\Question;
 use App\Models\Star;
 use App\Models\ReviewValueNew;
@@ -31,9 +32,9 @@ class BusinessService
         foreach (Star::get() as $star) {
             $selectedCount = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                 ->where([
-                        "review_news.business_id" => $business->id,
-                        "star_id" => $star->id,
-                    ])
+                    "review_news.business_id" => $business->id,
+                    "star_id" => $star->id,
+                ])
                 ->distinct("review_value_news.review_id", "review_value_news.question_id");
 
             if ($request->filled('start_date') && $request->filled('end_date')) {
@@ -71,10 +72,12 @@ class BusinessService
         // CREATE BUSINESS SCHEDULE
         $this->createBusinessSchedule($business, $payloadData['times']);
 
+
         // CREATE DEFAULT BRANCH
         $this->createDefaultBranch($business);
 
-
+        // CREATE DEFAULT AI RULES
+        $this->createDefaultAiRules($business);
 
         return $business->fresh();
     }
@@ -211,5 +214,60 @@ class BusinessService
                 Branch::insert($branchData);
             }
         });
+    }
+
+    /**
+     * Create default AI rules for business by copying system rules
+     */
+    public function createDefaultAiRules(Business $business): void
+    {
+        // 1. Fetch system rules
+        $systemRules = AiRule::where('scope', 'system')->get();
+
+        if ($systemRules->isEmpty()) {
+            return;
+        }
+
+        $newRules = [];
+
+        foreach ($systemRules as $rule) {
+            // 2. Prepare new rule data
+            $newRules[] = [
+                'rule_id' => $rule->rule_id . '_' . $business->id, // Unique ID per business
+                'rule_name' => $rule->rule_name,
+                'description' => $rule->description,
+                'scope' => 'business',
+                'business_id' => $business->id,
+                'category' => $rule->category,
+                'priority' => $rule->priority,
+                'enabled' => $rule->enabled,
+
+                // Copy logical definitions
+                'conditions' => json_encode($rule->conditions), // Array cast in model, but bulk insert needs json
+                'actions' => json_encode($rule->actions),
+
+                // Copy explainability (it's static for default rules)
+                'ai_explanation_title' => $rule->ai_explanation_title,
+                'ai_plain_explanation' => $rule->ai_plain_explanation,
+                'ai_why_it_matters' => $rule->ai_why_it_matters,
+                'ai_when_it_triggers' => $rule->ai_when_it_triggers,
+
+                // Standard metadata
+                'created_by' => 'system_copy',
+                'created_at' => now(),
+                'updated_at' => now(),
+                'version' => 1,
+
+                // Default metrics/state
+                'precision_rate' => $rule->precision_rate,
+                'run_frequency' => 'daily', // Default
+                'last_run_at' => null
+            ];
+        }
+
+        // 3. Bulk insert for performance
+        if (!empty($newRules)) {
+            AiRule::insert($newRules);
+        }
     }
 }
