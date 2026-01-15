@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+
 use App\Http\Resources\UserResource;
 use App\Mail\ManagerWelcomeMail;
+use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Http\Requests\UserRequest;
@@ -686,35 +689,74 @@ class UserController extends Controller
         }
 
         // Find the user and ensure they belong to the same business
-        $user = User::where('id', $id)
-            ->where('business_id', $business_id)
-            ->first();
+        $user = User::findOrFail($id);
 
-        if (!$user) {
+        if ($user->business_id !== $business_id) {
             throw new AccessDeniedHttpException('This user does not belong to your business');
         }
 
         // Validate request data (excluding password for updates)
         $validatedData = $request->validated();
 
-        // Update the user
-        $user->update($validatedData);
+        try {
+            // START TRANSACTION
+            DB::beginTransaction();
 
+            // Update the user
+            $user->update($validatedData);
 
-        if (!empty($validatedData['branch_id'])) {
-            BranchMember::updateOrCreate(
-                ['user_id' => $id], // condition to check
-                ['branch_id' => $validatedData['branch_id']] // values to update or create
-            );
+            if (!empty($validatedData['branch_id'])) {
+                // Get the new branch
+                $newBranch = Branch::where('id', $validatedData["branch_id"])
+                    ->where('business_id', $business_id)
+                    ->first();
+                if (!$newBranch) {
+                    throw new NotFoundHttpException('Branch Not Found');
+                } else if ($newBranch->manager_id !== null && $newBranch->manager_id !== $user->id) {
+                    throw new AccessDeniedHttpException('Branch Already Have Manager');
+                }
+
+                // Get user's current branch (if any)
+                $currentBranchMember = BranchMember::where('user_id', $id)
+                    ->where('is_active', true)
+                    ->first();
+
+                // If user was in a different branch, remove them as manager from old branch
+                if ($currentBranchMember && $currentBranchMember->branch_id !== $validatedData['branch_id']) {
+                    $oldBranch = Branch::find($currentBranchMember->branch_id);
+                    if ($oldBranch && $oldBranch->manager_id === $user->id) {
+                        $oldBranch->manager_id = null;
+                        $oldBranch->save();
+                    }
+                }
+
+                // Set user as manager of new branch
+                $newBranch->manager_id = $user->id;
+                $newBranch->save();
+
+                // Update or create branch member record
+                BranchMember::updateOrCreate(
+                    ['user_id' => $id], // condition to check
+                    ['branch_id' => $validatedData['branch_id']] // values to update or create
+                );
+            }
+
+            // COMMIT TRANSACTION
+            DB::commit();
+
+            // Return success response
+            return response()->json([
+                'success' => true,
+                'message' => 'User updated successfully',
+                'data' => $user
+            ], 200);
+        } catch (\Exception $e) {
+            // ROLLBACK TRANSACTION ON ERROR
+            DB::rollBack();
+
+            // Re-throw the exception to be handled by Laravel's exception handler
+            throw $e;
         }
-
-
-        // Return success response
-        return response()->json([
-            'success' => true,
-            'message' => 'User updated successfully',
-            'data' => $user
-        ], 200);
     }
 
     /**
@@ -918,39 +960,197 @@ class UserController extends Controller
         // Generate remember token
         $validatedData['remember_token'] = Str::random(10);
 
-        // Create the user
-        $user = User::create($validatedData);
-
-        // ASSIGN ROLE
-        if ($validatedData['role'] === User::USER_ROLE['BUSINESS_STAFF']) {
-            $user->assignRole(User::USER_ROLE['BUSINESS_STAFF']);
-        } elseif ($validatedData['role'] === User::USER_ROLE['BRANCH_MANAGER']) {
-            $user->assignRole(User::USER_ROLE['BRANCH_MANAGER']);
-        }
-
-        // Save the user
-        $user->save();
-
-        if (!empty($validatedData["branch_id"])) {
-            BranchMember::create([
-                'user_id' => $user->id,
-                'branch_id' => $validatedData["branch_id"],
-            ]);
-        }
-
-        // Send welcome email with credentials
         try {
-            Mail::to($user->email)->send(new ManagerWelcomeMail($user, $plainPassword, $business_name));
-        } catch (\Exception $e) {
-            // Log error but don't fail user creation
-            \Log::error('Failed to send welcome email to: ' . $user->email . ' - Error: ' . $e->getMessage());
-        }
+            // START TRANSACTION
+            DB::beginTransaction();
 
-        // Return success response
+            // Create the user
+            $user = User::create($validatedData);
+
+            // ASSIGN ROLE
+            if ($validatedData['role'] === User::USER_ROLE['BUSINESS_STAFF']) {
+                $user->assignRole(User::USER_ROLE['BUSINESS_STAFF']);
+            } elseif ($validatedData['role'] === User::USER_ROLE['BRANCH_MANAGER']) {
+                $user->assignRole(User::USER_ROLE['BRANCH_MANAGER']);
+            }
+
+            // Save the user
+            $user->save();
+
+            if (!empty($validatedData["branch_id"])) {
+                $branch = Branch::where('id', $validatedData["branch_id"])
+                    ->where('business_id', $business_id)
+                    ->first();
+                if (!$branch) {
+                    throw new NotFoundHttpException('Branch Not Found');
+                } else if ($branch->manager_id != null) {
+                    throw new AccessDeniedHttpException('Branch Already Have Manager');
+                }
+
+                $branch->manager_id = $user->id;
+                $branch->save();
+
+                BranchMember::create([
+                    'user_id' => $user->id,
+                    'branch_id' => $validatedData["branch_id"],
+                ]);
+            }
+
+            // COMMIT TRANSACTION
+            DB::commit();
+
+            // Send welcome email with credentials (outside transaction)
+            try {
+                Mail::to($user->email)->send(new ManagerWelcomeMail($user, $plainPassword, $business_name));
+            } catch (\Exception $e) {
+                // Log error but don't fail user creation
+                \Log::error('Failed to send welcome email to: ' . $user->email . ' - Error: ' . $e->getMessage());
+            }
+
+            // Return success response
+            return response()->json([
+                'success' => true,
+                'message' => 'User created successfully. Welcome email sent to ' . $user->email,
+                'data' => $user
+            ], 201);
+        } catch (\Exception $e) {
+            // ROLLBACK TRANSACTION ON ERROR
+            DB::rollBack();
+
+            throw $e;
+        }
+    }
+
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/clients/users/{business_id}",
+     *      operationId="getUserClient",
+     *      tags={"user_management"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Get user clients for authenticated user's business",
+     *      description="Retrieve users (clients/staff) for the authenticated user's business with optional filtering and pagination",
+     *      @OA\Parameter(
+     *          name="business_id",
+     *          in="path",
+     *          required=true,
+     *          description="Filter by user role",
+     *          @OA\Schema(type="integer"),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="role",
+     *          in="query",
+     *          required=false,
+     *          description="Filter by user role",
+     *          @OA\Schema(type="string"),
+     *          example="business_staff"
+     *      ),
+     *      @OA\Parameter(
+     *          name="page",
+     *          in="query",
+     *          required=false,
+     *          description="Page number",
+     *          @OA\Schema(type="integer", minimum=1),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="per_page",
+     *          in="query",
+     *          required=false,
+     *          description="Number of items per page",
+     *          @OA\Schema(type="integer", minimum=1, maximum=100),
+     *          example=15
+     *      ),
+     *      @OA\Parameter(
+     *          name="sort_by",
+     *          in="query",
+     *          required=false,
+     *          description="Column to sort by",
+     *          @OA\Schema(type="string"),
+     *          example="created_at"
+     *      ),
+     *      @OA\Parameter(
+     *          name="sort_order",
+     *          in="query",
+     *          required=false,
+     *          description="Sort order (asc or desc)",
+     *          @OA\Schema(type="string", enum={"asc", "desc"}),
+     *          example="desc"
+     *      ),
+     *      @OA\Parameter(
+     *          name="branch_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter by branch id",
+     *          @OA\Schema(type="integer"),
+     *          example=1
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="User client fetched successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="first_Name", type="string", example="John"),
+     *                      @OA\Property(property="last_Name", type="string", example="Doe"),
+     *                      @OA\Property(property="email", type="string", example="john@example.com"),
+     *                      @OA\Property(property="business_id", type="integer", example=5)
+     *                  )
+     *              ),
+     *              @OA\Property(
+     *                  property="meta",
+     *                  type="object",
+     *                  @OA\Property(property="current_page", type="integer", example=1),
+     *                  @OA\Property(property="per_page", type="integer", example=15),
+     *                  @OA\Property(property="total", type="integer", example=50)
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *          @OA\JsonContent()
+     *      )
+     * )
+     */
+    public function getUserClient($business_id, Request $request)
+    {
+
+
+        // QUERY
+        $query = User::with('branch')
+            ->where('business_id', $business_id)
+            ->when(request()->role, function ($query) {
+                $query->whereHas('roles', function ($query) {
+                    $query->where('name', request()->role);
+                });
+            })
+            ->when(request()->branch_id, function ($query) {
+                $query->whereHas('branch', function ($query) {
+                    $query->where('id', request()->branch_id);
+                });
+            })->filterStaff(businessId: $business_id);
+
+        $users = retrieve_data($query);
+
+        // RESPONSE
         return response()->json([
             'success' => true,
-            'message' => 'User created successfully. Welcome email sent to ' . $user->email,
-            'data' => $user
-        ], 201);
+            'message' => 'User client fetched successfully',
+            'meta' => $users['meta'],
+            'data' => $users['data'],
+        ], 200);
     }
 }

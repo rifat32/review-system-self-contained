@@ -3714,6 +3714,12 @@ class ReviewNewController extends Controller
     {
         $user = $request->user();
         $businessId = $user->business_id;
+        $userBranchId = null;
+
+        if ($user->hasRole('branch_manager') || $user->hasRole('business_owner')) {
+            $userBranchId = $user->default_branch_id;
+        }
+
         // Validate period and get date range using service
         $dateRange = $this->dashboardService->validateAndGetDateRange(
             $request->get('period', 'last_30_days')
@@ -3730,7 +3736,8 @@ class ReviewNewController extends Controller
             })
             ->when($dateRange, function ($query) use ($dateRange) {
                 $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-            });
+            })
+            ->when($userBranchId, fn($query) => $query->where('branch_id', $userBranchId));
 
         // GENERATE DATA FOR OVERALL REVIEWS
         $overallReviews = $reviewsQuery->get();
