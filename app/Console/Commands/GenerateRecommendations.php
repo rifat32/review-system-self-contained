@@ -18,59 +18,108 @@ class GenerateRecommendations extends Command
 
     protected $description = 'Generate recommendations from insights';
 
+    private $logHandle;
+    protected $insightAggregationService;
+    protected $recommendationGeneratorService;
+
+    public function __construct(
+        InsightAggregationService $insightAggregationService,
+        RecommendationGeneratorService $recommendationGeneratorService
+    ) {
+        parent::__construct();
+
+        $this->insightAggregationService = $insightAggregationService;
+        $this->recommendationGeneratorService = $recommendationGeneratorService;
+    }
+
     public function handle()
     {
-        $this->info('Starting recommendation generation...');
+        $logFile = storage_path('logs/ai_processing.log');
+        $this->logHandle = fopen($logFile, 'a');
 
-        $businesses = $this->getBusinessesToProcess();
+        try {
+            $this->fileWrite("\n" . str_repeat('=', 50) . "\n");
+            $this->fileWrite("Generate Recommendations started at " . now() . "\n");
 
-        if ($businesses->isEmpty()) {
-            $this->error('No businesses found.');
+            $this->info('Starting recommendation generation...');
+            $this->fileWrite("Starting recommendation generation...\n");
+
+            $businesses = $this->getBusinessesToProcess();
+
+            if ($businesses->isEmpty()) {
+                $this->error('No businesses found.');
+                $this->fileWrite("No businesses found.\n");
+                return 1;
+            }
+
+            $msg = "Processing {$businesses->count()} business(es)";
+            $this->info($msg);
+            $this->fileWrite($msg . "\n");
+
+            $results = ['success' => 0, 'failed' => 0];
+
+            foreach ($businesses as $business) {
+                try {
+                    if (!$this->shouldProcess($business)) {
+                        $this->line("○ Business {$business->id}: Skipped (recently processed)");
+                        $this->fileWrite("○ Business {$business->id}: Skipped (recently processed)\n");
+                        continue;
+                    }
+
+                    // 1. Aggregate insights (last 30 days)
+                    $this->line("  → Aggregating insights...");
+                    $this->fileWrite("  → Aggregating insights for Business {$business->id}...\n");
+
+                    // Use the injected service instance
+                    $aggResult = $this->insightAggregationService->aggregateReviewsForBusiness($business->id, 30);
+
+                    if ($aggResult['insights_created'] === 0) {
+                        $this->line("  → No new insights found");
+                        $this->fileWrite("  → No new insights found\n");
+                        continue;
+                    }
+
+                    // 2. Generate recommendations using injected service
+                    $this->line("  → Generating recommendations...");
+                    $this->fileWrite("  → Generating recommendations...\n");
+                    $recs = $this->recommendationGeneratorService->generateFromInsights($business->id, 30);
+
+                    // Update last processed
+                    $business->update(['last_recommendation_at' => now()]);
+
+                    $successMsg = "✓ Business {$business->id}: Created " . count($recs) . " recommendations";
+                    $this->info($successMsg);
+                    $this->fileWrite($successMsg . "\n");
+
+                    $results['success']++;
+                } catch (\Exception $e) {
+                    $errorMsg = "✗ Business {$business->id}: {$e->getMessage()}";
+                    $this->error($errorMsg);
+                    $this->fileWrite($errorMsg . "\n");
+
+                    // Also keep standard logging
+                    \Log::error('Recommendation generation failed', [
+                        'business_id' => $business->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    $results['failed']++;
+                }
+            }
+
+            $endMsg = "\nComplete: {$results['success']} success, {$results['failed']} failed";
+            $this->info($endMsg);
+            $this->fileWrite($endMsg . "\n");
+
+            return $results['failed'] > 0 ? 1 : 0;
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
+            $this->fileWrite("FATAL ERROR: " . $e->getMessage() . "\n");
             return 1;
-        }
-
-        $this->info("Processing {$businesses->count()} business(es)");
-
-        $results = ['success' => 0, 'failed' => 0];
-
-        foreach ($businesses as $business) {
-            try {
-                if (!$this->shouldProcess($business)) {
-                    $this->line("○ Business {$business->id}: Skipped (recently processed)");
-                    continue;
-                }
-
-                // 1. Aggregate insights (last 30 days)
-                $this->line("  → Aggregating insights...");
-                $aggResult = InsightAggregationService::aggregateReviewsForBusiness($business->id, 30);
-
-                if ($aggResult['insights_created'] === 0) {
-                    $this->line("  → No new insights found");
-                    continue;
-                }
-
-                // 2. Generate recommendations
-                $this->line("  → Generating recommendations...");
-                $recs = RecommendationGeneratorService::generateFromInsights($business->id, 30);
-
-                // Update last processed
-                $business->update(['last_recommendation_at' => now()]);
-
-                $this->info("✓ Business {$business->id}: Created " . count($recs) . " recommendations");
-                $results['success']++;
-
-            } catch (\Exception $e) {
-                $this->error("✗ Business {$business->id}: {$e->getMessage()}");
-                \Log::error('Recommendation generation failed', [
-                    'business_id' => $business->id,
-                    'error' => $e->getMessage()
-                ]);
-                $results['failed']++;
+        } finally {
+            if ($this->logHandle) {
+                fclose($this->logHandle);
             }
         }
-
-        $this->info("\nComplete: {$results['success']} success, {$results['failed']} failed");
-        return $results['failed'] > 0 ? 1 : 0;
     }
 
     private function getBusinessesToProcess()
@@ -106,5 +155,12 @@ class GenerateRecommendations extends Command
         }
 
         return true;
+    }
+
+    private function fileWrite($message)
+    {
+        if ($this->logHandle) {
+            fwrite($this->logHandle, $message);
+        }
     }
 }

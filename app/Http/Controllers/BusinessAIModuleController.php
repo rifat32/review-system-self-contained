@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Services\AIProcessor\OpenAIProcessorService;
 use App\Models\Business;
-use App\Models\BusinessAIModule;
+use App\Models\BusinessAiModule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class BusinessAIModuleController extends Controller
+class BusinessAiModuleController extends Controller
 {
     private OpenAIProcessorService $openAiProcessorService;
 
@@ -117,9 +117,9 @@ class BusinessAIModuleController extends Controller
 
         try {
             // GET OR CREATE AI MODULES CONFIGURATION
-            $aiModules = BusinessAIModule::firstOrCreate(
+            $aiModules = BusinessAiModule::firstOrCreate(
                 ['business_id' => $businessId],
-                BusinessAIModule::getDefaultForBusiness($businessId)
+                BusinessAiModule::getDefaultForBusiness($businessId)
             );
 
             // LOAD BUSINESS RELATIONSHIP
@@ -313,7 +313,7 @@ class BusinessAIModuleController extends Controller
             }
 
             // GET UPDATED CONFIGURATION
-            $aiModules = BusinessAIModule::where('business_id', $businessId)->first();
+            $aiModules = BusinessAiModule::where('business_id', $businessId)->first();
 
             return response()->json([
                 "success" => true,
@@ -439,9 +439,9 @@ class BusinessAIModuleController extends Controller
 
         try {
             // GET OR CREATE AI MODULES CONFIGURATION
-            $aiModules = BusinessAIModule::firstOrCreate(
+            $aiModules = BusinessAiModule::firstOrCreate(
                 ['business_id' => $businessId],
-                BusinessAIModule::getDefaultForBusiness($businessId)
+                BusinessAiModule::getDefaultForBusiness($businessId)
             );
 
             // LOAD BUSINESS RELATIONSHIP

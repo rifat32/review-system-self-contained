@@ -59,7 +59,9 @@ class ReviewNew extends Model
         "summary",
         'source',
         "rating_comment_mismatch",
-        "mismatch_insights"
+        "mismatch_insights",
+        "ai_insights",
+        "ai_recommendations"
 
     ];
 
@@ -75,6 +77,8 @@ class ReviewNew extends Model
         'transcription_metadata' => 'array',
         'sentiment_score' => 'float',
         'is_flagged' => 'boolean',
+        'ai_insights' => 'array',
+        'ai_recommendations' => 'array',
     ];
 
     public function setSourceAttribute($value)

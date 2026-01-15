@@ -20,88 +20,127 @@ class RegenerateRuleExplanations extends Command
 
     protected $description = 'Regenerate AI explanations for rules';
 
+    private $logHandle;
+
     public function handle()
     {
-        $this->info('Starting rule explanation regeneration...');
+        $logFile = storage_path('logs/ai_processing.log');
+        $this->logHandle = fopen($logFile, 'a');
 
-        $rules = $this->getRulesToProcess();
+        try {
+            $this->fileWrite("\n" . str_repeat('=', 50) . "\n");
+            $this->fileWrite("Regenerate Rule Explanations started at " . now() . "\n");
 
-        if ($rules->isEmpty()) {
-            $this->info('No rules found to process.');
-            return 0;
-        }
+            $this->info('Starting rule explanation regeneration...');
+            $this->fileWrite("Starting rule explanation regeneration...\n");
 
-        $this->info("Found {$rules->count()} rule(s) to process");
+            $rules = $this->getRulesToProcess();
 
-        $results = [
-            'success' => 0,
-            'failed' => 0,
-            'skipped' => 0
-        ];
-
-        $progressBar = $this->output->createProgressBar($rules->count());
-        $progressBar->start();
-
-        foreach ($rules as $rule) {
-            try {
-                // Check if regeneration is needed
-                if (!$this->shouldRegenerate($rule)) {
-                    $results['skipped']++;
-                    $progressBar->advance();
-                    continue;
-                }
-
-                // Generate explanations using helper
-                $explanations = RuleExplanationService::regenerateForRule($rule);
-
-                if ($explanations) {
-                    $rule->update([
-                        'short_explanation' => $explanations['short_explanation'],
-                        'detailed_explanation' => $explanations['detailed_explanation'],
-                        'why_it_matters' => $explanations['why_it_matters'],
-                        'explanation_generated_at' => now()
-                    ]);
-
-                    $results['success']++;
+            if ($rules->isEmpty()) {
+                // Check if table is empty at all
+                if (AiRule::count() === 0) {
+                    $this->info('No rules found in database. Seeding default rules...');
+                    $this->call('db:seed', ['--class' => 'AiRuleSeeder']);
+                    $rules = $this->getRulesToProcess();
                 } else {
-                    $results['failed']++;
-                    $this->newLine();
-                    $this->warn("Failed: {$rule->rule_id}");
+                    $this->info('No rules found needing regeneration (use --all to force).');
+                    $this->fileWrite("No rules found to process.\n");
+                    return 0;
                 }
-
-            } catch (\Exception $e) {
-                $results['failed']++;
-                $this->newLine();
-                $this->error("Error: {$rule->rule_id} - {$e->getMessage()}");
             }
 
-            $progressBar->advance();
+            $this->info("Found {$rules->count()} rule(s) to process");
+            $this->fileWrite("Found {$rules->count()} rule(s) to process\n");
 
-            // Small delay to avoid API rate limits
-            usleep(500000); // 0.5 second delay
-        }
+            $results = [
+                'success' => 0,
+                'failed' => 0,
+                'skipped' => 0
+            ];
 
-        $progressBar->finish();
-        $this->newLine(2);
+            $progressBar = $this->output->createProgressBar($rules->count());
+            $progressBar->start();
 
-        // Display results
-        $this->table(
-            ['Status', 'Count'],
-            [
-                ['Success', $results['success']],
-                ['Failed', $results['failed']],
-                ['Skipped', $results['skipped']],
-                ['Total', $rules->count()]
-            ]
-        );
+            foreach ($rules as $rule) {
+                try {
+                    // Check if regeneration is needed
+                    if (!$this->shouldRegenerate($rule)) {
+                        $results['skipped']++;
+                        $progressBar->advance();
+                        continue;
+                    }
 
-        if ($results['failed'] > 0) {
-            $this->error("Some explanations failed to regenerate. Check logs for details.");
+                    // Generate explanations using helper
+                    $explanations = RuleExplanationService::regenerateForRule($rule);
+
+                    if ($explanations) {
+                        $rule->update([
+                            'short_explanation' => $explanations['short_explanation'],
+                            'detailed_explanation' => $explanations['detailed_explanation'],
+                            'why_it_matters' => $explanations['why_it_matters'],
+                            'explanation_generated_at' => now(),
+                            // Also sync proposal columns
+                            'ai_explanation_title' => $explanations['short_explanation'],
+                            'ai_plain_explanation' => $explanations['detailed_explanation'],
+                            'ai_why_it_matters' => $explanations['why_it_matters'],
+                            'ai_when_it_triggers' => $explanations['when_it_triggers'],
+                            'ai_generated_at' => now()
+                        ]);
+
+                        $results['success']++;
+                        $this->fileWrite("✓ Rule {$rule->rule_id}: Updated explanations\n");
+                    } else {
+                        $results['failed']++;
+                        $this->newLine();
+                        $this->warn("Failed: {$rule->rule_id}");
+                        $this->fileWrite("✗ Failed: {$rule->rule_id}\n");
+                    }
+                } catch (\Exception $e) {
+                    $results['failed']++;
+                    $this->newLine();
+                    $this->error("Error: {$rule->rule_id} - {$e->getMessage()}");
+                    $this->fileWrite("Error: {$rule->rule_id} - {$e->getMessage()}\n");
+                }
+
+                $progressBar->advance();
+
+                // Small delay to avoid API rate limits
+                usleep(500000); // 0.5 second delay
+            }
+
+            $progressBar->finish();
+            $this->newLine(2);
+
+            // Display results
+            $this->table(
+                ['Status', 'Count'],
+                [
+                    ['Success', $results['success']],
+                    ['Failed', $results['failed']],
+                    ['Skipped', $results['skipped']],
+                    ['Total', $rules->count()]
+                ]
+            );
+
+            if ($results['failed'] > 0) {
+                $this->error("Some explanations failed to regenerate. Check logs for details.");
+                $this->fileWrite("Some explanations failed to regenerate.\n");
+                return 1;
+            }
+
+            $this->info('Explanation regeneration completed successfully!');
+            $this->fileWrite("Explanation regeneration completed successfully!\n");
+
+            return 0;
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
+            $this->fileWrite("FATAL ERROR: " . $e->getMessage() . "\n");
             return 1;
+        } finally {
+            if ($this->logHandle) {
+                fclose($this->logHandle);
+            }
         }
-
-        $this->info('Explanation regeneration completed successfully!');
-        return 0;
     }
 
     private function getRulesToProcess()
@@ -167,5 +206,12 @@ class RegenerateRuleExplanations extends Command
         }
 
         return false;
+    }
+
+    private function fileWrite($message)
+    {
+        if ($this->logHandle) {
+            fwrite($this->logHandle, $message);
+        }
     }
 }

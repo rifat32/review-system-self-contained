@@ -36,7 +36,7 @@ use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\SurveyQuestionController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\BusinessAIModuleController;
+use App\Http\Controllers\BusinessAiModuleController;
 use App\Http\Controllers\RecommendationController;
 use Illuminate\Support\Facades\Route;
 
@@ -95,12 +95,12 @@ Route::middleware(['auth:api'])->group(function () {
         // Business AI Modules Routes
         Route::group(['prefix' => 'v1.0'], function () {
             // Super admin routes
-            Route::get('/business-ai-modules/{businessId}', [BusinessAIModuleController::class, 'getBusinessAIModules']);
-            Route::patch('/business-ai-modules/{businessId}', [BusinessAIModuleController::class, 'updateBusinessAIModules']);
-            Route::get('/business-ai-modules/{businessId}/token-usage', [BusinessAIModuleController::class, 'getBusinessAITokenUsage']);
+            Route::get('/business-ai-modules/{businessId}', [BusinessAiModuleController::class, 'getBusinessAiModules']);
+            Route::patch('/business-ai-modules/{businessId}', [BusinessAiModuleController::class, 'updateBusinessAiModules']);
+            Route::get('/business-ai-modules/{businessId}/token-usage', [BusinessAiModuleController::class, 'getBusinessAITokenUsage']);
 
             // Business owner routes (can view but not modify)
-            Route::get('/business-ai-modules/{businessId}/enabled', [BusinessAIModuleController::class, 'getEnabledBusinessAIModules']);
+            Route::get('/business-ai-modules/{businessId}/enabled', [BusinessAiModuleController::class, 'getEnabledBusinessAiModules']);
         });
         // -------------------------------------------------------------------------
         // SuperAdminReportController – Dashboard Reports (Super Admin)
@@ -592,4 +592,3 @@ Route::prefix('api')->group(function () {
     Route::get('/recommendations/{id}/explain', [RecommendationController::class, 'explain']);
     Route::get('/dashboard/insights', [RecommendationController::class, 'dashboardInsights']);
 });
-

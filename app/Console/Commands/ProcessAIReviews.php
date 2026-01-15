@@ -16,7 +16,15 @@ class ProcessAIReviews extends Command
 
     protected $description = 'Process reviews with OpenAI AI analysis';
 
+    private OpenAIProcessorService $processor;
+
     private $logHandle;
+
+    public function __construct(OpenAIProcessorService $processor)
+    {
+        parent::__construct();
+        $this->processor = $processor;
+    }
 
     public function handle()
     {
@@ -39,7 +47,6 @@ class ProcessAIReviews extends Command
 
             $this->fileWrite("Processing completed successfully at " . now() . "\n");
             $this->fileWrite(str_repeat("=", 80) . "\n\n");
-
         } catch (\Exception $e) {
             $errorMessage = "❌ Processing failed: " . $e->getMessage();
             $this->fileWrite("ERROR: " . $errorMessage . "\n");
@@ -76,9 +83,9 @@ class ProcessAIReviews extends Command
         try {
             if ($this->option('test')) {
                 $this->fileWrite("TEST MODE: Analyzing review without saving\n");
-                $payload = OpenAIProcessorService::createPayloadFromReview($review);
-                $enabledModules = OpenAIProcessorService::getBusinessAIModules($review->business_id);
-                $result = OpenAIProcessorService::processReviewWithOpenAI($payload, $enabledModules);
+                $payload = $this->processor->createPayloadFromReview($review);
+                $enabledModules = $this->processor->getBusinessAiModules($review->business_id);
+                $result = $this->processor->processReviewWithOpenAI($payload, $enabledModules);
 
                 $this->fileWrite("\n✅ OpenAI Analysis Results:\n");
                 $this->fileWrite("   Sentiment: " . ($result['sentiment']['label'] ?? 'N/A') . "\n");
@@ -101,7 +108,6 @@ class ProcessAIReviews extends Command
                     $this->fileWrite("   Tokens Used: " . $tokens . "\n");
                     $this->fileWrite("  Tokens Used: " . $tokens . "\n");
                 }
-
             } else {
                 $this->fileWrite("PRODUCTION MODE: Processing and saving results\n");
                 $forceReprocess = $this->option('force');
@@ -110,7 +116,7 @@ class ProcessAIReviews extends Command
                     $this->fileWrite("Force reprocessing enabled\n");
                 }
 
-                $result = OpenAIProcessorService::analyzeReview($review, $forceReprocess);
+                $result = $this->processor->analyzeReview($review, $forceReprocess);
 
                 if ($result['status'] === 'already_processed' && !$forceReprocess) {
                     $logMessage = "Review #{$review->id} already processed. Skipping.\n";
@@ -146,7 +152,6 @@ class ProcessAIReviews extends Command
                     $this->fileWrite("   Status: " . $result['message'] . "\n");
                 }
             }
-
         } catch (\Exception $e) {
             $errorMessage = "Processing failed for review #{$review->id}: " . $e->getMessage();
             $this->fileWrite("ERROR: " . $errorMessage . "\n");
@@ -198,10 +203,10 @@ class ProcessAIReviews extends Command
                 if ($this->option('test')) {
                     // Test mode
                     $this->fileWrite("Testing review #{$review->id}\n");
-                    $payload = OpenAIProcessorService::createPayloadFromReview($review);
+                    $payload = $this->processor->createPayloadFromReview($review);
 
-                    $enabledModules = OpenAIProcessorService::getBusinessAIModules($review->business_id);
-                    $result = OpenAIProcessorService::processReviewWithOpenAI($payload, $enabledModules);
+                    $enabledModules = $this->processor->getBusinessAiModules($review->business_id);
+                    $result = $this->processor->processReviewWithOpenAI($payload, $enabledModules);
 
                     $tokens = $result['_metadata']['tokens_used'] ?? 0;
                     $totalTokens += $tokens;
@@ -211,7 +216,6 @@ class ProcessAIReviews extends Command
                         " sentiment, " . ($result['themes'][0]['topic'] ?? 'no themes') .
                         " (Tokens: {$tokens})\n";
                     $this->fileWrite($logMessage);
-
                 } else {
                     // Production mode
                     $forceReprocess = $this->option('force');
@@ -220,7 +224,7 @@ class ProcessAIReviews extends Command
                         $alreadyProcessed++;
                         $this->fileWrite("Review #{$review->id} already processed, skipping\n");
                     } else {
-                        $result = OpenAIProcessorService::analyzeReview($review, $forceReprocess);
+                        $result = $this->processor->analyzeReview($review, $forceReprocess);
 
                         if ($result['status'] === 'already_processed') {
                             $alreadyProcessed++;
@@ -233,7 +237,6 @@ class ProcessAIReviews extends Command
                         }
                     }
                 }
-
             } catch (\Exception $e) {
                 $failedCount++;
                 $errorMessage = "Review #{$review->id} failed: " . $e->getMessage();

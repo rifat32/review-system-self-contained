@@ -81,7 +81,7 @@ class RuleExplanationService
      */
     private static function getSystemPrompt(): string
     {
-        return "You are an expert product analyst. Your task is to explain business rules in clear, simple language for non-technical business owners. Do not include technical jargon. Explain what the rule does, why it matters, and when it triggers. You must respond with a JSON object matching this structure: {\"explanation_title\": \"...\", \"plain_explanation\": \"...\", \"why_it_matters\": \"...\", \"when_it_triggers\": \"...\"}";
+        return "You are an expert product analyst. Your task is to explain business rules in clear, simple language for non-technical business owners. Do not include technical jargon. Explain what the rule does, why it matters, and when it triggers. You must respond with a JSON object matching this structure: {\"short_explanation\": \"...\", \"detailed_explanation\": \"...\", \"why_it_matters\": \"...\", \"when_it_triggers\": \"...\"}";
     }
 
     /**
@@ -130,7 +130,7 @@ class RuleExplanationService
             }
 
             // Validate required fields from proposal
-            $required = ['explanation_title', 'plain_explanation', 'why_it_matters', 'when_it_triggers'];
+            $required = ['short_explanation', 'detailed_explanation', 'why_it_matters', 'when_it_triggers'];
             foreach ($required as $field) {
                 if (!isset($parsed[$field])) {
                     Log::warning("OpenAI response missing required field: {$field}", ['parsed' => $parsed]);
@@ -182,8 +182,8 @@ class RuleExplanationService
         $ruleName = $ruleData['rule_name'] ?? 'Business Rule';
 
         return [
-            'explanation_title' => "AI Rule: {$ruleName}",
-            'plain_explanation' => "This rule monitors reviews for patterns related to {$category}.",
+            'short_explanation' => "AI Rule: {$ruleName}",
+            'detailed_explanation' => "This rule monitors reviews for patterns related to {$category}.",
             'why_it_matters' => "Maintaining high standards in {$category} is crucial for customer satisfaction.",
             'when_it_triggers' => "This rule triggers when specific criteria matching the {$category} category are met in customer feedback."
         ];
@@ -233,8 +233,8 @@ class RuleExplanationService
 
                 if ($explanations) {
                     $rule->update([
-                        'ai_explanation_title' => $explanations['explanation_title'],
-                        'ai_plain_explanation' => $explanations['plain_explanation'],
+                        'ai_explanation_title' => $explanations['short_explanation'],
+                        'ai_plain_explanation' => $explanations['detailed_explanation'],
                         'ai_why_it_matters' => $explanations['why_it_matters'],
                         'ai_when_it_triggers' => $explanations['when_it_triggers'],
                         'ai_generated_at' => now()

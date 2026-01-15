@@ -2,7 +2,7 @@
 
 namespace App\Services\AIProcessor;
 
-use App\Models\BusinessAIModule;
+use App\Models\BusinessAiModule;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Models\OpenAITokenUsage;
@@ -79,15 +79,15 @@ class OpenAIProcessorService
     {
         try {
 
-            $aiModules = BusinessAIModule::where('business_id', $businessId)->first();
+            $aiModules = BusinessAiModule::where('business_id', $businessId)->first();
 
             if ($aiModules) {
                 return $aiModules->getEnabledModules();
             }
 
             // Create default if not exists
-            $defaultModules = BusinessAIModule::getDefaultForBusiness($businessId);
-            BusinessAIModule::create($defaultModules);
+            $defaultModules = BusinessAiModule::getDefaultForBusiness($businessId);
+            BusinessAiModule::create($defaultModules);
 
             return $defaultModules;
         } catch (\Exception $e) {
@@ -97,7 +97,7 @@ class OpenAIProcessorService
             ]);
 
             // Return all enabled as fallback
-            return BusinessAIModule::getDefaultForBusiness($businessId);
+            return BusinessAiModule::getDefaultForBusiness($businessId);
         }
     }
 
@@ -1654,11 +1654,53 @@ PROMPT;
 
     public function generateRecommendations(array $aiResult, array $enabledModules): array
     {
-        if (!in_array('recommendations', $enabledModules)) {
+        if (!in_array('recommendations', $enabledModules) && !in_array('business_recommendations', $enabledModules)) {
             return [];
         }
 
         return $aiResult['recommendations'] ?? [];
+    }
+
+    /**
+     * Extract detailed insights from OpenAI result
+     */
+    private function extractInsights(array $result, array $enabledModules): array
+    {
+        $insights = [];
+
+        if (isset($result['category_analysis'])) {
+            $insights['category_analysis'] = $result['category_analysis'];
+        }
+
+        if (isset($result['staff_intelligence'])) {
+            $insights['staff_intelligence'] = $result['staff_intelligence'];
+        }
+
+        if (isset($result['area_insights'])) {
+            $insights['area_insights'] = $result['area_insights'];
+        }
+
+        if (isset($result['business_insights'])) {
+            $insights['business_insights'] = $result['business_insights'];
+        }
+
+        if (isset($result['alerts'])) {
+            $insights['alerts'] = $result['alerts'];
+        }
+
+        if (isset($result['flags'])) {
+            $insights['flags'] = $result['flags'];
+        }
+
+        if (isset($result['explainability'])) {
+            $insights['explainability'] = $result['explainability'];
+        }
+
+        if (isset($result['summary'])) {
+            $insights['summary'] = $result['summary'];
+        }
+
+        return $insights;
     }
 
 
@@ -1797,7 +1839,7 @@ PROMPT;
     public function updateBusinessAiModule(int $businessId, int $tokens, float $cost): void
     {
         try {
-            $module = BusinessAIModule::where('business_id', $businessId)->first();
+            $module = BusinessAiModule::where('business_id', $businessId)->first();
             if ($module) {
                 $module->increment('total_tokens_used', $tokens);
                 $module->increment('total_cost_usd', $cost);
@@ -1817,7 +1859,7 @@ PROMPT;
      */
     public function getEnabledModules(int $businessId): array
     {
-        $modules = BusinessAIModule::where('business_id', $businessId)->first();
+        $modules = BusinessAiModule::where('business_id', $businessId)->first();
 
         if ($modules) {
             return $modules->getEnabledModules();
@@ -1904,7 +1946,7 @@ PROMPT;
     public function updateBusinessAiModules(int $businessId, array $modules): bool
     {
         try {
-            $aiModule = BusinessAIModule::firstOrNew(['business_id' => $businessId]);
+            $aiModule = BusinessAiModule::firstOrNew(['business_id' => $businessId]);
 
             // Only update optional modules (required modules are always true)
             $updatableModules = [

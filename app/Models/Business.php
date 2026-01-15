@@ -17,6 +17,8 @@ class Business extends Model
 
     protected $fillable = [
         "Name",
+        'is_active',
+        'last_recommendation_at',
         "Address",
         "PostCode",
         "OwnerID",
@@ -100,7 +102,7 @@ class Business extends Model
 
     public function aiModules()
     {
-        return $this->hasOne(BusinessAIModule::class);
+        return $this->hasOne(BusinessAiModule::class);
     }
 
 

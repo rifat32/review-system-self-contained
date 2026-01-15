@@ -432,4 +432,130 @@ class RuleExecutionService
 
         return $query->get();
     }
+
+    // ==================== SCHEDULING & ORCHESTRATION ====================
+
+    /**
+     * Run scheduled rules based on frequency
+     * Moved from ExecuteScheduledRulesJob to avoid queue dependency
+     */
+    public function runScheduledRules(): void
+    {
+        Log::info("Starting scheduled rule execution", [
+            'time' => now()->toDateTimeString()
+        ]);
+
+        // Get rules that need to run
+        $rules = $this->getRulesToExecute();
+
+        $summary = [
+            'total_rules' => $rules->count(),
+            'executed' => 0,
+            'failed' => 0,
+            'results' => []
+        ];
+
+        foreach ($rules as $rule) {
+            try {
+                // Get reviews for this rule
+                $reviews = $this->getReviewsForRule($rule);
+
+                if ($reviews->isEmpty()) {
+                    Log::debug("No reviews to evaluate for rule, advancing next run time.", [
+                        'rule_id' => $rule->rule_id
+                    ]);
+                    // CRITICAL FIX: Advance last_run_at and next_run_at even if no reviews are found
+                    $rule->update([
+                        'last_run_at' => \now(),
+                        'next_run_at' => $this->calculateNextRun($rule)
+                    ]);
+                    continue;
+                }
+
+                // Execute the rule
+                $result = $this->executeRule($rule, $reviews);
+
+                $summary['executed']++;
+                $summary['results'][] = $result;
+
+                Log::info("Rule executed successfully", [
+                    'rule_id' => $rule->rule_id,
+                    'result' => $result
+                ]);
+
+                // Update last_run_at and next_run_at after successful execution
+                $rule->update([
+                    'last_run_at' => \now(),
+                    'next_run_at' => $this->calculateNextRun($rule)
+                ]);
+            } catch (\Exception $e) {
+                $summary['failed']++;
+
+                Log::error("Rule execution failed", [
+                    'rule_id' => $rule->rule_id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // Even if failed, advance the run times to prevent immediate re-attempt
+                $rule->update([
+                    'last_run_at' => \now(),
+                    'next_run_at' => $this->calculateNextRun($rule)
+                ]);
+            }
+        }
+
+        Log::info("Scheduled rule execution completed", $summary);
+    }
+
+    /**
+     * Run a single rule (e.g. for real-time triggers)
+     * Moved from ExecuteSingleRuleJob
+     */
+    public function runSingleRule(AiRule $rule, ReviewNew $review): void
+    {
+        try {
+            Log::debug("Executing real-time rule", [
+                'rule_id' => $rule->rule_id,
+                'review_id' => $review->id
+            ]);
+
+            // Execute rule against single review
+            $result = $this->executeRule($rule, collect([$review]));
+
+            Log::info("Real-time rule executed", [
+                'rule_id' => $rule->rule_id,
+                'review_id' => $review->id,
+                'result' => $result
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Real-time rule execution failed", [
+                'rule_id' => $rule->rule_id,
+                'review_id' => $review->id,
+                'error' => $e->getMessage()
+            ]);
+            // We don't throw here to avoid crashing the calling process, allow logging
+        }
+    }
+
+    /**
+     * Get rules that should be executed based on frequency
+     */
+    private function getRulesToExecute(?string $frequency = 'all')
+    {
+        $query = AiRule::where('enabled', true)
+            ->where('run_frequency', '!=', 'real_time');
+
+        // Filter by frequency if specified
+        if ($frequency !== 'all') {
+            $query->where('run_frequency', $frequency);
+        }
+
+        // Only get rules that are due to run
+        $query->where(function ($q) {
+            $q->whereNull('next_run_at')
+                ->orWhere('next_run_at', '<=', now());
+        });
+
+        return $query->get();
+    }
 }

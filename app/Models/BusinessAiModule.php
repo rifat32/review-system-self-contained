@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BusinessAIModule extends Model
+class BusinessAiModule extends Model
 {
     protected $table = 'business_ai_modules';
 
