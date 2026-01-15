@@ -889,9 +889,13 @@ class DashboardController extends Controller
     public function getStaffInsights(Request $request)
     {
 
+        $user = auth()->user();
         // GET BUSINESS ID
-        $businessId = auth()->user()->business_id;
-
+        $businessId = $user->business_id;
+        // Apply branch filter
+        $userBranchId = ($user->hasRole('branch_manager') || $user->hasRole('business_owner'))
+            ? $user->default_branch_id
+            : null;
         // Validate period and get date range using service
         $dateRange = $this->dashboardService->validateAndGetDateRange(
             $request->get('period', 'last_30_days')
@@ -900,11 +904,9 @@ class DashboardController extends Controller
         // Get reviews with staff for the current period
         $staffReviewQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
+            ->when($userBranchId, fn($query) => $query->where('branch_id', $userBranchId))
+            ->when($dateRange, fn($query) => $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
             ->withCalculatedRating();
-
-        if ($dateRange) {
-            $staffReviewQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-        }
 
         $staffReviews = $staffReviewQuery->get();
         // Calculate overall sentiment
@@ -1042,11 +1044,11 @@ class DashboardController extends Controller
         $activeSurveysQuery = Survey::where('business_id', $businessId)
             ->where('is_active', true);
 
-        if ($userBranchId) {
-            $activeSurveysQuery->whereHas('reviews', function ($query) use ($userBranchId) {
-                $query->where('branch_id', $userBranchId);
-            });
-        }
+        // if ($userBranchId) {
+        //     $activeSurveysQuery->whereHas('reviews', function ($query) use ($userBranchId) {
+        //         $query->where('branch_id', $userBranchId);
+        //     });
+        // }
 
         if ($dateRange) {
             $activeSurveysQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
