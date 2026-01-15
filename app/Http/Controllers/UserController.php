@@ -518,7 +518,7 @@ class UserController extends Controller
         // Build query for users in the same business
         $userQuery = User::with([
             'roles:id,name',
-            'branch'
+            'branches'
         ])->where('business_id', $business_id);
 
         // Filter by role - if no role specified, show only staff and manager roles
