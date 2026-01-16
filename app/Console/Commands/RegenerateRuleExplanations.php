@@ -37,16 +37,9 @@ class RegenerateRuleExplanations extends Command
             $rules = $this->getRulesToProcess();
 
             if ($rules->isEmpty()) {
-                // Check if table is empty at all
-                if (AiRule::count() === 0) {
-                    $this->info('No rules found in database. Seeding default rules...');
-                    $this->call('db:seed', ['--class' => 'AiRuleSeeder']);
-                    $rules = $this->getRulesToProcess();
-                } else {
-                    $this->info('No rules found needing regeneration (use --all to force).');
-                    $this->fileWrite("No rules found to process.\n");
-                    return 0;
-                }
+                $this->info('No rules found needing regeneration (use --all to force).');
+                $this->fileWrite("No rules found to process.\n");
+                return 0;
             }
 
             $this->info("Found {$rules->count()} rule(s) to process");
