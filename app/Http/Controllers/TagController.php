@@ -186,15 +186,15 @@ class TagController extends Controller
         // VALIDATE QUERY
         $request->validate([
             'business_id' => ['nullable', 'integer', new ValidBusiness()],
-            'is_active'   => ['nullable', 'in:0,1,true,false'],
-            'is_default'  => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'in:0,1,true,false'],
+            'is_default' => ['nullable', 'boolean'],
         ]);
 
         $tags = Tag::query()
             ->when($request->filled('business_id'), fn($q) => $q->where('business_id', $request->integer('business_id')))
             ->orWhere(["business_id" => NULL, "is_default" => 1])
-            ->when($request->has('is_active'), fn($q) => $q->where('is_active', $request->boolean('is_active')))
-            ->when($request->has('is_default'), fn($q) => $q->where('is_default', $request->boolean('is_default')))
+            ->when($request->boolean('is_active'), fn($q) => $q->where('is_active', $request->boolean('is_active')))
+            ->when($request->boolean('is_default'), fn($q) => $q->where('is_default', $request->boolean('is_default')))
             ->latest()
             ->get();
 
@@ -661,7 +661,7 @@ class TagController extends Controller
 
 
 
- // ##################################################
+    // ##################################################
     // This method is to store tag
     // ##################################################
     /**
@@ -727,7 +727,7 @@ class TagController extends Controller
         if ($request->user()->hasRole("superadmin")) {
             $question["is_default"] = true;
         } else {
-            $business =    Business::where(["id" => $request->business_id])->first();
+            $business = Business::where(["id" => $request->business_id])->first();
             if (!$business) {
                 return response()->json(["message" => "No Business Found"]);
             }
@@ -735,7 +735,7 @@ class TagController extends Controller
 
 
 
-        $createdQuestion =    Tag::create($question);
+        $createdQuestion = Tag::create($question);
 
 
         return response($createdQuestion, 201);
@@ -995,11 +995,11 @@ class TagController extends Controller
             'tag' => $request->tag,
             'is_active' => $request->is_active
         ];
-        $checkQuestion =    Tag::where(["id" => $request->id])->first();
+        $checkQuestion = Tag::where(["id" => $request->id])->first();
         if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
             return response()->json(["message" => "you can not update the question. you are not a super admin"]);
         }
-        $updatedQuestion =    tap(Tag::where(["id" => $request->id]))->update(
+        $updatedQuestion = tap(Tag::where(["id" => $request->id]))->update(
             $question
         )
             // ->with("somthing")
@@ -1066,7 +1066,7 @@ class TagController extends Controller
      *      )
      *     )
      */
-    public function   getTag(Request $request)
+    public function getTag(Request $request)
     {
 
         $is_dafault = false;
@@ -1075,26 +1075,27 @@ class TagController extends Controller
         if ($request->user()->hasRole("superadmin")) {
             $is_dafault = true;
             $businessId = NULL;
-            $query =  Tag::where(["business_id" => NULL, "is_default" => true])
+            $query = Tag::where(["business_id" => NULL, "is_default" => true])
                 ->when(request()->filled("is_active"), function ($query) {
                     $query->where("tags.is_active", request()->input("is_active"));
                 });
         } else {
-            $business =    Business::where(["id" => $request->business_id])->first();
+            $business = Business::where(["id" => $request->business_id])->first();
             if (!$business && !$request->user()->hasRole("superadmin")) {
                 return response("No Business Found", 404);
             }
 
-            $query =  Tag::where(["business_id" => $businessId, "is_default" => 0])
+            $query = Tag::where(["business_id" => $businessId, "is_default" => 0])
                 ->orWhere(["business_id" => NULL, "is_default" => 1])
                 ->when(request()->filled("is_active"), function ($query) {
                     $query->where("tags.is_active", request()->input("is_active"));
-                });;
+                });
+            ;
         }
 
 
 
-        $questions =  $query->get();
+        $questions = $query->get();
 
 
         return response($questions, 200);
@@ -1150,9 +1151,9 @@ class TagController extends Controller
      *      )
      *     )
      */
-    public function   TagById($id, Request $request)
+    public function TagById($id, Request $request)
     {
-        $questions =    Tag::where(["id" => $id])
+        $questions = Tag::where(["id" => $id])
             ->first();
         if (!$questions) {
             return response([
@@ -1215,9 +1216,9 @@ class TagController extends Controller
      *      )
      *     )
      */
-    public function   getTagById2($id, $restaurantId, Request $request)
+    public function getTagById2($id, $restaurantId, Request $request)
     {
-        $questions =    Tag::where(["id" => $id, "business_id" => $restaurantId])
+        $questions = Tag::where(["id" => $id, "business_id" => $restaurantId])
             ->first();
         if (!$questions) {
             return response([
@@ -1283,9 +1284,9 @@ class TagController extends Controller
      *      )
      *     )
      */
-    public function   deleteTagById($id, Request $request)
+    public function deleteTagById($id, Request $request)
     {
-        $tag =    Tag::where(["id" => $id])
+        $tag = Tag::where(["id" => $id])
             ->first();
 
 
@@ -1297,7 +1298,7 @@ class TagController extends Controller
         }
 
 
-        $review_value_tag_exists =   DB::table("review_value_tag")
+        $review_value_tag_exists = DB::table("review_value_tag")
             ->where(["tag_id" => $id])
             ->exists();
 

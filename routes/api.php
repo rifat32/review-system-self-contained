@@ -236,6 +236,8 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/v1.0/users/{id}', [UserController::class, 'deleteUserById']);
 
 
+
+
     // ============================================================================
     // LeafletController – CRUD (protected)
     // ============================================================================
@@ -582,6 +584,8 @@ Route::get('/v1.0/client/questions/{business_id}', [QuestionController::class, '
 Route::get('/v1.0/client/surveys/{id}', [SurveyController::class, "getSurveyByIdClient"]);
 Route::post('/v1.0/client/email/send-email', [EmailController::class, "sendEmail"]);
 
+// Client Users (with branch filtering)
+Route::get('/v1.0/clients/users/{business_id}', [UserController::class, 'getUserClient']);
 
 Route::prefix('api')->group(function () {
     Route::post('/recommendations/generate', [RecommendationController::class, 'generate']);
