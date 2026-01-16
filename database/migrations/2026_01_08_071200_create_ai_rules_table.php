@@ -22,14 +22,27 @@ return new class extends Migration {
             $table->enum('scope', ['system', 'business_type', 'business']);
             $table->string('business_type', 50)->nullable();
             $table->unsignedBigInteger('business_id')->nullable();
+            $table->json('branch_ids')->nullable();
 
             $table->string('category', 50);
             $table->string('priority', 20)->default('medium');
             $table->boolean('enabled')->default(true);
+            $table->boolean('multi_tag_detection')->default(false);
+            $table->boolean('trigger_only_on_first_occurrence')->default(false);
+            $table->enum('applies_to', ['new_reviews_only', 'all_reviews'])->default('new_reviews_only');
+            $table->decimal('precision_rate', 5, 2)->nullable();
+            $table->integer('lifetime_triggers')->default(0);
 
             $table->json('conditions');
             $table->json('actions');
             $table->json('explainability')->nullable();
+
+            $table->string('ai_explanation_title')->nullable();
+            $table->text('ai_plain_explanation')->nullable();
+            $table->text('ai_why_it_matters')->nullable();
+            $table->text('ai_when_it_triggers')->nullable();
+            $table->text('ai_manager_tip')->nullable();
+            $table->timestamp('ai_generated_at')->nullable();
 
             // Explanation fields
             $table->text('short_explanation')->nullable();

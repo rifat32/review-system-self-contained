@@ -14,6 +14,7 @@ return new class extends Migration {
     {
         Schema::create('businesses', function (Blueprint $table) {
             $table->id();
+            $table->boolean('is_active')->default(true);
             $table->boolean('show_image')->default(1);
             $table->string('Name');
             $table->text('About')->nullable();
@@ -113,7 +114,12 @@ return new class extends Migration {
             $table->boolean('is_branch')->default(false);
 
             $table->softDeletes();
+            $table->timestamp('last_recommendation_at')->nullable();
             $table->timestamps();
+
+            // Indexes
+            $table->index('is_active');
+            $table->index('last_recommendation_at');
         });
     }
 

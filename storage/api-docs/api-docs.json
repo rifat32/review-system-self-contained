@@ -1655,7 +1655,7 @@
                                                 "avg_rating": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 4.2
+                                                    "example": 4.20000000000000017763568394002504646778106689453125
                                                 },
                                                 "overall_sentiment": {
                                                     "type": "number",
@@ -2713,12 +2713,12 @@
                                                 "lat": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 40.7128
+                                                    "example": 40.7128000000000014324541552923619747161865234375
                                                 },
                                                 "long": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": -74.006
+                                                    "example": -74.006000000000000227373675443232059478759765625
                                                 },
                                                 "created_at": {
                                                     "type": "string",
@@ -7052,13 +7052,13 @@
                                         "description": "Business latitude coordinate",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 40.7128
+                                        "example": 40.7128000000000014324541552923619747161865234375
                                     },
                                     "longitude": {
                                         "description": "Business longitude coordinate",
                                         "type": "number",
                                         "format": "float",
-                                        "example": -74.006
+                                        "example": -74.006000000000000227373675443232059478759765625
                                     },
                                     "review_distance_limit": {
                                         "description": "Maximum distance (km) to allow reviews",
@@ -8474,7 +8474,7 @@
         "/v1.0/customers": {
             "get": {
                 "tags": [
-                    "reports"
+                    "customer_management"
                 ],
                 "summary": "Get customers with advanced filtering and pagination",
                 "description": "Retrieve a list of customers with various filtering options including ratings, reviews, frequency visits, and pagination support",
@@ -8697,7 +8697,7 @@
                                                     "avg_satisfaction": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.2
+                                                        "example": 4.20000000000000017763568394002504646778106689453125
                                                     },
                                                     "common_complaints": {
                                                         "type": "array",
@@ -9426,7 +9426,7 @@
                                                             "average_rating": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 4.7
+                                                                "example": 4.70000000000000017763568394002504646778106689453125
                                                             },
                                                             "total_reviews": {
                                                                 "type": "integer",
@@ -9503,7 +9503,7 @@
                                                             "average_rating": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 2.3
+                                                                "example": 2.29999999999999982236431605997495353221893310546875
                                                             },
                                                             "total_reviews": {
                                                                 "type": "integer",
@@ -9574,7 +9574,7 @@
                                                         "overall_service_rating": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 3.8
+                                                            "example": 3.79999999999999982236431605997495353221893310546875
                                                         },
                                                         "best_performing_service": {
                                                             "type": "string",
@@ -9831,7 +9831,7 @@
                                                             "rating": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 4.8
+                                                                "example": 4.79999999999999982236431605997495353221893310546875
                                                             },
                                                             "review_count": {
                                                                 "type": "integer",
@@ -10007,7 +10007,7 @@
                                                         "rating": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 4.8
+                                                            "example": 4.79999999999999982236431605997495353221893310546875
                                                         },
                                                         "review_count": {
                                                             "type": "integer",
@@ -10623,7 +10623,7 @@
                                                         },
                                                         "avg_rating": {
                                                             "type": "number",
-                                                            "example": 4.2
+                                                            "example": 4.20000000000000017763568394002504646778106689453125
                                                         },
                                                         "sentiment_distribution": {
                                                             "properties": {
@@ -10655,7 +10655,7 @@
                                                             "type": "object",
                                                             "example": {
                                                                 "2023-01": 4,
-                                                                "2023-02": 4.2
+                                                                "2023-02": 4.20000000000000017763568394002504646778106689453125
                                                             }
                                                         },
                                                         "trend_direction": {
@@ -11044,6 +11044,20 @@
                             ]
                         },
                         "example": "last_30_days"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "Filter reviews by overall status (1 = overall reviews, 0 = non-overall reviews, not specified = all reviews)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "example": 1
                     }
                 ],
                 "responses": {
@@ -11231,7 +11245,7 @@
                                                 "average_rating": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 4.2
+                                                    "example": 4.20000000000000017763568394002504646778106689453125
                                                 },
                                                 "total_reviews": {
                                                     "type": "integer",
@@ -11602,7 +11616,7 @@
                                                 "average_performance": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 4.2
+                                                    "example": 4.20000000000000017763568394002504646778106689453125
                                                 }
                                             },
                                             "type": "object"
@@ -11697,7 +11711,7 @@
                                                     "properties": {
                                                         "value": {
                                                             "type": "number",
-                                                            "example": 4.2
+                                                            "example": 4.20000000000000017763568394002504646778106689453125
                                                         },
                                                         "change": {
                                                             "type": "number",
@@ -11731,7 +11745,7 @@
                                                         },
                                                         "change": {
                                                             "type": "number",
-                                                            "example": 3.2,
+                                                            "example": 3.20000000000000017763568394002504646778106689453125,
                                                             "nullable": true
                                                         },
                                                         "review_count": {
@@ -14964,7 +14978,7 @@
                                                         "avg_cost_per_request": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 0.085
+                                                            "example": 0.08500000000000000610622663543836097232997417449951171875
                                                         },
                                                         "first_request": {
                                                             "type": "string",
@@ -15007,7 +15021,7 @@
                                                             "percentage_of_total": {
                                                                 "type": "number",
                                                                 "format": "float",
-                                                                "example": 33.33
+                                                                "example": 33.3299999999999982946974341757595539093017578125
                                                             }
                                                         },
                                                         "type": "object"
@@ -22321,7 +22335,7 @@
                                                     "description": "Average calculated rating score",
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 4.3
+                                                    "example": 4.29999999999999982236431605997495353221893310546875
                                                 },
                                                 "staff_link_reviews": {
                                                     "description": "Number of reviews linked to specific staff members",
@@ -25063,7 +25077,7 @@
                                                     "rating": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 4.2
+                                                        "example": 4.20000000000000017763568394002504646778106689453125
                                                     }
                                                 },
                                                 "type": "object"
@@ -25464,7 +25478,7 @@
                                                 "average_rating": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 4.2
+                                                    "example": 4.20000000000000017763568394002504646778106689453125
                                                 },
                                                 "total_staff": {
                                                     "type": "integer",
@@ -25480,7 +25494,7 @@
                                                         "review_change": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 12.3
+                                                            "example": 12.300000000000000710542735760100185871124267578125
                                                         }
                                                     },
                                                     "type": "object"
@@ -25709,6 +25723,20 @@
                             ]
                         },
                         "example": "last_30_days"
+                    },
+                    {
+                        "name": "is_overall",
+                        "in": "query",
+                        "description": "Filter reviews by overall status (1 = overall reviews, 0 = non-overall reviews, not specified = all reviews)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "example": 1
                     }
                 ],
                 "responses": {
@@ -29198,7 +29226,7 @@
                     "user_management.super_admin"
                 ],
                 "summary": "Delete user by id",
-                "description": "\r\n     *     Rules:\r\n     *     - Superadmin can delete ONLY business owners and it's business\r\n     *     - Business owner can delete users within their own business\r\n     *     - Business owner cannot delete another business owner\r\n     *     ",
+                "description": "\n     *     Rules:\n     *     - Superadmin can delete ONLY business owners and it's business\n     *     - Business owner can delete users within their own business\n     *     - Business owner cannot delete another business owner\n     *     ",
                 "operationId": "deleteUserById",
                 "parameters": [
                     {
@@ -30170,6 +30198,183 @@
                     }
                 ]
             }
+        },
+        "/v1.0/clients/users/{business_id}": {
+            "get": {
+                "tags": [
+                    "user_management"
+                ],
+                "summary": "Get user clients for authenticated user's business",
+                "description": "Retrieve users (clients/staff) for the authenticated user's business with optional filtering and pagination",
+                "operationId": "getUserClient",
+                "parameters": [
+                    {
+                        "name": "business_id",
+                        "in": "path",
+                        "description": "Filter by user role",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "description": "Filter by user role",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "business_staff"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        },
+                        "example": 15
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Column to sort by",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "created_at"
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort order (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ]
+                        },
+                        "example": "desc"
+                    },
+                    {
+                        "name": "branch_id",
+                        "in": "query",
+                        "description": "Filter by branch id",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User client fetched successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "first_Name": {
+                                                        "type": "string",
+                                                        "example": "John"
+                                                    },
+                                                    "last_Name": {
+                                                        "type": "string",
+                                                        "example": "Doe"
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "example": "john@example.com"
+                                                    },
+                                                    "business_id": {
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "meta": {
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 50
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -30932,8 +31137,8 @@
             "description": "business_service_management"
         },
         {
-            "name": "reports",
-            "description": "reports"
+            "name": "customer_management",
+            "description": "customer_management"
         },
         {
             "name": "daily_views",

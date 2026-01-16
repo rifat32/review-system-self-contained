@@ -40,6 +40,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('staff_id')->nullable();
             $table->foreign('staff_id')->references('id')->on('users')->onDelete('set null');
             $table->enum('status', ['pending', 'published', 'rejected'])->default('pending');
+            $table->boolean('is_flagged')->default(false);
             $table->integer('order_no')->default(0);
             $table->float('sentiment_score')->nullable();
             $table->json('topics')->nullable();
@@ -60,6 +61,8 @@ return new class extends Migration {
             $table->decimal('ai_confidence', 3, 2)->nullable()->comment('Confidence score 0.00-1.00');
             $table->string('sentiment_label', 20)->nullable()->comment('very_negative, negative, neutral, positive, very_positive');
             $table->json('openai_raw_response')->nullable();
+            $table->json('ai_insights')->nullable();
+            $table->json('ai_recommendations')->nullable();
             $table->boolean('is_abusive')->default(false);
             $table->text('summary')->nullable();
             $table->json('service_analysis')->nullable();
@@ -70,7 +73,6 @@ return new class extends Migration {
 
 
             $table->timestamps();
-
         });
     }
 
