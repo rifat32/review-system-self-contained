@@ -60,6 +60,8 @@ return new class extends Migration {
             $table->timestamp('next_run_at')->nullable();
 
             $table->string('created_by', 50)->default('system');
+            $table->boolean('is_default')->default(false)
+                ->comment('True for system-owned default rules, false for user-created custom rules');
             $table->integer('version')->default(1);
             $table->timestamps();
 

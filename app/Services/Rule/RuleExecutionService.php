@@ -539,10 +539,12 @@ class RuleExecutionService
 
     /**
      * Get rules that should be executed based on frequency
+     * CRITICAL: Only custom rules (is_default=false) should trigger notifications
      */
     private function getRulesToExecute(?string $frequency = 'all')
     {
         $query = AiRule::where('enabled', true)
+            ->where('is_default', false) // CRITICAL: Only custom rules trigger notifications
             ->where('run_frequency', '!=', 'real_time');
 
         // Filter by frequency if specified

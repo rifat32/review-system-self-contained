@@ -1,39 +1,111 @@
 <?php
 
-namespace Database\Seeders;
+namespace App\Services\Rule;
 
 use App\Models\AiRule;
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
-class AiRuleSeeder extends Seeder
+class DefaultRuleSeederService
 {
     /**
-     * Run the database seeds.
-     * Creates 9 default rules for EACH business
+     * List of required default rules
      */
-    public function run(): void
+    private static array $requiredRules = [
+        'SENTIMENT_ANALYSIS',
+        'EMOTION_INTENSITY',
+        'RATING_COMMENT_MISMATCH',
+        'CATEGORY_ISSUE_DETECTION',
+        'SERVICE_TYPE_DETECTION',
+        'BUSINESS_AREA_DETECTION',
+        'STAFF_MENTION_DETECTION',
+        'STAFF_PERFORMANCE_RISK',
+        'FLAG_AND_ALERT'
+    ];
+
+    /**
+     * Ensure all 9 default rules exist for a business
+     * Auto-creates missing rules
+     */
+    public static function ensureDefaultRulesExist(int $businessId): array
     {
-        // Get all businesses to create default rules for each
-        $businesses = \App\Models\Business::all();
+        $results = [
+            'existing' => [],
+            'created' => [],
+            'errors' => []
+        ];
 
-        if ($businesses->isEmpty()) {
-            $this->command->warn('No businesses found. Default rules will be created when businesses are added.');
-            return;
+        foreach (self::$requiredRules as $ruleKey) {
+            $ruleId = $ruleKey . '.' . $businessId;
+
+            $exists = AiRule::where('rule_id', $ruleId)
+                ->where('is_default', true)
+                ->exists();
+
+            if ($exists) {
+                $results['existing'][] = $ruleId;
+            } else {
+                try {
+                    $rule = self::recreateRule($ruleKey, $businessId);
+                    $results['created'][] = $ruleId;
+
+                    Log::info('Default rule auto-created', [
+                        'rule_id' => $ruleId,
+                        'business_id' => $businessId
+                    ]);
+                } catch (\Exception $e) {
+                    $results['errors'][] = [
+                        'rule_id' => $ruleId,
+                        'error' => $e->getMessage()
+                    ];
+
+                    Log::error('Failed to create default rule', [
+                        'rule_id' => $ruleId,
+                        'business_id' => $businessId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
         }
 
-        foreach ($businesses as $business) {
-            $this->createDefaultRulesForBusiness($business->id);
-        }
+        return $results;
     }
 
     /**
-     * Create 9 default rules for a specific business
+     * Recreate a specific default rule for a business
      */
-    public function createDefaultRulesForBusiness(int $businessId): void
+    public static function recreateRule(string $ruleKey, int $businessId): AiRule
     {
-        $rules = [
-            [
+        $ruleData = self::getRuleDefinition($ruleKey, $businessId);
+
+        if (!$ruleData) {
+            throw new \Exception("Unknown rule key: {$ruleKey}");
+        }
+
+        return AiRule::updateOrCreate(
+            ['rule_id' => $ruleData['rule_id']],
+            array_merge($ruleData, [
+                'created_by' => 'system_auto_recovery',
+                'version' => 1
+            ])
+        );
+    }
+
+    /**
+     * Get rule definition for a specific rule key
+     */
+    private static function getRuleDefinition(string $ruleKey, int $businessId): ?array
+    {
+        $definitions = self::getAllRuleDefinitions($businessId);
+        return $definitions[$ruleKey] ?? null;
+    }
+
+    /**
+     * Get all 9 default rule definitions for a business
+     */
+    private static function getAllRuleDefinitions(int $businessId): array
+    {
+        return [
+            'SENTIMENT_ANALYSIS' => [
                 'rule_id' => 'SENTIMENT_ANALYSIS.' . $businessId,
                 'rule_name' => 'Sentiment Analysis',
                 'description' => 'Automatically categorize feedback into positive, neutral, or negative sentiment buckets.',
@@ -52,13 +124,13 @@ class AiRuleSeeder extends Seeder
                         ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
-                'actions' => ['tag' => 'sentiment_categorized'],
+                'actions' => ['tag' => 'sentiment_assigned'],
                 'ai_explanation_title' => 'Sentiment Analysis',
                 'ai_plain_explanation' => 'Automatically categorize feedback into positive, neutral, or negative sentiment buckets.',
-                'ai_why_it_matters' => 'Understanding the general mood of customer feedback helps in broad quality assessment.',
+                'ai_why_it_matters' => 'Understanding overall customer satisfaction at scale.',
                 'ai_when_it_triggers' => 'Triggers on every review to assign a sentiment category.'
             ],
-            [
+            'EMOTION_INTENSITY' => [
                 'rule_id' => 'EMOTION_INTENSITY.' . $businessId,
                 'rule_name' => 'Emotion Intensity Detection',
                 'description' => 'Identify the strength of emotions like joy, frustration, or anger within text reviews.',
@@ -72,16 +144,16 @@ class AiRuleSeeder extends Seeder
                 'conditions' => [
                     'logic' => 'AND',
                     'conditions' => [
-                        ['source' => 'Emotion', 'type' => 'intensity', 'operator' => 'greater_than', 'value' => 0.7]
+                        ['source' => 'Emotion', 'type' => 'emotion_intensity', 'operator' => 'greater_than', 'value' => 0.7]
                     ]
                 ],
-                'actions' => ['tag' => 'high_emotion_intensity'],
+                'actions' => ['tag' => 'high_emotion'],
                 'ai_explanation_title' => 'Emotion Intensity Detection',
                 'ai_plain_explanation' => 'Identify the strength of emotions like joy, frustration, or anger within text reviews.',
                 'ai_why_it_matters' => 'High intensity emotions often signal critical issues or exceptional praise.',
                 'ai_when_it_triggers' => 'Triggers when strong emotions are detected in review text.'
             ],
-            [
+            'RATING_COMMENT_MISMATCH' => [
                 'rule_id' => 'RATING_COMMENT_MISMATCH.' . $businessId,
                 'rule_name' => 'Rating & Comment Mismatch',
                 'description' => 'Detect when a high numerical rating is paired with a negative written review.',
@@ -105,7 +177,8 @@ class AiRuleSeeder extends Seeder
                 'ai_why_it_matters' => 'Identifies hidden dissatisfaction where customers are polite with stars but critical in text.',
                 'ai_when_it_triggers' => 'Triggers when stars are high (4+) but comment sentiment is negative.'
             ],
-            [
+            // Add remaining 6 rules with similar structure...
+            'CATEGORY_ISSUE_DETECTION' => [
                 'rule_id' => 'CATEGORY_ISSUE_DETECTION.' . $businessId,
                 'rule_name' => 'Category Issue Detection',
                 'description' => 'Sort feedback into predefined categories like Pricing, Quality, or Delivery.',
@@ -130,7 +203,7 @@ class AiRuleSeeder extends Seeder
                 'ai_why_it_matters' => 'Enables granular analysis of specific business problems.',
                 'ai_when_it_triggers' => 'Triggers when keywords related to pricing, quality, or delivery are found.'
             ],
-            [
+            'SERVICE_TYPE_DETECTION' => [
                 'rule_id' => 'SERVICE_TYPE_DETECTION.' . $businessId,
                 'rule_name' => 'Service Type Detection',
                 'description' => 'Identify the specific type of service mentioned (e.g., Installation vs Maintenance).',
@@ -154,7 +227,7 @@ class AiRuleSeeder extends Seeder
                 'ai_why_it_matters' => 'Helps routes feedback to the correct department.',
                 'ai_when_it_triggers' => 'Triggers when specific service terms are mentioned.'
             ],
-            [
+            'BUSINESS_AREA_DETECTION' => [
                 'rule_id' => 'BUSINESS_AREA_DETECTION.' . $businessId,
                 'rule_name' => 'Business Area Detection',
                 'description' => 'Pinpoint which business unit or physical location the feedback refers to.',
@@ -177,7 +250,7 @@ class AiRuleSeeder extends Seeder
                 'ai_why_it_matters' => 'Identifies exactly where in the business an issue or win occurred.',
                 'ai_when_it_triggers' => 'Triggers when AI detects a physical area mention in the review.'
             ],
-            [
+            'STAFF_MENTION_DETECTION' => [
                 'rule_id' => 'STAFF_MENTION_DETECTION.' . $businessId,
                 'rule_name' => 'Staff Mention Detection',
                 'description' => 'Extract employee names or roles from comments to track individual mentions.',
@@ -200,7 +273,7 @@ class AiRuleSeeder extends Seeder
                 'ai_why_it_matters' => 'Enables staff-level performance tracking and recognition.',
                 'ai_when_it_triggers' => 'Triggers when a staff member or role is explicitly mentioned.'
             ],
-            [
+            'STAFF_PERFORMANCE_RISK' => [
                 'rule_id' => 'STAFF_PERFORMANCE_RISK.' . $businessId,
                 'rule_name' => 'Staff Performance Risk',
                 'description' => 'Flag recurring negative mentions or behavioral issues linked to specific personnel.',
@@ -224,7 +297,7 @@ class AiRuleSeeder extends Seeder
                 'ai_why_it_matters' => 'Protects brand reputation by identifying problematic staff behavior early.',
                 'ai_when_it_triggers' => 'Triggers when staff are mentioned in a negative context.'
             ],
-            [
+            'FLAG_AND_ALERT' => [
                 'rule_id' => 'FLAG_AND_ALERT.' . $businessId,
                 'rule_name' => 'Flag and Alert Detection',
                 'description' => 'Trigger immediate notifications for critical keywords or severe dissatisfaction.',
@@ -248,29 +321,13 @@ class AiRuleSeeder extends Seeder
                 'ai_when_it_triggers' => 'Triggers on very low ratings or critical emergency keywords.'
             ]
         ];
+    }
 
-        foreach ($rules as $ruleData) {
-            AiRule::updateOrCreate(
-                ['rule_id' => $ruleData['rule_id']],
-                [
-                    'rule_name' => $ruleData['rule_name'],
-                    'description' => $ruleData['description'],
-                    'scope' => $ruleData['scope'],
-                    'category' => $ruleData['category'],
-                    'priority' => $ruleData['priority'],
-                    'enabled' => $ruleData['enabled'],
-                    'precision_rate' => $ruleData['precision_rate'],
-                    'conditions' => json_encode($ruleData['conditions']),
-                    'actions' => json_encode($ruleData['actions']),
-                    'ai_explanation_title' => $ruleData['ai_explanation_title'],
-                    'ai_plain_explanation' => $ruleData['ai_plain_explanation'],
-                    'ai_why_it_matters' => $ruleData['ai_why_it_matters'],
-                    'ai_when_it_triggers' => $ruleData['ai_when_it_triggers'],
-                    'ai_generated_at' => now(),
-                    'created_by' => 'system_seeder',
-                    'version' => 1
-                ]
-            );
-        }
+    /**
+     * Get the list of required default rules
+     */
+    public static function getRequiredRuleKeys(): array
+    {
+        return self::$requiredRules;
     }
 }

@@ -38,6 +38,7 @@ use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BusinessAiModuleController;
 use App\Http\Controllers\RecommendationController;
+use App\Http\Controllers\RuleReportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -511,6 +512,38 @@ Route::middleware(['auth:api'])->group(function () {
 
         // Regenerate explanations for specific rule
         Route::post('/{ruleId}/regenerate-explanations', [AiRuleController::class, 'regenerateExplanations']);
+    });
+
+    // ============================================================================
+    // RuleReportController - Default Rule-Based Reports (NEW)
+    // ============================================================================
+    Route::prefix('reports')->group(function () {
+        // 1. Sentiment Analysis Report
+        Route::get('/sentiment-analysis', [RuleReportController::class, 'sentimentAnalysis']);
+
+        // 2. Emotion Intensity Report
+        Route::get('/emotion-intensity', [RuleReportController::class, 'emotionIntensity']);
+
+        // 3. Rating/Comment Mismatch Report
+        Route::get('/rating-comment-mismatch', [RuleReportController::class, 'ratingCommentMismatch']);
+
+        // 4. Category Issues Report
+        Route::get('/category-issues', [RuleReportController::class, 'categoryIssues']);
+
+        // 5. Service Types Report
+        Route::get('/service-types', [RuleReportController::class, 'serviceTypes']);
+
+        // 6. Business Areas Report
+        Route::get('/business-areas', [RuleReportController::class, 'businessAreas']);
+
+        // 7. Staff Mentions Report
+        Route::get('/staff-mentions', [RuleReportController::class, 'staffMentions']);
+
+        // 8. Staff Performance Risk Report
+        Route::get('/staff-performance-risk', [RuleReportController::class, 'staffPerformanceRisk']);
+
+        // 9. Flagged Reviews Report
+        Route::get('/flagged-reviews', [RuleReportController::class, 'flaggedReviews']);
     });
 
     // ============================================================================

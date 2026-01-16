@@ -49,7 +49,9 @@ class AiRule extends Model
         'applies_to',
         'precision_rate',
         'lifetime_triggers',
-        'branch_ids'
+        'branch_ids',
+        // Default rule enforcement
+        'is_default'
     ];
 
     protected $casts = [
@@ -67,8 +69,39 @@ class AiRule extends Model
         'next_run_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'ai_generated_at' => 'datetime'
+        'ai_generated_at' => 'datetime',
+        'is_default' => 'boolean'
     ];
+
+    /**
+     * Boot the model and add protection logic
+     */
+    protected static function booted()
+    {
+        // Prevent changing is_default from true to false
+        static::updating(function ($rule) {
+            if ($rule->isDirty('is_default') && $rule->getOriginal('is_default') === true) {
+                throw new \Exception('Cannot change is_default from true to false for default rules');
+            }
+
+            // Prevent changing rule_id for default rules
+            if ($rule->is_default && $rule->isDirty('rule_id')) {
+                throw new \Exception('Cannot change rule_id for default rules');
+            }
+
+            // Prevent changing rule_name for default rules
+            if ($rule->is_default && $rule->isDirty('rule_name')) {
+                throw new \Exception('Cannot change rule_name for default rules');
+            }
+        });
+
+        // Prevent deletion of default rules
+        static::deleting(function ($rule) {
+            if ($rule->is_default) {
+                throw new \Exception('Cannot delete default rules');
+            }
+        });
+    }
 
     /**
      * Get the business that owns the rule
@@ -167,6 +200,22 @@ class AiRule extends Model
     public function scopeEnabled($query)
     {
         return $query->where('enabled', true);
+    }
+
+    /**
+     * Scope to get default rules only
+     */
+    public function scopeDefaultRules($query)
+    {
+        return $query->where('is_default', true);
+    }
+
+    /**
+     * Scope to get custom rules only (user-created, for notifications)
+     */
+    public function scopeCustomRules($query)
+    {
+        return $query->where('is_default', false);
     }
 
     /**

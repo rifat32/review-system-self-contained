@@ -178,7 +178,8 @@ class AiRuleController extends Controller
             'why_it_matters' => $explanations['why_it_matters'],
             'explanation_generated_at' => now(),
             'created_by' => 'user_' . $request->user()->id,
-            'version' => 1
+            'version' => 1,
+            'is_default' => false // CRITICAL: User-created rules are NEVER default
         ]);
 
         return response()->json([
@@ -440,17 +441,29 @@ class AiRuleController extends Controller
         ]);
     }
 
-    /**
-     * Delete a rule
-     */
     public function destroy(Request $request, $ruleId)
     {
         $businessId = $request->user()->business_id;
 
         $rule = AiRule::where('rule_id', $ruleId)
             ->where('business_id', $businessId)
-            ->where('created_by', '!=', 'system') // Prevent deletion of system rules
             ->firstOrFail();
+
+        // CRITICAL: Prevent deletion of default rules
+        if ($rule->is_default) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete default system rules. These rules are required for dashboard and report functionality.'
+            ], 403);
+        }
+
+        // Additional check using created_by for backwards compatibility
+        if ($rule->created_by === 'system' || str_starts_with($rule->created_by, 'system_')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete system-created rules.'
+            ], 403);
+        }
 
         $rule->delete();
 

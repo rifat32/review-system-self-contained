@@ -30,6 +30,12 @@ return new class extends Migration
         Schema::table('ai_rules', function (Blueprint $table) {
             $table->index('business_id');
             $table->index(['enabled', 'category']);
+
+            // Add composite index for fast default rule queries
+            $table->index(['is_default', 'business_id', 'enabled'], 'idx_default_rules_lookup');
+
+            // Add index for custom rule queries (notifications)
+            $table->index(['is_default', 'enabled', 'run_frequency'], 'idx_custom_rules_scheduling');
         });
     }
 
@@ -57,6 +63,8 @@ return new class extends Migration
         Schema::table('ai_rules', function (Blueprint $table) {
             $table->dropIndex(['business_id']);
             $table->dropIndex(['enabled', 'category']);
+            $table->dropIndex('idx_default_rules_lookup');
+            $table->dropIndex('idx_custom_rules_scheduling');
         });
     }
 };
