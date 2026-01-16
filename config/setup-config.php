@@ -29,7 +29,13 @@ return [
     ],
 
 
-    "permissions" => [],
+    "permissions" => array_unique(array_merge(
+        $superadminPermissions['permissions'],
+        $businessOwnerPermissions['permissions'],
+        (include(__DIR__ . '/permissions_business_manager.php'))['permissions'],
+        (include(__DIR__ . '/permissions_business_staff.php'))['permissions'],
+        (include(__DIR__ . '/permissions_customer.php'))['permissions'],
+    )),
 
     "permissions_titles" => [],
     "unchangeable_roles" => [],

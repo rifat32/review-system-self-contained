@@ -140,6 +140,14 @@ class AiReadyDemoBusinessSeeder extends Seeder
     }
 
     /**
+     * Update owner with business_id (after business is created)
+     */
+    private function updateOwnerBusinessRelation(): void
+    {
+        $this->owner->update(['business_id' => $this->business->id]);
+    }
+
+    /**
      * Create business using BusinessService (respects domain logic)
      */
     private function createBusinessWithService(): void
@@ -172,6 +180,9 @@ class AiReadyDemoBusinessSeeder extends Seeder
 
         // Use BusinessService to create business (ensures all defaults and AI rules are set)
         $this->business = $this->businessService->createBusiness($this->owner, $businessData);
+
+        // Update owner's business_id link
+        $this->updateOwnerBusinessRelation();
 
         // Create default branch
         $this->businessService->createDefaultBranch($this->business);
@@ -240,8 +251,8 @@ class AiReadyDemoBusinessSeeder extends Seeder
      */
     private function createStaff(): void
     {
-        $firstNames = ['John', 'Sarah', 'Michael', 'Emma', 'David', 'Lisa', 'James', 'Anna', 'Robert', 'Maria', 'Tom', 'Sophie'];
-        $lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Anderson', 'Taylor'];
+        $firstNames = ['Amitabh', 'Sarah', 'Michael', 'Emma', 'David', 'Lisa', 'James', 'Anna', 'Robert', 'Maria', 'Tom', 'Sophie'];
+        $lastNames = ['Bachchan', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Anderson', 'Taylor'];
 
         $nameIndex = 0;
 
@@ -252,7 +263,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 $nameIndex++;
 
                 $staff = User::create([
-                    'email' => strtolower($firstName . '.' . $lastName . $branchIndex .   Str::random(5)   . '@aidemo.com'),
+                    'email' => strtolower($firstName . '.' . $lastName . $branchIndex .  '.' .  Str::random(5)   . '@aidemo.com'),
                     'password' => Hash::make('12345678@We'),
                     'first_Name' => $firstName,
                     'last_Name' => $lastName,
@@ -264,6 +275,15 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 ]);
 
                 $staff->assignRole('business_staff');
+
+                // Step 4.5: Create BranchMember record (essential for staff-branch linkage)
+                \App\Models\BranchMember::create([
+                    'branch_id' => $branch->id,
+                    'user_id' => $staff->id,
+                    'role' => 'staff',
+                    'joining_date' => $staff->join_date,
+                    'is_active' => true,
+                ]);
 
                 $this->staff[] = [
                     'user' => $staff,

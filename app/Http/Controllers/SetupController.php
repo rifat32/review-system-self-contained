@@ -44,24 +44,7 @@ class SetupController extends Controller
             Artisan::call('config:clear');
             Artisan::call('cache:clear');
 
-            // Run migrations first
-            Artisan::call('migrate', [
-                '--path' => 'vendor/laravel/passport/database/migrations',
-                '--force' => true
-            ]);
-
-            // Generate keys programmatically
-            $keyPath = storage_path();
-
-            if (!file_exists($keyPath . '/oauth-private.key')) {
-                Artisan::call('passport:keys', ['--force' => true]);
-            }
-
-            // Install Passport
-            Artisan::call('passport:install', [
-                '--force' => true,
-                '--no-interaction' => true
-            ]);
+            $this->privatePassportSetup();
 
             return response()->json([
                 'success' => true,
@@ -86,27 +69,41 @@ class SetupController extends Controller
 
         // Run migrations
         Artisan::call('migrate:fresh');
-        // Run passport migrations
-        Artisan::call('migrate', ['--path' => 'vendor/laravel/passport/database/migrations']);
 
-        // Install passport
-        // Generate Passport keys manually to avoid STDIN issues
-        Artisan::call('passport:keys', ['--force' => true]);
-
-        // Run Passport migrations if needed
-        Artisan::call('migrate', ['--path' => 'vendor/laravel/passport/database/migrations']);
+        $this->privatePassportSetup();
 
         // Generate Swagger Documentation
         Artisan::call('l5-swagger:generate');
 
-        // Seed Super Admin
-        Artisan::call('db:seed', ['--class' => 'SuperAdminSeeder']);
 
-        // Setup Roles and Permissions
-        Artisan::call('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
+        Artisan::call('db:seed', ['--class' => 'DatabaseSeeder']);
+
+
+        // // Seed Super Admin
+        // Artisan::call('db:seed', ['--class' => 'SuperAdminSeeder']);
+
+        // // Setup Roles and Permissions
+        // Artisan::call('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
+
+
         return response()->json([
             'success' => true,
             'message' => 'Setup Complete'
+        ]);
+    }
+
+    private function privatePassportSetup()
+    {
+        // Run passport migrations
+        Artisan::call('migrate', [
+            '--path' => 'vendor/laravel/passport/database/migrations',
+            '--force' => true
+        ]);
+
+        // Install passport (creates encryption keys and oauth clients)
+        Artisan::call('passport:install', [
+            '--force' => true,
+            '--no-interaction' => true
         ]);
     }
 
