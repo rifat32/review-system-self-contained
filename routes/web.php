@@ -5,6 +5,7 @@ use App\Http\Controllers\SetupController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SwaggerLoginController;
 use App\Http\Controllers\TestController;
+use App\Http\Controllers\SeederController;
 
 use App\Models\EmailTemplate;
 use App\Models\EmailTemplateWrapper;
@@ -33,6 +34,9 @@ use Illuminate\Support\Facades\Artisan;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Run demo seeder (accepts ?email=custom@domain.com). Restricted to local/debug.
+Route::get('/run-demo-seeder', [SeederController::class, 'runDemo']);
 
 
 Route::get('/generate-ai', function () {

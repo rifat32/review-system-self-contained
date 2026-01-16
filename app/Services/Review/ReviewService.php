@@ -541,9 +541,18 @@ class ReviewService
         $averageRating = $averageRating ? round($averageRating, 1) : null;
 
         foreach ($values as $value) {
-            $value['review_id'] = $review->id;
-            $review_value = ReviewValueNew::create($value);
-            $review_value->tags()->sync($value['tag_ids']);
+            // Extract tag_ids before creating (it's not a database column, it's a many-to-many relationship)
+            $tagIds = $value['tag_ids'] ?? [];
+
+            // Create review value without tag_ids (only fillable: question_id, star_id, review_id)
+            $review_value = ReviewValueNew::create([
+                'review_id' => $review->id,
+                'question_id' => $value['question_id'],
+                'star_id' => $value['star_id'],
+            ]);
+
+            // Sync tags via relationship
+            $review_value->tags()->sync($tagIds);
         }
 
 

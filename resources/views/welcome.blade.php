@@ -247,6 +247,27 @@
                 </a>
             </div>
 
+            <!-- Seed Demo Business Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon icon-primary">
+                        🌱
+                    </div>
+                    <h2 class="card-title">Seed Demo Business</h2>
+                </div>
+                <p class="card-description">
+                    Create a full demo business and 300 sample reviews. Provide an email to use for the owner.
+                </p>
+                <form method="get" action="{{ url('/run-demo-seeder') }}" target="_blank" onsubmit="return confirm('Run demo seeder? This will create demo data.');">
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input name="email" type="email" placeholder="owner@example.com" tabindex="1" autofocus
+                            style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);position:relative;z-index:2;pointer-events:auto;" />
+                        <button class="btn btn-primary btn-sm" type="submit" style="min-width:120px;padding:8px 12px;border-radius:6px;">Run Seeder</button>
+                    </div>
+                </form>
+                <p class="card-description" style="margin-top:8px;font-size:12px;color:var(--text-secondary);">Only allowed when running in local or debug mode.</p>
+            </div>
+
             <!-- Activity Log Card -->
             <div class="card">
                 <div class="card-header">
