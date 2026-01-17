@@ -530,7 +530,8 @@ class UserController extends Controller
             'roles:id,name',
             'branches',
             'branch',
-            'branch.branch:id,name'
+            'branch.branch:id,name',
+            'branch.branch.manager:id,first_Name,last_Name,email'
         ])->where('business_id', $business_id);
 
         // Filter by role - if no role specified, show only staff and manager roles
