@@ -5696,7 +5696,7 @@
         "/v1.0/business": {
             "get": {
                 "tags": [
-                    "business"
+                    "business_management"
                 ],
                 "summary": "Get all businesses with optional filters and pagination",
                 "description": "Retrieve a list of all businesses with optional search and filtering capabilities. Supports both paginated and non-paginated responses.",
@@ -6213,7 +6213,7 @@
         "/v1.0/business/{id}": {
             "delete": {
                 "tags": [
-                    "business"
+                    "business_management"
                 ],
                 "summary": "Delete business by ID (Super Admin only)",
                 "description": "Delete a business and its associated daily views. Only super admins can perform this action.",
@@ -6444,7 +6444,7 @@
         "/v1.0/business/upload-image/{businessId}": {
             "post": {
                 "tags": [
-                    "business"
+                    "business_management"
                 ],
                 "summary": "Upload business logo image",
                 "description": "Upload and update the logo image for a specific business. Only business owners or super admins can perform this action.",
@@ -6609,7 +6609,7 @@
         "/v1.0/business/{businessId}": {
             "get": {
                 "tags": [
-                    "business"
+                    "business_management"
                 ],
                 "summary": "Get business details by ID",
                 "description": "Retrieve detailed information about a specific business including owner information",
@@ -6777,7 +6777,7 @@
             },
             "patch": {
                 "tags": [
-                    "business"
+                    "business_management"
                 ],
                 "summary": "This method is to update business",
                 "description": "This method is to update business",
@@ -7190,7 +7190,7 @@
         "/v1.0/business/default-branch": {
             "patch": {
                 "tags": [
-                    "business"
+                    "business_management"
                 ],
                 "summary": "Update default branch for the authenticated user's business",
                 "description": "Update the default branch ID for the business owned by the authenticated user. The business is determined by the user's ownership.",
@@ -7322,7 +7322,7 @@
         "/v1.0/client/businesses": {
             "get": {
                 "tags": [
-                    "business"
+                    "business_management.client"
                 ],
                 "summary": "Get businesses for client view with ratings and timing",
                 "description": "Retrieve businesses with calculated ratings, timing information, and optional pagination",
@@ -7575,6 +7575,170 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/v1.0/client/business/{businessId}": {
+            "get": {
+                "tags": [
+                    "business_management.client"
+                ],
+                "summary": "Get business details by ID",
+                "description": "Retrieve detailed information about a specific business including owner information",
+                "operationId": "getClientBusinessById",
+                "parameters": [
+                    {
+                        "name": "businessId",
+                        "in": "path",
+                        "description": "Business ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Business found successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business found successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "Name": {
+                                                    "type": "string",
+                                                    "example": "My Restaurant"
+                                                },
+                                                "Address": {
+                                                    "type": "string",
+                                                    "example": "123 Main Street, City"
+                                                },
+                                                "PostCode": {
+                                                    "type": "string",
+                                                    "example": "SW1A 1AA"
+                                                },
+                                                "EmailAddress": {
+                                                    "type": "string",
+                                                    "example": "business@example.com"
+                                                },
+                                                "PhoneNumber": {
+                                                    "type": "string",
+                                                    "example": "+44123456789"
+                                                },
+                                                "Webpage": {
+                                                    "type": "string",
+                                                    "example": "https://example.com"
+                                                },
+                                                "About": {
+                                                    "type": "string",
+                                                    "example": "About the business"
+                                                },
+                                                "Logo": {
+                                                    "type": "string",
+                                                    "example": "img/business/logo.png"
+                                                },
+                                                "Status": {
+                                                    "type": "string",
+                                                    "example": "Active"
+                                                },
+                                                "Key_ID": {
+                                                    "type": "string",
+                                                    "example": "abc123"
+                                                },
+                                                "OwnerID": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "expiry_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "15-12-2025"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "datetime",
+                                                    "example": "2025-01-01T12:00:00.000000Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "datetime",
+                                                    "example": "2025-01-15T12:00:00.000000Z"
+                                                },
+                                                "owner": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "John Doe"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "example": "owner@example.com"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Business not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/v1.0/restaurants/tables/{businessId}": {
@@ -26055,6 +26219,439 @@
                 ]
             }
         },
+        "/v1.0/dashboard/business-metrics": {
+            "get": {
+                "tags": [
+                    "super_admin.dashboard_management"
+                ],
+                "summary": "Get super admin dashboard business metrics",
+                "description": "Retrieve comprehensive business metrics including total businesses, active/inactive businesses, reviews, and customers with period-based comparisons (Super Admin only)",
+                "operationId": "getBusinessMetrics",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for metrics (today, last_7_days, last_30_days, last_90_days, this_year, all_time)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "last_30_days",
+                            "enum": [
+                                "today",
+                                "last_7_days",
+                                "last_30_days",
+                                "last_90_days",
+                                "this_year",
+                                "all_time"
+                            ]
+                        },
+                        "example": "last_30_days"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Metrics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Super Admin Dashboard metrics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "total_business": {
+                                                    "properties": {
+                                                        "current": {
+                                                            "description": "Total businesses created in current period",
+                                                            "type": "integer",
+                                                            "example": 150
+                                                        },
+                                                        "comparison": {
+                                                            "description": "Total businesses created in comparison period",
+                                                            "type": "integer",
+                                                            "example": 120
+                                                        },
+                                                        "change_type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "increase",
+                                                                "decrease",
+                                                                "no_change"
+                                                            ],
+                                                            "example": "increase"
+                                                        },
+                                                        "value": {
+                                                            "description": "Percentage change (absolute value)",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 25
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "active_business": {
+                                                    "properties": {
+                                                        "current": {
+                                                            "description": "Active businesses in current period",
+                                                            "type": "integer",
+                                                            "example": 140
+                                                        },
+                                                        "comparison": {
+                                                            "description": "Active businesses in comparison period",
+                                                            "type": "integer",
+                                                            "example": 110
+                                                        },
+                                                        "change_type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "increase",
+                                                                "decrease",
+                                                                "no_change"
+                                                            ],
+                                                            "example": "increase"
+                                                        },
+                                                        "value": {
+                                                            "description": "Percentage change (absolute value)",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 27.269999999999999573674358543939888477325439453125
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "inactive_business": {
+                                                    "properties": {
+                                                        "current": {
+                                                            "description": "Inactive businesses in current period",
+                                                            "type": "integer",
+                                                            "example": 10
+                                                        },
+                                                        "comparison": {
+                                                            "description": "Inactive businesses in comparison period",
+                                                            "type": "integer",
+                                                            "example": 10
+                                                        },
+                                                        "change_type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "increase",
+                                                                "decrease",
+                                                                "no_change"
+                                                            ],
+                                                            "example": "no_change"
+                                                        },
+                                                        "value": {
+                                                            "description": "Percentage change (absolute value)",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 0
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "review": {
+                                                    "properties": {
+                                                        "current": {
+                                                            "description": "Reviews created in current period",
+                                                            "type": "integer",
+                                                            "example": 1500
+                                                        },
+                                                        "comparison": {
+                                                            "description": "Reviews created in comparison period",
+                                                            "type": "integer",
+                                                            "example": 1200
+                                                        },
+                                                        "change_type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "increase",
+                                                                "decrease",
+                                                                "no_change"
+                                                            ],
+                                                            "example": "increase"
+                                                        },
+                                                        "value": {
+                                                            "description": "Percentage change (absolute value)",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 25
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "customer": {
+                                                    "properties": {
+                                                        "current": {
+                                                            "description": "Customers registered in current period",
+                                                            "type": "integer",
+                                                            "example": 3000
+                                                        },
+                                                        "comparison": {
+                                                            "description": "Customers registered in comparison period",
+                                                            "type": "integer",
+                                                            "example": 2500
+                                                        },
+                                                        "change_type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "increase",
+                                                                "decrease",
+                                                                "no_change"
+                                                            ],
+                                                            "example": "increase"
+                                                        },
+                                                        "value": {
+                                                            "description": "Percentage change (absolute value)",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 20
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Super admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Access denied: You cannot perform this action"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/review-trends": {
+            "get": {
+                "tags": [
+                    "super_admin.dashboard_management"
+                ],
+                "summary": "Get review trends for super admin",
+                "description": "Retrieve review submission trends over time across all businesses for super admin",
+                "operationId": "getReviewTrends",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for trends (e.g., 30d, 7d, 1d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "30d"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Review trends retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review trends retrieved successfully"
+                                        },
+                                        "data": {
+                                            "description": "Array of trend data points with dates and counts",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Super admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Access denied: You cannot perform this action"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/dashboard/customer-registration-trends": {
+            "get": {
+                "tags": [
+                    "super_admin.dashboard_management"
+                ],
+                "summary": "Get customer registration trends for super admin",
+                "description": "Retrieve customer registration trends over time across all businesses for super admin",
+                "operationId": "getCustomerRegistrationTrends",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for trends (e.g., 30d, 7d, 1d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "30d"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer registration trends retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer registration trends retrieved successfully"
+                                        },
+                                        "data": {
+                                            "description": "Array of trend data points with dates and registration counts",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Super admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Access denied: You cannot perform this action"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/dashboard-report/total-business": {
             "get": {
                 "tags": [
@@ -31125,8 +31722,12 @@
             "description": "business_area_management"
         },
         {
-            "name": "business",
-            "description": "business"
+            "name": "business_management",
+            "description": "business_management"
+        },
+        {
+            "name": "business_management.client",
+            "description": "business_management.client"
         },
         {
             "name": "business_days_management",
@@ -31201,6 +31802,10 @@
             "description": "owner"
         },
         {
+            "name": "business",
+            "description": "business"
+        },
+        {
             "name": "z.unsed",
             "description": "z.unsed"
         },
@@ -31247,6 +31852,10 @@
         {
             "name": "staff_management",
             "description": "staff_management"
+        },
+        {
+            "name": "super_admin.dashboard_management",
+            "description": "super_admin.dashboard_management"
         },
         {
             "name": "dashboard_management.super_admin",
