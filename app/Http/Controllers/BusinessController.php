@@ -217,7 +217,7 @@ class BusinessController extends Controller
      * @OA\Delete(
      *      path="/v1.0/business/{id}",
      *      operationId="deleteBusinessById",
-     *      tags={"business"},
+     *      tags={"business_management"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -436,7 +436,7 @@ class BusinessController extends Controller
      * @OA\Post(
      *      path="/v1.0/business/upload-image/{businessId}",
      *      operationId="uploadRestaurantImage",
-     *      tags={"business"},
+     *      tags={"business_management"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -572,7 +572,7 @@ class BusinessController extends Controller
      * @OA\Patch(
      *     path="/v1.0/business/{businessId}",
      *     operationId="UpdateBusiness",
-     *     tags={"business"},
+     *     tags={"business_management"},
      *     security={
      *         {"bearerAuth": {}}
      *     },
@@ -755,7 +755,7 @@ class BusinessController extends Controller
      * @OA\Patch(
      *     path="/v1.0/business/default-branch",
      *     operationId="updateDefaultBranch",
-     *     tags={"business"},
+     *     tags={"business_management"},
      *     security={
      *         {"bearerAuth": {}}
      *     },
@@ -866,7 +866,7 @@ class BusinessController extends Controller
      * @OA\Get(
      *      path="/v1.0/business/{businessId}",
      *      operationId="getBusinessById",
-     *      tags={"business"},
+     *      tags={"business_management"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -967,7 +967,7 @@ class BusinessController extends Controller
      * @OA\Get(
      *      path="/v1.0/business",
      *      operationId="getAllBusinesses",
-     *      tags={"business"},
+     *      tags={"business_management"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -1133,7 +1133,7 @@ class BusinessController extends Controller
      * @OA\Get(
      *      path="/v1.0/client/businesses",
      *      operationId="getBusinessesClients",
-     *      tags={"business"},
+     *      tags={"business_management.client"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -1292,6 +1292,100 @@ class BusinessController extends Controller
             "meta" => $result['meta']
         ], 200);
     }
+
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/client/business/{businessId}",
+     *      operationId="getClientBusinessById",
+     *      tags={"business_management.client"},
+     *      summary="Get business details by ID",
+     *      description="Retrieve detailed information about a specific business including owner information",
+     *
+     *      @OA\Parameter(
+     *          name="businessId",
+     *          in="path",
+     *          description="Business ID",
+     *          required=true,
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=200,
+     *          description="Business found successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Business found successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="Name", type="string", example="My Restaurant"),
+     *                  @OA\Property(property="Address", type="string", example="123 Main Street, City"),
+     *                  @OA\Property(property="PostCode", type="string", example="SW1A 1AA"),
+     *                  @OA\Property(property="EmailAddress", type="string", example="business@example.com"),
+     *                  @OA\Property(property="PhoneNumber", type="string", example="+44123456789"),
+     *                  @OA\Property(property="Webpage", type="string", example="https://example.com"),
+     *                  @OA\Property(property="About", type="string", example="About the business"),
+     *                  @OA\Property(property="Logo", type="string", example="img/business/logo.png"),
+     *                  @OA\Property(property="Status", type="string", example="Active"),
+     *                  @OA\Property(property="Key_ID", type="string", example="abc123"),
+     *                  @OA\Property(property="OwnerID", type="integer", example=1),
+
+     *                  @OA\Property(property="expiry_date", type="string", format="date", example="15-12-2025"),
+     *                  @OA\Property(property="created_at", type="string", format="datetime", example="2025-01-01T12:00:00.000000Z"),
+     *                  @OA\Property(property="updated_at", type="string", format="datetime", example="2025-01-15T12:00:00.000000Z"),
+     *                  @OA\Property(
+     *                      property="owner",
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="name", type="string", example="John Doe"),
+     *                      @OA\Property(property="email", type="string", example="owner@example.com")
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=404,
+     *          description="Business not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Business not found")
+     *          )
+     *      )
+     * )
+     */
+    public function getClientBusinessById($businessId)
+    {
+
+        // GET BUSINESS WITH OWNER AND DEFAULT BRANCH
+        $business = Business::with([
+            "owner" => function ($query) {
+                $query->select("id", "first_Name", "last_Name", "email");
+            },
+            "defaultBranch" => function ($query) {
+                $query->select("id", "name");
+            }
+        ])->findOrFail($businessId);
+
+
+        // RETURN RESPONSE
+        return response()->json([
+            "success" => true,
+            "message" => "Business found successfully",
+            "data" => $business
+        ], 200);
+    }
+
 
     // ##################################################
     // This method is to get business table by business id

@@ -588,6 +588,7 @@ Route::post('/v1.0/voice/transcribe', [ReviewNewController::class, "transcribeVo
 // ============================================================================
 Route::get('/v1.0/client/businesses', [BusinessController::class, "getBusinessesClients"]);
 Route::post('/v1.0/client/create-user-with-business', [OwnerController::class, "createUserWithBusinessClient"]);
+Route::get('/v1.0/client/business/{businessId}', [BusinessController::class, "getClientBusinessById"]);
 
 // ============================================================================
 // BusinessDaysController & StaffController – Client public endpoints
