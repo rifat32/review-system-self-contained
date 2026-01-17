@@ -19,7 +19,10 @@ use App\Http\Requests\StoreBusinessRequest;
 use App\Http\Requests\StoreBusinessByOwnerRequest;
 use App\Http\Requests\UpdateBusinessRequest;
 use App\Services\Business\BusinessService;
+use App\Services\Review\ReviewService;
+use App\Traits\AuthorizesRoles;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,16 +33,20 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BusinessController extends Controller
 {
+    use AuthorizesRoles;
+
     protected $businessService;
+    protected $reviewService;
 
     /**
      * Constructor to inject BusinessService
      *
      * @param BusinessService $businessService
      */
-    public function __construct(BusinessService $businessService)
+    public function __construct(BusinessService $businessService, ReviewService $reviewService)
     {
         $this->businessService = $businessService;
+        $this->reviewService = $reviewService;
     }
 
     // ##################################################
@@ -1481,4 +1488,7 @@ class BusinessController extends Controller
             "data" => $business
         ], 200);
     }
+
+
+
 }

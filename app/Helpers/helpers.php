@@ -121,7 +121,7 @@ if (!function_exists('getDateRangeByPeriod')) {
             'today' => [
                 'start' => $now->copy()->startOfDay(),
                 'end' => $now->copy()->endOfDay(),
-                'daysOffset' => 1
+                'daysOffset' => 0
             ],
             'last_7_days' => [
                 'start' => $now->copy()->subDays(7)->startOfDay(),
@@ -234,6 +234,42 @@ if (!function_exists('getDateRangeByPeriod')) {
 
 
 
+/**
+ * Calculate metric change between current and comparison periods
+ * 
+ * @param int $current Current period count
+ * @param int $comparison Comparison period count
+ * @return array ['change_type' => string, 'value' => float]
+ */
+
+if (!function_exists('calculateMetricChange')) {
+    function calculateMetricChange(int $current, int $comparison): array
+    {
+        // HANDLE DIVISION BY ZERO
+        if ($comparison === 0) {
+            return [
+                'change_type' => $current > 0 ? 'increase' : 'no_change',
+                'value' => $current > 0 ? 100.0 : 0.0
+            ];
+        }
+
+        // CALCULATE PERCENTAGE CHANGE
+        $percentageChange = (($current - $comparison) / $comparison) * 100;
+
+        // DETERMINE CHANGE TYPE
+        $changeType = 'no_change';
+        if ($percentageChange > 0) {
+            $changeType = 'increase';
+        } elseif ($percentageChange < 0) {
+            $changeType = 'decrease';
+        }
+
+        return [
+            'change_type' => $changeType,
+            'value' => round(abs($percentageChange), 2)
+        ];
+    }
+}
 
 
 

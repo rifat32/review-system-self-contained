@@ -241,28 +241,16 @@ class CustomerController extends Controller
     public function getCustomers(Request $request): JsonResponse
     {
         try {
-            $this->storeActivity($request, "");
 
-            $business = Business::where([
-                "OwnerID" => auth()->user()->id
-            ])
-                ->first();
-
-            // CHECK IF BUSINESS EXISTS
-            if (!$business) {
-                throw new Exception("Business not found for the authenticated user", 404);
-            }
 
             // BUILD QUERY WITH CUSTOMER FILTER SCOPE
-            $customersQuery = User::filterCustomers();
+            $customersQuery = User::whereHas('roles', function ($query) {
+                $query->where('name', User::USER_ROLE['CUSTOMER']);
+            })->filterCustomers();
 
             // USE RETRIEVE_DATA HELPER FOR PAGINATION AND DATA RETRIEVAL
             $result = retrieve_data($customersQuery);
 
-            // ADD CUSTOMER DATA TO EACH USER
-            $result['data'] = collect($result['data'])->map(function ($user) use ($business) {
-                return $this->customerService->enrichCustomerWithData($user, $business);
-            })->toArray();
 
             return response()->json([
                 "success" => true,
@@ -271,63 +259,8 @@ class CustomerController extends Controller
                 "meta" => $result['meta']
             ], 200);
         } catch (Exception $e) {
-
-            return $this->sendError($e, 500, $request);
+            throw $e;
         }
     }
 
-
-    public function addCustomerData($user, $business)
-    {
-
-
-        // Fetch positive reviews separately
-        $positive_reviews = ReviewNew::where('review_news.business_id', $business->id)
-            ->where('review_news.rate', '>=', 4)
-            ->where('review_news.user_id', $user->id)
-            ->globalFilters()
-            ->count();
-        $user->positive_reviews = $positive_reviews;
-
-        // Fetch negative reviews separately
-        $negative_reviews = ReviewNew::where('review_news.business_id', $business->id)
-            ->where('review_news.rate', '<=', 2)
-            ->where('review_news.user_id', $user->id)
-            ->globalFilters()
-            ->count();
-        $user->negative_reviews = $negative_reviews;
-
-        // Fetch common complaints separately
-        $common_complaints = ReviewNew::selectRaw('COUNT(id) as complaint_count, SUBSTRING_INDEX(comment, " ", 3) as complaint_snippet')
-            ->where('review_news.business_id', $business->id)
-            ->where('review_news.user_id', $user->id)
-            ->groupBy('complaint_snippet')
-            ->havingRaw('complaint_count > 2')
-            ->globalFilters()
-            ->orderBy('order_no', 'asc')
-            ->get();
-        $user->common_complaints = $common_complaints;
-
-        // Fetch satisfaction scores separately
-        $satisfaction_scores = ReviewNew::where('review_news.business_id', $business->id)
-            ->where('review_news.user_id', $user->id)
-            ->globalFilters()
-
-            ->avg('review_news.rate');
-        $user->avg_satisfaction = $satisfaction_scores;
-
-        // Fetch customer comments trends separately
-        $customer_comments_trends = ReviewNew::selectRaw('comment, COUNT(*) as comment_count')
-            ->where('review_news.business_id', $business->id)
-            ->where('review_news.user_id', $user->id)
-            ->groupBy('comment')
-            ->orderByDesc('comment_count')
-            ->globalFilters()
-            ->orderBy('order_no', 'asc')
-            ->limit(5)
-            ->get();
-        $user->customer_comments_trends = $customer_comments_trends;
-
-        return $user;
-    }
 }

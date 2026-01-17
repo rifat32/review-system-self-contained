@@ -18,7 +18,7 @@ class User extends Authenticatable
 
     protected $guard_name = 'api';
 
-    const USER_ROLE = [
+    public const USER_ROLE = [
         'SUPER_ADMIN' => 'superadmin',
         'BUSINESS_OWNER' => 'business_owner',
         'BRANCH_MANAGER' => 'branch_manager',

@@ -31,6 +31,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StarController;
 use App\Http\Controllers\StarTagQuestionController;
 use App\Http\Controllers\StripeController;
+use App\Http\Controllers\SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdminReportController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\SurveyQuestionController;
@@ -106,17 +107,17 @@ Route::middleware(['auth:api'])->group(function () {
         // -------------------------------------------------------------------------
         // SuperAdminReportController – Dashboard Reports (Super Admin)
         // -------------------------------------------------------------------------
-        Route::get('/v1.0/dashboard-report/total-business', [SuperAdminReportController::class, 'getTotalBusinessReport']);
-        Route::get('/v1.0/dashboard-report/total-business-enabled', [SuperAdminReportController::class, 'getTotalEnabledBusinessReport']);
-        Route::get('/v1.0/dashboard-report/total-business-disabled', [SuperAdminReportController::class, 'getTotalDisabledBusinessReport']);
-        Route::get('/v1.0/dashboard-report/total-reviews', [SuperAdminReportController::class, 'getTotalReviews']);
-        Route::get('/v1.0/dashboard-report/today-reviews', [SuperAdminReportController::class, 'getTodayReviews']);
-        Route::get('/v1.0/dashboard-report/review-report', [SuperAdminReportController::class, 'getReviewReport']);
+        // Route::get('/v1.0/dashboard-report/total-business', [SuperAdminReportController::class, 'getTotalBusinessReport']);
+        // Route::get('/v1.0/dashboard-report/total-business-enabled', [SuperAdminReportController::class, 'getTotalEnabledBusinessReport']);
+        // Route::get('/v1.0/dashboard-report/total-business-disabled', [SuperAdminReportController::class, 'getTotalDisabledBusinessReport']);
+        // Route::get('/v1.0/dashboard-report/total-reviews', [SuperAdminReportController::class, 'getTotalReviews']);
+        // Route::get('/v1.0/dashboard-report/today-reviews', [SuperAdminReportController::class, 'getTodayReviews']);
+        // Route::get('/v1.0/dashboard-report/review-report', [SuperAdminReportController::class, 'getReviewReport']);
 
         // -------------------------------------------------------------------------
         // UserController – Admin user reporting & destructive ops
         // -------------------------------------------------------------------------
-        Route::get('/v1.0/customer-list', [UserController::class, 'getCustomerReportSuperadmin']);
+        // Route::get('/v1.0/customer-list', [UserController::class, 'getCustomerReportSuperadmin']);
         Route::get('/v1.0/owner-list', [UserController::class, 'getOwnerReport']);
 
         // -------------------------------------------------------------------------
@@ -139,6 +140,11 @@ Route::middleware(['auth:api'])->group(function () {
             Route::delete('/{ids}', [EmailTemplateController::class, 'deleteEmailTemplateById']);
         });
         Route::get('/v1.0/email-template-types', [EmailTemplateController::class, 'getEmailTemplateTypes']);
+
+        // -------------------------------------------------------------------------
+        // SuperAdminDashboardController – Super Admin Business Metrics
+        // -------------------------------------------------------------------------
+        Route::get('/v1.0/dashboard/business-metrics', [SuperAdminDashboardController::class, 'getBusinessMetrics']);
     });
 
     // ============================================================================
@@ -289,11 +295,11 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // AuthController – Authenticated helpers
     // ============================================================================
-    Route::get('/v1.0/user', [AuthController::class, "getAllUser"]);
+    // Route::get('/v1.0/user', [AuthController::class, "getAllUser"]); // unused
     Route::patch('/v1.0/upload/profile-image', [OwnerController::class, "updateImage"]);
-    Route::post('/auth/check-pin/{id}', [AuthController::class, "verifyPin"]);
-    Route::get('/auth', [AuthController::class, "getUsersWithRestaurants"]);
-    Route::get('/auth/users', [AuthController::class, "getAllUsers"]);
+    // Route::post('/auth/check-pin/{id}', [AuthController::class, "verifyPin"]); // unused
+    // Route::get('/auth', [AuthController::class, "getUsersWithRestaurants"]); // unused
+    // Route::get('/auth/users', [AuthController::class, "getAllUsers"]); // unused
 
     // ============================================================================
     // SurveyController – CRUD & ordering/toggle (protected)
@@ -382,8 +388,8 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // StripeController – Restaurant Stripe details (protected)
     // ============================================================================
-    Route::patch('/business/UpdateResturantStripeDetails/{restaurentId}', [StripeController::class, "UpdateResturantStripeDetails"]);
-    Route::get('/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetails"]);
+    // Route::patch('/business/UpdateResturantStripeDetails/{restaurentId}', [StripeController::class, "UpdateResturantStripeDetails"]); //unused
+    // Route::get('/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetails"]); //unused
 
     // ============================================================================
     // DailyViewsController – Daily views (protected)
@@ -439,7 +445,7 @@ Route::middleware(['auth:api'])->group(function () {
 
 
 
-    Route::get('/v1.0/reports/staff-comparison/{businessId}', [DashboardController::class, 'staffComparison']);
+    // Route::get('/v1.0/reports/staff-comparison/{businessId}', [DashboardController::class, 'staffComparison']); //unused
     Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [DashboardController::class, 'staffPerformance']);
     Route::get('/v1.0/reports/review-analytics/{businessId}', [DashboardController::class, 'reviewAnalytics']);
     Route::get('/v1.0/branch-dashboard/{branchId}', [DashboardController::class, 'getBranchDashboard']);
