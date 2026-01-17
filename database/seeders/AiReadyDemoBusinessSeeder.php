@@ -25,9 +25,11 @@ use Illuminate\Support\Str;
  * AI-Ready Demo Business Seeder
  * 
  * Creates a complete, production-ready business with:
- * - New owner, business, branches, staff
- * - Multiple surveys with 25+ questions
- * - 300 reviews distributed across branches/staff/time
+ * - New owner, business, branches, staff, registered users
+ * - Multiple surveys with 40+ questions (overall + survey-specific)
+ * - 300 reviews from registered users:
+ *   - 150 registered user overall reviews (is_overall=1)
+ *   - 150 registered user survey reviews (is_overall=0)
  * - All data created through APIs/services (no raw DB inserts for AI data)
  * - Ready for AI cron execution and analytics
  */
@@ -43,11 +45,17 @@ class AiReadyDemoBusinessSeeder extends Seeder
     private array $staff = [];
     private array $surveys = [];
     private array $questions = [];
+    private array $overallQuestions = [];
+    private array $surveyQuestions = [];
     private array $tags = [];
     private array $stars = [];
     private array $reviewTexts = [];
+    private array $registeredUsers = [];
 
     private const REVIEW_COUNT = 300;
+    private const REGISTERED_OVERALL_REVIEWS = 150;
+    private const REGISTERED_SURVEY_REVIEWS = 150;
+    private const REGISTERED_USERS_COUNT = 100;
     private const BRANCHES_COUNT = 4;
     private const STAFF_PER_BRANCH = 3;
     private const WEEKS_OF_DATA = 12;
@@ -84,6 +92,10 @@ class AiReadyDemoBusinessSeeder extends Seeder
             // Step 4: Create staff using controller/service logic
             $this->createStaff();
             echo "✅ Created " . count($this->staff) . " staff members\n";
+
+            // Step 4.5: Create registered users for reviews
+            $this->createRegisteredUsers();
+            echo "✅ Created " . count($this->registeredUsers) . " registered users\n";
 
             // Step 5: Create surveys and questions
             $this->createSurveysAndQuestions();
@@ -294,17 +306,119 @@ class AiReadyDemoBusinessSeeder extends Seeder
     }
 
     /**
-     * Create surveys and 25+ questions using API/service structure
+     * Create registered users (customers who will submit reviews)
+     */
+    private function createRegisteredUsers(): void
+    {
+        $firstNames = [
+            'John',
+            'Jane',
+            'Alice',
+            'Bob',
+            'Charlie',
+            'Diana',
+            'Eve',
+            'Frank',
+            'Grace',
+            'Henry',
+            'Isla',
+            'Jack',
+            'Kate',
+            'Leo',
+            'Mia',
+            'Noah',
+            'Olivia',
+            'Peter',
+            'Quinn',
+            'Ruby'
+        ];
+        $lastNames = [
+            'Smith',
+            'Jones',
+            'Williams',
+            'Brown',
+            'Wilson',
+            'Moore',
+            'Taylor',
+            'Anderson',
+            'Thomas',
+            'Jackson',
+            'White',
+            'Harris',
+            'Martin',
+            'Thompson',
+            'Garcia',
+            'Martinez',
+            'Robinson',
+            'Clark',
+            'Rodriguez',
+            'Lewis'
+        ];
+
+        for ($i = 0; $i < self::REGISTERED_USERS_COUNT; $i++) {
+            $firstName = $firstNames[array_rand($firstNames)];
+            $lastName = $lastNames[array_rand($lastNames)];
+
+            $user = User::create([
+                'email' => strtolower($firstName . '.' . $lastName . '.' . Str::random(5) . '@customer.com'),
+                'password' => Hash::make('12345678@We'),
+                'first_Name' => $firstName,
+                'last_Name' => $lastName,
+                'phone' => '+44770000' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'type' => 'customer',
+                'business_id' => null, // Regular customer, not tied to business
+                'remember_token' => Str::random(10),
+                'email_verified_at' => now(),
+            ]);
+
+            $user->assignRole('customer');
+
+            $this->registeredUsers[] = $user;
+        }
+    }
+
+    /**
+     * Create surveys and questions using API/service structure
+     * Creates questions with is_overall=1 for overall business reviews
+     * and is_overall=0 for survey-specific reviews
      */
     private function createSurveysAndQuestions(): void
     {
-        // Create 5+ surveys
+        // Create surveys for overall business reviews
+        $overallGuestSurvey = Survey::create([
+            'name' => 'Overall Guest Experience',
+            'business_id' => $this->business->id,
+            'show_in_guest_user' => true,
+            'show_in_user' => false,
+            'order_no' => 1,
+            'is_active' => true,
+        ]);
+
+        $overallRegisteredSurvey = Survey::create([
+            'name' => 'Overall Registered User Experience',
+            'business_id' => $this->business->id,
+            'show_in_guest_user' => false,
+            'show_in_user' => true,
+            'order_no' => 2,
+            'is_active' => true,
+        ]);
+
+        // Assign overall surveys to business
+        $this->business->update([
+            'guest_survey_id' => $overallGuestSurvey->id,
+            'registered_user_survey_id' => $overallRegisteredSurvey->id,
+        ]);
+
+        $this->surveys[] = $overallGuestSurvey;
+        $this->surveys[] = $overallRegisteredSurvey;
+
+        // Create additional surveys for specific surveys
         $surveyNames = [
-            'Overall Experience',
-            'Food Quality',
-            'Service Quality',
-            'Ambiance & Cleanliness',
-            'Value for Money'
+            'Food Quality Survey',
+            'Service Quality Survey',
+            'Ambiance & Cleanliness Survey',
+            'Value for Money Survey',
+            'Delivery Experience Survey',
         ];
 
         foreach ($surveyNames as $index => $name) {
@@ -313,58 +427,30 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 'business_id' => $this->business->id,
                 'show_in_guest_user' => true,
                 'show_in_user' => true,
-                'order_no' => $index + 1,
+                'order_no' => $index + 3,
                 'is_active' => true,
             ]);
 
             $this->surveys[] = $survey;
         }
 
-        // Create 25+ questions across surveys
-        $questionTemplates = [
-            // Overall Experience
-            ['question' => 'How would you rate your overall experience?', 'is_overall' => true],
-            ['question' => 'Would you recommend us to friends and family?', 'is_overall' => false],
-            ['question' => 'How likely are you to return?', 'is_overall' => false],
-            ['question' => 'How satisfied are you with your visit today?', 'is_overall' => false],
-            ['question' => 'How do you rate our establishment compared to competitors?', 'is_overall' => false],
-
-            // Food Quality
-            ['question' => 'How would you rate the taste of your meal?', 'is_overall' => false],
-            ['question' => 'How would you rate food presentation?', 'is_overall' => false],
-            ['question' => 'How fresh were the ingredients?', 'is_overall' => false],
-            ['question' => 'How appropriate were the portion sizes?', 'is_overall' => false],
-            ['question' => 'How would you rate the menu variety?', 'is_overall' => false],
-            ['question' => 'How was the temperature of your food?', 'is_overall' => false],
-
-            // Service Quality
-            ['question' => 'How friendly was the staff?', 'is_overall' => false],
-            ['question' => 'How knowledgeable was the staff about the menu?', 'is_overall' => false],
-            ['question' => 'How quick was the service?', 'is_overall' => false],
-            ['question' => 'How attentive was the staff to your needs?', 'is_overall' => false],
-            ['question' => 'How efficient was the order processing?', 'is_overall' => false],
-            ['question' => 'How professional was the staff?', 'is_overall' => false],
-
-            // Ambiance & Cleanliness
-            ['question' => 'How clean was the dining area?', 'is_overall' => false],
-            ['question' => 'How comfortable was the seating?', 'is_overall' => false],
-            ['question' => 'How pleasant was the atmosphere?', 'is_overall' => false],
-            ['question' => 'How appropriate was the music/noise level?', 'is_overall' => false],
-            ['question' => 'How clean were the restrooms?', 'is_overall' => false],
-            ['question' => 'How modern was the decor?', 'is_overall' => false],
-
-            // Value for Money
-            ['question' => 'How fair were the prices?', 'is_overall' => false],
-            ['question' => 'How good was the value for money?', 'is_overall' => false],
-            ['question' => 'How satisfied were you with drink prices?', 'is_overall' => false],
-            ['question' => 'Would you say the quality matched the price?', 'is_overall' => false],
+        // Create overall questions (is_overall = 1) - for overall business reviews
+        $overallQuestionTemplates = [
+            'How would you rate your overall experience?',
+            'Would you recommend us to friends and family?',
+            'How likely are you to return?',
+            'How satisfied are you with your visit today?',
+            'How do you rate our establishment compared to competitors?',
+            'How professional was our service?',
+            'How welcoming was our staff?',
+            'How well did we meet your expectations?',
+            'How would you rate the overall quality?',
+            'How satisfied are you with your overall experience?',
         ];
 
-        foreach ($questionTemplates as $index => $template) {
-            $surveyIndex = min((int)($index / 6), count($this->surveys) - 1);
-
+        foreach ($overallQuestionTemplates as $index => $questionText) {
             $question = Question::create([
-                'question' => $template['question'],
+                'question' => $questionText,
                 'business_id' => $this->business->id,
                 'is_default' => false,
                 'is_active' => true,
@@ -372,19 +458,99 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 'show_in_user' => true,
                 'type' => 'star',
                 'order_no' => $index + 1,
-                'is_overall' => $template['is_overall'],
+                'is_overall' => true, // These are for overall business reviews
             ]);
 
-            // Attach question to survey
+            $this->overallQuestions[] = $question;
+            $this->questions[] = $question;
+
+            // Attach to both overall surveys
             DB::table('survey_questions')->insert([
-                'survey_id' => $this->surveys[$surveyIndex]->id,
+                'survey_id' => $overallGuestSurvey->id,
+                'question_id' => $question->id,
+                'order_no' => $index + 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('survey_questions')->insert([
+                'survey_id' => $overallRegisteredSurvey->id,
+                'question_id' => $question->id,
+                'order_no' => $index + 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // Create survey-specific questions (is_overall = 0)
+        $surveyQuestionTemplates = [
+            // Food Quality
+            'How would you rate the taste of your meal?',
+            'How would you rate food presentation?',
+            'How fresh were the ingredients?',
+            'How appropriate were the portion sizes?',
+            'How would you rate the menu variety?',
+            'How was the temperature of your food?',
+
+            // Service Quality
+            'How friendly was the staff?',
+            'How knowledgeable was the staff about the menu?',
+            'How quick was the service?',
+            'How attentive was the staff to your needs?',
+            'How efficient was the order processing?',
+            'How well did the staff handle requests?',
+
+            // Ambiance & Cleanliness
+            'How clean was the dining area?',
+            'How comfortable was the seating?',
+            'How pleasant was the atmosphere?',
+            'How appropriate was the music/noise level?',
+            'How clean were the restrooms?',
+            'How modern was the decor?',
+
+            // Value for Money
+            'How fair were the prices?',
+            'How good was the value for money?',
+            'How satisfied were you with drink prices?',
+            'Would you say the quality matched the price?',
+            'How satisfied were you with portion-to-price ratio?',
+            'How competitive are our prices?',
+
+            // Delivery Experience
+            'How timely was the delivery?',
+            'How well-packaged was your order?',
+            'How accurate was your order?',
+            'How satisfied were you with the delivery experience?',
+            'How professional was the delivery driver?',
+            'How would you rate the food temperature upon arrival?',
+        ];
+
+        foreach ($surveyQuestionTemplates as $index => $questionText) {
+            $surveyIndex = min((int)($index / 6), count($this->surveys) - 3); // Skip the first 2 overall surveys
+
+            $question = Question::create([
+                'question' => $questionText,
+                'business_id' => $this->business->id,
+                'is_default' => false,
+                'is_active' => true,
+                'show_in_guest_user' => true,
+                'show_in_user' => true,
+                'type' => 'star',
+                'order_no' => count($this->overallQuestions) + $index + 1,
+                'is_overall' => false, // These are for survey-specific reviews
+            ]);
+
+            $this->surveyQuestions[] = $question;
+            $this->questions[] = $question;
+
+            // Attach to appropriate survey (skip first 2 overall surveys)
+            DB::table('survey_questions')->insert([
+                'survey_id' => $this->surveys[$surveyIndex + 2]->id,
                 'question_id' => $question->id,
                 'order_no' => ($index % 6) + 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-
-            $this->questions[] = $question;
         }
     }
 
@@ -462,7 +628,9 @@ class AiReadyDemoBusinessSeeder extends Seeder
 
     /**
      * Create 300 reviews using proper ReviewNew creation + ReviewService
-     * This ensures events fire, jobs dispatch, and AI preprocessing runs
+     * All reviews are from registered users:
+     * - 150 registered user overall reviews (is_overall=1)
+     * - 150 registered user survey reviews (is_overall=0)
      */
     private function createReviews(): void
     {
@@ -475,55 +643,90 @@ class AiReadyDemoBusinessSeeder extends Seeder
 
         echo "📝 Creating " . self::REVIEW_COUNT . " reviews...\n";
 
-        for ($i = 0; $i < self::REVIEW_COUNT; $i++) {
-            // Temporal distribution: more recent reviews
-            $daysAgo = $this->weightedRandomDays($totalDays);
-            $createdAt = Carbon::now()->subDays($daysAgo)->setTime(rand(9, 21), rand(0, 59));
+        // Get overall surveys
+        $guestOverallSurvey = $this->surveys[0]; // Overall Guest Experience
+        $registeredOverallSurvey = $this->surveys[1]; // Overall Registered User Experience
 
-            // Select random branch and staff from that branch
-            $branchIndex = rand(0, count($this->branches) - 1);
-            $branch = $this->branches[$branchIndex];
+        // Get survey-specific surveys (indices 2-6)
+        $specificSurveys = array_slice($this->surveys, 2);
 
-            // Get staff from this branch
-            $branchStaff = array_filter($this->staff, fn($s) => $s['branch']->id === $branch->id);
-            $staffMember = $branchStaff[array_rand($branchStaff)];
-
-            // Weighted rating distribution (more 4-5 stars, fewer 1-2 stars)
-            $rating = $this->weightedRandomRating();
-
-            // Get matching review text
-            $reviewTemplate = $this->getReviewTemplate($rating);
-
-            // Create review using ReviewNew (triggers observers/events)
-            $review = ReviewNew::create([
-                'survey_id' => $this->surveys[array_rand($this->surveys)]->id,
-                'description' => 'Customer feedback',
-                'business_id' => $this->business->id,
-                'user_id' => null, // Guest review for simplicity
-                'guest_id' => null, // Will create guest users if needed
-                'comment' => $reviewTemplate['comment'],
-                'raw_text' => $reviewTemplate['comment'],
-                'ip_address' => $this->randomIp(),
+        // Create reviews in 2 groups (only registered users)
+        $reviewGroups = [
+            // Group 1: Registered overall reviews (is_overall=1, survey_id = registered overall survey)
+            [
+                'count' => self::REGISTERED_OVERALL_REVIEWS,
                 'is_overall' => true,
-                'staff_id' => $staffMember['user']->id,
-                'branch_id' => $branch->id,
-                'is_ai_processed' => 0, // AI cron will process these
-                'source' => rand(0, 1) ? 'web' : 'app',
-                'is_voice_review' => false,
-                'created_at' => $createdAt,
-                'updated_at' => $createdAt,
-            ]);
+                'survey' => $registeredOverallSurvey,
+                'label' => 'Registered Overall',
+            ],
+            // Group 2: Registered survey reviews (is_overall=0, survey_id = random specific survey)
+            [
+                'count' => self::REGISTERED_SURVEY_REVIEWS,
+                'is_overall' => false,
+                'survey' => null, // Will pick random from specificSurveys
+                'label' => 'Registered Survey',
+            ],
+        ];
 
-            // Create review values (questions + stars) using ReviewService
-            $this->createReviewValues($review, $rating);
+        foreach ($reviewGroups as $group) {
+            echo "   Creating {$group['count']} {$group['label']} reviews...\n";
 
-            $reviewsCreated++;
+            for ($i = 0; $i < $group['count']; $i++) {
+                // Temporal distribution: more recent reviews
+                $daysAgo = $this->weightedRandomDays($totalDays);
+                $createdAt = Carbon::now()->subDays($daysAgo)->setTime(rand(9, 21), rand(0, 59));
 
-            // Progress indicator
-            $newProgress = (int)(($reviewsCreated / self::REVIEW_COUNT) * 100);
-            if ($newProgress > $progress && $newProgress % 10 === 0) {
-                $progress = $newProgress;
-                echo "   Progress: {$progress}%\n";
+                // Select random branch and staff from that branch
+                $branchIndex = rand(0, count($this->branches) - 1);
+                $branch = $this->branches[$branchIndex];
+
+                // Get staff from this branch
+                $branchStaff = array_filter($this->staff, fn($s) => $s['branch']->id === $branch->id);
+                $staffMember = $branchStaff[array_rand($branchStaff)];
+
+                // Weighted rating distribution (more 4-5 stars, fewer 1-2 stars)
+                $rating = $this->weightedRandomRating();
+
+                // Get matching review text
+                $reviewTemplate = $this->getReviewTemplate($rating);
+
+                // Pick random registered user
+                $userId = $this->registeredUsers[array_rand($this->registeredUsers)]->id;
+
+                // Determine survey_id
+                $surveyId = $group['survey'] ? $group['survey']->id : $specificSurveys[array_rand($specificSurveys)]->id;
+
+                // Create review using ReviewNew (triggers observers/events)
+                $review = ReviewNew::create([
+                    'survey_id' => $surveyId,
+                    'description' => 'Customer feedback',
+                    'business_id' => $this->business->id,
+                    'user_id' => $userId,
+                    'guest_id' => null,
+                    'comment' => $reviewTemplate['comment'],
+                    'raw_text' => $reviewTemplate['comment'],
+                    'ip_address' => $this->randomIp(),
+                    'is_overall' => $group['is_overall'],
+                    'staff_id' => $staffMember['user']->id,
+                    'branch_id' => $branch->id,
+                    'is_ai_processed' => 0, // AI cron will process these
+                    'source' => rand(0, 1) ? 'web' : 'app',
+                    'is_voice_review' => false,
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
+                ]);
+
+                // Create review values (questions + stars) using ReviewService
+                $this->createReviewValues($review, $rating, $group['is_overall']);
+
+                $reviewsCreated++;
+
+                // Progress indicator
+                $newProgress = (int)(($reviewsCreated / self::REVIEW_COUNT) * 100);
+                if ($newProgress > $progress && $newProgress % 10 === 0) {
+                    $progress = $newProgress;
+                    echo "   Progress: {$progress}%\n";
+                }
             }
         }
     }
@@ -531,21 +734,41 @@ class AiReadyDemoBusinessSeeder extends Seeder
     /**
      * Create review values for a review (question answers with ratings)
      * Note: ReviewService expects tag_ids in the array and will sync them after creating review_value
+     * 
+     * @param ReviewNew $review The review to create values for
+     * @param int $baseRating The base rating (1-5)
+     * @param bool $isOverall Whether this is an overall review or survey-specific review
      */
-    private function createReviewValues(ReviewNew $review, int $baseRating): void
+    private function createReviewValues(ReviewNew $review, int $baseRating, bool $isOverall): void
     {
-        // Select 3-6 random questions from the survey
-        $numQuestions = rand(3, 6);
-        $selectedQuestions = array_rand(array_column($this->questions, 'id'), min($numQuestions, count($this->questions)));
+        // Select appropriate questions based on is_overall
+        $questionPool = $isOverall ? $this->overallQuestions : $this->surveyQuestions;
 
-        if (!is_array($selectedQuestions)) {
-            $selectedQuestions = [$selectedQuestions];
+        if (empty($questionPool)) {
+            // Fallback to all questions if pool is empty
+            $questionPool = $this->questions;
+        }
+
+        // Select 3-6 random questions from the appropriate pool
+        $numQuestions = rand(3, 6);
+        $numQuestions = min($numQuestions, count($questionPool));
+
+        if ($numQuestions === 0) {
+            return; // No questions available
+        }
+
+        $selectedQuestionIndices = $numQuestions === 1
+            ? [array_rand($questionPool)]
+            : array_rand($questionPool, $numQuestions);
+
+        if (!is_array($selectedQuestionIndices)) {
+            $selectedQuestionIndices = [$selectedQuestionIndices];
         }
 
         $values = [];
 
-        foreach ($selectedQuestions as $questionIndex) {
-            $question = $this->questions[$questionIndex];
+        foreach ($selectedQuestionIndices as $questionIndex) {
+            $question = $questionPool[$questionIndex];
 
             // Rating varies ±1 from base rating
             $starValue = max(1, min(5, $baseRating + rand(-1, 1)));
@@ -561,7 +784,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
 
             // Format exactly as ReviewService expects (tag_ids will be filtered out during create, then synced)
             $values[] = [
-                'question_id' => $question['id'],
+                'question_id' => $question['id'] ?? $question->id,
                 'star_id' => $starId,
                 'tag_ids' => $tagIds, // This stays in array, ReviewService handles it properly
             ];
