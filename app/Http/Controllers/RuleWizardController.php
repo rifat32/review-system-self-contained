@@ -5,55 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\{AiRule, ReviewNew, Branch};
 use App\Services\Rule\ConditionBuilderService;
 use App\Services\Rule\{RuleExplanationService, RuleMetricsService, RulePreviewService};
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log};
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\File\Exception\AccessDeniedException;
+
 
 /**
- * @OA\Schema(
- *     schema="AiRule",
- *     type="object",
- *     title="AI Rule",
- *     description="AI Rule model",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="rule_id", type="string", example="custom_abc123"),
- *     @OA\Property(property="rule_name", type="string", example="High Priority Negative Sentiment Alert"),
- *     @OA\Property(property="description", type="string", example="Alert managers when reviews have negative sentiment"),
- *     @OA\Property(property="scope", type="string", example="business"),
- *     @OA\Property(property="business_id", type="integer", example=1),
- *     @OA\Property(property="category", type="string", enum={"sentiment", "staff", "area", "rating_mismatch", "trend", "quality"}, example="sentiment"),
- *     @OA\Property(property="priority", type="string", enum={"critical", "high", "medium", "low"}, example="high"),
- *     @OA\Property(property="enabled", type="boolean", example=true),
- *     @OA\Property(
- *         property="conditions",
- *         type="array",
- *         @OA\Items(
- *             type="object",
- *             @OA\Property(property="source", type="string"),
- *             @OA\Property(property="type", type="string"),
- *             @OA\Property(property="operator", type="string"),
- *             @OA\Property(property="value", type="string"),
- *             @OA\Property(property="logic", type="string")
- *         )
- *     ),
- *     @OA\Property(property="actions", type="array", @OA\Items(type="string")),
- *     @OA\Property(property="multi_tag_detection", type="boolean", example=false),
- *     @OA\Property(property="trigger_only_on_first_occurrence", type="boolean", example=false),
- *     @OA\Property(property="run_frequency", type="string", enum={"real_time", "hourly", "daily", "weekly"}, example="daily"),
- *     @OA\Property(property="cooldown_days", type="integer", example=7),
- *     @OA\Property(property="deduplication_scope", type="string", example="staff"),
- *     @OA\Property(property="applies_to", type="string", enum={"new_reviews_only", "all_reviews"}, example="new_reviews_only"),
- *     @OA\Property(property="branch_ids", type="array", @OA\Items(type="integer"), nullable=true),
- *     @OA\Property(property="created_by", type="integer", example=1),
- *     @OA\Property(property="version", type="integer", example=1),
- *     @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-14T10:00:00Z"),
- *     @OA\Property(property="updated_at", type="string", format="date-time", example="2024-01-14T10:00:00Z")
- * )
+ * RuleWizardController
+ * 
+ * Manages AI rule creation, updates, deletion, and preview functionality.
+ * Rules are used to automatically analyze reviews and trigger actions based on conditions.
+ * 
+ * @see AiRule Model for schema definition
  */
-
 class RuleWizardController extends Controller
 {
-    protected RuleMetricsService $metricsService;
-    protected RulePreviewService $previewService;
+    // ==================== DEPENDENCY INJECTION ====================
+
+    protected RuleMetricsService $metricsService;      // Handles rule performance metrics
+    protected RulePreviewService $previewService;      // Generates rule previews ("what-if" analysis)
 
     public function __construct(RuleMetricsService $metricsService, RulePreviewService $previewService)
     {
@@ -67,7 +39,7 @@ class RuleWizardController extends Controller
      * Create a new AI rule
      * 
      * @OA\Post(
-     *     path="/api/v1.0/ai-rules",
+     *     path="/v1.0/ai-rules",
      *     operationId="createRule",
      *     tags={"AI Rules"},
      *     summary="Create new AI rule",
@@ -125,17 +97,28 @@ class RuleWizardController extends Controller
      */
     public function createRule(Request $request)
     {
+        // GET AUTHENTICATED USER AND EXTRACT BUSINESS ID FROM TOKEN
         $user = $request->user();
+        $businessId = $user->business_id;
 
+        // VERIFY USER HAS BUSINESS ACCESS (Required for creating rules)
+        if (!$businessId) {
+            throw new AccessDeniedException('Business ID not found in token');
+        }
+
+        // VALIDATE REQUEST DATA
+        // - Basic information: rule_name, description, category, priority
+        // - Conditions: Array of condition objects with source, type, operator, value, logic
+        // - Actions: Array of action strings
+        // - Configuration: Optional settings for execution control
         $validated = $request->validate([
-            // Basic Information
-            'business_id' => 'required|exists:businesses,id',
+            // BASIC INFORMATION
             'rule_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'category' => 'required|in:sentiment,staff,area,rating_mismatch,trend,quality',
             'priority' => 'required|in:critical,high,medium,low',
 
-            // Conditions & Actions
+            // CONDITIONS & ACTIONS
             'conditions' => 'required|array|min:1',
             'conditions.*.source' => 'required|in:Comment,Rating,Staff,Area,Emotion,Trend',
             'conditions.*.type' => 'required|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
@@ -146,7 +129,7 @@ class RuleWizardController extends Controller
             'actions' => 'required|array|min:1',
             'actions.*' => 'required|in:flag_review,notify_manager,recommend_coaching,link_staff,escalate,notify_slack,notify_email',
 
-            // Configuration
+            // CONFIGURATION (All optional with sensible defaults)
             'enabled' => 'required|boolean',
             'multi_tag_detection' => 'nullable|boolean',
             'trigger_only_on_first_occurrence' => 'nullable|boolean',
@@ -159,15 +142,11 @@ class RuleWizardController extends Controller
             'sensitivity' => 'nullable|numeric|min:0|max:100'
         ]);
 
-        // Verify user has access to business
-        if ($user->business_id != $validated['business_id'] && !$user->hasRole('superadmin')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access to business'
-            ], 403);
-        }
 
-        // Validate condition structure
+        // ADD BUSINESS ID TO VALIDATED DATA (From authenticated user token)
+        $validated['business_id'] = $businessId;
+
+        // VALIDATE CONDITION STRUCTURE (Ensures logical consistency of AND/OR operators)
         $errors = ConditionBuilderService::validateConditionTree($validated['conditions']);
         if (!empty($errors)) {
             return response()->json([
@@ -177,36 +156,54 @@ class RuleWizardController extends Controller
             ], 422);
         }
 
+        // BEGIN DATABASE TRANSACTION (Ensures atomicity - all or nothing)
         DB::beginTransaction();
         try {
-            // Create the AI rule
+            // CREATE THE AI RULE WITH DEFAULT VALUES FOR OPTIONAL FIELDS
             $rule = AiRule::create([
-                'rule_id' => 'custom_' . uniqid(),
+                'rule_id' => 'custom_' . uniqid(),  // Generate unique ID with "custom_" prefix
                 'rule_name' => $validated['rule_name'],
                 'description' => $validated['description'] ?? '',
-                'scope' => 'business',
+                'scope' => 'business',  // User-created rules are always business-scoped
                 'business_id' => $validated['business_id'],
                 'category' => $validated['category'],
                 'priority' => $validated['priority'],
                 'enabled' => $validated['enabled'],
-                'conditions' => $validated['conditions'],
-                'actions' => $validated['actions'],
+                'conditions' => $validated['conditions'],  // Stored as JSON
+                'actions' => $validated['actions'],        // Stored as JSON array
+
+                // EXECUTION CONTROL SETTINGS (With sensible defaults)
                 'multi_tag_detection' => $validated['multi_tag_detection'] ?? false,
                 'trigger_only_on_first_occurrence' => $validated['trigger_only_on_first_occurrence'] ?? false,
                 'run_frequency' => $validated['run_frequency'] ?? 'daily',
                 'cooldown_days' => $validated['cooldown_days'] ?? 7,
                 'deduplication_scope' => $validated['deduplication_scope'] ?? 'staff',
                 'applies_to' => $validated['applies_to'] ?? 'new_reviews_only',
-                'branch_ids' => $validated['branch_ids'] ?? null,
+                'branch_ids' => $validated['branch_ids'] ?? null,  // null = all branches
+
+                // METADATA
                 'created_by' => $user->id,
-                'version' => 1
+                'version' => 1  // Initial version
             ]);
 
-            // Generate AI explanations
+            // GENERATE AI EXPLANATIONS (Optional - uses OpenAI to explain rule in business terms)
             if (class_exists(RuleExplanationService::class)) {
                 try {
-                    app(RuleExplanationService::class)->generateExplanations($rule);
-                } catch (\Exception $e) {
+                    // Call AI service to generate human-readable explanations
+                    $explanations = app(RuleExplanationService::class)->regenerateForRule($rule);
+
+                    // UPDATE RULE WITH AI-GENERATED EXPLANATIONS
+                    if ($explanations) {
+                        $rule->update([
+                            'ai_explanation_title' => $explanations['short_explanation'],
+                            'ai_plain_explanation' => $explanations['detailed_explanation'],
+                            'ai_why_it_matters' => $explanations['why_it_matters'],
+                            'ai_when_it_triggers' => $explanations['when_it_triggers'],
+                            'ai_generated_at' => now()
+                        ]);
+                    }
+                } catch (Exception $e) {
+                    // AI explanation failure is non-critical - log warning and continue
                     Log::warning("Failed to generate rule explanations", [
                         'rule_id' => $rule->rule_id,
                         'error' => $e->getMessage()
@@ -214,7 +211,7 @@ class RuleWizardController extends Controller
                 }
             }
 
-            // Initialize metrics record
+            // INITIALIZE METRICS RECORD (For tracking rule performance)
             $this->metricsService->updateMetrics($rule->rule_id, []);
 
             DB::commit();
@@ -229,19 +226,9 @@ class RuleWizardController extends Controller
                 'message' => 'Rule created successfully',
                 'data' => $rule
             ], 201);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
-
-            Log::error("Failed to create rule", [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create rule',
-                'error' => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -251,7 +238,7 @@ class RuleWizardController extends Controller
      * Get all AI rules
      * 
      * @OA\Get(
-     *     path="/api/v1.0/ai-rules",
+     *     path="/v1.0/ai-rules",
      *     operationId="getAllRules",
      *     tags={"AI Rules"},
      *     summary="Get all AI rules",
@@ -314,14 +301,13 @@ class RuleWizardController extends Controller
             $query->where('scope', $request->scope);
         }
 
-        $rules = $query->orderBy('priority', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $rules = retrieve_data($query);
 
         return response()->json([
             'success' => true,
-            'data' => $rules,
-            'count' => $rules->count()
+            'message' => 'Rules retrieved successfully',
+            'meta' => $rules['meat'],
+            'data' => $rules['data'],
         ]);
     }
 
@@ -331,7 +317,7 @@ class RuleWizardController extends Controller
      * Get single AI rule by ID
      * 
      * @OA\Get(
-     *     path="/api/v1.0/ai-rules/{id}",
+     *     path="/v1.0/ai-rules/{id}",
      *     operationId="getRuleById",
      *     tags={"AI Rules"},
      *     summary="Get AI rule by ID",
@@ -376,7 +362,7 @@ class RuleWizardController extends Controller
      * Update AI rule
      * 
      * @OA\Put(
-     *     path="/api/v1.0/ai-rules/{id}",
+     *     path="/v1.0/ai-rules/{id}",
      *     operationId="updateRule",
      *     tags={"AI Rules"},
      *     summary="Update AI rule",
@@ -475,8 +461,18 @@ class RuleWizardController extends Controller
             // Regenerate explanations if conditions changed
             if (isset($validated['conditions']) && class_exists(RuleExplanationService::class)) {
                 try {
-                    app(RuleExplanationService::class)->generateExplanations($rule);
-                } catch (\Exception $e) {
+                    $explanations = app(RuleExplanationService::class)->regenerateForRule($rule);
+
+                    if ($explanations) {
+                        $rule->update([
+                            'ai_explanation_title' => $explanations['short_explanation'],
+                            'ai_plain_explanation' => $explanations['detailed_explanation'],
+                            'ai_why_it_matters' => $explanations['why_it_matters'],
+                            'ai_when_it_triggers' => $explanations['when_it_triggers'],
+                            'ai_generated_at' => now()
+                        ]);
+                    }
+                } catch (Exception $e) {
                     Log::warning("Failed to regenerate rule explanations", [
                         'rule_id' => $rule->rule_id,
                         'error' => $e->getMessage()
@@ -486,29 +482,14 @@ class RuleWizardController extends Controller
 
             DB::commit();
 
-            Log::info("Rule updated", [
-                'rule_id' => $rule->rule_id,
-                'updated_by' => $user->id
-            ]);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Rule updated successfully',
                 'data' => $rule->fresh()
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
-
-            Log::error("Failed to update rule", [
-                'rule_id' => $rule->rule_id,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update rule',
-                'error' => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -518,7 +499,7 @@ class RuleWizardController extends Controller
      * Delete AI rule
      * 
      * @OA\Delete(
-     *     path="/api/v1.0/ai-rules/{id}",
+     *     path="/v1.0/ai-rules/{id}",
      *     operationId="deleteRule",
      *     tags={"AI Rules"},
      *     summary="Delete AI rule",
@@ -560,28 +541,14 @@ class RuleWizardController extends Controller
 
             DB::commit();
 
-            Log::info("Rule deleted", [
-                'rule_id' => $ruleId,
-                'deleted_by' => $user->id
-            ]);
 
             return response()->json([
                 'success' => true,
                 'message' => "Rule '$ruleName' deleted successfully"
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
-
-            Log::error("Failed to delete rule", [
-                'rule_id' => $rule->rule_id,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete rule',
-                'error' => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -591,7 +558,7 @@ class RuleWizardController extends Controller
      * Preview rule with "what-if" analysis
      * 
      * @OA\Post(
-     *     path="/api/v1.0/ai-rules/preview",
+     *     path="/v1.0/ai-rules/preview",
      *     operationId="previewRule",
      *     tags={"AI Rules"},
      *     summary="Preview AI rule",
@@ -600,10 +567,23 @@ class RuleWizardController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"business_id", "conditions", "actions", "category"},
-     *             @OA\Property(property="business_id", type="integer", example=1),
-     *             @OA\Property(property="conditions", type="array", @OA\Items(type="object")),
-     *             @OA\Property(property="actions", type="array", @OA\Items(type="string")),
+     *             required={"conditions", "actions", "category"},
+     *             @OA\Property(
+     *                 property="conditions",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="source", type="string", enum={"Comment", "Rating", "Staff", "Area", "Emotion", "Trend"}),
+     *                     @OA\Property(property="type", type="string", enum={"sentiment", "rating", "keyword", "staff_mention", "area_mention", "emotion", "service_type", "frequency", "trend_direction"}),
+     *                     @OA\Property(property="operator", type="string", enum={"equals", "contains", "greater_than", "less_than", "between", "not_equals", "starts_with", "ends_with", "regex"}),
+     *                     @OA\Property(property="value", type="string"),
+     *                     @OA\Property(property="logic", type="string", enum={"AND", "OR"})
+     *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="actions",
+     *                 type="array",
+     *                 @OA\Items(type="string", enum={"flag_review", "notify_manager", "recommend_coaching", "link_staff", "escalate", "notify_slack", "notify_email"})
+     *             ),
      *             @OA\Property(property="category", type="string", enum={"sentiment", "staff", "area", "rating_mismatch", "trend", "quality"})
      *         )
      *     ),
@@ -623,23 +603,45 @@ class RuleWizardController extends Controller
     public function previewRule(Request $request)
     {
         $user = $request->user();
+        $businessId = $user->business_id;
 
-        $validated = $request->validate([
-            'business_id' => 'required|exists:businesses,id',
-            'conditions' => 'required|array|min:1',
-            'actions' => 'required|array|min:1',
-            'category' => 'required|in:sentiment,staff,area,rating_mismatch,trend,quality'
-        ]);
-
-        // Verify access
-        if ($user->business_id != $validated['business_id'] && !$user->hasRole('superadmin')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access to business'
-            ], 403);
+        // VERIFY USER HAS BUSINESS ACCESS
+        if (!$businessId) {
+            throw new AccessDeniedException('Business ID not found in token');
         }
 
-        $preview = $this->previewService->generatePreview($validated, $validated['business_id']);
+        $validated = $request->validate([
+            'conditions' => 'required|array|min:1',
+            'conditions.*.source' => 'required|in:Comment,Rating,Staff,Area,Emotion,Trend',
+            'conditions.*.type' => 'required|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
+            'conditions.*.operator' => 'required|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
+            'conditions.*.value' => 'required',
+            'conditions.*.logic' => 'nullable|in:AND,OR',
+            'actions' => 'required|array|min:1',
+            'actions.*' => 'required|in:flag_review,notify_manager,recommend_coaching,link_staff,escalate,notify_slack,notify_email',
+            'category' => 'required|in:sentiment,staff,area,rating_mismatch,trend,quality',
+
+            // OPTIONAL CONFIGURATION FIELDS
+            'trigger_only_on_first_occurrence' => 'nullable|boolean',
+            'multi_tag_detection' => 'nullable|boolean',
+            'run_frequency' => 'nullable|in:real_time,hourly,daily,weekly',
+            'cooldown_days' => 'nullable|integer|min:0',
+            'deduplication_scope' => 'nullable|in:review,staff,category,branch,staff_category',
+            'applies_to' => 'nullable|in:new_reviews_only,all_reviews'
+        ]);
+
+        // ADD BUSINESS ID TO VALIDATED DATA
+        $validated['business_id'] = $businessId;
+
+        // ADD DEFAULT VALUES FOR OPTIONAL CONFIGURATION FIELDS
+        $validated['trigger_only_on_first_occurrence'] = $validated['trigger_only_on_first_occurrence'] ?? false;
+        $validated['multi_tag_detection'] = $validated['multi_tag_detection'] ?? false;
+        $validated['run_frequency'] = $validated['run_frequency'] ?? 'daily';
+        $validated['cooldown_days'] = $validated['cooldown_days'] ?? 7;
+        $validated['deduplication_scope'] = $validated['deduplication_scope'] ?? 'review';
+        $validated['applies_to'] = $validated['applies_to'] ?? 'new_reviews_only';
+
+        $preview = $this->previewService->generatePreview($validated, $businessId);
 
         return response()->json([
             'success' => true,

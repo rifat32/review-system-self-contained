@@ -7,6 +7,72 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @OA\Schema(
+ *     schema="AiRule",
+ *     type="object",
+ *     title="AI Rule",
+ *     description="AI Rule model for automated review analysis and actions",
+ *     required={"id", "rule_id", "rule_name", "category", "priority", "enabled", "conditions", "actions"},
+ *     @OA\Property(property="id", type="integer", example=1, description="Primary key"),
+ *     @OA\Property(property="rule_id", type="string", example="custom_abc123", description="Unique rule identifier"),
+ *     @OA\Property(property="rule_name", type="string", example="Low Rating Alert", description="Human-readable rule name"),
+ *     @OA\Property(property="description", type="string", example="Alert managers when rating is below threshold", description="Rule description"),
+ *     @OA\Property(property="scope", type="string", enum={"business", "system"}, example="business", description="Rule scope"),
+ *     @OA\Property(property="business_id", type="integer", example=1, description="Business ID (null for system rules)"),
+ *     @OA\Property(
+ *         property="category",
+ *         type="string",
+ *         enum={"sentiment", "staff", "area", "rating_mismatch", "trend", "quality"},
+ *         example="sentiment",
+ *         description="Rule category"
+ *     ),
+ *  *     @OA\Property(
+ *         property="priority",
+ *         type="string",
+ *         enum={"critical", "high", "medium", "low"},
+ *         example="high",
+ *         description="Priority level"
+ *     ),
+ *     @OA\Property(property="enabled", type="boolean", example=true, description="Whether rule is active"),
+ *     @OA\Property(
+ *         property="conditions",
+ *         type="array",
+ *         description="Array of conditions that must be met",
+ *         @OA\Items(
+ *             type="object",
+ *             required={"source", "type", "operator", "value"},
+ *             @OA\Property(property="source", type="string", enum={"Comment", "Rating", "Staff", "Area", "Emotion", "Trend"}, description="Data source"),
+ *             @OA\Property(property="type", type="string", enum={"sentiment", "rating", "keyword", "staff_mention", "area_mention", "emotion", "service_type", "frequency", "trend_direction"}, description="Condition type"),
+ *             @OA\Property(property="operator", type="string", enum={"equals", "contains", "greater_than", "less_than", "between", "not_equals", "starts_with", "ends_with", "regex"}, description="Comparison operator"),
+ *             @OA\Property(property="value", type="string", description="Value to compare against"),
+ *             @OA\Property(property="logic", type="string", enum={"AND", "OR"}, nullable=true, description="Logic operator to combine with next condition")
+ *         )
+ *     ),
+ *     @OA\Property(
+ *         property="actions",
+ *         type="array",
+ *         description="Actions to execute when rule matches",
+ *         @OA\Items(type="string", enum={"flag_review", "notify_manager", "recommend_coaching", "link_staff", "escalate", "notify_slack", "notify_email"})
+ *     ),
+ *     @OA\Property(property="multi_tag_detection", type="boolean", example=false, description="Detect multiple matching tags"),
+ *     @OA\Property(property="trigger_only_on_first_occurrence", type="boolean", example=false, description="Only trigger on first occurrence"),
+ *    @OA\Property(property="run_frequency", type="string", enum={"real_time", "hourly", "daily", "weekly"}, example="daily", description="How often to run"),
+ *     @OA\Property(property="cooldown_days", type="integer", example=7, description="Days to wait before triggering again"),
+ *     @OA\Property(property="deduplication_scope", type="string", enum={"review", "staff", "category", "branch", "staff_category"}, example="staff", description="Deduplication scope"),
+ *     @OA\Property(property="applies_to", type="string", enum={"new_reviews_only", "all_reviews"}, example="new_reviews_only", description="Which reviews to apply to"),
+ *     @OA\Property(property="branch_ids", type="array", @OA\Items(type="integer"), nullable=true, description="Specific branches (null = all branches)"),
+ *     @OA\Property(property="created_by", type="integer", example=1, description="User who created the rule"),
+ *     @OA\Property(property="version", type="integer", example=1, description="Rule version number"),
+ *     @OA\Property(property="ai_explanation_title", type="string", nullable=true, description="AI-generated short explanation"),
+ *     @OA\Property(property="ai_plain_explanation", type="string", nullable=true, description="AI-generated detailed explanation"),
+ *     @OA\Property(property="ai_why_it_matters", type="string", nullable=true, description="AI-generated business impact"),
+ *     @OA\Property(property="ai_when_it_triggers", type="string", nullable=true, description="AI-generated trigger conditions"),
+ *     @OA\Property(property="ai_generated_at", type="string", format="date-time", nullable=true, description="When AI explanations were generated"),
+ *     @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-14T10:00:00Z"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time", example="2024-01-14T10:00:00Z")
+ * )
+ */
 class AiRule extends Model
 {
     protected $fillable = [
