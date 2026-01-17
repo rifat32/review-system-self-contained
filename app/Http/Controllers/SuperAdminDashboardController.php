@@ -5,11 +5,21 @@ namespace App\Http\Controllers;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\User;
+use App\Services\Review\ReviewMetricsService;
+use App\Traits\AuthorizesRoles;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class SuperAdminDashboardController extends Controller
 {
+    use AuthorizesRoles;
+
+    protected ReviewMetricsService $reviewMetricsService;
+
+    public function __construct(ReviewMetricsService $reviewMetricsService)
+    {
+        $this->reviewMetricsService = $reviewMetricsService;
+    }
 
 
     /**
@@ -220,4 +230,72 @@ class SuperAdminDashboardController extends Controller
     }
 
 
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/review-trends",
+     *      operationId="getReviewTrends",
+     *      tags={"super_admin.dashboard_management"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get review trends for super admin",
+     *      description="Retrieve review submission trends over time across all businesses for super admin",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Time period for trends (e.g., 30d, 7d, 1d)",
+     *          @OA\Schema(type="string"),
+     *          example="30d"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Review trends retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Review trends retrieved successfully"),
+     *              @OA\Property(property="data", type="array", @OA\Items(type="object"),
+     *                  description="Array of trend data points with dates and counts"
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - Super admin access required",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Access denied: You cannot perform this action")
+     *          )
+     *      )
+     * )
+     */
+    public function getReviewTrends(Request $request)
+    {
+        // ENSURE SUPER ADMIN ACCESS
+        $this->ensureSuperAdmin();
+
+        // GET ALL REVIEWS (NO BUSINESS ID FILTER FOR SUPER ADMIN)
+        $reviewsQuery = ReviewNew::query()
+            ->with(['user', 'guest_user', 'survey'])
+            ->withCalculatedRating();
+
+        // GENERATE DATA FOR TRENDS
+        $reviewTrends = $this->reviewMetricsService->getSubmissionsOverTime(
+            reviews: (clone $reviewsQuery),
+            period: $request->get('period', '30d')
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review trends retrieved successfully',
+            'data' => $reviewTrends
+        ], 200);
+    }
 }

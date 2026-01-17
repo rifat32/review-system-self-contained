@@ -142,9 +142,10 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/v1.0/email-template-types', [EmailTemplateController::class, 'getEmailTemplateTypes']);
 
         // -------------------------------------------------------------------------
-        // SuperAdminDashboardController – Super Admin Business Metrics
+        // SuperAdminDashboardController – Super Admin Dashboard
         // -------------------------------------------------------------------------
         Route::get('/v1.0/dashboard/business-metrics', [SuperAdminDashboardController::class, 'getBusinessMetrics']);
+        Route::get('/v1.0/dashboard/review-trends', [SuperAdminDashboardController::class, 'getReviewTrends']);
     });
 
     // ============================================================================
