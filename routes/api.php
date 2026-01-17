@@ -146,6 +146,7 @@ Route::middleware(['auth:api'])->group(function () {
         // -------------------------------------------------------------------------
         Route::get('/v1.0/dashboard/business-metrics', [SuperAdminDashboardController::class, 'getBusinessMetrics']);
         Route::get('/v1.0/dashboard/review-trends', [SuperAdminDashboardController::class, 'getReviewTrends']);
+        Route::get('/v1.0/dashboard/customer-registration-trends', [SuperAdminDashboardController::class, 'getCustomerRegistrationTrends']);
     });
 
     // ============================================================================

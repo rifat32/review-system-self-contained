@@ -6,6 +6,7 @@ use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Services\Review\ReviewMetricsService;
+use App\Services\User\UserService;
 use App\Traits\AuthorizesRoles;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,10 +16,14 @@ class SuperAdminDashboardController extends Controller
     use AuthorizesRoles;
 
     protected ReviewMetricsService $reviewMetricsService;
+    protected UserService $userService;
 
-    public function __construct(ReviewMetricsService $reviewMetricsService)
-    {
+    public function __construct(
+        ReviewMetricsService $reviewMetricsService,
+        UserService $userService
+    ) {
         $this->reviewMetricsService = $reviewMetricsService;
+        $this->userService = $userService;
     }
 
 
@@ -296,6 +301,74 @@ class SuperAdminDashboardController extends Controller
             'success' => true,
             'message' => 'Review trends retrieved successfully',
             'data' => $reviewTrends
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *      path="/v1.0/dashboard/customer-registration-trends",
+     *      operationId="getCustomerRegistrationTrends",
+     *      tags={"super_admin.dashboard_management"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get customer registration trends for super admin",
+     *      description="Retrieve customer registration trends over time across all businesses for super admin",
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Time period for trends (e.g., 30d, 7d, 1d)",
+     *          @OA\Schema(type="string"),
+     *          example="30d"
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Customer registration trends retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Customer registration trends retrieved successfully"),
+     *              @OA\Property(property="data", type="array", @OA\Items(type="object"),
+     *                  description="Array of trend data points with dates and registration counts"
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - Super admin access required",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Access denied: You cannot perform this action")
+     *          )
+     *      )
+     * )
+     */
+    public function getCustomerRegistrationTrends(Request $request)
+    {
+        // ENSURE SUPER ADMIN ACCESS
+        $this->ensureSuperAdmin();
+
+        // GET ALL CUSTOMERS (NO BUSINESS ID FILTER FOR SUPER ADMIN)
+        $customersQuery = User::whereHas('roles', fn($query) => $query->where('name', User::USER_ROLE['CUSTOMER']))
+            ->select('id', 'created_at');
+
+        // GENERATE DATA FOR TRENDS USING USER SERVICE
+        $customerTrends = $this->userService->getRegistrationTrends(
+            users: (clone $customersQuery),
+            period: $request->get('period', '30d')
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Customer registration trends retrieved successfully',
+            'data' => $customerTrends
         ], 200);
     }
 }
