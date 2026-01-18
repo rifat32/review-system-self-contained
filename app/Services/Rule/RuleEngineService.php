@@ -5,15 +5,20 @@ namespace App\Services\Rule;
 use App\Models\{AiRule, ReviewNew, Business, InsightRecord, AiRuleEvaluation, AiInsightsAggregate, Alert};
 use App\Services\AIProcessor\ConfidenceCalculatorService;
 use App\Services\Rule\AutoRuleCreatorService;
+use App\Services\Rule\RuleExecutionService;
 
 
 class RuleEngineService
 {
     private ConfidenceCalculatorService $confidenceCalculatorService;
+    private RuleExecutionService $executionService;
 
-    public function __construct(ConfidenceCalculatorService $confidenceCalculatorService)
-    {
+    public function __construct(
+        ConfidenceCalculatorService $confidenceCalculatorService,
+        RuleExecutionService $executionService
+    ) {
         $this->confidenceCalculatorService = $confidenceCalculatorService;
+        $this->executionService = $executionService;
     }
 
     // PUBLIC METHODS
@@ -39,7 +44,7 @@ class RuleEngineService
 
     public function generateRecommendation(AiRule $rule, InsightRecord $insight): array
     {
-        $actions = json_decode($rule->actions, true);
+        $actions = $rule->actions;
 
         if (!isset($actions['suggest_action']))
             return [];
@@ -68,9 +73,24 @@ class RuleEngineService
         $results = [];
 
         foreach ($rules as $rule) {
+            // Apply branch filtering (done again in executionService but kept here for early exit if needed, 
+            // though executionService handles it more robustly now)
+            if (!empty($rule->branch_ids)) {
+                if (!$review->branch_id || !in_array($review->branch_id, $rule->branch_ids)) {
+                    continue;
+                }
+            }
+
+            // Redirect to RuleExecutionService for unified execution, recording, and deduplication
+            // This ensures all rule matches are recorded in ai_rule_triggers
+            $this->executionService->runSingleRule($rule, $review, $openaiData);
+
+            // If it matched, we still want to return a result for the log in OpenAIProcessorService
+            // Note: executionService already matched it, but for simplicity of the return value,
+            // we do a quick match check here or just assume it might have matched if runSingleRule didn't throw.
+            // Actually, to avoid double matching, we could update runSingleRule to return match status.
             if ($this->ruleMatchesReview($rule, $review, $openaiData)) {
                 $results[] = $this->createRuleEvaluation($rule, $review, $openaiData);
-                $this->triggerRuleActions($rule, $review, $openaiData);
             }
         }
 
@@ -103,7 +123,7 @@ class RuleEngineService
 
     private function ruleMatchesInsight(AiRule $rule, InsightRecord $insight): bool
     {
-        $conditions = json_decode($rule->conditions, true);
+        $conditions = $rule->conditions;
 
         // Dynamic category matching
         if (isset($conditions['category_match'])) {
@@ -272,7 +292,7 @@ class RuleEngineService
 
     private function generateExplainability(AiRule $rule, InsightRecord $insight): array
     {
-        $conditions = json_decode($rule->conditions, true);
+        $conditions = $rule->conditions;
 
         return [
             'rule_used' => $rule->rule_name,
@@ -295,7 +315,7 @@ class RuleEngineService
     private function fillTemplate(string $template, int $businessId, AiRule $rule, InsightRecord $insight): string
     {
         $business = Business::find($businessId);
-        $conditions = json_decode($rule->conditions, true);
+        $conditions = $rule->conditions;
 
         $replacements = [
             '{{main_category}}' => $insight->main_category,
@@ -351,31 +371,12 @@ class RuleEngineService
 
     private function ruleMatchesReview(AiRule $rule, ReviewNew $review, array $openaiData): bool
     {
-        $conditions = json_decode($rule->conditions, true);
-
-        // Check rating conditions
-        if (isset($conditions['rating'])) {
-            if (!$this->checkRatingCondition($conditions['rating'], $review->rating ?? 0)) {
-                return false;
-            }
-        }
-
-        // Check sentiment from OpenAI
-        if (isset($conditions['sentiment'])) {
-            $sentiment = $openaiData['overall_sentiment'] ?? 'neutral';
-            if ($sentiment !== $conditions['sentiment']) {
-                return false;
-            }
-        }
-
-        // Check category match in review
-        if (isset($conditions['category_match'])) {
-            if (!$this->reviewContainsCategory($openaiData, $conditions['category_match'])) {
-                return false;
-            }
-        }
-
-        return true;
+        // Use the centralized ConditionBuilderService for robust evaluation
+        return ConditionBuilderService::evaluateConditions(
+            $rule->conditions,
+            $review,
+            $openaiData
+        );
     }
 
     private function reviewContainsCategory(array $openaiData, array $condition): bool
@@ -411,16 +412,17 @@ class RuleEngineService
             'explanation' => "Rule '{$rule->rule_name}' triggered for review #{$review->id}",
             'confidence' => 0.8, // Default confidence for review-level matches
             'evaluation_data' => [
-                'matched_conditions' => json_decode($rule->conditions, true),
+                'matched_conditions' => $rule->conditions,
                 'review_categories' => $openaiData['category_analysis'] ?? [],
                 'timestamp' => now()->toISOString()
             ]
         ];
     }
 
-    private function triggerRuleActions(AiRule $rule, ReviewNew $review, array $openaiData): void
+    public function triggerRuleActions(AiRule $rule, ReviewNew $review, array $openaiData): void
     {
-        $actions = json_decode($rule->actions, true);
+        $actions = $rule->actions;
+        if (empty($actions)) return;
 
         // Trigger alert
         if ($actions['trigger_alert'] ?? false) {
@@ -440,7 +442,7 @@ class RuleEngineService
 
         // Increment trend counter
         if ($actions['count_towards_trend'] ?? false) {
-            $conditions = json_decode($rule->conditions, true);
+            $conditions = $rule->conditions;
             $category = $conditions['category_match']['main_category'] ?? 'general';
 
             AiInsightsAggregate::updateOrCreate(
@@ -480,7 +482,7 @@ class RuleEngineService
 
     private function generateRuleExplanation(AiRule $rule, InsightRecord $insight): string
     {
-        $conditions = json_decode($rule->conditions, true);
+        $conditions = $rule->conditions;
 
         $parts = [];
         if (isset($conditions['category_match'])) {
@@ -590,7 +592,7 @@ class RuleEngineService
             ->get();
 
         foreach ($predictionRules as $rule) {
-            $conditions = json_decode($rule->conditions, true);
+            $conditions = $rule->conditions;
             if ($avgRating >= $conditions['min'] && $avgRating <= $conditions['max']) {
                 return [
                     'prediction' => $rule->value,
@@ -711,7 +713,7 @@ class RuleEngineService
             ->get();
 
         foreach ($sentimentRules as $rule) {
-            $conditions = json_decode($rule->conditions, true);
+            $conditions = $rule->conditions;
             if ($percentage >= $conditions['min'] && $percentage <= $conditions['max']) {
                 return $rule->value;
             }

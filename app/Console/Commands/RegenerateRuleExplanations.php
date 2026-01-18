@@ -20,30 +20,27 @@ class RegenerateRuleExplanations extends Command
 
     protected $description = 'Regenerate AI explanations for rules';
 
-    private $logHandle;
+
 
     public function handle()
     {
-        $logFile = storage_path('logs/ai_processing.log');
-        $this->logHandle = fopen($logFile, 'a');
-
         try {
-            $this->fileWrite("\n" . str_repeat('=', 50) . "\n");
-            $this->fileWrite("Regenerate Rule Explanations started at " . now() . "\n");
+            Log::channel('daily')->info("\n" . str_repeat('=', 50));
+            Log::channel('daily')->info("Regenerate Rule Explanations started at " . now());
 
             $this->info('Starting rule explanation regeneration...');
-            $this->fileWrite("Starting rule explanation regeneration...\n");
+            Log::channel('daily')->info("Starting documentation regeneration...");
 
             $rules = $this->getRulesToProcess();
 
             if ($rules->isEmpty()) {
                 $this->info('No rules found needing regeneration (use --all to force).');
-                $this->fileWrite("No rules found to process.\n");
+                Log::channel('daily')->info("No rules found to process.");
                 return 0;
             }
 
             $this->info("Found {$rules->count()} rule(s) to process");
-            $this->fileWrite("Found {$rules->count()} rule(s) to process\n");
+            Log::channel('daily')->info("Found {$rules->count()} rule(s) to process");
 
             $results = [
                 'success' => 0,
@@ -81,18 +78,18 @@ class RegenerateRuleExplanations extends Command
                         ]);
 
                         $results['success']++;
-                        $this->fileWrite("✓ Rule {$rule->rule_id}: Updated explanations\n");
+                        Log::channel('daily')->info("✓ Rule {$rule->rule_id}: Updated explanations");
                     } else {
                         $results['failed']++;
                         $this->newLine();
                         $this->warn("Failed: {$rule->rule_id}");
-                        $this->fileWrite("✗ Failed: {$rule->rule_id}\n");
+                        Log::channel('daily')->info("✗ Failed: {$rule->rule_id}");
                     }
                 } catch (\Exception $e) {
                     $results['failed']++;
                     $this->newLine();
                     $this->error("Error: {$rule->rule_id} - {$e->getMessage()}");
-                    $this->fileWrite("Error: {$rule->rule_id} - {$e->getMessage()}\n");
+                    Log::channel('daily')->info("Error: {$rule->rule_id} - {$e->getMessage()}");
                 }
 
                 $progressBar->advance();
@@ -117,22 +114,18 @@ class RegenerateRuleExplanations extends Command
 
             if ($results['failed'] > 0) {
                 $this->error("Some explanations failed to regenerate. Check logs for details.");
-                $this->fileWrite("Some explanations failed to regenerate.\n");
+                Log::channel('daily')->info("Some explanations failed to regenerate.");
                 return 1;
             }
 
             $this->info('Explanation regeneration completed successfully!');
-            $this->fileWrite("Explanation regeneration completed successfully!\n");
+            Log::channel('daily')->info("Explanation regeneration completed successfully!");
 
             return 0;
         } catch (\Exception $e) {
             $this->error($e->getMessage());
-            $this->fileWrite("FATAL ERROR: " . $e->getMessage() . "\n");
+            Log::channel('daily')->info("FATAL ERROR: " . $e->getMessage());
             return 1;
-        } finally {
-            if ($this->logHandle) {
-                fclose($this->logHandle);
-            }
         }
     }
 
@@ -199,12 +192,5 @@ class RegenerateRuleExplanations extends Command
         }
 
         return false;
-    }
-
-    private function fileWrite($message)
-    {
-        if ($this->logHandle) {
-            fwrite($this->logHandle, $message);
-        }
     }
 }

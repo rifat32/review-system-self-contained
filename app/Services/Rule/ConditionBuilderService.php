@@ -83,26 +83,28 @@ class ConditionBuilderService
      * @param string $logic Logic operator (AND or OR)
      * @return bool True if conditions match
      */
-    public static function evaluateConditions(array $conditions, ReviewNew $review, array $aiData, string $logic = 'AND'): bool
+    public static function evaluateConditions(array $conditionData, ReviewNew $review, array $aiData, string $defaultLogic = 'AND'): bool
     {
-        if (empty($conditions)) {
-            return true;
+        // Handle both simple array of conditions and complex [logic => ..., conditions => ...] structure
+        if (isset($conditionData['logic']) && isset($conditionData['conditions'])) {
+            $logic = $conditionData['logic'];
+            $conditions = $conditionData['conditions'];
+        } else {
+            $logic = $defaultLogic;
+            $conditions = $conditionData;
         }
 
-        // Branch filtering
-        if ($review->branch_id && !empty($review->branch_ids)) {
-            if (!in_array($review->branch_id, $review->branch_ids)) {
-                return false;
-            }
+        if (empty($conditions)) {
+            return true;
         }
 
         $results = [];
 
         foreach ($conditions as $condition) {
-            if (isset($condition['group'])) {
+            if (isset($condition['group']) || (isset($condition['logic']) && isset($condition['conditions']))) {
                 // Evaluate nested group
-                $groupLogic = $condition['logic'] ?? 'AND';
-                $results[] = self::evaluateConditions($condition['group'], $review, $aiData, $groupLogic);
+                $nestedConditions = $condition['group'] ?? $condition;
+                $results[] = self::evaluateConditions($nestedConditions, $review, $aiData);
             } else {
                 // Evaluate single condition
                 $results[] = self::evaluateSingleCondition($condition, $review, $aiData);
@@ -110,10 +112,12 @@ class ConditionBuilderService
         }
 
         // Apply logic operator
-        if ($logic === 'AND') {
-            return !in_array(false, $results, true);
-        } else { // OR
+        $logic = strtoupper($logic);
+        if ($logic === 'OR') {
             return in_array(true, $results, true);
+        } else {
+            // Default to AND
+            return !in_array(false, $results, true);
         }
     }
 
@@ -128,27 +132,51 @@ class ConditionBuilderService
     private static function evaluateSingleCondition(array $condition, ReviewNew $review, array $aiData): bool
     {
         $source = $condition['source'] ?? null;
-        $type = $condition['type'];
-        $operator = $condition['operator'];
+        $type = $condition['type'] ?? $condition['field'] ?? '';
+        $operator = $condition['operator'] ?? 'equals';
         $value = $condition['value'] ?? null;
 
         // Route by source if available, otherwise fallback to type
         if ($source === 'Rating' || $type === 'rating') {
-            return self::matchNumeric($review->rating, $operator, $value);
+            $rating = $review->calculated_rating ?? 0;
+            return self::matchNumeric($rating, $operator, $value);
         }
 
         if ($source === 'Comment' || in_array($type, ['sentiment', 'keyword', 'emotion'])) {
             if ($type === 'sentiment') {
-                $sentiment = $aiData['sentiment'] ?? 'neutral';
+                // OpenAI returns sentiment in different formats depending on module
+                $sentiment = $aiData['sentiment']['label'] ?? $aiData['overall_sentiment'] ?? $aiData['sentiment'] ?? 'neutral';
+                if (is_array($sentiment)) {
+                    $sentiment = $sentiment['label'] ?? 'neutral';
+                }
                 return self::matchSentiment($sentiment, $operator, $value);
             }
             if ($type === 'keyword') {
-                return self::matchText($review->comment, $operator, $value);
+                $text = $review->comment ?? $review->raw_text ?? '';
+                // Also check translated text if available
+                if (isset($aiData['language']['translated_text'])) {
+                    $text .= " " . $aiData['language']['translated_text'];
+                }
+                return self::matchText($text, $operator, $value);
             }
-            if ($type === 'emotion') {
-                $emotions = $aiData['emotions'] ?? [];
-                $threshold = $condition['threshold'] ?? 0.5;
-                return isset($emotions[$value]) && $emotions[$value]['score'] >= $threshold;
+            if ($type === 'emotion' || $type === 'intensity') {
+                // Handle complex emotion intensity matching
+                $intensityStr = $aiData['emotion']['intensity'] ?? 'low';
+                $intensityVal = match (strtolower((string)$intensityStr)) {
+                    'high' => 0.9,
+                    'medium' => 0.6,
+                    'low' => 0.3,
+                    default => 0.5
+                };
+
+                // If it's a numeric comparison for intensity
+                if ($type === 'intensity' || is_numeric($value)) {
+                    return self::matchNumeric($intensityVal, $operator, $value);
+                }
+
+                // If it's a primary emotion match
+                $primaryEmotion = $aiData['emotion']['primary'] ?? 'neutral';
+                return self::matchSentiment($primaryEmotion, $operator, $value);
             }
         }
 
@@ -163,14 +191,37 @@ class ConditionBuilderService
         }
 
         if ($source === 'Staff' || $type === 'staff_mention') {
+            // Check staff intelligence from OpenAI
+            $staffInfo = $aiData['staff_intelligence'] ?? null;
+            if ($staffInfo && isset($staffInfo['mentioned_explicitly']) && $staffInfo['mentioned_explicitly']) {
+                if ($value && isset($staffInfo['staff_name'])) {
+                    return self::matchText($staffInfo['staff_name'], 'contains', $value);
+                }
+                return true;
+            }
+
+            // Fallback for older staff mentions format
             $staffMentions = $aiData['staff_mentions'] ?? [];
             if ($value) {
-                return in_array($value, array_column($staffMentions, 'name'));
+                return in_array($value, array_column((array)$staffMentions, 'name'));
             }
             return !empty($staffMentions);
         }
 
         if ($source === 'Area' || $type === 'area_mention') {
+            // Check area insights
+            $areaInsights = $aiData['area_insights'] ?? [];
+            if (!empty($areaInsights)) {
+                if ($value) {
+                    foreach ($areaInsights as $area) {
+                        if (self::matchText($area['area_name'] ?? '', 'contains', $value)) return true;
+                    }
+                    return false;
+                }
+                return true;
+            }
+
+            // Fallback
             $areaMentions = $aiData['areas'] ?? [];
             if (is_array($areaMentions)) {
                 return in_array($value, array_column($areaMentions, 'name'));
@@ -181,6 +232,10 @@ class ConditionBuilderService
         // Fallback for other types
         switch ($type) {
             case 'service_type':
+                $serviceInfo = $aiData['service_unit_intelligence'] ?? null;
+                if ($serviceInfo && isset($serviceInfo['unit_type'])) {
+                    return self::matchText($serviceInfo['unit_type'], 'equals', $value);
+                }
                 $serviceTypes = $aiData['service_types'] ?? [];
                 return in_array($value, $serviceTypes);
 
@@ -197,12 +252,14 @@ class ConditionBuilderService
     private static function matchSentiment(?string $sentiment, string $operator, $value): bool
     {
         $sentiment = strtolower($sentiment ?? 'neutral');
-        $value = strtolower($value);
+        $value = strtolower((string)$value);
 
         switch ($operator) {
             case 'equals':
+            case 'eq':
                 return $sentiment === $value;
             case 'not_equals':
+            case 'neq':
                 return $sentiment !== $value;
             default:
                 return false;
@@ -214,17 +271,30 @@ class ConditionBuilderService
      */
     private static function matchNumeric($actual, string $operator, $value): bool
     {
+        $actual = (float)$actual;
+        $value = is_array($value) ? array_map('floatval', $value) : (float)$value;
+
         switch ($operator) {
             case 'equals':
-                return abs($actual - $value) < 0.01; // Float comparison
+            case 'eq':
+                return abs($actual - $value) < 0.01;
             case 'not_equals':
+            case 'neq':
                 return abs($actual - $value) >= 0.01;
             case 'greater_than':
+            case 'gt':
                 return $actual > $value;
             case 'less_than':
+            case 'lt':
                 return $actual < $value;
+            case 'greater_than_or_equal':
+            case 'gte':
+                return $actual >= $value;
+            case 'less_than_or_equal':
+            case 'lte':
+                return $actual <= $value;
             case 'between':
-                return $actual >= $value[0] && $actual <= $value[1];
+                return is_array($value) && $actual >= $value[0] && $actual <= $value[1];
             default:
                 return false;
         }
@@ -236,14 +306,16 @@ class ConditionBuilderService
     private static function matchText(?string $text, string $operator, $value): bool
     {
         $text = strtolower($text ?? '');
-        $value = strtolower($value);
+        $value = strtolower((string)$value);
 
         switch ($operator) {
             case 'contains':
                 return str_contains($text, $value);
             case 'equals':
+            case 'eq':
                 return $text === $value;
             case 'not_equals':
+            case 'neq':
                 return $text !== $value;
             case 'starts_with':
                 return str_starts_with($text, $value);

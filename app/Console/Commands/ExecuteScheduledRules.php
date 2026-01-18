@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\Rule\RuleExecutionService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class ExecuteScheduledRules extends Command
 {
@@ -22,7 +23,7 @@ class ExecuteScheduledRules extends Command
      */
     protected $description = 'Execute scheduled AI rules based on their frequency';
 
-    private $logHandle;
+
 
     /**
      * Execute the console command.
@@ -31,39 +32,25 @@ class ExecuteScheduledRules extends Command
      */
     public function handle(RuleExecutionService $executionService)
     {
-        $logFile = \storage_path('logs/ai_processing.log');
-        $this->logHandle = fopen($logFile, 'a');
-
         try {
             $startMsg = "Starting scheduled rules execution";
             $this->info($startMsg);
 
-            $this->fileWrite("\n" . str_repeat('=', 50) . "\n");
-            $this->fileWrite("Scheduled Rules Execution started at " . \now() . "\n");
-            $this->fileWrite($startMsg . "\n");
+            Log::channel('daily')->info("\n" . str_repeat('=', 50));
+            Log::channel('daily')->info("Scheduled Rules Execution started at " . \now());
+            Log::channel('daily')->info($startMsg);
 
             // Execute directly via service - NO QUEUE INVOLVED
             $executionService->runScheduledRules();
 
             $this->info('Scheduled rules executed successfully.');
-            $this->fileWrite("Scheduled rules executed successfully.\n");
+            Log::channel('daily')->info("Scheduled rules executed successfully.");
 
             return 0;
         } catch (\Exception $e) {
             $this->error($e->getMessage());
-            $this->fileWrite("ERROR: " . $e->getMessage() . "\n");
+            Log::channel('daily')->info("ERROR: " . $e->getMessage());
             return 1;
-        } finally {
-            if ($this->logHandle) {
-                fclose($this->logHandle);
-            }
-        }
-    }
-
-    private function fileWrite($message)
-    {
-        if ($this->logHandle) {
-            fwrite($this->logHandle, $message);
         }
     }
 }

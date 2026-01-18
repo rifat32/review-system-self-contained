@@ -4,46 +4,55 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Artisan;
 
 class Kernel extends ConsoleKernel
 {
-    /**
-     * Define the application's command schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
-     */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
-        $schedule->command('guest_user_review_report:generate')->dailyAt('03:00');
-        $schedule->command('user_review_report:generate')->dailyAt('03:00');
+        $schedule->call(function () {
+            Artisan::call('guest_user_review_report:generate');
+        })->name('generate-guest-report')->dailyAt('03:00');
 
-        // AI Rule Execution (Runs checks every minute, efficiently matches by frequency)
-        $schedule->command('rules:execute-scheduled')->everyMinute();
+        $schedule->call(function () {
+            Artisan::call('user_review_report:generate');
+        })->name('generate-user-report')->dailyAt('03:00');
 
-        // Process New Reviews (Batch process every 5 minutes)
-        $schedule->command('reviews:process')->everyFiveMinutes()->withoutOverlapping();
+        // AI Rule Execution
+        $schedule->call(function () {
+            Artisan::call('rules:execute-scheduled');
+        })->name('execute-rules')->everyMinute();
 
-        // Generate Recommendations (Daily insights)
-        $schedule->command('recommendations:generate')->dailyAt('03:00');
+        // Process New Reviews
+        $schedule->call(function () {
+            Artisan::call('reviews:process');
+        })->name('process-reviews')->everyFiveMinutes()->withoutOverlapping();
 
-        // Cleanup Old Recommendations (Weekly maintenance)
-        $schedule->command('recommendations:cleanup --days=90 --force')->weeklyOn(0, '04:00');
+        // Generate Recommendations
+        $schedule->call(function () {
+            Artisan::call('recommendations:generate');
+        })->name('generate-recommendations')->dailyAt('03:00');
 
-        // Regenerate Rule Explanations (Daily check for outdated/missing explanations)
-        $schedule->command('rules:regenerate-explanations --missing-only --outdated-only')->dailyAt('05:00');
+        // Cleanup Old Recommendations
+        $schedule->call(function () {
+            Artisan::call('recommendations:cleanup', [
+                '--days' => 90,
+                '--force' => true
+            ]);
+        })->name('cleanup-recommendations')->weeklyOn(0, '04:00');
+
+        // Regenerate Rule Explanations
+        $schedule->call(function () {
+            Artisan::call('rules:regenerate-explanations', [
+                '--missing-only' => true,
+                '--outdated-only' => true
+            ]);
+        })->name('regenerate-explanations')->dailyAt('05:00');
     }
 
-    /**
-     * Register the commands for the application.
-     *
-     * @return void
-     */
     protected function commands()
     {
         $this->load(__DIR__ . '/Commands');
-
         require base_path('routes/console.php');
     }
 }

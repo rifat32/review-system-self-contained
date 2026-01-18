@@ -8,6 +8,7 @@ use App\Services\AIProcessor\InsightAggregationService;
 use App\Services\AIProcessor\RecommendationGeneratorService;
 use App\Models\Business;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class GenerateRecommendations extends Command
 {
@@ -18,7 +19,7 @@ class GenerateRecommendations extends Command
 
     protected $description = 'Generate recommendations from insights';
 
-    private $logHandle;
+
     protected $insightAggregationService;
     protected $recommendationGeneratorService;
 
@@ -34,27 +35,24 @@ class GenerateRecommendations extends Command
 
     public function handle()
     {
-        $logFile = storage_path('logs/ai_processing.log');
-        $this->logHandle = fopen($logFile, 'a');
-
         try {
-            $this->fileWrite("\n" . str_repeat('=', 50) . "\n");
-            $this->fileWrite("Generate Recommendations started at " . now() . "\n");
+            Log::channel('daily')->info("\n" . str_repeat('=', 50));
+            Log::channel('daily')->info("Generate Recommendations started at " . now());
 
             $this->info('Starting recommendation generation...');
-            $this->fileWrite("Starting recommendation generation...\n");
+            Log::channel('daily')->info("Starting recommendation generation...");
 
             $businesses = $this->getBusinessesToProcess();
 
             if ($businesses->isEmpty()) {
                 $this->error('No businesses found.');
-                $this->fileWrite("No businesses found.\n");
+                Log::channel('daily')->info("No businesses found.");
                 return 1;
             }
 
             $msg = "Processing {$businesses->count()} business(es)";
             $this->info($msg);
-            $this->fileWrite($msg . "\n");
+            Log::channel('daily')->info($msg);
 
             $results = ['success' => 0, 'failed' => 0];
 
@@ -62,26 +60,26 @@ class GenerateRecommendations extends Command
                 try {
                     if (!$this->shouldProcess($business)) {
                         $this->line("○ Business {$business->id}: Skipped (recently processed)");
-                        $this->fileWrite("○ Business {$business->id}: Skipped (recently processed)\n");
+                        Log::channel('daily')->info("○ Business {$business->id}: Skipped (recently processed)");
                         continue;
                     }
 
                     // 1. Aggregate insights (last 30 days)
                     $this->line("  → Aggregating insights...");
-                    $this->fileWrite("  → Aggregating insights for Business {$business->id}...\n");
+                    Log::channel('daily')->info("  → Aggregating insights for Business {$business->id}...");
 
                     // Use the injected service instance
                     $aggResult = $this->insightAggregationService->aggregateReviewsForBusiness($business->id, 30);
 
                     if ($aggResult['insights_created'] === 0) {
                         $this->line("  → No new insights found");
-                        $this->fileWrite("  → No new insights found\n");
+                        Log::channel('daily')->info("  → No new insights found");
                         continue;
                     }
 
                     // 2. Generate recommendations using injected service
                     $this->line("  → Generating recommendations...");
-                    $this->fileWrite("  → Generating recommendations...\n");
+                    Log::channel('daily')->info("  → Generating recommendations...");
                     $recs = $this->recommendationGeneratorService->generateFromInsights($business->id, 30);
 
                     // Update last processed
@@ -89,16 +87,16 @@ class GenerateRecommendations extends Command
 
                     $successMsg = "✓ Business {$business->id}: Created " . count($recs) . " recommendations";
                     $this->info($successMsg);
-                    $this->fileWrite($successMsg . "\n");
+                    Log::channel('daily')->info($successMsg);
 
                     $results['success']++;
                 } catch (\Exception $e) {
                     $errorMsg = "✗ Business {$business->id}: {$e->getMessage()}";
                     $this->error($errorMsg);
-                    $this->fileWrite($errorMsg . "\n");
+                    Log::channel('daily')->info($errorMsg);
 
                     // Also keep standard logging
-                    \Log::error('Recommendation generation failed', [
+                    Log::error('Recommendation generation failed', [
                         'business_id' => $business->id,
                         'error' => $e->getMessage()
                     ]);
@@ -108,17 +106,13 @@ class GenerateRecommendations extends Command
 
             $endMsg = "\nComplete: {$results['success']} success, {$results['failed']} failed";
             $this->info($endMsg);
-            $this->fileWrite($endMsg . "\n");
+            Log::channel('daily')->info($endMsg);
 
             return $results['failed'] > 0 ? 1 : 0;
         } catch (\Exception $e) {
             $this->error($e->getMessage());
-            $this->fileWrite("FATAL ERROR: " . $e->getMessage() . "\n");
+            Log::channel('daily')->info("FATAL ERROR: " . $e->getMessage());
             return 1;
-        } finally {
-            if ($this->logHandle) {
-                fclose($this->logHandle);
-            }
         }
     }
 
@@ -155,12 +149,5 @@ class GenerateRecommendations extends Command
         }
 
         return true;
-    }
-
-    private function fileWrite($message)
-    {
-        if ($this->logHandle) {
-            fwrite($this->logHandle, $message);
-        }
     }
 }

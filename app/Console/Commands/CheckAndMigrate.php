@@ -21,10 +21,7 @@ class CheckAndMigrate extends Command
         // Get all migration files in the database/migrations directory
         $migrationFiles = glob(database_path('migrations/*.php'));
 
-        // Open log file
-        $logFile = storage_path('logs/migration.log');
-        $logHandle = fopen($logFile, 'a');
-        fwrite($logHandle, "Migration started at " . now() . "\n");
+        Log::channel('daily')->info("Migration started at " . now());
 
         foreach ($migrationFiles as $file) {
             // Get the migration file name (without the path)
@@ -34,9 +31,9 @@ class CheckAndMigrate extends Command
             $migrationAlreadyRun = DB::table('migrations')->where('migration', pathinfo($migrationName, PATHINFO_FILENAME))->exists();
 
             if ($migrationAlreadyRun) {
-                $message = "Migration {$migrationName} already exists in the migrations table. Skipping...\n";
+                $message = "Migration {$migrationName} already exists in the migrations table. Skipping...";
                 $this->info($message);
-                fwrite($logHandle, $message);
+                Log::channel('daily')->info($message);
             } else {
                 try {
                     // Run the specific migration
@@ -45,22 +42,18 @@ class CheckAndMigrate extends Command
                     ]);
 
                     // Log the successful migration
-                    $message = "Migrated {$migrationName} successfully.\n";
-                    fwrite($logHandle, $message);
+                    $message = "Migrated {$migrationName} successfully.";
+                    Log::channel('daily')->info($message);
                 } catch (\Exception $e) {
                     // Log the error message
-                    $errorMessage = "Migration failed for {$migrationName}. Error: " . $e->getMessage() . "\n";
+                    $errorMessage = "Migration failed for {$migrationName}. Error: " . $e->getMessage();
                     $this->error($errorMessage);
-                    fwrite($logHandle, $errorMessage);
-                    throw new Exception($errorMessage,400);
+                    Log::channel('daily')->info($errorMessage);
+                    throw new Exception($errorMessage, 400);
                 }
             }
         }
 
-        // Close log file
-        fwrite($logHandle, "Migration finished at " . now() . "\n\n");
-        fclose($logHandle);
+        Log::channel('daily')->info("Migration finished at " . now() . "\n");
     }
-
-
 }

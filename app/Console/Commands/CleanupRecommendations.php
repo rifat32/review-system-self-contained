@@ -7,6 +7,7 @@ use Illuminate\Console\Command;
 use App\Models\Recommendation;
 use App\Models\InsightRecord;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class CleanupRecommendations extends Command
 {
@@ -16,19 +17,16 @@ class CleanupRecommendations extends Command
 
     protected $description = 'Cleanup old recommendations';
 
-    private $logHandle;
+
 
     public function handle()
     {
-        $logFile = storage_path('logs/ai_processing.log');
-        $this->logHandle = fopen($logFile, 'a');
-
         try {
+            Log::channel('daily')->info("\n" . str_repeat('=', 50));
+            Log::channel('daily')->info("Cleanup Recommendations started at " . now());
+
             $days = $this->option('days');
             $cutoff = Carbon::now()->subDays($days);
-
-            $this->fileWrite("\n" . str_repeat('=', 50) . "\n");
-            $this->fileWrite("Cleanup Recommendations started at " . now() . "\n");
 
             // Recommendations older than X days
             $recCount = Recommendation::where('created_at', '<', $cutoff)->count();
@@ -38,44 +36,33 @@ class CleanupRecommendations extends Command
 
             $msg = "Found {$recCount} recommendations and {$insightCount} insights older than {$days} days";
             $this->info($msg);
-            $this->fileWrite($msg . "\n");
+            Log::channel('daily')->info($msg);
 
             if (!$this->option('force')) {
                 $this->warn('Dry run. Use --force to delete.');
-                $this->fileWrite("Dry run. Use --force to delete.\n");
+                Log::channel('daily')->info("Dry run. Use --force to delete.");
                 return 0;
             }
 
             if ($recCount > 0) {
                 Recommendation::where('created_at', '<', $cutoff)->delete();
                 $this->info("Deleted {$recCount} recommendations");
-                $this->fileWrite("Deleted {$recCount} recommendations\n");
+                Log::channel('daily')->info("Deleted {$recCount} recommendations");
             }
 
             if ($insightCount > 0) {
                 InsightRecord::where('time_window_end', '<', $cutoff)->delete();
                 $this->info("Deleted {$insightCount} insights");
-                $this->fileWrite("Deleted {$insightCount} insights\n");
+                Log::channel('daily')->info("Deleted {$insightCount} insights");
             }
 
-            $this->fileWrite("Cleanup completed.\n");
+            Log::channel('daily')->info("Cleanup completed.");
 
             return 0;
         } catch (\Exception $e) {
             $this->error($e->getMessage());
-            $this->fileWrite("ERROR: " . $e->getMessage() . "\n");
+            Log::channel('daily')->info("ERROR: " . $e->getMessage());
             return 1;
-        } finally {
-            if ($this->logHandle) {
-                fclose($this->logHandle);
-            }
-        }
-    }
-
-    private function fileWrite($message)
-    {
-        if ($this->logHandle) {
-            fwrite($this->logHandle, $message);
         }
     }
 }

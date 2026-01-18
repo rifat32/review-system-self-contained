@@ -23,9 +23,10 @@ class RuleExecutionService
      * 
      * @param AiRule $rule Rule to execute
      * @param \Illuminate\Support\Collection|array $reviews Reviews to check
+     * @param array|null $forcedAiData Optional forced AI data (for real-time bypass)
      * @return array Execution summary
      */
-    public function executeRule(AiRule $rule, $reviews): array
+    public function executeRule(AiRule $rule, $reviews, ?array $forcedAiData = null): array
     {
         $summary = [
             'rule_id' => $rule->rule_id,
@@ -41,7 +42,14 @@ class RuleExecutionService
             $summary['reviews_evaluated']++;
 
             // Get AI data for review
-            $aiData = $this->getReviewAIData($review);
+            $aiData = $forcedAiData ?: $this->getReviewAIData($review);
+
+            // Apply branch filtering
+            if (!empty($rule->branch_ids)) {
+                if (!$review->branch_id || !in_array($review->branch_id, $rule->branch_ids)) {
+                    continue;
+                }
+            }
 
             // Evaluate rule conditions
             $isMatch = ConditionBuilderService::evaluateConditions(
@@ -124,7 +132,7 @@ class RuleExecutionService
             'branch' => "rule_{$ruleId}_branch_" . ($review->branch_id ?? 'none'),
 
             'staff_category' => "rule_{$ruleId}_staff_" . ($context['staff_id'] ?? 'none') .
-            "_cat_" . ($context['category'] ?? 'general'),
+                "_cat_" . ($context['category'] ?? 'general'),
 
             default => "rule_{$ruleId}_review_{$review->id}"
         };
@@ -187,10 +195,28 @@ class RuleExecutionService
      */
     private function executeActions(AiRule $rule, ReviewNew $review, array $aiData, array $context): void
     {
-        foreach ($rule->actions as $action) {
+        $actions = $rule->actions;
+
+        // Handle both list of strings and associative array of actions
+        $actionList = array_is_list($actions) ? $actions : array_keys(array_filter((array)$actions));
+
+        foreach ($actionList as $action) {
+            // Strict Separation Logic:
+            // 1. Default Rules: Internal/Reporting ONLY. Skip notifications.
+            if ($rule->is_default && in_array($action, ['notify_manager', 'notify_slack', 'notify_email', 'create_support_ticket'])) {
+                Log::debug("Skipping notification action for default rule", ['rule_id' => $rule->rule_id, 'action' => $action]);
+                continue;
+            }
+
+            // 2. Non-Default Rules: Notification ONLY. Skip internal mutations (flagging, linking, trends).
+            if (!$rule->is_default && in_array($action, ['flag_review', 'is_flagged', 'recommend_coaching', 'link_staff', 'escalate', 'tag', 'alert'])) {
+                Log::debug("Skipping internal action for non-default rule", ['rule_id' => $rule->rule_id, 'action' => $action]);
+                continue;
+            }
+
             try {
                 match ($action) {
-                    'flag_review' => $this->flagReview($review, $rule),
+                    'flag_review', 'is_flagged' => $this->flagReview($review, $rule),
                     'notify_manager' => $this->notifyManager($review, $rule, $context),
                     'recommend_coaching' => $this->recommendCoaching($review, $rule, $context),
                     'link_staff' => $this->linkStaff($review, $context),
@@ -198,6 +224,7 @@ class RuleExecutionService
                     'escalate' => $this->escalateIssue($review, $rule, $context),
                     'notify_slack' => $this->notifySlack($review, $rule, $context),
                     'notify_email' => $this->notifyEmail($review, $rule, $context),
+                    'tag', 'alert' => null, // Handled internally during recording or by other services
                     default => Log::warning("Unknown action: {$action}", ['rule_id' => $rule->rule_id])
                 };
             } catch (\Exception $e) {
@@ -380,12 +407,15 @@ class RuleExecutionService
     private function getReviewAIData(ReviewNew $review): array
     {
         return [
-            'sentiment' => $review->sentiment ?? 'neutral',
-            'sentiment_score' => 0.5,
-            'staff_mentions' => [],
-            'areas' => [],
-            'emotions' => [],
-            'confidence' => 85.0,
+            'sentiment' => $review->sentiment ?: ($review->sentiment_label ?: 'neutral'),
+            'sentiment_score' => $review->sentiment_score ?? 0.5,
+            'sentiment_label' => $review->sentiment_label ?: ($review->sentiment ?: 'neutral'),
+            'emotion' => $review->emotion ?? 'neutral',
+            'staff_mentions' => $review->key_phrases['staff_mentions'] ?? [],
+            'areas' => $review->key_phrases['areas_mentioned'] ?? [],
+            'key_phrases' => $review->key_phrases ?? [],
+            'topics' => $review->topics ?? [],
+            'confidence' => $review->ai_confidence ?? 85.0,
             'matched_conditions' => []
         ];
     }
@@ -512,7 +542,7 @@ class RuleExecutionService
      * Run a single rule (e.g. for real-time triggers)
      * Moved from ExecuteSingleRuleJob
      */
-    public function runSingleRule(AiRule $rule, ReviewNew $review): void
+    public function runSingleRule(AiRule $rule, ReviewNew $review, ?array $aiData = null): void
     {
         try {
             Log::debug("Executing real-time rule", [
@@ -521,7 +551,7 @@ class RuleExecutionService
             ]);
 
             // Execute rule against single review
-            $result = $this->executeRule($rule, collect([$review]));
+            $result = $this->executeRule($rule, collect([$review]), $aiData);
 
             Log::info("Real-time rule executed", [
                 'rule_id' => $rule->rule_id,
@@ -545,7 +575,6 @@ class RuleExecutionService
     private function getRulesToExecute(?string $frequency = 'all')
     {
         $query = AiRule::where('enabled', true)
-            ->where('is_default', false) // CRITICAL: Only custom rules trigger notifications
             ->where('run_frequency', '!=', 'real_time');
 
         // Filter by frequency if specified
