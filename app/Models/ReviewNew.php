@@ -175,9 +175,9 @@ class ReviewNew extends Model
 
     public function scopeGlobalFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
-        // Apply branch filter
-        $userBranchId = $query->user()->hasRole('branch_manager') || $query->user()->hasRole('business_owner')
-            ? $query->user()->default_branch_id
+        // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
+        $userBranchId = request()->user() && (request()->user()->hasRole('branch_manager') || request()->user()->hasRole('business_owner'))
+            ? request()->user()->default_branch_id
             : null;
 
 

@@ -167,7 +167,8 @@ class BranchController extends Controller
 
 
         $overallSentiment = ReviewNew::whereIn('branch_id', $branchIds)
-            ->globalFilters(0, $businessId)->avg('sentiment_score') ?? 0;
+            ->globalFilters(0, $businessId)
+            ->avg('sentiment_score') ?? 0;
 
         // SEND RESPONSE
         return response()->json([

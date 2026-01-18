@@ -572,68 +572,68 @@ class ReviewService
                 // Send notification only to branch manager
                 if ($branchManagerId) {
                     // In-app notification
-                    $notificationService->send_notification([
-                        'receiver_id' => $branchManagerId,
-                        'business_id' => $business->id,
-                        'type' => 'new_review',
-                        'title' => 'New Review Received',
-                        'message' => "A new review with rating {$averageRating} has been submitted.",
-                        'entity_id' => $review->id,
-                        'priority' => 'normal',
-                    ]);
+                    // $notificationService->send_notification([
+                    //     'receiver_id' => $branchManagerId,
+                    //     'business_id' => $business->id,
+                    //     'type' => 'new_review',
+                    //     'title' => 'New Review Received',
+                    //     'message' => "A new review with rating {$averageRating} has been submitted.",
+                    //     'entity_id' => $review->id,
+                    //     'priority' => 'normal',
+                    // ]);
 
                     // Push notification (with error handling)
-                    try {
-                        $notificationService->sendNotificationToFirebaseUser(
-                            userId: $branchManagerId,
-                            title: 'New Review Received',
-                            body: "A new review with rating {$averageRating} has been submitted.",
-                            data: [
-                                'type' => 'new_review',
-                                'entity_id' => (string) $review->id,
-                                'rating' => (string) $averageRating,
-                            ],
-                        );
-                    } catch (\Exception $e) {
-                        \Log::warning('Failed to send push notification to branch manager', [
-                            'user_id' => $branchManagerId,
-                            'review_id' => $review->id,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
+                    // try {
+                    //     $notificationService->sendNotificationToFirebaseUser(
+                    //         userId: $branchManagerId,
+                    //         title: 'New Review Received',
+                    //         body: "A new review with rating {$averageRating} has been submitted.",
+                    //         data: [
+                    //             'type' => 'new_review',
+                    //             'entity_id' => (string) $review->id,
+                    //             'rating' => (string) $averageRating,
+                    //         ],
+                    //     );
+                    // } catch (\Exception $e) {
+                    //     \Log::warning('Failed to send push notification to branch manager', [
+                    //         'user_id' => $branchManagerId,
+                    //         'review_id' => $review->id,
+                    //         'error' => $e->getMessage()
+                    //     ]);
+                    // }
                 } else {
                     $ownerId = $business->OwnerID;
 
                     // In-app notification
-                    $notificationService->send_notification([
-                        'receiver_id' => $ownerId,
-                        'business_id' => $business->id,
-                        'type' => 'new_review',
-                        'title' => 'New Review Received',
-                        'message' => "A new review with rating {$averageRating} has been submitted.",
-                        'entity_id' => $review->id,
-                        'priority' => 'normal',
-                    ]);
+                    // $notificationService->send_notification([
+                    //     'receiver_id' => $ownerId,
+                    //     'business_id' => $business->id,
+                    //     'type' => 'new_review',
+                    //     'title' => 'New Review Received',
+                    //     'message' => "A new review with rating {$averageRating} has been submitted.",
+                    //     'entity_id' => $review->id,
+                    //     'priority' => 'normal',
+                    // ]);
 
                     // Push notification (with error handling)
-                    try {
-                        $notificationService->sendNotificationToFirebaseUser(
-                            userId: $ownerId,
-                            title: 'New Review Received',
-                            body: "A new review with rating {$averageRating} has been submitted.",
-                            data: [
-                                'type' => 'new_review',
-                                'entity_id' => (string) $review->id,
-                                'rating' => (string) $averageRating,
-                            ],
-                        );
-                    } catch (\Exception $e) {
-                        \Log::warning('Failed to send push notification to owner', [
-                            'user_id' => $ownerId,
-                            'review_id' => $review->id,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
+                    // try {
+                    //     $notificationService->sendNotificationToFirebaseUser(
+                    //         userId: $ownerId,
+                    //         title: 'New Review Received',
+                    //         body: "A new review with rating {$averageRating} has been submitted.",
+                    //         data: [
+                    //             'type' => 'new_review',
+                    //             'entity_id' => (string) $review->id,
+                    //             'rating' => (string) $averageRating,
+                    //         ],
+                    //     );
+                    // } catch (\Exception $e) {
+                    //     \Log::warning('Failed to send push notification to owner', [
+                    //         'user_id' => $ownerId,
+                    //         'review_id' => $review->id,
+                    //         'error' => $e->getMessage()
+                    //     ]);
+                    // }
                 }
             } else {
                 $review->save();
@@ -651,36 +651,36 @@ class ReviewService
 
                 foreach ($receiverIds as $receiverId) {
                     // In-app notification
-                    $notificationService->send_notification([
-                        'receiver_id' => $receiverId,
-                        'business_id' => $business->id,
-                        'type' => 'low_rating_review',
-                        'title' => 'Low Rating Review Alert',
-                        'message' => "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
-                        'entity_id' => $review->id,
-                        'priority' => 'high',
-                    ]);
+                    // $notificationService->send_notification([
+                    //     'receiver_id' => $receiverId,
+                    //     'business_id' => $business->id,
+                    //     'type' => 'low_rating_review',
+                    //     'title' => 'Low Rating Review Alert',
+                    //     'message' => "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
+                    //     'entity_id' => $review->id,
+                    //     'priority' => 'high',
+                    // ]);
 
                     // Push notification for LOW RATINGS (with error handling)
-                    try {
-                        $notificationService->sendNotificationToFirebaseUser(
-                            userId: $receiverId,
-                            title: 'Low Rating Review Alert',
-                            body: "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
-                            data: [
-                                'type' => 'low_rating_review',
-                                'entity_id' => (string) $review->id,
-                                'rating' => (string) $averageRating,
-                                'threshold' => (string) $business->threshold_rating,
-                            ],
-                        );
-                    } catch (\Exception $e) {
-                        \Log::warning('Failed to send low rating push notification', [
-                            'user_id' => $receiverId,
-                            'review_id' => $review->id,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
+                    // try {
+                    //     $notificationService->sendNotificationToFirebaseUser(
+                    //         userId: $receiverId,
+                    //         title: 'Low Rating Review Alert',
+                    //         body: "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
+                    //         data: [
+                    //             'type' => 'low_rating_review',
+                    //             'entity_id' => (string) $review->id,
+                    //             'rating' => (string) $averageRating,
+                    //             'threshold' => (string) $business->threshold_rating,
+                    //         ],
+                    //     );
+                    // } catch (\Exception $e) {
+                    //     \Log::warning('Failed to send low rating push notification', [
+                    //         'user_id' => $receiverId,
+                    //         'review_id' => $review->id,
+                    //         'error' => $e->getMessage()
+                    //     ]);
+                    // }
                 }
             }
         }
