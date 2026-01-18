@@ -2,7 +2,7 @@
 
 namespace App\Services\Rule;
 
-use App\Models\{AiRule, AiRuleTrigger, ReviewNew, SupportTicket};
+use App\Models\{AiRule, AiRuleTrigger, ReviewNew, SupportTicket, Notification};
 use App\Services\Rule\ConditionBuilderService;
 use App\Services\AIProcessor\EmotionAnalysisService;
 use Illuminate\Support\Facades\{DB, Log};
@@ -201,30 +201,43 @@ class RuleExecutionService
         $actionList = array_is_list($actions) ? $actions : array_keys(array_filter((array)$actions));
 
         foreach ($actionList as $action) {
+            Log::info("Processing rule action", [
+                'rule_id' => $rule->rule_id,
+                'is_default' => $rule->is_default,
+                'action' => $action,
+                'review_id' => $review->id
+            ]);
+
             // Strict Separation Logic:
             // 1. Default Rules: Internal/Reporting ONLY. Skip notifications.
-            if ($rule->is_default && in_array($action, ['notify_manager', 'notify_slack', 'notify_email', 'create_support_ticket'])) {
-                Log::debug("Skipping notification action for default rule", ['rule_id' => $rule->rule_id, 'action' => $action]);
+            if ($rule->is_default && in_array($action, ['notify_manager', 'notify_slack', 'notify_email', 'create_support_ticket', 'notification'])) {
+                Log::info("Skipping notification action for default rule", [
+                    'rule_id' => $rule->rule_id,
+                    'action' => $action
+                ]);
                 continue;
             }
 
             // 2. Non-Default Rules: Notification ONLY. Skip internal mutations (flagging, linking, trends).
             if (!$rule->is_default && in_array($action, ['flag_review', 'is_flagged', 'recommend_coaching', 'link_staff', 'escalate', 'tag', 'alert'])) {
-                Log::debug("Skipping internal action for non-default rule", ['rule_id' => $rule->rule_id, 'action' => $action]);
+                Log::info("Skipping internal action for non-default rule", [
+                    'rule_id' => $rule->rule_id,
+                    'action' => $action
+                ]);
                 continue;
             }
 
             try {
                 match ($action) {
                     'flag_review', 'is_flagged' => $this->flagReview($review, $rule),
-                    'notify_manager' => $this->notifyManager($review, $rule, $context),
+                    'notify_manager', 'notification' => $this->notifyManager($review, $rule, $context),
                     'recommend_coaching' => $this->recommendCoaching($review, $rule, $context),
                     'link_staff' => $this->linkStaff($review, $context),
                     'create_support_ticket' => $this->createSupportTicket($review, $rule, $context),
                     'escalate' => $this->escalateIssue($review, $rule, $context),
                     'notify_slack' => $this->notifySlack($review, $rule, $context),
                     'notify_email' => $this->notifyEmail($review, $rule, $context),
-                    'tag', 'alert' => null, // Handled internally during recording or by other services
+                    'tag', 'alert' => Log::debug("Recorded internal action: {$action}", ['rule_id' => $rule->rule_id]),
                     default => Log::warning("Unknown action: {$action}", ['rule_id' => $rule->rule_id])
                 };
             } catch (\Exception $e) {
@@ -252,12 +265,32 @@ class RuleExecutionService
 
     private function notifyManager(ReviewNew $review, AiRule $rule, array $context): void
     {
-        // Send notification to managers
-        Log::info("Manager notified", [
-            'review_id' => $review->id,
-            'rule_id' => $rule->rule_id,
-            'staff_id' => $context['staff_id'] ?? null
-        ]);
+        if ($review->business && $review->business->OwnerID) {
+            Notification::create([
+                'receiver_id' => $review->business->OwnerID,
+                'business_id' => $review->business_id,
+                'sender_id' => null, // System notification
+                'sender_type' => 'system',
+                'title' => "Rule Triggered: {$rule->rule_name}",
+                'message' => "Review #{$review->id} triggered rule: {$rule->rule_name}",
+                'type' => 'rule_trigger',
+                'priority' => 'high',
+                'entity_id' => $review->id,
+                'status' => 'unread',
+                'link' => "/reviews/{$review->id}"
+            ]);
+
+            Log::info("Manager notified via Notification model", [
+                'review_id' => $review->id,
+                'rule_id' => $rule->rule_id,
+                'owner_id' => $review->business->OwnerID
+            ]);
+        } else {
+            Log::warning("Could not notify manager: No owner found", [
+                'review_id' => $review->id,
+                'business_id' => $review->business_id
+            ]);
+        }
     }
 
     private function recommendCoaching(ReviewNew $review, AiRule $rule, array $context): void
