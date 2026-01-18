@@ -2,15 +2,7 @@
 
 namespace App\Services\Notification;
 
-use App\Models\DeviceToken;
 use App\Models\Notification;
-use App\Models\User;
-use Carbon\Carbon;
-use Exception;
-use Firebase\JWT\JWT;
-use Google_Client;
-use Illuminate\Support\Facades\Http;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class NotificationService
 {

@@ -711,10 +711,9 @@ class UserController extends Controller
                 $newBranch = Branch::where('id', $validatedData["branch_id"])
                     ->where('business_id', $business_id)
                     ->first();
+
                 if (!$newBranch) {
                     throw new NotFoundHttpException('Branch Not Found');
-                } else if ($newBranch->manager_id !== null && $newBranch->manager_id !== $user->id) {
-                    throw new AccessDeniedHttpException('Branch Already Have Manager');
                 }
 
                 // Get user's current branch (if any)
@@ -722,20 +721,37 @@ class UserController extends Controller
                     ->where('is_active', true)
                     ->first();
 
-                // If user was in a different branch, remove them as manager from old branch
-                if ($currentBranchMember && $currentBranchMember->branch_id !== $validatedData['branch_id']) {
-                    $oldBranch = Branch::find($currentBranchMember->branch_id);
-                    if ($oldBranch && $oldBranch->manager_id === $user->id) {
-                        $oldBranch->manager_id = null;
-                        $oldBranch->save();
+                // Handle branch manager logic ONLY if user has BRANCH_MANAGER role
+                if (!empty($validatedData['role']) && $validatedData['role'] === User::USER_ROLE['BRANCH_MANAGER']) {
+                    // Check if new branch already has a different manager
+                    if ($newBranch->manager_id !== null && $newBranch->manager_id !== $user->id) {
+                        throw new AccessDeniedHttpException('Branch Already Has a Manager');
+                    }
+
+                    // If user was in a different branch, remove them as manager from old branch
+                    if ($currentBranchMember && $currentBranchMember->branch_id !== $validatedData['branch_id']) {
+                        $oldBranch = Branch::find($currentBranchMember->branch_id);
+                        if ($oldBranch && $oldBranch->manager_id === $user->id) {
+                            $oldBranch->manager_id = null;
+                            $oldBranch->save();
+                        }
+                    }
+
+                    // Set user as manager of new branch
+                    $newBranch->manager_id = $user->id;
+                    $newBranch->save();
+                } else {
+                    // If user is BUSINESS_STAFF and moving branches, remove manager assignment from old branch
+                    if ($currentBranchMember && $currentBranchMember->branch_id !== $validatedData['branch_id']) {
+                        $oldBranch = Branch::find($currentBranchMember->branch_id);
+                        if ($oldBranch && $oldBranch->manager_id === $user->id) {
+                            $oldBranch->manager_id = null;
+                            $oldBranch->save();
+                        }
                     }
                 }
 
-                // Set user as manager of new branch
-                $newBranch->manager_id = $user->id;
-                $newBranch->save();
-
-                // Update or create branch member record
+                // Update or create branch member record (for both staff and manager)
                 BranchMember::updateOrCreate(
                     ['user_id' => $id], // condition to check
                     ['branch_id' => $validatedData['branch_id']] // values to update or create
@@ -975,22 +991,29 @@ class UserController extends Controller
                 $user->assignRole(User::USER_ROLE['BRANCH_MANAGER']);
             }
 
-            // Save the user
-            $user->save();
+            // No need to save - assignRole() already persists the role to database
 
             if (!empty($validatedData["branch_id"])) {
                 $branch = Branch::where('id', $validatedData["branch_id"])
                     ->where('business_id', $business_id)
                     ->first();
+
                 if (!$branch) {
                     throw new NotFoundHttpException('Branch Not Found');
-                } else if ($branch->manager_id != null) {
-                    throw new AccessDeniedHttpException('Branch Already Have Manager');
                 }
 
-                $branch->manager_id = $user->id;
-                $branch->save();
+                // Check if branch already has a manager ONLY when assigning BRANCH_MANAGER role
+                if ($validatedData['role'] === User::USER_ROLE['BRANCH_MANAGER']) {
+                    if ($branch->manager_id !== null) {
+                        throw new AccessDeniedHttpException('Branch Already Has a Manager');
+                    }
 
+                    // Set this user as branch manager
+                    $branch->manager_id = $user->id;
+                    $branch->save();
+                }
+
+                // CREATE BRANCH MEMBER (for both staff and manager)
                 BranchMember::create([
                     'user_id' => $user->id,
                     'branch_id' => $validatedData["branch_id"],
@@ -1140,9 +1163,10 @@ class UserController extends Controller
             })
             ->when(request()->branch_id, function ($query) {
                 $query->whereHas('branch', function ($query) {
-                    $query->where('id', request()->branch_id);
+                    $query->where('branch_id', request()->branch_id);
                 });
-            })->filterStaff(businessId: $business_id);
+            })
+            ->filterStaff(businessId: $business_id);
 
         $users = retrieve_data($query);
 

@@ -557,7 +557,7 @@ class ReviewService
 
 
         if ($business && $review->guest_id) {
-            $notificationService = app(\App\Services\Notification\NotificationService::class);
+            // $notificationService = app(\App\Services\Notification\NotificationService::class);
 
             // Get branch manager if review has branch_id
             $branchManagerId = null;
@@ -649,39 +649,39 @@ class ReviewService
                     $receiverIds[] = $branchManagerId;
                 }
 
-                foreach ($receiverIds as $receiverId) {
-                    // In-app notification
-                    // $notificationService->send_notification([
-                    //     'receiver_id' => $receiverId,
-                    //     'business_id' => $business->id,
-                    //     'type' => 'low_rating_review',
-                    //     'title' => 'Low Rating Review Alert',
-                    //     'message' => "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
-                    //     'entity_id' => $review->id,
-                    //     'priority' => 'high',
-                    // ]);
+                // foreach ($receiverIds as $receiverId) {
+                //     // In-app notification
+                //     // $notificationService->send_notification([
+                //     //     'receiver_id' => $receiverId,
+                //     //     'business_id' => $business->id,
+                //     //     'type' => 'low_rating_review',
+                //     //     'title' => 'Low Rating Review Alert',
+                //     //     'message' => "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
+                //     //     'entity_id' => $review->id,
+                //     //     'priority' => 'high',
+                //     // ]);
 
-                    // Push notification for LOW RATINGS (with error handling)
-                    // try {
-                    //     $notificationService->sendNotificationToFirebaseUser(
-                    //         userId: $receiverId,
-                    //         title: 'Low Rating Review Alert',
-                    //         body: "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
-                    //         data: [
-                    //             'type' => 'low_rating_review',
-                    //             'entity_id' => (string) $review->id,
-                    //             'rating' => (string) $averageRating,
-                    //             'threshold' => (string) $business->threshold_rating,
-                    //         ],
-                    //     );
-                    // } catch (\Exception $e) {
-                    //     \Log::warning('Failed to send low rating push notification', [
-                    //         'user_id' => $receiverId,
-                    //         'review_id' => $review->id,
-                    //         'error' => $e->getMessage()
-                    //     ]);
-                    // }
-                }
+                //     // Push notification for LOW RATINGS (with error handling)
+                //     // try {
+                //     //     $notificationService->sendNotificationToFirebaseUser(
+                //     //         userId: $receiverId,
+                //     //         title: 'Low Rating Review Alert',
+                //     //         body: "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
+                //     //         data: [
+                //     //             'type' => 'low_rating_review',
+                //     //             'entity_id' => (string) $review->id,
+                //     //             'rating' => (string) $averageRating,
+                //     //             'threshold' => (string) $business->threshold_rating,
+                //     //         ],
+                //     //     );
+                //     // } catch (\Exception $e) {
+                //     //     \Log::warning('Failed to send low rating push notification', [
+                //     //         'user_id' => $receiverId,
+                //     //         'review_id' => $review->id,
+                //     //         'error' => $e->getMessage()
+                //     //     ]);
+                //     // }
+                // }
             }
         }
 
