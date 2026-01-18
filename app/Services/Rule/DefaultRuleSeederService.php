@@ -139,7 +139,7 @@ class DefaultRuleSeederService
                         ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
-                'actions' => ['tag' => 'sentiment_assigned', 'count_towards_trend' => true],
+                'actions' => ['tag' => 'sentiment_assigned'],
                 'ai_explanation_title' => 'Sentiment Analysis',
                 'ai_plain_explanation' => 'Automatically categorize feedback into positive, neutral, or negative sentiment buckets.',
                 'ai_why_it_matters' => 'Understanding overall customer satisfaction at scale.',
@@ -162,7 +162,7 @@ class DefaultRuleSeederService
                         ['source' => 'Emotion', 'type' => 'emotion_intensity', 'operator' => 'greater_than', 'value' => 0.7]
                     ]
                 ],
-                'actions' => ['tag' => 'high_emotion', 'count_towards_trend' => true],
+                'actions' => ['tag' => 'high_emotion'],
                 'ai_explanation_title' => 'Emotion Intensity Detection',
                 'ai_plain_explanation' => 'Identify the strength of emotions like joy, frustration, or anger within text reviews.',
                 'ai_why_it_matters' => 'High intensity emotions often signal critical issues or exceptional praise.',
@@ -186,7 +186,7 @@ class DefaultRuleSeederService
                         ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
-                'actions' => ['tag' => 'mismatch_detected', 'alert' => true, 'count_towards_trend' => true],
+                'actions' => ['tag' => 'mismatch_detected', 'alert' => true],
                 'ai_explanation_title' => 'Rating & Comment Mismatch',
                 'ai_plain_explanation' => 'Detect when a high numerical rating is paired with a negative written review.',
                 'ai_why_it_matters' => 'Identifies hidden dissatisfaction where customers are polite with stars but critical in text.',
@@ -212,7 +212,7 @@ class DefaultRuleSeederService
                         ['source' => 'Comment', 'type' => 'keyword', 'operator' => 'contains', 'value' => 'delivery']
                     ]
                 ],
-                'actions' => ['tag' => 'category_assigned', 'count_towards_trend' => true],
+                'actions' => ['tag' => 'category_assigned'],
                 'ai_explanation_title' => 'Category Issue Detection',
                 'ai_plain_explanation' => 'Sort feedback into predefined categories like Pricing, Quality, or Delivery.',
                 'ai_why_it_matters' => 'Enables granular analysis of specific business problems.',
@@ -236,7 +236,7 @@ class DefaultRuleSeederService
                         ['source' => 'Comment', 'type' => 'keyword', 'operator' => 'contains', 'value' => 'maintenance']
                     ]
                 ],
-                'actions' => ['tag' => 'service_type_identified', 'count_towards_trend' => true],
+                'actions' => ['tag' => 'service_type_identified'],
                 'ai_explanation_title' => 'Service Type Detection',
                 'ai_plain_explanation' => 'Identify the specific type of service mentioned (e.g., Installation vs Maintenance).',
                 'ai_why_it_matters' => 'Helps routes feedback to the correct department.',
@@ -259,7 +259,7 @@ class DefaultRuleSeederService
                         ['source' => 'Area', 'type' => 'area_mention', 'operator' => 'exists', 'value' => true]
                     ]
                 ],
-                'actions' => ['tag' => 'area_identified', 'count_towards_trend' => true],
+                'actions' => ['tag' => 'area_identified'],
                 'ai_explanation_title' => 'Business Area Detection',
                 'ai_plain_explanation' => 'Pinpoint which business unit or physical location the feedback refers to.',
                 'ai_why_it_matters' => 'Identifies exactly where in the business an issue or win occurred.',
@@ -282,7 +282,7 @@ class DefaultRuleSeederService
                         ['source' => 'Staff', 'type' => 'staff_mention', 'operator' => 'exists', 'value' => true]
                     ]
                 ],
-                'actions' => ['tag' => 'staff_identified', 'count_towards_trend' => true],
+                'actions' => ['tag' => 'staff_identified'],
                 'ai_explanation_title' => 'Staff Mention Detection',
                 'ai_plain_explanation' => 'Extract employee names or roles from comments to track individual mentions.',
                 'ai_why_it_matters' => 'Enables staff-level performance tracking and recognition.',
@@ -306,7 +306,7 @@ class DefaultRuleSeederService
                         ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
-                'actions' => ['tag' => 'staff_risk_flagged', 'alert' => true, 'count_towards_trend' => true],
+                'actions' => ['tag' => 'staff_risk_flagged', 'alert' => true],
                 'ai_explanation_title' => 'Staff Performance Risk',
                 'ai_plain_explanation' => 'Flag recurring negative mentions or behavioral issues linked to specific personnel.',
                 'ai_why_it_matters' => 'Protects brand reputation by identifying problematic staff behavior early.',
@@ -329,7 +329,7 @@ class DefaultRuleSeederService
                         ['source' => 'Rating', 'type' => 'rating', 'operator' => 'less_than', 'value' => 2]
                     ]
                 ],
-                'actions' => ['alert' => true, 'notification' => 'emergency', 'count_towards_trend' => true],
+                'actions' => ['alert' => true, 'notification' => 'emergency'],
                 'ai_explanation_title' => 'Flag and Alert Detection',
                 'ai_plain_explanation' => 'Trigger immediate notifications for critical keywords or severe dissatisfaction.',
                 'ai_why_it_matters' => 'Ensures immediate action on the most sensitive customer issues.',

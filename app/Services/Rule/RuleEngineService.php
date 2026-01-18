@@ -2,7 +2,7 @@
 
 namespace App\Services\Rule;
 
-use App\Models\{AiRule, ReviewNew, Business, InsightRecord, AiRuleEvaluation, AiInsightsAggregate, Alert};
+use App\Models\{AiRule, ReviewNew, Business, InsightRecord, AiRuleEvaluation, Alert};
 use App\Services\AIProcessor\ConfidenceCalculatorService;
 use App\Services\Rule\AutoRuleCreatorService;
 use App\Services\Rule\RuleExecutionService;
@@ -438,29 +438,6 @@ class RuleEngineService
                     'categories' => $openaiData['category_analysis'] ?? []
                 ]
             ]);
-        }
-
-        // Increment trend counter
-        if ($actions['count_towards_trend'] ?? false) {
-            $conditions = $rule->conditions;
-            $category = $conditions['category_match']['main_category'] ?? 'general';
-
-            AiInsightsAggregate::updateOrCreate(
-                [
-                    'business_id' => $review->business_id,
-                    'insight_type' => 'trend',
-                    'key_name' => $category
-                ],
-                [
-                    'count' => \DB::raw('count + 1'),
-                    'last_seen' => now(),
-                    'first_seen' => \DB::raw('COALESCE(first_seen, NOW())'),
-                    'metadata' => [
-                        'rule_id' => $rule->rule_id,
-                        'last_review_id' => $review->id
-                    ]
-                ]
-            );
         }
     }
 

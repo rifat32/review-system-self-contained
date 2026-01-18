@@ -27,6 +27,7 @@ return new class extends Migration
             $table->boolean('service_unit_intelligence')->default(true);
             $table->boolean('business_recommendations')->default(true);
             $table->boolean('alerts')->default(true);
+            $table->timestamp('last_used_at')->nullable();
 
             $table->timestamps();
             $table->unique('business_id');
