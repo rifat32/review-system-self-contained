@@ -1019,6 +1019,7 @@ class AIProcessorService
             ->whereBetween('created_at', [$startDate, $endDate])
             ->whereNotNull('staff_id')
             ->with(['staff'])
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating(); // Ensure metrics use calculated rating
 
         if ($branchId) {

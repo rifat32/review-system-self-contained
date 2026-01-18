@@ -124,7 +124,7 @@ class RuleExecutionService
             'branch' => "rule_{$ruleId}_branch_" . ($review->branch_id ?? 'none'),
 
             'staff_category' => "rule_{$ruleId}_staff_" . ($context['staff_id'] ?? 'none') .
-                "_cat_" . ($context['category'] ?? 'general'),
+            "_cat_" . ($context['category'] ?? 'general'),
 
             default => "rule_{$ruleId}_review_{$review->id}"
         };
@@ -415,7 +415,8 @@ class RuleExecutionService
     public function getReviewsForRule(AiRule $rule, ?int $limit = 100)
     {
         $query = ReviewNew::where('business_id', $rule->business_id)
-            ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'desc')
+            ->globalFilters(0, $rule->business_id);
 
         if ($rule->run_frequency === 'real_time') {
             // For real-time, typically just one review

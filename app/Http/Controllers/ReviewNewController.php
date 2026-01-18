@@ -947,6 +947,7 @@ class ReviewNewController extends Controller
         if ($business->enable_ip_check) {
             $existing_review = ReviewNew::where('business_id', $businessId)
                 ->where('ip_address', $ip_address)
+                ->globalFilters(0, $businessId)
                 ->whereDate('created_at', now()->toDateString())
                 ->orderBy('order_no', 'asc')
                 ->first();
@@ -3189,6 +3190,7 @@ class ReviewNewController extends Controller
 
         $reviews = ReviewNew::whereIn('id', $numericIds)
             ->whereNotNull('guest_id')
+            // ->globalFilters(0, $businessId)
             ->get(['id', 'guest_id']);
 
         if ($reviews->isEmpty()) {
@@ -3397,6 +3399,7 @@ class ReviewNewController extends Controller
             "guest_user",
             "survey",
         ])->where("business_id", $businessId)
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating();
 
         // Apply review_ids filter (comma-separated IDs)
@@ -3628,6 +3631,7 @@ class ReviewNewController extends Controller
                 return $query->where('branch_id', $userBranchId);
             })
             ->with(['user', 'guest_user', 'survey'])
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating();
 
         // GENERATE DATA FOR TRENDS
@@ -3728,6 +3732,7 @@ class ReviewNewController extends Controller
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->with(['user', 'guest_user', 'survey'])
             ->withCalculatedRating()
+            ->globalFilters(0, $businessId)
             ->when($request->has('is_overall'), function ($query) {
                 $query->where('is_overall', 1);
             })

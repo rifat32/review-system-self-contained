@@ -17,6 +17,7 @@ class RulePreviewService
         // Get recent reviews for simulation
         $recentReviews = ReviewNew::where('business_id', $businessId)
             ->orderBy('created_at', 'desc')
+            ->globalFilters(0, $businessId)
             ->limit(50)
             ->get();
 
@@ -114,15 +115,19 @@ class RulePreviewService
     private function calculatePrecision(int $matches, int $conditionCount): float
     {
         $base = 85.0;
-        if ($conditionCount > 3) $base += 5.0;
-        if ($matches < 2) $base -= 10.0;
+        if ($conditionCount > 3)
+            $base += 5.0;
+        if ($matches < 2)
+            $base -= 10.0;
         return min(98.0, $base);
     }
 
     private function getConfidenceLevel(int $matches): string
     {
-        if ($matches > 10) return 'High';
-        if ($matches > 3) return 'Medium';
+        if ($matches > 10)
+            return 'High';
+        if ($matches > 3)
+            return 'Medium';
         return 'Low';
     }
 

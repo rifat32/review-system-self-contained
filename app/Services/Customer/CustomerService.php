@@ -21,6 +21,7 @@ class CustomerService
         $positive_reviews = ReviewNew::where('review_news.business_id', $business->id)
             ->where('review_news.rate', '>=', 4)
             ->where('review_news.user_id', $user->id)
+            ->globalFilters(0, $business->id)
             ->filterByStaff()
             ->count();
         $user->positive_reviews = $positive_reviews;
@@ -29,6 +30,7 @@ class CustomerService
         $negative_reviews = ReviewNew::where('review_news.business_id', $business->id)
             ->where('review_news.rate', '<=', 2)
             ->where('review_news.user_id', $user->id)
+            ->globalFilters(0, $business->id)
             ->filterByStaff()
             ->count();
         $user->negative_reviews = $negative_reviews;
@@ -39,6 +41,7 @@ class CustomerService
             ->where('review_news.user_id', $user->id)
             ->groupBy('complaint_snippet')
             ->havingRaw('complaint_count > 2')
+            ->globalFilters(0, $business->id)
             ->filterByStaff()
             ->get();
         $user->common_complaints = $common_complaints;
@@ -46,6 +49,7 @@ class CustomerService
         // Fetch satisfaction scores separately
         $satisfaction_scores = ReviewNew::where('review_news.business_id', $business->id)
             ->where('review_news.user_id', $user->id)
+            ->globalFilters(0, $business->id)
             ->filterByStaff()
             ->avg('review_news.rate');
         $user->avg_satisfaction = $satisfaction_scores;
@@ -56,6 +60,7 @@ class CustomerService
             ->where('review_news.user_id', $user->id)
             ->groupBy('comment')
             ->orderByDesc('comment_count')
+            ->globalFilters(0, $business->id)
             ->filterByStaff()
             ->limit(5)
             ->get();

@@ -906,6 +906,7 @@ class DashboardController extends Controller
             ->whereNotNull('staff_id')
             ->when($userBranchId, fn($query) => $query->where('branch_id', $userBranchId))
             ->when($dateRange, fn($query) => $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating();
 
         $staffReviews = $staffReviewQuery->get();
@@ -1057,7 +1058,7 @@ class DashboardController extends Controller
         $activeSurveys = $activeSurveysQuery->count();
 
         // Recent Submissions (reviews in the current period that are from surveys)
-        $recentSubmissionsQuery = ReviewNew::where('business_id', $businessId)
+        $recentSubmissionsQuery = ReviewNew::where('business_id', $businessId)->globalFilters(0, $businessId)
             ->whereNotNull('survey_id');
 
         if ($dateRange) {
@@ -1304,6 +1305,7 @@ class DashboardController extends Controller
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->withCalculatedRating()
+            ->globalFilters(0, $businessId)
             ->get();
 
         if ($staffReviews->isNotEmpty()) {
@@ -1769,10 +1771,12 @@ class DashboardController extends Controller
         $staffAReviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffAId)
             ->withCalculatedRating()
+            ->globalFilters(0, $businessId)
             ->get();
 
         $staffBReviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffBId)
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating()
             ->get();
 
@@ -1881,6 +1885,7 @@ class DashboardController extends Controller
         // Get reviews WITH calculated rating in one query
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffId)
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating()
             ->get();
 
@@ -2010,6 +2015,7 @@ class DashboardController extends Controller
 
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->with(['user', 'guest_user', 'survey'])
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating();
 
         $reviewsQuery = $this->reviewService->applyFilters($reviewsQuery, $filters);

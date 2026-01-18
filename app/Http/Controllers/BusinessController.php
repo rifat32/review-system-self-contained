@@ -419,7 +419,6 @@ class BusinessController extends Controller
             Question::where("business_id", $businessId)->delete();
 
             // DELETE ASSOCIATED REVIEWS
-            Review::where("business_id", $businessId)->delete();
             ReviewNew::where("business_id", $businessId)->delete();
             ReviewValue::where("business_id", $businessId)->delete();
 

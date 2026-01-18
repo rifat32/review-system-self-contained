@@ -165,6 +165,7 @@ class DashboardService
                     $dateRange['end']->copy()->subDays(30)
                 ])
                 ->whereMeetsThreshold($businessId)
+                ->globalFilters(0, $businessId)
                 ->count();
 
             $previousCSATPercentage = $previousTotal > 0

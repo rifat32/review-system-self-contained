@@ -132,7 +132,8 @@ class ReviewNew extends Model
 
     public function getVoiceUrlAttribute($value)
     {
-        if (!$value) return null;
+        if (!$value)
+            return null;
         return str_starts_with($value, 'http') ? $value : asset('storage/' . $value);
     }
 
@@ -174,6 +175,12 @@ class ReviewNew extends Model
 
     public function scopeGlobalFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
+        // Apply branch filter
+        $userBranchId = $query->user()->hasRole('branch_manager') || $query->user()->hasRole('business_owner')
+            ? $query->user()->default_branch_id
+            : null;
+
+
         return $query
             ->when(request()->filled('is_overall'), function ($q) {
                 $q->when(request()->boolean('is_overall'), function ($q) {
@@ -222,7 +229,9 @@ class ReviewNew extends Model
                                 $q->where("review_business_services.business_service_id", request()->input("question_category_id"));
                             });
                     });
-            });;
+            })->when($userBranchId, function ($q) use ($userBranchId) {
+                $q->where("review_news.branch_id", $userBranchId);
+            });
 
 
         //  ->when(request()->filled("business_area_id") || request()->filled("business_service_id"), function ($q) {

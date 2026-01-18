@@ -1119,6 +1119,7 @@ class StaffController extends Controller
 
         // Get reviews with calculated ratings
         $reviews = ReviewNew::withCalculatedRating()
+            ->globalFilters(0, $businessId)
             ->where('staff_id', $staffId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
@@ -1154,6 +1155,7 @@ class StaffController extends Controller
         $previousStart = $previousEnd->copy()->subDays($durationDays - 1);
 
         $previousReviews = ReviewNew::withCalculatedRating()
+            ->globalFilters(0, $businessId)
             ->where('staff_id', $staffId)
             ->whereBetween('created_at', [$previousStart, $previousEnd])
             ->get();
@@ -1344,6 +1346,7 @@ class StaffController extends Controller
                     $query->whereNull('comment');
                 }
             })
+            ->globalFilters(0, $businessId)
             ->withCalculatedRating();
 
         // Apply filter based on calculated_rating

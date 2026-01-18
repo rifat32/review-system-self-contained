@@ -167,8 +167,8 @@ class BranchService
             ->where('branch_id', $branchId)
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = \Carbon\Carbon::parse($dateRange['start'])->startOfDay();
-                $endDate = \Carbon\Carbon::parse($dateRange['end'])->endOfDay();
+                $startDate = Carbon::parse($dateRange['start'])->startOfDay();
+                $endDate = Carbon::parse($dateRange['end'])->endOfDay();
                 return $query->whereBetween('created_at', [$startDate, $endDate]);
             })
             ->globalFilters(0, $businessId)
