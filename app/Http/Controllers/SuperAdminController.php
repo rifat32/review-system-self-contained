@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ReviewNew;
 use App\Models\User;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -336,6 +337,167 @@ class SuperAdminController extends Controller
                 "data" => [
                     "id" => $customer->id,
                     "email" => $customer->email
+                ]
+            ], 200);
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/customers/metrics",
+     *      operationId="customerMetrics",
+     *      tags={"super_admin.customer_management"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="Get customer metrics",
+     *      description="Retrieve customer metrics including total customers with period-based comparisons (Super Admin only)",
+     *
+     *
+     *      @OA\Response(
+     *          response=200,
+     *          description="Customer metrics retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Customer metrics retrieved successfully."),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(
+     *                      property="total_customers",
+     *                      type="object",
+     *                      @OA\Property(property="current", type="integer", example=3000, description="Customers registered in current period"),
+     *                      @OA\Property(property="comparison", type="integer", example=2500, description="Customers registered in comparison period"),
+     *                      @OA\Property(property="change_type", type="string", enum={"increase", "decrease", "no_change"}, example="increase"),
+     *                      @OA\Property(property="value", type="number", format="float", example=20.0, description="Percentage change (absolute value)")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="today",
+     *                      type="object",
+     *                      @OA\Property(property="count", type="integer", example=50, description="Customers registered today")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="last_7_days",
+     *                      type="object",
+     *                      @OA\Property(property="count", type="integer", example=350, description="Customers registered in last 7 days")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="last_30_days",
+     *                      type="object",
+     *                      @OA\Property(property="count", type="integer", example=1200, description="Customers registered in last 30 days")
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - Super admin access required",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Forbidden")
+     *          )
+     *      )
+     * )
+     */
+    public function customerMetrics(Request $request): JsonResponse
+    {
+        try {
+            // $period = $request->get("period", "last_30_days");
+            // $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+
+            // ==================== CUSTOMER BASE QUERY ====================
+            $customerQuery = fn() => User::whereHas("roles", fn($q) => $q->where("name", User::USER_ROLE['CUSTOMER']));
+
+            // // ==================== CURRENT PERIOD COUNT ====================
+            // $currentCustomerCount = $customerQuery()
+            //     ->when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))
+            //     ->count();
+
+            // // ==================== COMPARISON PERIOD COUNT ====================
+            // $comparisonCustomerCount = $customerQuery()
+            //     ->when($dateRange, function ($query) use ($dateRange) {
+            //         $startDate = Carbon::parse($dateRange["start"])->subDays($dateRange["daysOffset"])->startOfDay();
+            //         $endDate = Carbon::parse($dateRange["end"])->subDays($dateRange["daysOffset"])->endOfDay();
+            //         return $query->whereBetween("created_at", [$startDate, $endDate]);
+            //     })
+            //     ->count();
+
+            // ==================== FIXED PERIOD COUNTS ====================
+            // TODAY
+            $todayCount = $customerQuery()
+                ->whereDate("created_at", Carbon::today())
+                ->count();
+            $yesterdayCount = $customerQuery()
+                ->whereDate("created_at", Carbon::yesterday())
+                ->count();
+
+            // LAST 7 DAYS
+            $last7DaysCount = $customerQuery()
+                ->where("created_at", ">=", Carbon::now()->subDays(7)->startOfDay())
+                ->count();
+            $previous7DaysCount = $customerQuery()
+                ->whereBetween("created_at", [
+                    Carbon::now()->subDays(14)->startOfDay(),
+                    Carbon::now()->subDays(7)->startOfDay()
+                ])
+                ->count();
+
+            // LAST 30 DAYS
+            $last30DaysCount = $customerQuery()
+                ->where("created_at", ">=", Carbon::now()->subDays(30)->startOfDay())
+                ->count();
+            $previous30DaysCount = $customerQuery()
+                ->whereBetween("created_at", [
+                    Carbon::now()->subDays(60)->startOfDay(),
+                    Carbon::now()->subDays(30)->startOfDay()
+                ])
+                ->count();
+
+            // ==================== ALL TIME COUNT ====================
+            $allTimeCount = $customerQuery()->count();
+
+            // ==================== CALCULATE CHANGE METRICS ====================
+            $todayMetrics = calculateMetricChange($todayCount, $yesterdayCount);
+            $last7DaysMetrics = calculateMetricChange($last7DaysCount, $previous7DaysCount);
+            $last30DaysMetrics = calculateMetricChange($last30DaysCount, $previous30DaysCount);
+
+            return response()->json([
+                "success" => true,
+                "message" => "Customer metrics retrieved successfully.",
+                "data" => [
+                    "all_time" => [
+                        "total_customers" => $allTimeCount
+                    ],
+                    "today" => [
+                        "current" => $todayCount,
+                        "comparison" => $yesterdayCount,
+                        "change_type" => $todayMetrics['change_type'],
+                        "value" => $todayMetrics['value']
+                    ],
+                    "last_7_days" => [
+                        "current" => $last7DaysCount,
+                        "comparison" => $previous7DaysCount,
+                        "change_type" => $last7DaysMetrics['change_type'],
+                        "value" => $last7DaysMetrics['value']
+                    ],
+                    "last_30_days" => [
+                        "current" => $last30DaysCount,
+                        "comparison" => $previous30DaysCount,
+                        "change_type" => $last30DaysMetrics['change_type'],
+                        "value" => $last30DaysMetrics['value']
+                    ]
                 ]
             ], 200);
         } catch (Exception $e) {

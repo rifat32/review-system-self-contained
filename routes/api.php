@@ -153,6 +153,7 @@ Route::middleware(['auth:api'])->group(function () {
         // -------------------------------------------------------------------------
         // SuperAdminController – Customer management (Super Admin)
         // -------------------------------------------------------------------------
+        Route::get('/v1.0/customers/metrics', [SuperAdminController::class, 'customerMetrics']);
         Route::get('/v1.0/customers/{customerId}/reviews', [SuperAdminController::class, 'getCustomerReviews']);
         Route::patch('/v1.0/customers/{customerId}/email', [SuperAdminController::class, 'customerEmailChange']);
     });
