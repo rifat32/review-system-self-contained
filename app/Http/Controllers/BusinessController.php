@@ -1026,6 +1026,50 @@ class BusinessController extends Controller
      *      ),
      *
      *      @OA\Parameter(
+     *          name="sort_by",
+     *          in="query",
+     *          description="sort by field name",
+     *          required=false,
+     *          @OA\Schema(type="string")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="sort_order",
+     *          in="query",
+     *          description="sort order asc or desc order",
+     *          required=false,
+     *          @OA\Schema(type="string")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="search_key",
+     *          in="query",
+     *          description="search key only allowed Name and email",
+     *          required=false,
+     *          @OA\Schema(type="string")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          description="Time period for metrics",
+     *          required=false,
+     *          @OA\Schema(
+     *              type="string",
+     *              enum={"last_7_days", "last_30_days", "last_90_days", "this_week", "last_week", "this_month", "last_month", "this_quarter", "last_quarter", "this_year", "last_year"},
+     *              default="last_30_days"
+     *          )
+     *      ),
+     * 
+     *      @OA\Parameter(
+     *          name="is_active",
+     *          in="query",
+     *          description="search key only allowed Name and email",
+     *          required=false,
+     *          @OA\Schema(type="boolean")
+     *      ),
+     * 
+     *      @OA\Parameter(
      *          name="response_type",
      *          in="query",
      *          description="Export format (PDF, CSV, or JSON by default)",

@@ -174,12 +174,14 @@ class Business extends Model
         // Return false if the subscription hasn't started
         if ($startDate->isFuture()) {
             return false;
-        };
+        }
+        ;
 
         // Return false if the subscription has expired (end_date is before today)
         if ($endDate->isPast() && !$endDate->isSameDay($today)) {
             return false;
-        };
+        }
+        ;
 
         return true;
     }
@@ -232,33 +234,50 @@ class Business extends Model
      */
     public function scopeFilter($query)
     {
+        $period = request()->get('period', 'all_time');
+
+        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+
+        // DATE RANGE FILTER
+        if ($dateRange) {
+            $query->whereBetween('businesses.created_at', [
+                Carbon::parse($dateRange['start'])->startOfDay(),
+                Carbon::parse($dateRange['end'])->endOfDay()
+            ]);
+        }
+
+        // ACTIVE STATUS FILTER
+        if (request()->filled('is_active')) {
+            $query->where('businesses.is_active', request()->input('is_active'));
+        }
+
         // Enhanced search across multiple fields
         if (request()->filled('search_key')) {
             $searchTerm = request()->input('search_key');
             $query->where(function ($q) use ($searchTerm) {
-                $q->where('Name', 'like', '%' . $searchTerm . '%')
-                    ->orWhere('Address', 'like', '%' . $searchTerm . '%')
-                    ->orWhere('PostCode', 'like', '%' . $searchTerm . '%')
-                    ->orWhere('Status', 'like', '%' . $searchTerm . '%')
-                    ->orWhere('About', 'like', '%' . $searchTerm . '%')
-                    ->orWhere('PhoneNumber', 'like', '%' . $searchTerm . '%')
-                    ->orWhere('EmailAddress', 'like', '%' . $searchTerm . '%');
+                $q->where('businesses.Name', 'like', '%' . $searchTerm . '%')
+                    // ->orWhere('businesses.Address', 'like', '%' . $searchTerm . '%')
+                    // ->orWhere('businesses.PostCode', 'like', '%' . $searchTerm . '%')
+                    // ->orWhere('businesses.Status', 'like', '%' . $searchTerm . '%')
+                    // ->orWhere('businesses.About', 'like', '%' . $searchTerm . '%')
+                    // ->orWhere('businesses.PhoneNumber', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('businesses.EmailAddress', 'like', '%' . $searchTerm . '%');
             });
         }
 
         // Filter by status
         if (request()->filled('Status')) {
-            $query->where('Status', request()->input('Status'));
+            $query->where('businesses.Status', request()->input('Status'));
         }
 
         // Filter by owner ID
         if (request()->filled('owner_id')) {
-            $query->where('OwnerID', request()->input('owner_id'));
+            $query->where('businesses.OwnerID', request()->input('owner_id'));
         }
 
         // Filter by active status (not deleted)
         if (request()->boolean('active_only')) {
-            $query->whereNull('deleted_at');
+            $query->whereNull('businesses.deleted_at');
         }
 
         return $query;
