@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 use Exception;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Global OpenAPI component schemas used across controllers.
@@ -368,59 +371,48 @@ class QuestionController extends Controller
     {
         $user = $request->user();
 
-        // Parse IDs (comma-separated)
+        // ==================== AUTHORIZATION ====================
+        if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+            throw new AccessDeniedHttpException('You do not have permission to delete questions.');
+        }
+
+        // ==================== PARSE AND VALIDATE IDS ====================
         $idArray = array_filter(array_map('intval', explode(',', $ids)));
 
         if (empty($idArray)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid question IDs provided.'
-            ], 400);
+            throw new BadRequestHttpException('Invalid question IDs provided: ' . $ids);
         }
 
-        // Get all questions to verify they exist and check permissions
+        // ==================== FETCH QUESTIONS ====================
         $questions = Question::whereIn('id', $idArray)->get();
 
-        // Check if all requested IDs exist
         $foundIds = $questions->pluck('id')->toArray();
         $missingIds = array_diff($idArray, $foundIds);
 
         if (!empty($missingIds)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Questions not found: ' . implode(', ', $missingIds)
-            ], 404);
+            throw new NotFoundHttpException('Questions not found: ' . implode(', ', $missingIds));
         }
 
-        // Check permissions for each question
-        $defaultIds = [];
-        $unauthorizedBusinessIds = [];
+        // ==================== VALIDATE PERMISSIONS ====================
         foreach ($questions as $question) {
-            if ($question->is_default) {
-                $defaultIds[] = $question->id;
-            } elseif (!$user->hasRole('superadmin')) {
-                // Business owner: can only delete their own business questions
-                if ($question->business_id !== $user->business->id) {
-                    $unauthorizedBusinessIds[] = $question->id;
+            if ($user->hasRole('superadmin')) {
+                // Superadmin can ONLY delete default questions
+                if (!$question->is_default) {
+                    throw new AccessDeniedHttpException('Superadmin can only delete default questions. Question ID ' . $question->id . ' is not a default question.');
+                }
+            } else {
+                // Business owner can ONLY delete their own business questions (NOT default)
+                if ($question->is_default) {
+                    throw new AccessDeniedHttpException('Cannot delete default questions. Question ID ' . $question->id . ' is a default question.');
+                }
+
+                if ($question->business_id !== $user->business_id) {
+                    throw new AccessDeniedHttpException('You do not own this business. Question ID ' . $question->id . ' belongs to another business.');
                 }
             }
         }
 
-        if (!empty($defaultIds) || !empty($unauthorizedBusinessIds)) {
-            $message = '';
-            if (!empty($defaultIds)) {
-                $message .= 'Default questions cannot be deleted: ' . implode(', ', $defaultIds) . '. ';
-            }
-            if (!empty($unauthorizedBusinessIds)) {
-                $message .= 'You do not have permission to delete questions: ' . implode(', ', $unauthorizedBusinessIds) . '. ';
-            }
-            return response()->json([
-                'success' => false,
-                'message' => trim($message)
-            ], 403);
-        }
-
-        // Delete the questions
+        // ==================== DELETE QUESTIONS ====================
         $deletedCount = Question::whereIn('id', $idArray)->delete();
 
         return response()->json([
@@ -611,7 +603,6 @@ class QuestionController extends Controller
      *          @OA\JsonContent(
      *              required={"question", "show_in_user", "is_overall"},
      *              @OA\Property(property="question", type="string", example="How was your experience?"),
-     *              @OA\Property(property="business_id", type="integer", nullable=true, example=1, description="Required for non-superadmin"),
      *              @OA\Property(property="question_sub_category_ids", type="array", @OA\Items(type="integer"), nullable=true, example="[2, 3]", description="Array of question sub-category IDs"),
      *              @OA\Property(property="show_in_guest_user", type="boolean", example=true),
      *              @OA\Property(property="show_in_user", type="boolean", example=true),
@@ -633,6 +624,13 @@ class QuestionController extends Controller
     public function createQuestion(QuestionRequest $request): JsonResponse
     {
         $user = $request->user();
+
+
+        // ==================== AUTHORIZATION ====================
+        if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+            throw new AccessDeniedHttpException('You do not have permission to create questions.');
+        }
+
         $data = $request->validated();
 
         // Handle superadmin: create default question
@@ -641,40 +639,27 @@ class QuestionController extends Controller
             $data['business_id'] = null;
         } else {
             // Non-superadmin must provide business_id
-            if (!isset($data['business_id'])) {
-                // Try to get from user's primary business
-                $business = $user->business;
-                if (!$business) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "No business associated with your account. Please provide business_id."
-                    ], 403);
-                }
-                $data['business_id'] = $business->id;
+            if (!$user->business_id) {
+                throw new AccessDeniedHttpException('No business associated with your account. Please provide business_id.');
             } else {
-                // Verify user owns the business
-                $businessId = $user->business->id;
-                if ($data['business_id'] != $businessId) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "You do not have permission to create questions for this business."
-                    ], 403);
-                }
+                $data['is_default'] = false;
+                $data['business_id'] = $user->business_id;
             }
-            $data['is_default'] = false;
         }
 
+        // ==================== CREATE QUESTION ====================
         $question = Question::create($data);
 
+        // ==================== ATTACH QUESTION SUB CATEGORIES ====================
         $question->question_sub_categories()->sync($request->question_sub_category_ids ?? []);
 
         // Attach to survey if survey_id is provided
-        if ($request->filled('survey_id')) {
-            SurveyQuestion::create([
-                'survey_id' => $request->survey_id,
-                'question_id' => $question->id,
-            ]);
-        }
+        // if ($request->filled('survey_id')) {
+        //     SurveyQuestion::create([
+        //         'survey_id' => $request->survey_id,
+        //         'question_id' => $question->id,
+        //     ]);
+        // }
 
         // Load relationships for complete response
         $question->load(['question_sub_categories', 'surveys']);
@@ -713,12 +698,8 @@ class QuestionController extends Controller
      *          required=true,
      *          @OA\JsonContent(
      *              @OA\Property(property="question", type="string", example="How was your experience?"),
-     *              @OA\Property(property="business_id", type="integer", nullable=true, example=1, description="Required for non-superadmin"),
-     *              @OA\Property(property="is_active", type="boolean", example=true),
      *              @OA\Property(property="show_in_guest_user", type="boolean", example=true),
      *              @OA\Property(property="show_in_user", type="boolean", example=true),
-     *              @OA\Property(property="survey_name", type="string", nullable=true, example="Post-Service Survey"),
-     *              @OA\Property(property="survey_id", type="integer", nullable=true, example=5),
      *              @OA\Property(property="type", type="string", enum={"star","emoji","numbers","heart"}, example="star"),
      *              @OA\Property(property="is_overall", type="boolean", example=false),
      *              @OA\Property(property="question_sub_category_ids", type="array", @OA\Items(type="integer"), nullable=true, example="[2, 3]", description="Array of question sub-category IDs"),
@@ -742,53 +723,39 @@ class QuestionController extends Controller
     {
         $user = $request->user();
 
-        // Find the question
-        $question = Question::find($id);
-        if (!$question) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Question not found.'
-            ], 404);
+        // ==================== AUTHORIZATION ====================
+        if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+            throw new AccessDeniedHttpException('You do not have permission to update this question.');
         }
 
+        // ==================== FIND QUESTION ====================
+        $question = Question::with('business')->findOrFail($id);
         $data = $request->validated();
 
-        // Handle superadmin: can update default questions
+
+        // ==================== BUSINESS VALIDATION ====================
         if ($user->hasRole('superadmin')) {
-            // Superadmin can update default questions, keep business_id as null
-            if ($question->is_default) {
-                $data['business_id'] = null;
+            // Superadmin can ONLY update default questions
+            if (!$question->is_default) {
+                throw new AccessDeniedHttpException('Superadmin can only update default questions.');
             }
+            $data['business_id'] = null;
         } else {
-            // Regular user: check if they own the business
-            $businessId = $data['business_id'] ?? $question->business_id;
-            $business = Business::where([
-                'id' => $businessId,
-                'OwnerID' => $user->id
-            ])->first();
-
-            if (!$business) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not own this business or business not found.'
-                ], 400);
+            // Business owners can ONLY update their own business questions
+            if ($question->is_default) {
+                throw new AccessDeniedHttpException('Cannot update default questions.');
             }
 
-
-
-            // Ensure business_id is set for non-superadmin
-            $data['business_id'] = $business->id;
+            if ($question->business_id !== $user->business_id) {
+                throw new AccessDeniedHttpException('Question ' . $question->id . ' belongs to another business.');
+            }
         }
 
-        // Remove survey_name if not needed (optional cleanup)
-        if (empty($data['survey_name'])) {
-            unset($data['survey_name']);
-        }
-
-        // Update the question
+        // ==================== UPDATE QUESTION ====================
         $question->update($data);
         $question->question_sub_categories()->sync($request->question_sub_category_ids ?? []);
 
+        // ==================== PREPARE RESPONSE ====================
         $question->info = "Supported types: " . implode(", ", array_values(Question::QUESTION_TYPES));
 
         return response()->json([
@@ -797,6 +764,7 @@ class QuestionController extends Controller
             'data' => $question
         ], 200);
     }
+
 
     /**
      *
