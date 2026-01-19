@@ -78,6 +78,7 @@ Route::post('/owner/user/registration', [OwnerController::class, "createUser2"])
 // AuthController – Auxiliary public auth helpers
 // ============================================================================
 Route::post('/v1.0/auth/check-user-email', [AuthController::class, "checkUserEmail"]);
+Route::post('/v1.0/auth/check-branch-email', [AuthController::class, "checkBranchEmail"]);
 
 // ============================================================================
 // Protected Routes (auth:api)
