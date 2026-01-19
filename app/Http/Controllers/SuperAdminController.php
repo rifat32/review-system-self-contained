@@ -233,4 +233,113 @@ class SuperAdminController extends Controller
             throw $e;
         }
     }
+
+    /**
+     *
+     * @OA\Patch(
+     *      path="/v1.0/customers/{customerId}/email",
+     *      operationId="customerEmailChange",
+     *      tags={"super_admin.customer_management"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="Change customer email address",
+     *      description="Update a customer's email address (Super Admin only)",
+     *
+     *      @OA\Parameter(
+     *          name="customerId",
+     *          in="path",
+     *          description="Customer ID",
+     *          required=true,
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"email"},
+     *              @OA\Property(property="email", type="string", format="email", description="New email address")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=200,
+     *          description="Email updated successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Customer email updated successfully."),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="email", type="string", example="newemail@example.com")
+     *              )
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=404,
+     *          description="Customer not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Customer not found")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=422,
+     *          description="Validation error",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="The email has already been taken.")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - Super admin access required",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Forbidden")
+     *          )
+     *      )
+     * )
+     */
+    public function customerEmailChange(Request $request, $customerId): JsonResponse
+    {
+        try {
+            // VALIDATE REQUEST
+            $request->validate([
+                'email' => 'required|email|unique:users,email,' . $customerId
+            ]);
+
+            // FIND CUSTOMER
+            $customer = User::whereHas('roles', function ($query) {
+                $query->where('name', User::USER_ROLE['CUSTOMER']);
+            })->findOrFail($customerId);
+
+            // UPDATE EMAIL
+            $customer->email = $request->email;
+            $customer->save();
+
+            return response()->json([
+                "success" => true,
+                "message" => "Customer email updated successfully.",
+                "data" => [
+                    "id" => $customer->id,
+                    "email" => $customer->email
+                ]
+            ], 200);
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
 }

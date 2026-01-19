@@ -151,9 +151,10 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/v1.0/dashboard/customer-registration-trends', [SuperAdminDashboardController::class, 'getCustomerRegistrationTrends']);
 
         // -------------------------------------------------------------------------
-        // SuperAdminCustomerController – Customer management (Super Admin)
+        // SuperAdminController – Customer management (Super Admin)
         // -------------------------------------------------------------------------
         Route::get('/v1.0/customers/{customerId}/reviews', [SuperAdminController::class, 'getCustomerReviews']);
+        Route::patch('/v1.0/customers/{customerId}/email', [SuperAdminController::class, 'customerEmailChange']);
     });
 
     // ============================================================================
