@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @OA\Schema(
@@ -77,16 +78,17 @@ class Question extends Model
 
     //
     const QUESTION_TYPES = [
-        'STAR'   => 'star',
-        'EMOJI'  => 'emoji',
+        'STAR' => 'star',
+        'EMOJI' => 'emoji',
         'NUMBERS' => 'numbers',
-        'HEART'  => 'heart',
+        'HEART' => 'heart',
     ];
 
 
-    // public function tags() {
-    //     return $this->hasMany(StarTagQuestion::class,'question_id','id');
-    // }
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class, 'business_id', 'id');
+    }
 
 
     // Change from belongsTo to belongsToMany
@@ -138,12 +140,12 @@ class Question extends Model
 
     public function scopeFilterByOverall($query)
     {
-        if(request()->filled("is_overall")) {
+        if (request()->filled("is_overall")) {
             $is_overall = request()->boolean("is_overall");
             $query->whereHas('review_values', function ($q2) use ($is_overall) {
                 $q2->filterByOverall($is_overall);
             });
-       
+
         }
         return $query;
     }
