@@ -194,8 +194,8 @@ class SuperAdminController extends Controller
                     'staff:id,first_Name,last_Name,image',
                     'business:id,Name,EmailAddress',
                     'business_services:id,name',
-                    'value.question:id,title',
-                    'value.star:id,value,label'
+                    'value.question:id,question',
+                    'value.star:id,value'
                 ])
                 // FILTER: BUSINESS ID
                 ->when($request->filled('business_id'), function ($q) use ($request) {
@@ -356,6 +356,17 @@ class SuperAdminController extends Controller
      *      summary="Get customer metrics",
      *      description="Retrieve customer metrics including total customers with period-based comparisons (Super Admin only)",
      *
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          description="Time period for metrics",
+     *          required=false,
+     *          @OA\Schema(
+     *              type="string",
+     *              enum={"last_7_days", "last_30_days", "last_90_days", "this_week", "last_week", "this_month", "last_month", "this_quarter", "last_quarter", "this_year", "last_year"},
+     *              default="last_30_days"
+     *          )
+     *      ),
      *
      *      @OA\Response(
      *          response=200,
@@ -414,25 +425,25 @@ class SuperAdminController extends Controller
     public function customerMetrics(Request $request): JsonResponse
     {
         try {
-            // $period = $request->get("period", "last_30_days");
-            // $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+            $period = $request->get("period", "last_30_days");
+            $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
 
             // ==================== CUSTOMER BASE QUERY ====================
             $customerQuery = fn() => User::whereHas("roles", fn($q) => $q->where("name", User::USER_ROLE['CUSTOMER']));
 
-            // // ==================== CURRENT PERIOD COUNT ====================
-            // $currentCustomerCount = $customerQuery()
-            //     ->when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))
-            //     ->count();
+            // ==================== CURRENT PERIOD COUNT ====================
+            $currentCustomerCount = $customerQuery()
+                ->when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))
+                ->count();
 
-            // // ==================== COMPARISON PERIOD COUNT ====================
-            // $comparisonCustomerCount = $customerQuery()
-            //     ->when($dateRange, function ($query) use ($dateRange) {
-            //         $startDate = Carbon::parse($dateRange["start"])->subDays($dateRange["daysOffset"])->startOfDay();
-            //         $endDate = Carbon::parse($dateRange["end"])->subDays($dateRange["daysOffset"])->endOfDay();
-            //         return $query->whereBetween("created_at", [$startDate, $endDate]);
-            //     })
-            //     ->count();
+            // ==================== COMPARISON PERIOD COUNT ====================
+            $comparisonCustomerCount = $customerQuery()
+                ->when($dateRange, function ($query) use ($dateRange) {
+                    $startDate = Carbon::parse($dateRange["start"])->subDays($dateRange["daysOffset"])->startOfDay();
+                    $endDate = Carbon::parse($dateRange["end"])->subDays($dateRange["daysOffset"])->endOfDay();
+                    return $query->whereBetween("created_at", [$startDate, $endDate]);
+                })
+                ->count();
 
             // ==================== FIXED PERIOD COUNTS ====================
             // TODAY
@@ -469,6 +480,7 @@ class SuperAdminController extends Controller
             $allTimeCount = $customerQuery()->count();
 
             // ==================== CALCULATE CHANGE METRICS ====================
+            $totalCustomersMetrics = calculateMetricChange($currentCustomerCount, $comparisonCustomerCount);
             $todayMetrics = calculateMetricChange($todayCount, $yesterdayCount);
             $last7DaysMetrics = calculateMetricChange($last7DaysCount, $previous7DaysCount);
             $last30DaysMetrics = calculateMetricChange($last30DaysCount, $previous30DaysCount);
@@ -477,8 +489,11 @@ class SuperAdminController extends Controller
                 "success" => true,
                 "message" => "Customer metrics retrieved successfully.",
                 "data" => [
-                    "all_time" => [
-                        "total_customers" => $allTimeCount
+                    "total_customers" => [
+                        "current" => $currentCustomerCount,
+                        "comparison" => $comparisonCustomerCount,
+                        "change_type" => $totalCustomersMetrics['change_type'],
+                        "value" => $totalCustomersMetrics['value']
                     ],
                     "today" => [
                         "current" => $todayCount,
