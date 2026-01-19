@@ -303,30 +303,17 @@ class UserController extends Controller
             !$authUser->hasRole('superadmin') &&
             !$authUser->hasRole('business_owner')
         ) {
-            return response()->json([
-                "success" => false,
-                "message" => "You are not authorized to delete user"
-            ], 403);
+            throw new AccessDeniedHttpException('Access denied : You can not perform thi action');
         }
 
-        $user = User::find($id);
-
-        if (!$user) {
-            return response()->json([
-                "success" => false,
-                "message" => "User not found"
-            ], 404);
-        }
+        $user = User::findOrFail($id);
 
         /** SUPER ADMIN RULE */
         if ($authUser->hasRole('superadmin')) {
 
             // superadmin can delete ONLY business owners
-            if (!$user->hasRole('business_owner')) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "Super admin can delete only business owners"
-                ], 403);
+            if (!$user->hasRole('business_owner') || !$user->hasRole(User::USER_ROLE["CUSTOMER"])) {
+                throw new AccessDeniedHttpException('Super Admin can do business owner and custom delete only');
             }
         }
 
@@ -335,25 +322,15 @@ class UserController extends Controller
 
             // must be same business
             if ($user->business_id !== $authUser->business_id) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "You can delete users only from your business"
-                ], 403);
+                throw new AccessDeniedHttpException('Access denied : You can not delete user from another business');
             }
 
-            // business owner cannot delete another business owner
-            if ($user->hasRole('business_owner')) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "You cannot delete a business owner"
-                ], 403);
+            // business owner cannot delete 
+            if ($user->id === $id) {
+                throw new AccessDeniedHttpException('Access denied : You can not delete yourself');
             }
         }
 
-        // if business exist then delete
-        if ($user->business) {
-            $user->business->delete();
-        }
         // delete user
         $user->delete();
 
