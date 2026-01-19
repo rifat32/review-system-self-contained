@@ -14,6 +14,7 @@ use App\Services\Review\RecentReviewService;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -201,12 +202,13 @@ class BranchController extends Controller
      *              required={"business_id", "name"},
      *              @OA\Property(property="business_id", type="integer", example=1, description="ID of the business"),
      *              @OA\Property(property="name", type="string", example="Main Branch", description="Name of the branch"),
-              @OA\Property(property="manager_id", type="integer", nullable=true, example=5, description="ID of the branch manager (user with branch_manager role)"),
+     *              @OA\Property(property="manager_id", type="integer", nullable=true, example=5, description="ID of the branch manager (user with branch_manager role)"),
      *              @OA\Property(property="address", type="string", example="123 Main St", description="Address of the branch"),              @OA\Property(property="street", type="string", example="Main Street", description="Street address"),
-              @OA\Property(property="door_no", type="string", example="123", description="Door number"),
-              @OA\Property(property="city", type="string", example="New York", description="City"),
-              @OA\Property(property="country", type="string", example="USA", description="Country"),
-              @OA\Property(property="postcode", type="string", example="10001", description="Postcode"),     *              @OA\Property(property="phone", type="string", example="+1234567890", description="Phone number of the branch"),
+     *              @OA\Property(property="door_no", type="string", example="123", description="Door number"),
+     *              @OA\Property(property="city", type="string", example="New York", description="City"),
+     *              @OA\Property(property="country", type="string", example="USA", description="Country"),
+     *              @OA\Property(property="postcode", type="string", example="10001", description="Postcode"),              
+     *              @OA\Property(property="phone", type="string", example="+1234567890", description="Phone number of the branch"),
      *              @OA\Property(property="email", type="string", example="branch@example.com", description="Email of the branch"),
      *              @OA\Property(property="is_active", type="boolean", example=true, description="Whether the branch is active"),
      *              @OA\Property(property="is_default", type="boolean", example=false, description="Whether this is the default branch"),
@@ -228,20 +230,22 @@ class BranchController extends Controller
      *                  type="object",
      *                  @OA\Property(property="id", type="integer", example=1),
      *                  @OA\Property(property="business_id", type="integer", example=1),
-     *                  @OA\Property(property="name", type="string", example="Main Branch"),                      @OA\Property(property="manager_id", type="integer", nullable=true, example=5),     *                  @OA\Property(property="address", type="string", example="123 Main St"),
-                  @OA\Property(property="street", type="string", example="Main Street"),
-                  @OA\Property(property="door_no", type="string", example="123"),
-                  @OA\Property(property="city", type="string", example="New York"),
-                  @OA\Property(property="country", type="string", example="USA"),
-                  @OA\Property(property="postcode", type="string", example="10001"),
-                  @OA\Property(property="phone", type="string", example="+1234567890"),
-     *              @OA\Property(property="email", type="string", example="branch@example.com"),
-     *              @OA\Property(property="is_active", type="boolean", example=true),
-     *              @OA\Property(property="is_default", type="boolean", example=false),
-     *              @OA\Property(property="is_geo_enabled", type="boolean", example=false),
-     *              @OA\Property(property="branch_code", type="string", example="BR001"),
-     *              @OA\Property(property="lat", type="string", format="float", example="40.7128"),
-     *              @OA\Property(property="long", type="string", format="float", example="-74.0060"),
+     *                  @OA\Property(property="name", type="string", example="Main Branch"),
+     *                  @OA\Property(property="manager_id", type="integer", nullable=true, example=5),
+     *                  @OA\Property(property="address", type="string", example="123 Main St"),
+     *                  @OA\Property(property="street", type="string", example="Main Street"),
+     *                  @OA\Property(property="door_no", type="string", example="123"),
+     *                  @OA\Property(property="city", type="string", example="New York"),
+     *                  @OA\Property(property="country", type="string", example="USA"),
+     *                  @OA\Property(property="postcode", type="string", example="10001"),
+     *                  @OA\Property(property="phone", type="string", example="+1234567890"),
+     *                  @OA\Property(property="email", type="string", example="branch@yopmail.com"),
+     *                  @OA\Property(property="is_active", type="boolean", example=true),
+     *                  @OA\Property(property="is_default", type="boolean", example=false),
+     *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
+     *                  @OA\Property(property="branch_code", type="string", example="BR001"),
+     *                  @OA\Property(property="lat", type="string", format="float", example="40.7128"),
+     *                  @OA\Property(property="long", type="string", format="float", example="-74.0060"),
      *                  @OA\Property(property="created_at", type="string", format="date-time"),
      *                  @OA\Property(property="updated_at", type="string", format="date-time")
      *              )
@@ -278,18 +282,36 @@ class BranchController extends Controller
      */
     public function createBranch(BranchRequest $request)
     {
-        $validatedData = $request->validated();
+        try {
+            $user = $request->user();
 
-        // Additional ownership check
-        Business::findOrFail($validatedData['business_id']);
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can create branches.');
+            }
 
-        $branch = Branch::create($validatedData);
+            return DB::transaction(function () use ($request, $user) {
+                $validatedData = $request->validated();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Branch created successfully',
-            'data' => $branch
-        ], 201);
+                // ==================== BUSINESS OWNERSHIP VALIDATION ====================
+                if ($validatedData['business_id'] !== $user->business_id) {
+                    throw new AccessDeniedHttpException('You can only create branches for your own business.');
+                }
+
+                Business::findOrFail($validatedData['business_id']);
+
+                // ==================== CREATE BRANCH ====================
+                $branch = Branch::create($validatedData);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Branch created successfully',
+                    'data' => $branch
+                ], 201);
+            });
+        } catch (Exception $e) {
+            throw $e;
+        }
     }
 
     /**
@@ -323,19 +345,21 @@ class BranchController extends Controller
      *                  type="object",
      *                  @OA\Property(property="id", type="integer", example=1),
      *                  @OA\Property(property="business_id", type="integer", example=1),
-     *                  @OA\Property(property="name", type="string", example="Main Branch"),                  @OA\Property(property="manager_id", type="integer", nullable=true, example=5),                  @OA\Property(property="address", type="string", example="123 Main St"),
-                  @OA\Property(property="street", type="string", example="Main Street"),
-                  @OA\Property(property="door_no", type="string", example="123"),
-                  @OA\Property(property="city", type="string", example="New York"),
-                  @OA\Property(property="country", type="string", example="USA"),
-                  @OA\Property(property="postcode", type="string", example="10001"),
-                  @OA\Property(property="phone", type="string", example="+1234567890"),
-     *                  @OA\Property(property="email", type="string", example="branch@example.com"),
+     *                  @OA\Property(property="name", type="string", example="Main Branch"),
+     *                  @OA\Property(property="manager_id", type="integer", nullable=true, example=5),
+     *                  @OA\Property(property="address", type="string", example="123 Main St"),
+     *                  @OA\Property(property="street", type="string", example="Main Street"),
+     *                  @OA\Property(property="door_no", type="string", example="123"),
+     *                  @OA\Property(property="city", type="string", example="New York"),
+     *                  @OA\Property(property="country", type="string", example="USA"),
+     *                  @OA\Property(property="postcode", type="string", example="10001"),
+     *                  @OA\Property(property="phone", type="string", example="+1234567890"),
+     *                  @OA\Property(property="email", type="string", example="branch@yopmail.com"),
      *                  @OA\Property(property="is_active", type="boolean", example=true),
      *                  @OA\Property(property="is_default", type="boolean", example=false),
      *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
      *                  @OA\Property(property="branch_code", type="string", example="BR001"),
-                        @OA\Property(property="lat", type="string", format="float", example="40.7128"),
+     *                  @OA\Property(property="lat", type="string", format="float", example="40.7128"),
      *                  @OA\Property(property="long", type="string", format="float", example="-74.0060"),
      *                  @OA\Property(property="created_at", type="string", format="date-time"),
      *                  @OA\Property(property="updated_at", type="string", format="date-time"),
@@ -419,13 +443,14 @@ class BranchController extends Controller
      *              @OA\Property(property="id", type="integer", example=1, description="Branch ID (required for PATCH/PUT)"),
      *              @OA\Property(property="business_id", type="integer", example=1, description="ID of the business"),
      *              @OA\Property(property="name", type="string", example="Updated Branch", description="Name of the branch"),
-              @OA\Property(property="manager_id", type="integer", nullable=true, example=5, description="ID of the branch manager (user with branch_manager role)"),
+     *              @OA\Property(property="manager_id", type="integer", nullable=true, example=5, description="ID of the branch manager (user with branch_manager role)"),
      *              @OA\Property(property="address", type="string", example="456 Updated St", description="Address of the branch"),              @OA\Property(property="street", type="string", example="Updated Street", description="Street address"),
-              @OA\Property(property="door_no", type="string", example="456", description="Door number"),
-              @OA\Property(property="city", type="string", example="Updated City", description="City"),
-              @OA\Property(property="country", type="string", example="Updated Country", description="Country"),
-              @OA\Property(property="postcode", type="string", example="20002", description="Postcode"),     *              @OA\Property(property="phone", type="string", example="+0987654321", description="Phone number of the branch"),
-     *              @OA\Property(property="email", type="string", example="updated@example.com", description="Email of the branch"),
+     *              @OA\Property(property="door_no", type="string", example="456", description="Door number"),
+     *              @OA\Property(property="city", type="string", example="Updated City", description="City"),
+     *              @OA\Property(property="country", type="string", example="Updated Country", description="Country"),
+     *              @OA\Property(property="postcode", type="string", example="20002", description="Postcode"),
+     *              @OA\Property(property="phone", type="string", example="+0987654321", description="Phone number of the branch"),
+     *              @OA\Property(property="email", type="string", example="updated@yopmail.com", description="Email of the branch"),
      *              @OA\Property(property="is_active", type="boolean", example=true, description="Whether the branch is active"),
      *              @OA\Property(property="is_default", type="boolean", example=false, description="Whether this is the default branch"),
      *              @OA\Property(property="is_geo_enabled", type="boolean", example=false, description="Whether geolocation is enabled for the branch"),
@@ -447,7 +472,7 @@ class BranchController extends Controller
      *                  @OA\Property(property="id", type="integer", example=1),
      *                  @OA\Property(property="business_id", type="integer", example=1),
      *                  @OA\Property(property="name", type="string", example="Updated Branch"),
-                  @OA\Property(property="manager_id", type="integer", nullable=true, example=5),
+     *                  @OA\Property(property="manager_id", type="integer", nullable=true, example=5),
      *                  @OA\Property(property="address", type="string", example="456 Updated St"),
      *                  @OA\Property(property="street", type="string", example="Updated Street"),
      *                  @OA\Property(property="door_no", type="string", example="456"),
@@ -455,7 +480,7 @@ class BranchController extends Controller
      *                  @OA\Property(property="country", type="string", example="Updated Country"),
      *                  @OA\Property(property="postcode", type="string", example="20002"),
      *                  @OA\Property(property="phone", type="string", example="+0987654321"),
-     *                  @OA\Property(property="email", type="string", example="updated@example.com"),
+     *                  @OA\Property(property="email", type="string", example="updated@yopmail.com"),
      *                  @OA\Property(property="is_active", type="boolean", example=true),
      *                  @OA\Property(property="is_default", type="boolean", example=false),
      *                  @OA\Property(property="is_geo_enabled", type="boolean", example=false),
@@ -507,35 +532,42 @@ class BranchController extends Controller
      */
     public function updateBranch(BranchRequest $request, $id)
     {
-        $validatedData = $request->validated();
+        try {
+            $user = $request->user();
 
-        $branch = Branch::find($id);
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can update branches.');
+            }
 
-        if (!$branch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Branch not found'
-            ], 404);
+            return DB::transaction(function () use ($request, $id, $user) {
+                $validatedData = $request->validated();
+
+                // ==================== FIND BRANCH ====================
+                $branch = Branch::findOrFail($id);
+
+                // ==================== OWNERSHIP VALIDATION ====================
+                if ($branch->business_id !== $user->business_id) {
+                    throw new AccessDeniedHttpException('This branch does not belong to your business.');
+                }
+
+                // ==================== PREVENT UPDATING DEFAULT BRANCH ====================
+                if ($branch->is_default) {
+                    throw new AccessDeniedHttpException('Cannot update default branch.');
+                }
+
+                // ==================== UPDATE BRANCH ====================
+                $branch->update($validatedData);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Branch updated successfully',
+                    'data' => $branch
+                ]);
+            });
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        // Check ownership
-        $user = $request->user();
-        if ($branch->business->OwnerID != $user->id) {
-            throw new AccessDeniedHttpException('This branch does not belongs to your business');
-        }
-
-        // Prevent updating default branch
-        if ($branch->is_default) {
-            throw new AccessDeniedHttpException('Cannot update default branch');
-        }
-
-        $branch->update($validatedData);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Branch updated successfully',
-            'data' => $branch
-        ]);
     }
 
     /**
@@ -596,38 +628,37 @@ class BranchController extends Controller
      */
     public function deleteBranches($id)
     {
-        $branch = Branch::find($id);
+        try {
+            $user = auth('api')->user();
 
-        if (!$branch) {
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can delete branches.');
+            }
+
+            // ==================== FIND BRANCH ====================
+            $branch = Branch::findOrFail($id);
+
+            // ==================== OWNERSHIP VALIDATION ====================
+            if ($branch->business_id != $user->business_id) {
+                throw new AccessDeniedHttpException('This branch does not belong to your business.');
+            }
+
+            // ==================== PREVENT DELETING DEFAULT BRANCH ====================
+            if ($branch->is_default) {
+                throw new AccessDeniedHttpException('Cannot delete default branch.');
+            }
+
+            // ==================== DELETE BRANCH ====================
+            $branch->delete();
+
             return response()->json([
-                'success' => false,
-                'message' => 'Branch not found'
-            ], 404);
+                'success' => true,
+                'message' => 'Branch deleted successfully'
+            ]);
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        // Check ownership
-        $user = auth('api')->user();
-        if ($branch->business->OwnerID != $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to delete this branch'
-            ], 403);
-        }
-
-        // Prevent deleting default branch
-        if ($branch->is_default) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete default branch'
-            ], 403);
-        }
-
-        $branch->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Branch deleted successfully'
-        ]);
     }
 
     /**
@@ -665,7 +696,7 @@ class BranchController extends Controller
      *         @OA\Property(property="country", type="string", example="USA"),
      *         @OA\Property(property="postcode", type="string", example="10001"),
      *         @OA\Property(property="phone", type="string", example="+1234567890"),
-     *         @OA\Property(property="email", type="string", example="branch@example.com"),
+     *         @OA\Property(property="email", type="string", example="branch@yopmail.com"),
      *         @OA\Property(property="is_active", type="boolean", example=true),
      *         @OA\Property(property="is_default", type="boolean", example=false),
      *         @OA\Property(property="is_geo_enabled", type="boolean", example=false),
@@ -700,35 +731,36 @@ class BranchController extends Controller
 
     public function toggleBranchActive($id)
     {
-        $user = auth('api')->user();
+        try {
+            $user = auth('api')->user();
 
-        // ==================== AUTHORIZATION ====================
-        $branch = Branch::with('manager')->findOrFail($id);
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can toggle branch status.');
+            }
 
+            // ==================== FIND BRANCH ====================
+            $branch = Branch::with('manager')->findOrFail($id);
 
-        // Check if the user owns this branch through business ownership
-        $business = Business::where('id', $branch->business_id)
-            ->where('OwnerID', $user->id)
-            ->first();
+            // ==================== OWNERSHIP VALIDATION ====================
+            if ($branch->business_id !== $user->business_id) {
+                throw new AccessDeniedHttpException('This branch does not belong to your business.');
+            }
 
-        if (!$business) {
+            // ==================== TOGGLE STATUS ====================
+            $branch->is_active = !$branch->is_active;
+            $branch->save();
+
+            $message = $branch->is_active ? 'Branch activated successfully' : 'Branch deactivated successfully';
+
             return response()->json([
-                'success' => false,
-                'message' => 'You do not own this branch'
-            ], 403);
+                'success' => true,
+                'message' => $message,
+                'data' => $branch
+            ]);
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        // Toggle the active status
-        $branch->is_active = !$branch->is_active;
-        $branch->save();
-
-        $message = $branch->is_active ? 'Branch activated successfully' : 'Branch deactivated successfully';
-
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => $branch
-        ]);
     }
 
     /**
