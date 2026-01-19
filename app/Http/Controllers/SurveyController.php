@@ -4,18 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SurveyCreateRequest;
 use App\Http\Requests\SurveyUpdateRequest;
-
-use App\Http\Utils\ErrorUtil;
 use App\Models\Business;
 use App\Models\Survey;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SurveyController extends Controller
 {
-    use ErrorUtil;
 
     /**
      *
@@ -80,36 +79,33 @@ class SurveyController extends Controller
     public function createSurvey(SurveyCreateRequest $request)
     {
         try {
+            $user = $request->user();
 
-            return DB::transaction(function () use ($request) {
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can create surveys.');
+            }
 
-                $insertable_data = $request->validated();
+            return DB::transaction(function () use ($request, $user) {
+                $payload_data = $request->validated();
 
-                $business = Business::where([
-                    "OwnerID" => auth()->user()->id
-                ])
-                    ->first();
-                $insertable_data["business_id"] = $business->id;
+                // ==================== BUSINESS VALIDATION ====================
+                if (!$user->business_id) {
+                    throw new AccessDeniedHttpException('No business associated with your account.');
+                }
 
-                $survey = Survey::create($insertable_data);
+                $payload_data["business_id"] = $user->business_id;
 
+                // ==================== CREATE SURVEY ====================
+                $survey = Survey::create($payload_data);
 
-                $survey->questions()->sync($insertable_data["survey_questions"]);
-
-                // Sync business services if provided
-
-                $survey->business_services()->sync($insertable_data["business_service_ids"]);
-
-
-
+                $survey->questions()->sync($payload_data["survey_questions"]);
+                $survey->business_services()->sync($payload_data["business_service_ids"]);
 
                 return response($survey, 201);
             });
         } catch (Exception $e) {
-            return response()->json([
-                "message" => "some thing went wrong",
-                "original_message" => $e->getMessage()
-            ], 404);
+            throw $e;
         }
     }
 
@@ -133,7 +129,7 @@ class SurveyController extends Controller
      *    @OA\Property(property="name", type="string", format="string",example="name"),
      *    @OA\Property(property="show_in_guest_user", type="boolean", format="boolean",example="true"),
      *    @OA\Property(property="show_in_user", type="boolean", format="boolean",example="true"),
-     *   *    @OA\Property(property="survey_questions", type="string", format="array",example="[1,2,3]"),
+     *    @OA\Property(property="survey_questions", type="string", format="array",example="[1,2,3]"),
 
      *
      *
@@ -152,7 +148,7 @@ class SurveyController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -160,15 +156,15 @@ class SurveyController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
      *      description="not found",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   )
      *      )
      *     )
@@ -177,22 +173,25 @@ class SurveyController extends Controller
     public function updateSurvey(SurveyUpdateRequest $request)
     {
         try {
+            $user = $request->user();
 
-            return DB::transaction(function () use ($request) {
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can update surveys.');
+            }
 
+            return DB::transaction(function () use ($request, $user) {
                 $request_data = $request->validated();
 
-                $survey = Survey::where([
-                    "id" => $request_data["id"]
-                ])->first();
+                // ==================== FIND SURVEY ====================
+                $survey = Survey::findOrFail($request_data["id"]);
 
-
-                if (!$survey) {
-                    return response()->json([
-                        "message" => "no survey type found"
-                    ], 404);
+                // ==================== BUSINESS OWNERSHIP VALIDATION ====================
+                if ($survey->business_id !== $user->business_id) {
+                    throw new AccessDeniedHttpException('This survey belongs to another business.');
                 }
 
+                // ==================== UPDATE SURVEY ====================
                 $survey->fill($request_data);
                 $survey->save();
 
@@ -202,10 +201,7 @@ class SurveyController extends Controller
                 return response($survey, 201);
             });
         } catch (Exception $e) {
-            return response()->json([
-                "message" => "some thing went wrong",
-                "original_message" => $e->getMessage()
-            ], 404);
+            throw $e;
         }
     }
 
@@ -270,12 +266,6 @@ class SurveyController extends Controller
         try {
             return DB::transaction(function () use ($request) {
 
-                // if (!$request->user()->hasPermissionTo('survey_update')) {
-                //     return response()->json([
-                //         "message" => "You can not perform this action"
-                //     ], 403);
-                // }
-
                 $request->validate([
                     'surveys' => 'required|array',
                     'surveys.*.id' => 'required|integer|exists:surveys,id',
@@ -295,10 +285,7 @@ class SurveyController extends Controller
                 ], 200);
             });
         } catch (Exception $e) {
-            return response()->json([
-                "message" => "something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -444,10 +431,7 @@ class SurveyController extends Controller
                 "data" => $surveyArray
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "message" => "some thing went wrong",
-                "original_message" => $e->getMessage()
-            ], 404);
+            throw $e;
         }
     }
 
@@ -721,7 +705,7 @@ class SurveyController extends Controller
      * required=true,
      * example="search_key"
      * ),
-     * *  @OA\Parameter(
+     *   @OA\Parameter(
      * name="is_active",
      * in="query",
      * description="is_active",
@@ -752,15 +736,15 @@ class SurveyController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
      *      description="not found",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   )
      *      )
      *     )
@@ -785,10 +769,7 @@ class SurveyController extends Controller
 
             return response()->json($surveys, 200);
         } catch (Exception $e) {
-            return response()->json([
-                "message" => "some thing went wrong",
-                "original_message" => $e->getMessage()
-            ], 404);
+            throw $e;
         }
     }
 
@@ -824,7 +805,7 @@ class SurveyController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(
@@ -832,10 +813,10 @@ class SurveyController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
@@ -848,20 +829,28 @@ class SurveyController extends Controller
 
     public function deleteSurveyById($id, Request $request)
     {
-
         try {
+            $user = $request->user();
 
-            Survey::where([
-                "id" => $id
-            ])
-                ->delete();
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can delete surveys.');
+            }
+
+            // ==================== FIND SURVEY ====================
+            $survey = Survey::findOrFail($id);
+
+            // ==================== BUSINESS OWNERSHIP VALIDATION ====================
+            if ($survey->business_id !== $user->business_id) {
+                throw new AccessDeniedHttpException('This survey belongs to another business.');
+            }
+
+            // ==================== DELETE SURVEY ====================
+            $survey->delete();
 
             return response()->json(["ok" => true], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "message" => "some thing went wrong",
-                "original_message" => $e->getMessage()
-            ], 404);
+            throw $e;
         }
     }
 
@@ -952,26 +941,22 @@ class SurveyController extends Controller
     public function toggleSurveyActive($id, Request $request)
     {
         try {
-            $survey = Survey::find($id);
+            $user = $request->user();
 
-            if (!$survey) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "Survey not found"
-                ], 404);
+            // ==================== AUTHORIZATION ====================
+            // if (!$user->hasRole('business_owner')) {
+            //     throw new AccessDeniedHttpException('Only business owners can toggle survey status.');
+            // }
+
+            // ==================== FIND SURVEY ====================
+            $survey = Survey::findOrFail($id);
+
+            // ==================== BUSINESS OWNERSHIP VALIDATION ====================
+            if ($survey->business_id !== $user->business_id) {
+                throw new AccessDeniedHttpException('This survey belongs to another business.');
             }
 
-            // Check if the survey belongs to the authenticated user's business
-            $business = Business::where([
-                "OwnerID" => auth()->user()->id
-            ])->first();
-
-            if (!$business || $survey->business_id !== $business->id) {
-                return response()->json([
-                    "message" => "You do not owen this survey"
-                ], 403);
-            }
-
+            // ==================== TOGGLE STATUS ====================
             $survey->is_active = !$survey->is_active;
             $survey->save();
 
@@ -983,10 +968,7 @@ class SurveyController extends Controller
                 "data" => $survey
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "message" => "something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 }
