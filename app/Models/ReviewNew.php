@@ -182,7 +182,7 @@ class ReviewNew extends Model
     }
 
 
-    public function scopeGlobalFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
+    public function scopeGlobaReviewlFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
         // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
         $userBranchId = request()->user() && (request()->user()->hasRole('branch_manager') || request()->user()->hasRole('business_owner'))
@@ -264,6 +264,9 @@ class ReviewNew extends Model
 
 
     }
+
+
+
 
     /**
      * Add calculated rating to review query

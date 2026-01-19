@@ -57,7 +57,7 @@ class ReviewValueNew extends Model
     {
         return $query->whereHas("review", function ($q) use ($businessId) {
             $q
-                ->globalFilters(1, $businessId)
+                ->globaReviewlFilters(1, $businessId)
                 ->when(!request()->user()->hasRole('superadmin'), fn($q) => $q->where('review_news.business_id', $businessId));
         });
     }

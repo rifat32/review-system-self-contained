@@ -79,7 +79,6 @@ class GuestUserReviewReport extends Command
                         $start_date,
                         $end_date
                     ]);
-
                 }
                 $data[$key1]["stars"][$key2]["stars_count"] = $data[$key1]["stars"][$key2]["stars_count"]->get()
                     ->count();
@@ -113,7 +112,6 @@ class GuestUserReviewReport extends Command
                                 $start_date,
                                 $end_date
                             ]);
-
                         }
 
                         $starTag->tag->count = $starTag->tag->count->get()->count();
@@ -138,7 +136,6 @@ class GuestUserReviewReport extends Command
                                 $start_date,
                                 $end_date
                             ]);
-
                         }
                         $starTag->tag->total = $starTag->tag->total->get()->count();
 
@@ -146,14 +143,8 @@ class GuestUserReviewReport extends Command
                             unset($starTag->tag->count);
                             array_push($data[$key1]["stars"][$key2]["tag_ratings"], json_decode(json_encode($starTag->tag)));
                         }
-
-
                     }
-
-
-
                 }
-
             }
 
 
@@ -182,28 +173,24 @@ class GuestUserReviewReport extends Command
                     $start_date,
                     $end_date
                 ]);
-
             }
             $data2["star_" . $star->value . "_selected_count"] = $data2["star_" . $star->value . "_selected_count"]->count();
 
             $totalCount += $data2["star_" . $star->value . "_selected_count"] * $star->value;
 
             $ttotalRating += $data2["star_" . $star->value . "_selected_count"];
-
         }
         if ($totalCount > 0) {
             $data2["total_rating"] = $totalCount / $ttotalRating;
-
         } else {
             $data2["total_rating"] = 0;
-
         }
 
         $data2["total_comment"] = ReviewNew::with("user", "guest_user")->where([
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
-            ->globalFilters(0, $business->id)
+            ->globaReviewlFilters(0, $business->id)
 
             ->whereNotNull("comment")
             ->orderBy('order_no', 'asc');
@@ -215,7 +202,6 @@ class GuestUserReviewReport extends Command
                 $start_date,
                 $end_date
             ]);
-
         }
         $data2["total_comment"] = $data2["total_comment"]->get();
 
@@ -223,7 +209,6 @@ class GuestUserReviewReport extends Command
             "part1" => $data2,
             "part2" => $data
         ];
-
     }
     /**
      * Execute the console command.
@@ -238,8 +223,7 @@ class GuestUserReviewReport extends Command
 
 
 
-        $business_list = Business::
-            where([
+        $business_list = Business::where([
                 "guest_user_review_report" => TRUE,
             ])
             ->get();
@@ -269,12 +253,5 @@ class GuestUserReviewReport extends Command
             Mail::to($to)
                 ->send(new GuestUserReviewReportMail($pdfContents, 'report.pdf'));
         }
-
-
-
-
     }
-
-
-
 }

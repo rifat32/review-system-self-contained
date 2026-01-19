@@ -479,7 +479,7 @@ class RuleExecutionService
     {
         $query = ReviewNew::where('business_id', $rule->business_id)
             ->orderBy('created_at', 'desc')
-            ->globalFilters(0, $rule->business_id);
+            ->globaReviewlFilters(0, $rule->business_id);
 
         if ($rule->run_frequency === 'real_time') {
             // For real-time, typically just one review

@@ -18,14 +18,12 @@ class ReviewFeedService
         $limit = 10,
         $user = null
     ) {
-        $userBranchId = ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')))
-            ? $user->default_branch_id
-            : null;
+
 
         $query = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tags', 'value'])
             ->where('business_id', $businessId)
             ->orderBy('created_at', 'desc')
-            ->globalFilters(0, $businessId)
+            ->globaReviewlFilters(0, $businessId)
             ->limit($limit)
             ->withCalculatedRating();
 
@@ -33,9 +31,7 @@ class ReviewFeedService
             $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
         }
 
-        if ($userBranchId) {
-            $query->where('branch_id', $userBranchId);
-        }
+
 
 
         $reviews = $query->get();

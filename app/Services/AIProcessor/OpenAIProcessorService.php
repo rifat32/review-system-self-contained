@@ -1446,7 +1446,7 @@ PROMPT;
             ->where('rating_comment_mismatch', true)
             ->where('is_ai_processed', true)
             ->with(['value.question', 'staff', 'review_business_services.business_service', 'review_business_services.business_area'])
-            ->globalFilters(0, $businessId)
+            ->globaReviewlFilters(0, $businessId)
             ->get();
 
         if ($reviews->isEmpty()) {
@@ -1458,7 +1458,7 @@ PROMPT;
 
         $totalReviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->globalFilters(0, $businessId)
+            ->globaReviewlFilters(0, $businessId)
             ->count();
 
         $mismatchByType = [

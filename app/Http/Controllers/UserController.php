@@ -545,8 +545,8 @@ class UserController extends Controller
 
         // Filter users by branch - if user is branch manager or business owner, show only users in their branch
         if ($userBranchId) {
-            $userQuery->whereHas('staffReviews', function ($query) use ($userBranchId) {
-                $query->where('branch_id', $userBranchId);
+            $userQuery->whereHas('branches', function ($query) use ($userBranchId) {
+                $query->where('branches.id', $userBranchId);
             });
         }
 
@@ -964,11 +964,10 @@ class UserController extends Controller
             $user = User::create($validatedData);
 
             // ASSIGN ROLE
-            if ($validatedData['role'] === User::USER_ROLE['BUSINESS_STAFF']) {
-                $user->assignRole(User::USER_ROLE['BUSINESS_STAFF']);
-            } elseif ($validatedData['role'] === User::USER_ROLE['BRANCH_MANAGER']) {
-                $user->assignRole(User::USER_ROLE['BRANCH_MANAGER']);
+            if (!empty($validatedData['role'])) {
+                $user->assignRole($validatedData['role']);
             }
+
 
             // No need to save - assignRole() already persists the role to database
 
