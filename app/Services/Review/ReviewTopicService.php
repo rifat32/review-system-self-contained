@@ -163,8 +163,8 @@ class ReviewTopicService
     public function getTopTopic($businessId, $startDate, $endDate)
     {
         $reviews = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$startDate, $endDate])
             ->globaReviewlFilters(0, $businessId)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
 
         return $this->getTopTopicSummary($reviews);

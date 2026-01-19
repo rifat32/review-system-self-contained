@@ -478,8 +478,8 @@ class RuleExecutionService
     public function getReviewsForRule(AiRule $rule, ?int $limit = 100)
     {
         $query = ReviewNew::where('business_id', $rule->business_id)
-            ->orderBy('created_at', 'desc')
-            ->globaReviewlFilters(0, $rule->business_id);
+            ->globaReviewlFilters(0, $rule->business_id)
+            ->orderBy('created_at', 'desc');
 
         if ($rule->run_frequency === 'real_time') {
             // For real-time, typically just one review
