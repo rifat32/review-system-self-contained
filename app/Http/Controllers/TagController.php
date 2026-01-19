@@ -7,9 +7,13 @@ use App\Models\Business;
 
 use App\Models\Tag;
 use App\Rules\ValidBusiness;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * @OA\Schema(
@@ -98,22 +102,47 @@ class TagController extends Controller
      */
     public function createTag(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'tag' => 'required|string|max:255',
-            'business_id' => ['nullable', 'integer', new ValidBusiness()],
-        ]);
+        try {
+            $user = $request->user();
 
-        if ($request->user()->hasRole('superadmin') && empty($data['business_id'])) {
-            $data['is_default'] = true;
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('You do not have permission to create tags.');
+            }
+
+            return DB::transaction(function () use ($request, $user) {
+                // ==================== VALIDATE REQUEST ====================
+                $data = $request->validate([
+                    'tag' => 'required|string|max:255',
+                ]);
+
+                // ==================== HANDLE ROLE-BASED CREATION ====================
+                if ($user->hasRole('superadmin')) {
+                    // Superadmin creates ONLY default tags
+                    $data['is_default'] = true;
+                    $data['business_id'] = null;
+                } else {
+                    // Business owner creates business-specific tags
+                    if (!$user->business_id) {
+                        throw new AccessDeniedHttpException('No business associated with your account.');
+                    }
+
+                    $data['is_default'] = false;
+                    $data['business_id'] = $user->business_id;
+                }
+
+                // ==================== CREATE TAG ====================
+                $tag = Tag::create($data);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tag created successfully',
+                    'data' => $tag,
+                ], 200);
+            });
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        $tag = Tag::create($data);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tag created successfully',
-            'data' => $tag,
-        ], 200);
     }
 
     /**
@@ -241,14 +270,8 @@ class TagController extends Controller
 
     public function getTagById(int $id): JsonResponse
     {
-        $tag = Tag::find($id);
+        $tag = Tag::findOrFail($id);
 
-        if (!$tag) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tag not found',
-            ], 404);
-        }
 
         return response()->json([
             'success' => true,
@@ -301,37 +324,52 @@ class TagController extends Controller
 
     public function updateTag(Request $request, int $id): JsonResponse
     {
-        $tag = Tag::find($id);
+        try {
+            $user = $request->user();
 
-        if (!$tag) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tag not found',
-            ], 404);
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('You do not have permission to update tags.');
+            }
+
+            return DB::transaction(function () use ($request, $id, $user) {
+                // ==================== FIND TAG ====================
+                $tag = Tag::findOrFail($id);
+
+                // ==================== BUSINESS VALIDATION ====================
+                if ($user->hasRole('superadmin')) {
+                    // Superadmin can ONLY update default tags
+                    if (!$tag->is_default) {
+                        throw new AccessDeniedHttpException('Superadmin can only update default tags.');
+                    }
+                } else {
+                    // Business owner can ONLY update their own business tags (NOT default)
+                    if ($tag->is_default) {
+                        throw new AccessDeniedHttpException('Cannot update default tags.');
+                    }
+
+                    if ($tag->business_id !== $user->business_id) {
+                        throw new AccessDeniedHttpException('Tag ' . $tag->id . ' belongs to another business.');
+                    }
+                }
+
+                // ==================== VALIDATE AND UPDATE ====================
+                $data = $request->validate([
+                    'tag' => 'sometimes|required|string|max:255',
+                    "is_active" => "required|boolean"
+                ]);
+
+                $tag->update($data);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tag updated successfully',
+                    'data' => $tag->fresh(),
+                ], 200);
+            });
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        // ✅ Only superadmin can update default tags
-        if ((bool) $tag->is_default && !$request->user()->hasRole('superadmin')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not authorized to update default tags.',
-            ], 403);
-        }
-
-        $data = $request->validate([
-            'tag' => 'sometimes|required|string|max:255',
-            "is_active" => "required|boolean"
-        ]);
-
-
-
-        $tag->update($data);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tag updated successfully',
-            'data' => $tag->fresh(),
-        ], 200);
     }
 
 
@@ -411,43 +449,66 @@ class TagController extends Controller
 
     public function deleteTag(string $ids): JsonResponse
     {
-        // Parse: "1,2,3" -> [1,2,3]
-        $idsArray = collect(explode(',', $ids))
-            ->map(fn($v) => trim($v))
-            ->filter(fn($v) => $v !== '')
-            ->map(fn($v) => ctype_digit($v) ? (int) $v : null);
+        try {
+            $user = request()->user();
 
-        // Validate format
-        if ($idsArray->contains(null) || $idsArray->isEmpty()) {
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('You do not have permission to delete tags.');
+            }
+
+            // ==================== PARSE AND VALIDATE IDS ====================
+            $idsArray = collect(explode(',', $ids))
+                ->map(fn($v) => trim($v))
+                ->filter(fn($v) => $v !== '')
+                ->map(fn($v) => ctype_digit($v) ? (int) $v : null);
+
+            if ($idsArray->contains(null) || $idsArray->isEmpty()) {
+                throw new BadRequestHttpException('Invalid ids format. Use comma-separated integers like: 1,2,3');
+            }
+
+            $idsArray = $idsArray->unique()->values();
+            $idsList = $idsArray->all();
+
+            // ==================== FETCH TAGS ====================
+            $existingTags = Tag::whereIn('id', $idsList)->get();
+            $existingIds = $existingTags->pluck('id')->all();
+            $missingIds = array_values(array_diff($idsList, $existingIds));
+
+            if (!empty($missingIds)) {
+                throw new NotFoundHttpException('Some tag ids were not found: ' . implode(', ', $missingIds));
+            }
+
+            // ==================== VALIDATE PERMISSIONS ====================
+            foreach ($existingTags as $tag) {
+                if ($user->hasRole('superadmin')) {
+                    // Superadmin can ONLY delete default tags
+                    if (!$tag->is_default) {
+                        throw new AccessDeniedHttpException('Superadmin can only delete default tags. Tag ID ' . $tag->id . ' is not a default tag.');
+                    }
+                } else {
+                    // Business owner can ONLY delete their own business tags (NOT default)
+                    if ($tag->is_default) {
+                        throw new AccessDeniedHttpException('Cannot delete default tags. Tag ID ' . $tag->id . ' is a default tag.');
+                    }
+
+                    if ($tag->business_id !== $user->business_id) {
+                        throw new AccessDeniedHttpException('You do not own this business. Tag ID ' . $tag->id . ' belongs to another business.');
+                    }
+                }
+            }
+
+            // ==================== DELETE TAGS ====================
+            Tag::whereIn('id', $idsList)->delete();
+
             return response()->json([
-                'success' => false,
-                'message' => 'Invalid ids format. Use comma-separated integers like: 1,2,3',
-            ], 422);
+                'success' => true,
+                'message' => 'Tags deleted successfully',
+                'data' => null,
+            ], 200);
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        $idsArray = $idsArray->unique()->values();
-        $idsList = $idsArray->all();
-
-        // Check existence
-        $existingIds = Tag::whereIn('id', $idsList)->pluck('id')->all();
-        $missingIds = array_values(array_diff($idsList, $existingIds));
-
-        if (!empty($missingIds)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Some tag ids were not found.',
-                'missing_ids' => $missingIds,
-            ], 404);
-        }
-
-        // Delete all
-        Tag::whereIn('id', $idsList)->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tags deleted successfully',
-            'data' => null,
-        ], 200);
     }
 
     /**
@@ -558,760 +619,93 @@ class TagController extends Controller
 
     public function createMultipleTags(int $businessId, StoreTagMultipleRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $isSuperAdmin = $request->user()->hasRole('superadmin');
+        try {
+            $validated = $request->validated();
+            $isSuperAdmin = $request->user()->hasRole('superadmin');
 
-        // Normalize + unique (keep same "index" meaning as your old code: indexing after unique())
-        $uniqueTags = collect($validated['tags'])
-            ->map(fn($t) => trim((string) $t))
-            ->filter()
-            ->unique()
-            ->values();
+            return DB::transaction(function () use ($validated, $isSuperAdmin, $businessId) {
+                // Normalize + unique (keep same "index" meaning as your old code: indexing after unique())
+                $uniqueTags = collect($validated['tags'])
+                    ->map(fn($t) => trim((string) $t))
+                    ->filter()
+                    ->unique()
+                    ->values();
 
-        if ($uniqueTags->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No valid tags provided',
-                'data' => ['duplicate_indexes' => []],
-            ], 422);
-        }
-
-        // Find existing tags in ONE query
-        $existingTags = Tag::query()
-            ->where('tag', '!=', '')
-            ->whereIn('tag', $uniqueTags->all())
-            ->where(function ($q) use ($isSuperAdmin, $businessId) {
-                if ($isSuperAdmin) {
-                    $q->whereNull('business_id')->where('is_default', 1);
-                } else {
-                    $q->where(function ($q2) use ($businessId) {
-                        $q2->where('business_id', $businessId)->where('is_default', 0);
-                    })->orWhere(function ($q2) {
-                        $q2->whereNull('business_id')->where('is_default', 1);
-                    });
-                }
-            })
-            ->pluck('tag')
-            ->all();
-
-        $existingSet = array_flip($existingTags);
-
-        // Duplicate indexes based on uniqueTags array position (same as your old foreach)
-        $duplicateIndexes = $uniqueTags
-            ->map(fn($tag, $idx) => isset($existingSet[$tag]) ? $idx : null)
-            ->filter(fn($v) => $v !== null)
-            ->values()
-            ->all();
-
-        if (!empty($duplicateIndexes)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Duplicate tags found',
-                'data' => [
-                    'duplicate_indexes' => $duplicateIndexes,
-                ],
-            ], 409);
-        }
-
-        // Bulk insert (faster than create() in loop)
-        $now = now();
-        $rows = $uniqueTags->map(fn($tag) => [
-            'tag' => $tag,
-            'is_default' => $isSuperAdmin ? 1 : 0,
-            'business_id' => $isSuperAdmin ? null : $businessId,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ])->all();
-
-        Tag::insert($rows);
-
-        // Fetch inserted rows to return
-        $createdTags = Tag::query()
-            ->whereIn('tag', $uniqueTags->all())
-            ->where('is_default', $isSuperAdmin ? 1 : 0)
-            ->when(!$isSuperAdmin, fn($q) => $q->where('business_id', $businessId))
-            ->when($isSuperAdmin, fn($q) => $q->whereNull('business_id'))
-            ->orderByDesc('id')
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tags created successfully',
-            'data' => $createdTags,
-        ], 201);
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // ##################################################
-    // This method is to store tag
-    // ##################################################
-    /**
-     *
-     * @OA\Post(
-     *      path="/review-new/create/tags",
-     *      operationId="storeTag",
-     *      tags={"z.unused"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to store tag",
-     *      description="This method is to store tag",
-     *
-     *  @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *            required={"tag","business_id"},
-     *            @OA\Property(property="tag", type="string", format="string",example="How was this?"),
-     *  @OA\Property(property="business_id", type="number", format="number",example="1"),
-
-     *
-     *
-     *         ),
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function storeTag(Request $request)
-    {
-        $question = [
-            'tag' => $request->tag,
-            'business_id' => $request->business_id,
-            'is_active' => $request->is_active,
-        ];
-        if ($request->user()->hasRole("superadmin")) {
-            $question["is_default"] = true;
-        } else {
-            $business = Business::where(["id" => $request->business_id])->first();
-            if (!$business) {
-                return response()->json(["message" => "No Business Found"]);
-            }
-        }
-
-
-
-        $createdQuestion = Tag::create($question);
-
-
-        return response($createdQuestion, 201);
-
-
-
-
-        return response($createdQuestion, 201);
-    }
-    /**
-     *
-     * @OA\Post(
-     *      path="/v1.0/review-new/create/tags/multiple/{businessId}",
-     *      operationId="storeTagMultiple",
-     *      tags={"z.unused"},
-     *      security={
-     *          {"bearerAuth": {}}
-     *      },
-     *      summary="Store multiple tags for a business",
-     *      description="Create multiple tags at once for a specific business. Checks for duplicate tags and validates business ownership.",
-     *
-     *      @OA\Parameter(
-     *          name="businessId",
-     *          in="path",
-     *          description="Business ID",
-     *          required=true,
-     *          example="1"
-     *      ),
-     *
-     *      @OA\RequestBody(
-     *          required=true,
-     *          @OA\JsonContent(
-     *              required={"tags"},
-     *              @OA\Property(
-     *                  property="tags",
-     *                  type="array",
-     *                  @OA\Items(type="string"),
-     *                  example={"Excellent Service", "Great Food", "Clean Environment"}
-     *              )
-     *          )
-     *      ),
-     *
-     *      @OA\Response(
-     *          response=201,
-     *          description="Tags created successfully",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="Tags created successfully"),
-     *              @OA\Property(
-     *                  property="data",
-     *                  type="array",
-     *                  @OA\Items(
-     *                      type="object",
-     *                      @OA\Property(property="id", type="integer", example=1),
-     *                      @OA\Property(property="tag", type="string", example="Excellent Service"),
-     *                      @OA\Property(property="business_id", type="integer", example=1),
-     *                      @OA\Property(property="is_default", type="boolean", example=false),
-     *                      @OA\Property(property="is_active", type="boolean", example=true)
-     *                  )
-     *              )
-     *          )
-     *      ),
-     *
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="message", type="string", example="Unauthenticated")
-     *          )
-     *      ),
-     *
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden - Not business owner",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="message", type="string", example="You do not own this business")
-     *          )
-     *      ),
-     *
-     *      @OA\Response(
-     *          response=404,
-     *          description="Business not found",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="message", type="string", example="Business not found")
-     *          )
-     *      ),
-     *
-     *      @OA\Response(
-     *          response=409,
-     *          description="Duplicate tags found",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="Duplicate tags found"),
-     *              @OA\Property(
-     *                  property="data",
-     *                  type="object",
-     *                  @OA\Property(
-     *                      property="duplicate_indexes",
-     *                      type="array",
-     *                      @OA\Items(type="integer"),
-     *                      example={0, 2}
-     *                  )
-     *              )
-     *          )
-     *      ),
-     *
-     *      @OA\Response(
-     *          response=422,
-     *          description="Validation failed",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="message", type="string", example="Validation failed"),
-     *              @OA\Property(property="errors", type="object")
-     *          )
-     *      )
-     * )
-     */
-    public function storeTagMultiple($businessId, StoreTagMultipleRequest $request)
-    {
-        // VALIDATE REQUEST (business ownership already checked in request)
-        $validated = $request->validated();
-
-        // GET UNIQUE TAGS
-        $uniqueTags = collect($validated['tags'])->unique()->values()->all();
-
-        // CHECK FOR DUPLICATES
-        $duplicateIndexes = [];
-        $isSuperAdmin = $request->user()->hasRole("superadmin");
-
-        foreach ($uniqueTags as $index => $tagName) {
-            if ($isSuperAdmin) {
-                // Check if default tag already exists
-                $existingTag = Tag::where([
-                    "business_id" => NULL,
-                    "tag" => $tagName,
-                    "is_default" => 1
-                ])->first();
-
-                if ($existingTag) {
-                    $duplicateIndexes[] = $index;
-                }
-            } else {
-                // Check if business-specific tag exists
-                $existingTag = Tag::where([
-                    "business_id" => $businessId,
-                    "is_default" => 0,
-                    "tag" => $tagName
-                ])->first();
-
-                // Also check if default tag exists
-                if (!$existingTag) {
-                    $existingTag = Tag::where([
-                        "business_id" => NULL,
-                        "is_default" => 1,
-                        "tag" => $tagName
-                    ])->first();
+                if ($uniqueTags->isEmpty()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No valid tags provided',
+                        'data' => ['duplicate_indexes' => []],
+                    ], 422);
                 }
 
-                if ($existingTag) {
-                    $duplicateIndexes[] = $index;
+                // Find existing tags in ONE query
+                $existingTags = Tag::query()
+                    ->where('tag', '!=', '')
+                    ->whereIn('tag', $uniqueTags->all())
+                    ->where(function ($q) use ($isSuperAdmin, $businessId) {
+                        if ($isSuperAdmin) {
+                            $q->whereNull('business_id')->where('is_default', 1);
+                        } else {
+                            $q->where(function ($q2) use ($businessId) {
+                                $q2->where('business_id', $businessId)->where('is_default', 0);
+                            })->orWhere(function ($q2) {
+                                $q2->whereNull('business_id')->where('is_default', 1);
+                            });
+                        }
+                    })
+                    ->pluck('tag')
+                    ->all();
+
+                $existingSet = array_flip($existingTags);
+
+                // Duplicate indexes based on uniqueTags array position (same as your old foreach)
+                $duplicateIndexes = $uniqueTags
+                    ->map(fn($tag, $idx) => isset($existingSet[$tag]) ? $idx : null)
+                    ->filter(fn($v) => $v !== null)
+                    ->values()
+                    ->all();
+
+                if (!empty($duplicateIndexes)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Duplicate tags found',
+                        'data' => [
+                            'duplicate_indexes' => $duplicateIndexes,
+                        ],
+                    ], 409);
                 }
-            }
+
+                // Bulk insert (faster than create() in loop)
+                $now = now();
+                $rows = $uniqueTags->map(fn($tag) => [
+                    'tag' => $tag,
+                    'is_default' => $isSuperAdmin ? 1 : 0,
+                    'business_id' => $isSuperAdmin ? null : $businessId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])->all();
+
+                Tag::insert($rows);
+
+                // Fetch inserted rows to return
+                $createdTags = Tag::query()
+                    ->whereIn('tag', $uniqueTags->all())
+                    ->where('is_default', $isSuperAdmin ? 1 : 0)
+                    ->when(!$isSuperAdmin, fn($q) => $q->where('business_id', $businessId))
+                    ->when($isSuperAdmin, fn($q) => $q->whereNull('business_id'))
+                    ->orderByDesc('id')
+                    ->get();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tags created successfully',
+                    'data' => $createdTags,
+                ], 201);
+            });
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        // RETURN ERROR IF DUPLICATES FOUND
-        if (count($duplicateIndexes) > 0) {
-            return response()->json([
-                "success" => false,
-                "message" => "Duplicate tags found",
-                "data" => [
-                    "duplicate_indexes" => $duplicateIndexes
-                ]
-            ], 409);
-        }
-
-        // CREATE TAGS
-        $createdTags = [];
-
-        foreach ($uniqueTags as $tagName) {
-            $tagData = [
-                'tag' => $tagName,
-                'is_default' => $isSuperAdmin,
-                'business_id' => $isSuperAdmin ? NULL : $businessId
-            ];
-
-            $createdTag = Tag::create($tagData);
-            $createdTags[] = $createdTag;
-        }
-
-        // RETURN RESPONSE
-        return response()->json([
-            "success" => true,
-            "message" => "Tags created successfully",
-            "data" => $createdTags
-        ], 201);
     }
 
-    // ##################################################
-    // This method is to update tag
-    // ##################################################
-    /**
-     *
-     * @OA\Put(
-     *      path="/review-new/update/tags",
-     *      operationId="updatedTag",
-     *      tags={"z.unused"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to update tag",
-     *      description="This method is to update tag",
-     *
-     *  @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *            required={"tag","id"},
-     *            @OA\Property(property="tag", type="string", format="string",example="How was this?"),
-     *  @OA\Property(property="id", type="number", format="number",example="1"),
-
-     *
-     *
-     *         ),
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function updatedTag(Request $request)
-    {
-
-        $question = [
-            'tag' => $request->tag,
-            'is_active' => $request->is_active
-        ];
-        $checkQuestion = Tag::where(["id" => $request->id])->first();
-        if ($checkQuestion->is_default == true && !$request->user()->hasRole("superadmin")) {
-            return response()->json(["message" => "you can not update the question. you are not a super admin"]);
-        }
-        $updatedQuestion = tap(Tag::where(["id" => $request->id]))->update(
-            $question
-        )
-            // ->with("somthing")
-
-            ->first();
-
-
-        return response($updatedQuestion, 200);
-    }
-    // ##################################################
-    // This method is to get tag
-    // ##################################################
-    /**
-     *
-     * @OA\Get(
-     *      path="/review-new/get/tags",
-     *      operationId="getTag",
-     *      tags={"review.setting.tag"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to get tag",
-     *      description="This method is to get tag",
-     *         @OA\Parameter(
-     *         name="business_id",
-     *         in="query",
-     *         description="business Id",
-     *         required=false,
-     *      ),
-     *      *         @OA\Parameter(
-     *         name="is_active",
-     *         in="query",
-     *         description="is_active",
-     *         required=false,
-     *      ),
-
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function getTag(Request $request)
-    {
-
-        $is_dafault = false;
-        $businessId = $request->business_id;
-
-        if ($request->user()->hasRole("superadmin")) {
-            $is_dafault = true;
-            $businessId = NULL;
-            $query = Tag::where(["business_id" => NULL, "is_default" => true])
-                ->when(request()->filled("is_active"), function ($query) {
-                    $query->where("tags.is_active", request()->input("is_active"));
-                });
-        } else {
-            $business = Business::where(["id" => $request->business_id])->first();
-            if (!$business && !$request->user()->hasRole("superadmin")) {
-                return response("No Business Found", 404);
-            }
-
-            $query = Tag::where(["business_id" => $businessId, "is_default" => 0])
-                ->orWhere(["business_id" => NULL, "is_default" => 1])
-                ->when(request()->filled("is_active"), function ($query) {
-                    $query->where("tags.is_active", request()->input("is_active"));
-                });
-            ;
-        }
-
-
-
-        $questions = $query->get();
-
-
-        return response($questions, 200);
-    }
-    // ##################################################
-    // This method is to get tag  by id.
-    // ##################################################
-    /**
-     *
-     * @OA\Get(
-     *      path="/review-new/get/tags/{id}",
-     *      operationId="TagById",
-     *      tags={"z.unused"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to get tag  by id",
-     *      description="This method is to get tag  by id",
-     *         @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="tag Id",
-     *         required=false,
-     *      ),
-
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function TagById($id, Request $request)
-    {
-        $questions = Tag::where(["id" => $id])
-            ->first();
-        if (!$questions) {
-            return response([
-                "message" => "No Tag Found"
-            ], 404);
-        }
-        return response($questions, 200);
-    }
-    /**
-     *
-     * @OA\Get(
-     *      path="/review-new/get/tags/{id}/{restaurantId}",
-     *      operationId="getTagById2",
-     *      tags={"z.unused"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to get tag  by id",
-     *      description="This method is to get tag  by id",
-     *         @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="tag Id",
-     *         required=false,
-     *      ),
-     *        @OA\Parameter(
-     *         name="restaurantId",
-     *         in="path",
-     *         description="restaurantId",
-     *         required=false,
-     *      ),
-
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocessable Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function getTagById2($id, $restaurantId, Request $request)
-    {
-        $questions = Tag::where(["id" => $id, "business_id" => $restaurantId])
-            ->first();
-        if (!$questions) {
-            return response([
-                "message" => "No Tag Found"
-            ], 404);
-        }
-        return response([
-            "success" => true,
-            "message" => "Tag Found",
-            "data" => $questions
-        ], 200);
-    }
-
-    // ##################################################
-    // This method is to delete tag by id
-    // ##################################################
-
-    /**
-     *
-     * @OA\Delete(
-     *      path="/review-new/delete/tags/{id}",
-     *      operationId="deleteTagById",
-     *      tags={"z.unused"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to delete tag  by id",
-     *      description="This method is to delete tag  by id",
-     *         @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="tag Id",
-     *         required=false,
-     *      ),
-
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function deleteTagById($id, Request $request)
-    {
-        $tag = Tag::where(["id" => $id])
-            ->first();
-
-
-        if ($tag->is_default) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Default tags cannot be deleted.'
-            ], 403);
-        }
-
-
-        $review_value_tag_exists = DB::table("review_value_tag")
-            ->where(["tag_id" => $id])
-            ->exists();
-
-        if ($review_value_tag_exists) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tag is associated with review values and cannot be deleted.'
-            ], 403);
-        }
-
-
-
-
-        return response(["message" => "ok"], 200);
-    }
 }

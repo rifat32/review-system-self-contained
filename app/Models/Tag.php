@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Tag extends Model
 {
@@ -23,7 +24,12 @@ class Tag extends Model
     ];
 
 
-      public function review_values()
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class, 'business_id');
+    }
+
+    public function review_values()
     {
         return $this->belongsToMany(ReviewValueNew::class, 'review_value_tag', 'tag_id', 'review_value_id');
     }
@@ -31,12 +37,12 @@ class Tag extends Model
 
     public function scopeFilterByOverall($query)
     {
-        if(request()->filled("is_overall")) {
+        if (request()->filled("is_overall")) {
             $is_overall = request()->boolean("is_overall");
             $query->whereHas('review_values', function ($q2) use ($is_overall) {
                 $q2->filterByOverall($is_overall);
             });
-       
+
         }
         return $query;
     }
