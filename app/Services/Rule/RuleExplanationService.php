@@ -217,7 +217,7 @@ class RuleExplanationService
      */
     public static function needsRegeneration($rule): bool
     {
-        return empty($rule->ai_explanation_title) || empty($rule->ai_plain_explanation);
+        return !$rule->hasExplanations();
     }
 
     /**
@@ -233,11 +233,10 @@ class RuleExplanationService
 
                 if ($explanations) {
                     $rule->update([
-                        'ai_explanation_title' => $explanations['short_explanation'],
-                        'ai_plain_explanation' => $explanations['detailed_explanation'],
-                        'ai_why_it_matters' => $explanations['why_it_matters'],
-                        'ai_when_it_triggers' => $explanations['when_it_triggers'],
-                        'ai_generated_at' => now()
+                        'short_explanation' => $explanations['short_explanation'],
+                        'detailed_explanation' => $explanations['detailed_explanation'],
+                        'why_it_matters' => $explanations['why_it_matters'],
+                        'explanation_generated_at' => now()
                     ]);
                     $results['success']++;
                 } else {

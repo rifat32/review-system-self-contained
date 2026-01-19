@@ -102,13 +102,6 @@ class AiRule extends Model
         'deduplication_scope',
         'last_run_at',
         'next_run_at',
-        // Proposal fields
-        'ai_explanation_title',
-        'ai_plain_explanation',
-        'ai_why_it_matters',
-        'ai_when_it_triggers',
-        'ai_manager_tip',
-        'ai_generated_at',
         // UI fields
         'multi_tag_detection',
         'trigger_only_on_first_occurrence',
