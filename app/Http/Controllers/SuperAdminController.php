@@ -193,9 +193,9 @@ class SuperAdminController extends Controller
                 ->with([
                     'staff:id,first_Name,last_Name,image',
                     'business:id,Name,EmailAddress',
-                    'business_services:id,name',
-                    'value.question:id,question',
-                    'value.star:id,value'
+                    // 'business_services:id,name',
+                    // 'value.question:id,question',
+                    // 'value.star:id,value'
                 ])
                 // FILTER: BUSINESS ID
                 ->when($request->filled('business_id'), function ($q) use ($request) {
