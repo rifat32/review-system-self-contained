@@ -612,14 +612,7 @@ class SurveyController extends Controller
                 throw new AuthorizationException('You are not belongs to this business');
             }
 
-            // ==================== BRANCH MANAGER SCOPE ====================
-            // Initialize branch ID variable for filtering
-            $userBranchId = null;
 
-            // If user is a branch manager, restrict surveys to their branch only
-            if ($user->hasRole('branch_manager')) {
-                $userBranchId = $user->default_branch_id;
-            }
 
             // ==================== VALIDATE BUSINESS EXISTS ====================
             Business::findOrFail($business_id);
@@ -635,13 +628,6 @@ class SurveyController extends Controller
                 ])
                 ->filter(); // Apply any query filters from request
 
-            // ==================== APPLY BRANCH FILTER ====================
-            // If user is branch manager, only show surveys with reviews from their branch
-            // if ($userBranchId) {
-            //     $query->whereHas('reviews', function ($query) use ($userBranchId) {
-            //         $query->where('branch_id', $userBranchId);
-            //     });
-            // }
 
             // ==================== RETRIEVE PAGINATED DATA ====================
             // Get surveys ordered by order_no with pagination

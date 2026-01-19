@@ -53,10 +53,6 @@ class BusinessAnalyticsService
             ->with(['business_services', 'value']) // Eager load services and values
             ->withCalculatedRating();
 
-        // ADD BRANCH FILTER
-        if ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner'))) {
-            $reviewQuery->where('branch_id', $user->default_branch_id);
-        }
 
         $reviews = $reviewQuery->get();
 
@@ -175,13 +171,7 @@ class BusinessAnalyticsService
             $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
         }
 
-        $userBranchId = $user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner'))
-            ? $user->default_branch_id
-            : null;
 
-        if ($userBranchId) {
-            $reviewsQuery->where('branch_id', $userBranchId);
-        }
 
         $reviews = $reviewsQuery->get();
 

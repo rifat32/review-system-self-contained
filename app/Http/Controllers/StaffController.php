@@ -1516,9 +1516,7 @@ class StaffController extends Controller
         // GET DATE RANGE BASED ON PERIOD
         $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
 
-        $userBranchId = $user->hasRole('business_owner') || $user->hasRole('branch_manager')
-            ? $user->default_branch_id
-            : null;
+
 
         // GET CURRENT REVIEWS
         $currentReviews = ReviewNew::where('business_id', $businessId)
@@ -1529,10 +1527,7 @@ class StaffController extends Controller
                 // FILTER BY DATE RANGE
                 return $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
             })
-            ->when($userBranchId, function ($query) use ($userBranchId) {
-                // FILTER BY BRANCH
-                return $query->where('branch_id', $userBranchId);
-            })
+
             ->get();
 
         $complimentRatio = $this->aiProcessorService->calculateComplimentRatio($currentReviews);
@@ -1625,9 +1620,7 @@ class StaffController extends Controller
         // GET DATE RANGE BASED ON PERIOD
         $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
 
-        $userBranchId = $user->hasRole('business_owner') || $user->hasRole('branch_manager')
-            ? $user->default_branch_id
-            : null;
+
 
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
@@ -1636,10 +1629,7 @@ class StaffController extends Controller
                 // FILTER BY DATE RANGE
                 return $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
             })
-            ->when($userBranchId, function ($query) use ($userBranchId) {
-                // FILTER BY BRANCH
-                return $query->where('branch_id', $userBranchId);
-            })
+
             ->withCalculatedRating()
             ->get();
 

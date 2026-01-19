@@ -65,11 +65,7 @@ class DashboardController extends Controller
     {
         $businessId = $request->businessId;
 
-        $baseReviewQuery = ReviewNew::query()
-            ->when(
-                $request->user() && !$request->user()->hasRole('superadmin'),
-                fn($q) => $q->where('review_news.business_id', $businessId)
-            )
+        $baseReviewQuery = ReviewNew::where('review_news.business_id', $businessId)
             ->globaReviewlFilters(0, $businessId)
             ->orderBy('review_news.order_no', 'asc')
 
@@ -1033,20 +1029,13 @@ class DashboardController extends Controller
             $request->get('period', 'last_30_days')
         );
 
-        // Apply branch filter
-        $userBranchId = ($user->hasRole('branch_manager') || $user->hasRole('business_owner'))
-            ? $user->default_branch_id
-            : null;
+
 
         // Active Surveys (surveys that are active/published)
         $activeSurveysQuery = Survey::where('business_id', $businessId)
             ->where('is_active', true);
 
-        // if ($userBranchId) {
-        //     $activeSurveysQuery->whereHas('reviews', function ($query) use ($userBranchId) {
-        //         $query->where('branch_id', $userBranchId);
-        //     });
-        // }
+
 
         if ($dateRange) {
             $activeSurveysQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
@@ -1055,16 +1044,15 @@ class DashboardController extends Controller
         $activeSurveys = $activeSurveysQuery->count();
 
         // Recent Submissions (reviews in the current period that are from surveys)
-        $recentSubmissionsQuery = ReviewNew::where('business_id', $businessId)->globaReviewlFilters(0, $businessId)
+        $recentSubmissionsQuery = ReviewNew::where('business_id', $businessId)
+            ->globaReviewlFilters(0, $businessId)
             ->whereNotNull('survey_id');
 
         if ($dateRange) {
             $recentSubmissionsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
         }
 
-        if ($userBranchId) {
-            $recentSubmissionsQuery->where('branch_id', $userBranchId);
-        }
+
 
         $recentSubmissions = $recentSubmissionsQuery->count();
 

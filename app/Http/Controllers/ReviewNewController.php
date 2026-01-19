@@ -3510,18 +3510,7 @@ class ReviewNewController extends Controller
             $query->where('staff_id', $staffId);
         }
 
-        // Apply branch filter
-        $userBranchId = $request->user()->hasRole('branch_manager') || $request->user()->hasRole('business_owner')
-            ? $request->user()->default_branch_id
-            : null;
 
-        if ($userBranchId) {
-            // Branch manager - force their branch
-            $query->where('branch_id', $userBranchId);
-        } elseif ($request->has('branch_id') && !empty($request->branch_id)) {
-            // Other users - optional branch filter from request
-            $query->where('branch_id', (int) $request->input('branch_id'));
-        }
 
         // Apply is_overall filter
         if ($request->has('is_overall')) {
@@ -3734,11 +3723,7 @@ class ReviewNewController extends Controller
     {
         $user = $request->user();
         $businessId = $user->business_id;
-        $userBranchId = null;
 
-        if ($user->hasRole('branch_manager') || $user->hasRole('business_owner')) {
-            $userBranchId = $user->default_branch_id;
-        }
 
         // Validate period and get date range using service
         $dateRange = $this->dashboardService->validateAndGetDateRange(
@@ -3757,8 +3742,7 @@ class ReviewNewController extends Controller
             })
             ->when($dateRange, function ($query) use ($dateRange) {
                 $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-            })
-            ->when($userBranchId, fn($query) => $query->where('branch_id', $userBranchId));
+            });
 
         // GENERATE DATA FOR OVERALL REVIEWS
         $overallReviews = $reviewsQuery->get();
