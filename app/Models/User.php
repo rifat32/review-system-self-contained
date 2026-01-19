@@ -184,18 +184,25 @@ class User extends Authenticatable
     public function scopeFilterCustomers($query)
     {
         return $query
-            // Filter by rating if provided
+            // Filter by rating if provided (using calculated rating from review_value_news)
             ->when(request()->filled('rating'), function ($q) {
                 $q->whereHas('feedbacks', function ($query) {
-                    $query->where('review_news.rate', request()->input('rating'));
+                    $query->whereExists(function ($subQuery) {
+                        $subQuery->selectRaw('1')
+                            ->from('review_value_news as rvn')
+                            ->join('stars as s', 'rvn.star_id', '=', 's.id')
+                            ->whereColumn('rvn.review_id', 'review_news.id')
+                            ->groupBy('rvn.review_id')
+                            ->havingRaw('ROUND(AVG(s.value), 0) = ?', [request()->input('rating')]);
+                    });
                 });
             })
             // Filter by review date range
             ->when(request()->filled('review_start_date') && request()->filled('review_end_date'), function ($q) {
                 $q->whereHas('feedbacks', function ($query) {
-                    $query->whereBetween('review_news.updated_at', [
+                    $query->whereBetween('review_news.created_at', [
                         request()->input('review_start_date'),
-                        request()->input('review_end_date')
+                        request()->input('review_end_date') . ' 23:59:59'
                     ]);
                 });
             })
@@ -205,37 +212,20 @@ class User extends Authenticatable
                     $query->where('review_news.comment', 'like', '%' . request('review_keyword') . '%');
                 });
             })
-            // Filter by frequency visit
+            // Filter by frequency visit (based on review count)
             ->when(request()->filled('frequency_visit'), function ($q) {
                 $frequency = request()->input('frequency_visit');
-                $query_param = '='; // Default value for the comparison operator.
-                $min_count = 1;     // Minimum booking count.
-                $max_count = 1;     // Maximum booking count (for regular customers).
-    
-                if ($frequency == "New") {
-                    // For new customers, the count should be exactly 1.
-                    $query_param = '=';
-                    $min_count = 1;
-                    $max_count = 1;
-                } elseif ($frequency == "Regular") {
-                    // For regular customers, the count should be between 2 and 5.
-                    $query_param = 'BETWEEN';
-                    $min_count = 2;
-                    $max_count = 5;
-                } elseif ($frequency == "VIP") {
-                    // For VIP customers, the count should be 5 or more.
-                    $query_param = '>=';
-                    $min_count = 5;
-                    $max_count = null; // No upper limit for VIP.
-                } else {
-                    // Default case or other logic can be applied here.
-                    $query_param = '=';
-                    $min_count = 1;
-                    $max_count = 1;
-                }
 
-                // Apply the frequency filter logic here if needed
-                // Note: This might need adjustment based on your booking/review relationship
+                if ($frequency == "New") {
+                    // New customers: exactly 1 review
+                    $q->has('feedbacks', '=', 1);
+                } elseif ($frequency == "Regular") {
+                    // Regular customers: 2-5 reviews
+                    $q->has('feedbacks', '>=', 2)->has('feedbacks', '<=', 5);
+                } elseif ($frequency == "VIP") {
+                    // VIP customers: 6 or more reviews
+                    $q->has('feedbacks', '>=', 6);
+                }
             })
             // Filter by name
             ->when(request()->filled('name'), function ($query) {
