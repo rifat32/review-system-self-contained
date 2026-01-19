@@ -199,7 +199,7 @@ class ReviewNewController extends Controller
             $mimeType = $audioFile->getMimeType();
 
             // Get audio duration
-            $duration = getAudioDuration($audioFile->getRealPath());
+            $duration = $this->aiProcessorService->getAudioDuration($audioFile->getRealPath());
 
             // Transcribe the audio using existing method
             $transcribedText = $this->aiProcessorService->transcribeAudio($audioFile->getRealPath());
