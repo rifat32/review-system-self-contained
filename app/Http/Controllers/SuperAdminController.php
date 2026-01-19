@@ -1,0 +1,236 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ReviewNew;
+use App\Models\User;
+use Exception;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\JsonResponse;
+
+class SuperAdminController extends Controller
+{
+    /**
+     *
+     * @OA\Get(
+     *      path="/v1.0/customers/{customerId}/reviews",
+     *      operationId="getCustomerReviews",
+     *      tags={"super_admin.customer_management"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="Get all reviews for a specific customer",
+     *      description="Retrieve all reviews submitted by a specific customer with optional filtering and pagination",
+     *
+     *      @OA\Parameter(
+     *          name="customerId",
+     *          in="path",
+     *          description="Customer ID",
+     *          required=true,
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="business_id",
+     *          in="query",
+     *          description="Business ID",
+     *          required=false,
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="per_page",
+     *          in="query",
+     *          description="Number of reviews per page for pagination",
+     *          required=false,
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="page",
+     *          in="query",
+     *          description="Page number for pagination",
+     *          required=false,
+     *          @OA\Schema(type="integer")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="sort_by",
+     *          in="query",
+     *          description="Field to sort by (e.g., created_at, calculated_rating)",
+     *          required=false,
+     *          example="created_at",
+     *          @OA\Schema(type="string")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="sort_order",
+     *          in="query",
+     *          description="Sort direction (ASC or DESC)",
+     *          required=false,
+     *          example="DESC",
+     *          @OA\Schema(type="string", enum={"ASC", "DESC"})
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="rating",
+     *          in="query",
+     *          description="Filter reviews by rating (1-5)",
+     *          required=false,
+     *          @OA\Schema(type="integer", minimum=1, maximum=5)
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="start_date",
+     *          in="query",
+     *          description="Filter reviews created after this date (DD-MM-YYYY)",
+     *          required=false,
+     *          @OA\Schema(type="string", format="date")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="end_date",
+     *          in="query",
+     *          description="Filter reviews created before this date (DD-MM-YYYY)",
+     *          required=false,
+     *          @OA\Schema(type="string", format="date")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="search_key",
+     *          in="query",
+     *          description="Search term for review comment",
+     *          required=false,
+     *          @OA\Schema(type="string")
+     *      ),
+     *
+     *      @OA\Parameter(
+     *          name="sentiment",
+     *          in="query",
+     *          description="Filter by sentiment (positive, negative, neutral)",
+     *          required=false,
+     *          @OA\Schema(type="string", enum={"positive", "negative", "neutral"})
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=200,
+     *          description="Customer reviews retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Customer reviews retrieved successfully."),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="comment", type="string", example="Great service!"),
+     *                      @OA\Property(property="sentiment", type="string", example="positive"),
+     *                      @OA\Property(property="calculated_rating", type="number", format="float", example=4.5),
+     *                      @OA\Property(property="created_at", type="string", format="date-time")
+     *                  )
+     *              ),
+     *              @OA\Property(
+     *                  property="meta",
+     *                  type="object",
+     *                  description="Pagination metadata (only when per_page is provided)",
+     *                  @OA\Property(property="total", type="integer", example=50),
+     *                  @OA\Property(property="per_page", type="integer", example=15),
+     *                  @OA\Property(property="current_page", type="integer", example=1),
+     *                  @OA\Property(property="total_pages", type="integer", example=4)
+     *              )
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=404,
+     *          description="Customer not found",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Customer not found")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - Super admin access required",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Forbidden")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=500,
+     *          description="Internal server error",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Internal server error")
+     *          )
+     *      )
+     * )
+     */
+    public function getCustomerReviews(Request $request, $customerId): JsonResponse
+    {
+        try {
+            // VALIDATE CUSTOMER EXISTS
+            $customer = User::whereHas('roles', function ($query) {
+                $query->where('name', User::USER_ROLE['CUSTOMER']);
+            })->findOrFail($customerId);
+
+            // BUILD REVIEW QUERY
+            $reviewsQuery = ReviewNew::where('user_id', $customer->id)
+                ->withCalculatedRating()
+                ->with([
+                    'staff:id,first_Name,last_Name,image',
+                    'business:id,Name,EmailAddress',
+                    'business_services:id,name',
+                    'value.question:id,title',
+                    'value.star:id,value,label'
+                ])
+                // FILTER: BUSINESS ID
+                ->when($request->filled('business_id'), function ($q) use ($request) {
+                    $q->where('business_id', $request->business_id);
+                })
+                // FILTER: SEARCH KEY
+                ->when($request->filled('search_key'), function ($q) use ($request) {
+                    $q->where('comment', 'like', '%' . $request->search_key . '%');
+                })
+                // FILTER: SENTIMENT
+                ->when($request->filled('sentiment'), function ($q) use ($request) {
+                    $q->where('sentiment', $request->sentiment);
+                })
+                // FILTER: DATE RANGE
+                ->when($request->filled('start_date'), function ($q) use ($request) {
+                    $q->whereDate('review_news.created_at', '>=', $request->start_date);
+                })
+                ->when($request->filled('end_date'), function ($q) use ($request) {
+                    $q->whereDate('review_news.created_at', '<=', $request->end_date);
+                })
+                // FILTER: RATING (using having clause for calculated rating)
+                ->when($request->filled('rating'), function ($q) use ($request) {
+                    $q->havingRaw('calculated_rating = ?', [$request->rating]);
+                });
+
+            // USE RETRIEVE_DATA HELPER FOR PAGINATION AND DATA RETRIEVAL
+            $result = retrieve_data($reviewsQuery);
+
+            return response()->json([
+                "success" => true,
+                "message" => "Customer reviews retrieved successfully.",
+                "data" => $result['data'],
+                "meta" => $result['meta']
+            ], 200);
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+}

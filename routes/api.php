@@ -32,6 +32,7 @@ use App\Http\Controllers\StarController;
 use App\Http\Controllers\StarTagQuestionController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SuperAdminDashboardController;
+use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminReportController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\SurveyQuestionController;
@@ -148,6 +149,11 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/v1.0/dashboard/business-metrics', [SuperAdminDashboardController::class, 'getBusinessMetrics']);
         Route::get('/v1.0/dashboard/review-trends', [SuperAdminDashboardController::class, 'getReviewTrends']);
         Route::get('/v1.0/dashboard/customer-registration-trends', [SuperAdminDashboardController::class, 'getCustomerRegistrationTrends']);
+
+        // -------------------------------------------------------------------------
+        // SuperAdminCustomerController – Customer management (Super Admin)
+        // -------------------------------------------------------------------------
+        Route::get('/v1.0/customers/{customerId}/reviews', [SuperAdminController::class, 'getCustomerReviews']);
     });
 
     // ============================================================================

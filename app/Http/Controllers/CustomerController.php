@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\AuthorizesRoles;
 use App\Http\Utils\ErrorUtil;
 
 use App\Models\Business;
 
+use App\Models\ReviewNew;
 use App\Models\User;
 use App\Services\Customer\CustomerService;
 use Exception;
@@ -15,7 +17,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 class CustomerController extends Controller
 {
-    use ErrorUtil;
+    use ErrorUtil, AuthorizesRoles;
 
     protected $customerService;
 
@@ -262,5 +264,4 @@ class CustomerController extends Controller
             throw $e;
         }
     }
-
 }
