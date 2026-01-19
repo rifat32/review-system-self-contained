@@ -8,6 +8,9 @@ use App\Models\BusinessService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BusinessServiceController extends Controller
 {
@@ -52,15 +55,15 @@ class BusinessServiceController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     *  @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
      *      description="not found",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   )
      *      )
      *     )
@@ -69,26 +72,27 @@ class BusinessServiceController extends Controller
     public function createBusinessService(BusinessServiceRequest $request)
     {
         try {
-            return DB::transaction(function () use ($request) {
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can create business services.');
+            }
+
+            return DB::transaction(function () use ($request, $user) {
                 $payload_data = $request->validated();
 
-                $authUser = $request->user();
-                $business = $authUser->business()->first();
-                if (!$business) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "No business associated with your account"
-                    ], 403);
+                // ==================== BUSINESS VALIDATION ====================
+                if (!$user->business_id) {
+                    throw new AccessDeniedHttpException('No business associated with your account.');
                 }
-                $payload_data['business_id'] = $business->id;
 
-                // Create the business service
+                $payload_data['business_id'] = $user->business_id;
+
+                // ==================== CREATE BUSINESS SERVICE ====================
                 $businessService = BusinessService::create($payload_data);
-
-                // Load relationships for response
                 $businessService->load('business_areas');
 
-                // Return success response
                 return response()->json([
                     "success" => true,
                     "message" => "Business service created successfully",
@@ -96,11 +100,7 @@ class BusinessServiceController extends Controller
                 ], 201);
             });
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -178,15 +178,15 @@ class BusinessServiceController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     *  @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
      *      description="not found",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   )
      *      )
      *     )
@@ -198,16 +198,13 @@ class BusinessServiceController extends Controller
             $user = $request->user();
 
             $query = BusinessService::with('business_areas');
-            $business = $user->business()->first();
+            $businessId = $user->business_id;
 
-            if (!$business) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "No business associated with your account"
-                ], 403);
+            if (!$businessId) {
+                throw new AccessDeniedHttpException('No business associated with your account');
             }
             // Regular users see only their business services
-            $query->where('business_id', $business->id);
+            $query->where('business_id', $businessId);
             // Apply filters
             $query->when($request->filled('is_active'), function ($q) use ($request) {
                 $q->where('is_active', $request->boolean('is_active'));
@@ -227,11 +224,7 @@ class BusinessServiceController extends Controller
                 "data" => $businessServices
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -290,25 +283,19 @@ class BusinessServiceController extends Controller
     public function businessServiceById($id, Request $request)
     {
         try {
-            // Check authorization
             $user = $request->user();
-            $business = $user->business()->first();
-            $businessId = $business ? $business->id : null;
 
-            $businessService = BusinessService::with('business_areas')->find($id);
+            // ==================== AUTHORIZATION ====================
+            // if (!$user->hasRole('business_owner')) {
+            //     throw new AccessDeniedHttpException('Only business owners can view business services.');
+            // }
 
-            if (!$businessService) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "Business service not found"
-                ], 404);
-            }
+            // ==================== FIND BUSINESS SERVICE ====================
+            $businessService = BusinessService::with('business_areas')->findOrFail($id);
 
-            if ($businessService->business_id !== $businessId) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "You do not own this business service"
-                ], 403);
+            // ==================== OWNERSHIP VALIDATION ====================
+            if ($businessService->business_id !== $user->business_id) {
+                throw new AccessDeniedHttpException('This business service does not belong to your business.');
             }
 
             return response()->json([
@@ -317,11 +304,7 @@ class BusinessServiceController extends Controller
                 "data" => $businessService
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -374,15 +357,15 @@ class BusinessServiceController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     *   @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
      *      description="not found",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   )
      *      )
      *     )
@@ -391,33 +374,27 @@ class BusinessServiceController extends Controller
     public function updateBusinessService(BusinessServiceRequest $request, $id)
     {
         try {
-            return DB::transaction(function () use ($request, $id) {
-                // Check authorization
-                $user = $request->user();
-                $business = $user->business()->first();
-                $businessId = $business ? $business->id : null;
-                $businessService = BusinessService::find($id);
+            $user = $request->user();
 
-                if (!$businessService) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "Business service not found"
-                    ], 404);
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can update business services.');
+            }
+
+            return DB::transaction(function () use ($request, $id, $user) {
+                // ==================== BUSINESS VALIDATION ====================
+                if (!$user->business_id) {
+                    throw new AccessDeniedHttpException('No business associated with your account.');
                 }
 
-                if ($businessService->business_id !== $businessId) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "You do not own this business service"
-                    ], 403);
-                }
+                // ==================== FIND BUSINESS SERVICE ====================
+                $businessService = BusinessService::where('id', $id)
+                    ->where('business_id', $user->business_id)
+                    ->firstOrFail();
 
+                // ==================== UPDATE BUSINESS SERVICE ====================
                 $payload_data = $request->validated();
-
-                // Update the business service
                 $businessService->update($payload_data);
-
-                // Load relationships for response
                 $businessService->load('business_areas');
 
                 return response()->json([
@@ -427,11 +404,7 @@ class BusinessServiceController extends Controller
                 ], 200);
             });
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -497,63 +470,56 @@ class BusinessServiceController extends Controller
     public function deleteBusinessServices(string $ids, Request $request)
     {
         try {
-            // Parse IDs (comma-separated)
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can delete business services.');
+            }
+
+            // ==================== PARSE AND VALIDATE IDS ====================
             $idArray = array_filter(array_map('intval', explode(',', $ids)));
 
             if (empty($idArray)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid business service IDs provided.'
-                ], 400);
+                throw new BadRequestHttpException('Invalid business service IDs provided.');
             }
 
-            // Get all business services to verify they exist and check permissions
-            $businessServices = BusinessService::whereIn('id', $idArray)->get();
+            return DB::transaction(function () use ($idArray, $user) {
+                // ==================== FETCH BUSINESS SERVICES ====================
+                $businessServices = BusinessService::whereIn('id', $idArray)->get();
 
-            // Check if all requested IDs exist
-            $foundIds = $businessServices->pluck('id')->toArray();
-            $missingIds = array_diff($idArray, $foundIds);
+                // Check if all requested IDs exist
+                $foundIds = $businessServices->pluck('id')->toArray();
+                $missingIds = array_diff($idArray, $foundIds);
 
-            if (!empty($missingIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Business services not found: ' . implode(', ', $missingIds)
-                ], 404);
-            }
-
-            // Check authorization
-            $user = $request->user();
-            $business = $user->business()->first();
-            $businessId = $business ? $business->id : null;
-
-            $unauthorizedIds = [];
-            foreach ($businessServices as $service) {
-                if ($service->business_id !== $businessId) {
-                    $unauthorizedIds[] = $service->id;
+                if (!empty($missingIds)) {
+                    throw new NotFoundHttpException('Business services not found: ' . implode(', ', $missingIds));
                 }
-            }
 
-            if (!empty($unauthorizedIds)) {
+                // ==================== VALIDATE PERMISSIONS ====================
+                $unauthorizedIds = [];
+
+                foreach ($businessServices as $service) {
+                    if ($service->business_id !== $user->business_id) {
+                        $unauthorizedIds[] = $service->id;
+                    }
+                }
+
+                if (!empty($unauthorizedIds)) {
+                    throw new AccessDeniedHttpException('You do not have permission to delete services: ' . implode(', ', $unauthorizedIds));
+                }
+
+                // ==================== DELETE BUSINESS SERVICES ====================
+                $deletedCount = BusinessService::whereIn('id', $idArray)->delete();
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to delete services: ' . implode(', ', $unauthorizedIds)
-                ], 403);
-            }
-
-            // Delete the business services
-            $deletedCount = BusinessService::whereIn('id', $idArray)->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Business services deleted successfully.',
-                'data' => ['deleted_count' => $deletedCount]
-            ], 200);
+                    'success' => true,
+                    'message' => 'Business services deleted successfully.',
+                    'data' => ['deleted_count' => $deletedCount]
+                ], 200);
+            });
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -614,41 +580,31 @@ class BusinessServiceController extends Controller
     public function businessServiceToggle(Request $request)
     {
         try {
-            return DB::transaction(function () use ($request) {
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can toggle business service status.');
+            }
+
+            return DB::transaction(function () use ($request, $user) {
+                // ==================== VALIDATE REQUEST ====================
                 $id = $request->id;
 
                 if (!$id) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "Business service ID is required"
-                    ], 400);
+                    throw new BadRequestHttpException('Business service ID is required.');
                 }
 
-                $businessService = BusinessService::find($id);
+                // ==================== FIND BUSINESS SERVICE ====================
+                $businessService = BusinessService::findOrFail($id);
 
-                if (!$businessService) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "Business service not found"
-                    ], 404);
+                // ==================== OWNERSHIP VALIDATION ====================
+                if ($businessService->business_id !== $user->business_id) {
+                    throw new AccessDeniedHttpException('This business service does not belong to your business.');
                 }
 
-                // Check authorization
-                $user = $request->user();
-                $business = $user->business()->first();
-                $businessId = $business ? $business->id : null;
-
-                if ($businessService->business_id !== $businessId) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "You do not have permission to toggle this business service"
-                    ], 403);
-                }
-
-                // Toggle the active status
+                // ==================== TOGGLE STATUS ====================
                 $businessService->update(['is_active' => !$businessService->is_active]);
-
-                // Load relationships for response
                 $businessService->load('business');
 
                 return response()->json([
@@ -658,11 +614,7 @@ class BusinessServiceController extends Controller
                 ], 200);
             });
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 }

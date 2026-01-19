@@ -9,6 +9,9 @@ use App\Models\BusinessService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BusinessAreaController extends Controller
 {
@@ -52,15 +55,15 @@ class BusinessAreaController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     * @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
      *      description="not found",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   )
      *      )
      *     )
@@ -69,41 +72,34 @@ class BusinessAreaController extends Controller
     public function createBusinessArea(BusinessAreaRequest $request)
     {
         try {
-            return DB::transaction(function () use ($request) {
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can create business areas.');
+            }
+
+            return DB::transaction(function () use ($request, $user) {
                 $payload_data = $request->validated();
 
-                $authUser = $request->user();
-                $business = $authUser->business()->first();
-                if (!$business) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "No business associated with your account"
-                    ], 403);
-                }
-                $payload_data['business_id'] = $business->id;
-
-                // Check if the business_service belongs to the user's business
-                $businessService = BusinessService::find($payload_data['business_service_id']);
-                if (!$businessService) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "The selected business service does not exist"
-                    ], 400);
-                }
-                if ($businessService->business_id !== $business->id) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "The selected business service does not belong to your business"
-                    ], 403);
+                // ==================== BUSINESS VALIDATION ====================
+                if (!$user->business_id) {
+                    throw new AccessDeniedHttpException('No business associated with your account.');
                 }
 
-                // Create the business area
+                $payload_data['business_id'] = $user->business_id;
+
+                // ==================== BUSINESS SERVICE VALIDATION ====================
+                $businessService = BusinessService::findOrFail($payload_data['business_service_id']);
+
+                if ($businessService->business_id !== $user->business_id) {
+                    throw new AccessDeniedHttpException('The selected business service does not belong to your business.');
+                }
+
+                // ==================== CREATE BUSINESS AREA ====================
                 $businessArea = BusinessArea::create($payload_data);
-
-                // Load relationships for response
                 $businessArea->load('business_service');
 
-                // Return success response
                 return response()->json([
                     "success" => true,
                     "message" => "Business area created successfully",
@@ -111,11 +107,7 @@ class BusinessAreaController extends Controller
                 ], 201);
             });
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -200,15 +192,15 @@ class BusinessAreaController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     * @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
      *      description="not found",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   )
      *      )
      *     )
@@ -243,11 +235,7 @@ class BusinessAreaController extends Controller
                 "data" => $businessAreas
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -289,15 +277,15 @@ class BusinessAreaController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     * @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
      *      description="not found",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   )
      *      )
      *     )
@@ -306,25 +294,19 @@ class BusinessAreaController extends Controller
     public function businessAreaById($id, Request $request)
     {
         try {
-            // Check authorization
             $user = $request->user();
-            $business = $user->business()->first();
-            $businessId = $business ? $business->id : null;
 
-            $businessArea = BusinessArea::with('business_service')->find($id);
-
-            if (!$businessArea) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "Business area not found"
-                ], 404);
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can view business areas.');
             }
 
-            if ($businessArea->business_id !== $businessId) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "The selected business area does not belong to your business"
-                ], 403);
+            // ==================== FIND BUSINESS AREA ====================
+            $businessArea = BusinessArea::with('business_service')->findOrFail($id);
+
+            // ==================== OWNERSHIP VALIDATION ====================
+            if ($businessArea->business_id !== $user->business_id) {
+                throw new AccessDeniedHttpException('This business area does not belong to your business.');
             }
 
             return response()->json([
@@ -333,11 +315,7 @@ class BusinessAreaController extends Controller
                 "data" => $businessArea
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -389,15 +367,15 @@ class BusinessAreaController extends Controller
      *          description="Forbidden",
      *   @OA\JsonContent()
      * ),
-     *  * @OA\Response(
+     * @OA\Response(
      *      response=400,
      *      description="Bad Request",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   ),
      * @OA\Response(
      *      response=404,
      *      description="not found",
-     *   *@OA\JsonContent()
+     *   @OA\JsonContent()
      *   )
      *      )
      *     )
@@ -406,85 +384,47 @@ class BusinessAreaController extends Controller
     public function updateBusinessArea(BusinessAreaRequest $request, $id)
     {
         try {
-            return DB::transaction(function () use ($request, $id) {
+            $user = $request->user();
 
-                // GET AUTHENTICATED USER
-                $user = $request->user();
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can update business areas.');
+            }
 
-                // GET USER BUSINESS (IF USER HAS NO BUSINESS, BLOCK)
-                $business = $user->business;
-                if (!$business) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "USER HAS NO BUSINESS"
-                    ], 403);
+            return DB::transaction(function () use ($request, $id, $user) {
+                // ==================== BUSINESS VALIDATION ====================
+                if (!$user->business_id) {
+                    throw new AccessDeniedHttpException('No business associated with your account.');
                 }
 
-                // GET BUSINESS ID
-                $businessId = $business->id;
-
-                // FIND BUSINESS AREA ONLY INSIDE USER BUSINESS (PREVENTS ID ENUMERATION)
+                // ==================== FIND BUSINESS AREA ====================
                 $businessArea = BusinessArea::where('id', $id)
-                    ->where('business_id', $businessId)
-                    ->first();
+                    ->where('business_id', $user->business_id)
+                    ->firstOrFail();
 
-                // RETURN 404 IF NOT FOUND
-                if (!$businessArea) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "BUSINESS AREA NOT FOUND"
-                    ], 404);
-                }
-
-                // GET VALIDATED PAYLOAD
+                // ==================== VALIDATE AND UPDATE ====================
                 $payload_data = $request->validated();
+                unset($payload_data['business_id']); // Prevent ownership change
 
-                // PREVENT CLIENT FROM CHANGING OWNERSHIP
-                unset($payload_data['business_id']);
-
-                // IF BUSINESS_SERVICE_ID PROVIDED, CHECK IT EXISTS AND BELONGS TO SAME BUSINESS
+                // Validate business service if provided
                 if (array_key_exists('business_service_id', $payload_data) && $payload_data['business_service_id'] !== null) {
-
-                    // FIND BUSINESS SERVICE
-                    $businessService = BusinessService::find($payload_data['business_service_id']);
-
-                    // RETURN 404 IF BUSINESS SERVICE NOT FOUND
-                    if (!$businessService) {
-                        return response()->json([
-                            "success" => false,
-                            "message" => "BUSINESS SERVICE NOT FOUND"
-                        ], 404);
-                    }
-
-                    // ENSURE BUSINESS SERVICE BELONGS TO AUTH USER BUSINESS
-                    if ($businessService->business_id !== $businessId) {
-                        return response()->json([
-                            "success" => false,
-                            "message" => "THE SELECTED BUSINESS SERVICE DOES NOT BELONG TO YOUR BUSINESS"
-                        ], 403);
-                    }
+                    BusinessService::where('id', $payload_data['business_service_id'])
+                        ->where('business_id', $user->business_id)
+                        ->firstOrFail();
                 }
 
-                // UPDATE BUSINESS AREA
+                // ==================== UPDATE BUSINESS AREA ====================
                 $businessArea->update($payload_data);
-
-                // LOAD RELATIONSHIP FOR RESPONSE
                 $businessArea->load('business_service');
 
-                // RETURN SUCCESS RESPONSE
                 return response()->json([
                     "success" => true,
-                    "message" => "BUSINESS AREA UPDATED SUCCESSFULLY",
+                    "message" => "Business area updated successfully",
                     "data" => $businessArea
                 ], 200);
             });
-        } catch (\Throwable $e) {
-            // RETURN SERVER ERROR RESPONSE
-            return response()->json([
-                "success" => false,
-                "message" => "SOMETHING WENT WRONG",
-                "original_message" => $e->getMessage()
-            ], 500);
+        } catch (Exception $e) {
+            throw $e;
         }
     }
 
@@ -551,63 +491,57 @@ class BusinessAreaController extends Controller
     public function deleteBusinessAreas(string $ids, Request $request)
     {
         try {
-            // Parse IDs (comma-separated)
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can delete business areas.');
+            }
+
+            // ==================== PARSE AND VALIDATE IDS ====================
             $idArray = array_filter(array_map('intval', explode(',', $ids)));
 
             if (empty($idArray)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid business area IDs provided.'
-                ], 400);
+                throw new BadRequestHttpException('Invalid business area IDs provided.');
             }
 
-            // Get all business areas to verify they exist and check permissions
-            $businessAreas = BusinessArea::whereIn('id', $idArray)->get();
+            return DB::transaction(function () use ($idArray, $user) {
+                // ==================== FETCH BUSINESS AREAS ====================
+                $businessAreas = BusinessArea::whereIn('id', $idArray)->get();
 
-            // Check if all requested IDs exist
-            $foundIds = $businessAreas->pluck('id')->toArray();
-            $missingIds = array_diff($idArray, $foundIds);
+                // Check if all requested IDs exist
+                $foundIds = $businessAreas->pluck('id')->toArray();
+                $missingIds = array_diff($idArray, $foundIds);
 
-            if (!empty($missingIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Business areas not found: ' . implode(', ', $missingIds)
-                ], 404);
-            }
-
-            // Check authorization for each area
-            // Check authorization
-            $user = $request->user();
-            $business = $user->business()->first();
-            $businessId = $business ? $business->id : null;
-            $unauthorizedIds = [];
-
-            foreach ($businessAreas as $area) {
-                if ($area->business_id !== $businessId) {
-                    $unauthorizedIds[] = $area->id;
+                if (!empty($missingIds)) {
+                    throw new NotFoundHttpException('Business areas not found: ' . implode(', ', $missingIds));
                 }
-            }
-            if (!empty($unauthorizedIds)) {
+
+                // ==================== VALIDATE PERMISSIONS ====================
+                $unauthorizedIds = [];
+
+                foreach ($businessAreas as $area) {
+                    if ($area->business_id !== $user->business_id) {
+                        $unauthorizedIds[] = $area->id;
+                    }
+                }
+
+                if (!empty($unauthorizedIds)) {
+                    throw new AccessDeniedHttpException('You do not have permission to delete areas: ' . implode(', ', $unauthorizedIds));
+                }
+
+
+                // ==================== DELETE BUSINESS AREAS ====================
+                $deletedCount = BusinessArea::whereIn('id', $idArray)->delete();
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to delete areas: ' . implode(', ', $unauthorizedIds)
-                ], 403);
-            }
-
-            // Delete the business areas
-            $deletedCount = BusinessArea::whereIn('id', $idArray)->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Business areas deleted successfully.',
-                'data' => ['deleted_count' => $deletedCount]
-            ], 200);
+                    'success' => true,
+                    'message' => 'Business areas deleted successfully.',
+                    'data' => ['deleted_count' => $deletedCount]
+                ], 200);
+            });
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
