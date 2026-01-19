@@ -795,7 +795,7 @@ class ReviewNewController extends Controller
             'business_services' => 'nullable|array',
             'business_services.*.business_service_id' => 'required|exists:business_services,id',
             'business_services.*.business_area_id' => 'required|exists:business_areas,id',
-            // 'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg|max:10240',
+            'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg,mp4|max:10240',
             "is_voice_review" => 'required|boolean',
         ]);
 
@@ -818,8 +818,15 @@ class ReviewNewController extends Controller
 
             "business_area_id" => $request->business_area_id ?? null,
             "business_service_id" => $request->business_service_id ?? null,
-
         ];
+
+        if ($request->hasFile('audio')) {
+            $folder_path = "business_1/business_{$businessId}/voice-reviews";
+            $file = $request->file('audio');
+            $filename = $file->hashName();
+            $file->storeAs($folder_path, $filename, 'public');
+            $reviewData['audio'] = $filename;
+        }
 
         $averageRating = collect($request->values)
             ->pluck('star_id')
@@ -937,6 +944,7 @@ class ReviewNewController extends Controller
             'business_services' => 'nullable|array',
             'business_services.*.business_service_id' => 'required|exists:business_services,id',
             'business_services.*.business_area_id' => 'required|exists:business_areas,id',
+            'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg,mp4|max:10240',
             "is_voice_review" => 'required|boolean',
         ]);
 
@@ -1002,6 +1010,14 @@ class ReviewNewController extends Controller
             "business_area_id" => $request->business_area_id ?? null,
             "business_service_id" => $request->business_service_id ?? null,
         ];
+
+        if ($request->hasFile('audio')) {
+            $folder_path = "business_1/business_{$businessId}/voice-reviews";
+            $file = $request->file('audio');
+            $filename = $file->hashName();
+            $file->storeAs($folder_path, $filename, 'public');
+            $reviewData['audio'] = $filename;
+        }
 
         $review = ReviewNew::create($reviewData);
         $this->reviewService->storeReviewValues($review, $request->values, $business);

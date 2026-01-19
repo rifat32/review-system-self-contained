@@ -61,7 +61,8 @@ class ReviewNew extends Model
         "rating_comment_mismatch",
         "mismatch_insights",
         "ai_insights",
-        "ai_recommendations"
+        "ai_recommendations",
+        "audio"
 
     ];
 
@@ -135,6 +136,14 @@ class ReviewNew extends Model
         if (!$value)
             return null;
         return str_starts_with($value, 'http') ? $value : asset('storage/' . $value);
+    }
+
+    public function getAudioUrlAttribute()
+    {
+        if (empty($this->audio)) {
+            return null;
+        }
+        return asset("storage-proxy/business_1/business_{$this->business_id}/voice-reviews/{$this->audio}");
     }
 
     public function value()

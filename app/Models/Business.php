@@ -100,6 +100,18 @@ class Business extends Model
 
 
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($business) {
+            $folder_path = "business_1/business_{$business->id}";
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($folder_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->deleteDirectory($folder_path);
+            }
+        });
+    }
+
     public function aiModules()
     {
         return $this->hasOne(BusinessAiModule::class);
@@ -174,14 +186,12 @@ class Business extends Model
         // Return false if the subscription hasn't started
         if ($startDate->isFuture()) {
             return false;
-        }
-        ;
+        };
 
         // Return false if the subscription has expired (end_date is before today)
         if ($endDate->isPast() && !$endDate->isSameDay($today)) {
             return false;
-        }
-        ;
+        };
 
         return true;
     }

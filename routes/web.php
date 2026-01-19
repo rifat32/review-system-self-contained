@@ -45,8 +45,6 @@ Route::get('/generate-ai', function () {
     if (request()->boolean("generate")) {
         Artisan::call('reviews:process');
     }
-
-
 });
 
 Route::get('/reviews', function () {
@@ -198,3 +196,16 @@ Route::get("/orders/redirect-to-stripe", [StripeController::class, "redirectUser
 
 Route::get("/orders/get-success-payment", [StripeController::class, "stripePaymentSuccess"])->name("order.success_payment");
 Route::get("/orders/get-failed-payment", [StripeController::class, "stripePaymentFailed"])->name("order.failed_payment");
+
+Route::get('/storage-proxy/{path}', function ($path) {
+    $file_path = storage_path('app/public/' . $path);
+
+    if (!file_exists($file_path)) {
+        abort(404);
+    }
+
+    return response()->file($file_path, [
+        'Content-Type' => mime_content_type($file_path),
+        'Access-Control-Allow-Origin' => '*',
+    ]);
+})->where('path', '.*');

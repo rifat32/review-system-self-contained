@@ -69,9 +69,7 @@ return new class extends Migration {
 
             $table->boolean('is_ai_processed')->default(0);
 
-            $table->unsignedBigInteger('branch_id')->nullable();
-
-
+            $table->string('audio')->nullable();
             $table->timestamps();
         });
     }
