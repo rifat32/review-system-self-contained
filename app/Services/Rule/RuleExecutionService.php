@@ -320,7 +320,7 @@ class RuleExecutionService
             'business_id' => $rule->business_id,
             'review_id' => $review->id,
             'subject' => "AI Rule Alert: {$rule->rule_name}",
-            'description' => "Review #{$review->id} triggered rule '{$rule->rule_name}'. Reason: {$rule->ai_plain_explanation}",
+            'description' => "Review #{$review->id} triggered rule '{$rule->rule_name}'. Reason: {$rule->detailed_explanation}",
             'priority' => $rule->priority,
             'status' => 'open',
             'metadata' => [
