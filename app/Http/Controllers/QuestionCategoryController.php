@@ -9,6 +9,9 @@ use App\Models\QuestionCategory;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class QuestionCategoryController extends Controller
 {
@@ -72,19 +75,35 @@ class QuestionCategoryController extends Controller
     public function createQuestionCategory(QuestionCategoryRequest $request)
     {
         try {
-            return DB::transaction(function () use ($request) {
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('You do not have permission to create question categories.');
+            }
+
+            return DB::transaction(function () use ($request, $user) {
                 $payload_data = $request->validated();
 
-                // Set created_by if user is authenticated
-                // ADD CREATOR
-                $authUser = $request->user();
-                $business_id = $request->user()->business->id;
-                $payload_data['created_by'] = $authUser->id;
-                $payload_data['business_id'] = $business_id ?? null;
-                // Create the question category
+                // ==================== HANDLE ROLE-BASED CREATION ====================
+                if ($user->hasRole('superadmin')) {
+                    // Superadmin creates ONLY default categories
+                    $payload_data['is_default'] = true;
+                    $payload_data['business_id'] = null;
+                } else {
+                    // Business owner creates business-specific categories
+                    if (!$user->business_id) {
+                        throw new AccessDeniedHttpException('No business associated with your account.');
+                    }
+
+                    $payload_data['is_default'] = false;
+                    $payload_data['business_id'] = $user->business_id;
+                }
+
+                // ==================== CREATE CATEGORY ====================
+                $payload_data['created_by'] = $user->id;
                 $questionCategory = QuestionCategory::create($payload_data);
 
-                // Return success response
                 return response()->json([
                     "success" => true,
                     "message" => "Question category created successfully",
@@ -92,11 +111,7 @@ class QuestionCategoryController extends Controller
                 ], 201);
             });
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -234,13 +249,14 @@ class QuestionCategoryController extends Controller
     {
         try {
 
-            $query = QuestionCategory::with(['parent', 
-            'children' => function ($q) {
-                $q->where([
-                    "question_categories.business_id" => auth()->user()->business_id,
-                ]);
-            },
-            
+            $query = QuestionCategory::with([
+                'parent',
+                'children' => function ($q) {
+                    $q->where([
+                        "question_categories.business_id" => auth()->user()->business_id,
+                    ]);
+                },
+
             ])->filters(auth()->user()->business_id);
 
             $questionCategories = retrieve_data($query);
@@ -251,11 +267,7 @@ class QuestionCategoryController extends Controller
                 "data" => $questionCategories
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -315,14 +327,8 @@ class QuestionCategoryController extends Controller
     {
         try {
             $questionCategory = QuestionCategory::with(['parent', 'children', 'questions'])
-                ->find($id);
+                ->findOrFail($id);
 
-            if (!$questionCategory) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "Question category not found"
-                ], 404);
-            }
 
             return response()->json([
                 "success" => true,
@@ -330,11 +336,7 @@ class QuestionCategoryController extends Controller
                 "data" => $questionCategory
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -404,30 +406,37 @@ class QuestionCategoryController extends Controller
     public function updateQuestionCategory(QuestionCategoryRequest $request, $id)
     {
         try {
-            return DB::transaction(function () use ($request, $id) {
-                $questionCategory = QuestionCategory::find($id);
+            $user = $request->user();
 
-                if (!$questionCategory) {
-                    return response()->json([
-                        "success" => false,
-                        "message" => "Question category not found"
-                    ], 404);
-                }
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('You do not have permission to update question categories.');
+            }
 
+            return DB::transaction(function () use ($request, $id, $user) {
+                $questionCategory = QuestionCategory::findOrFail($id);
                 $payload_data = $request->validated();
 
-                if ($questionCategory->is_default) {
-                    // Prevent changing is_default of default category
-                    return response()->json([
-                        "success" => false,
-                        "message" => "Default question category cannot be modified"
-                    ], 406);
+                // ==================== BUSINESS VALIDATION ====================
+                if ($user->hasRole('superadmin')) {
+                    // Superadmin can ONLY update default categories
+                    if (!$questionCategory->is_default) {
+                        throw new AccessDeniedHttpException('Superadmin can only update default question categories.');
+                    }
+                    $payload_data['business_id'] = null;
+                } else {
+                    // Business owner can ONLY update their own business categories (NOT default)
+                    if ($questionCategory->is_default) {
+                        throw new AccessDeniedHttpException('Cannot update default question categories.');
+                    }
+
+                    if ($questionCategory->business_id !== $user->business_id) {
+                        throw new AccessDeniedHttpException('Question category ' . $questionCategory->id . ' belongs to another business.');
+                    }
                 }
 
-                // Update the question category
+                // ==================== UPDATE CATEGORY ====================
                 $questionCategory->update($payload_data);
-
-                // Load relationships for response
                 $questionCategory->load(['parent', 'children']);
 
                 return response()->json([
@@ -437,11 +446,7 @@ class QuestionCategoryController extends Controller
                 ], 200);
             });
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -513,37 +518,38 @@ class QuestionCategoryController extends Controller
     public function toggleQuestionCategory(Request $request)
     {
         try {
-            // Validate input
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('You do not have permission to toggle question categories.');
+            }
+
+            // ==================== VALIDATE INPUT ====================
             $request->validate([
                 'id' => 'required|integer|exists:question_categories,id',
             ]);
 
             $questionCategory = QuestionCategory::findOrFail($request->id);
-            // $user = $request->user();
 
-            // // Check authorization
-            // if ($user->hasRole('superadmin')) {
-            //     // Superadmin can toggle any category
-            // } else {
-            //     // Regular users can only toggle categories for their businesses or default categories
-            //     $userBusinessIds = $user->businesses()->pluck('id')->toArray();
+            // ==================== BUSINESS VALIDATION ====================
+            if ($user->hasRole('superadmin')) {
+                // Superadmin can ONLY toggle default categories
+                if (!$questionCategory->is_default) {
+                    throw new AccessDeniedHttpException('Superadmin can only toggle default question categories.');
+                }
+            } else {
+                // Business owner can ONLY toggle their own business categories (NOT default)
+                if ($questionCategory->is_default) {
+                    throw new AccessDeniedHttpException('Cannot toggle default question categories.');
+                }
 
-            //     if (!$questionCategory->is_default && !in_array($questionCategory->business_id, $userBusinessIds)) {
-            //         return response()->json([
-            //             'success' => false,
-            //             'message' => 'You are not authorized to modify this question category.'
-            //         ], 403);
-            //     }
-            // }
-            if ($questionCategory->is_default) {
-                // Prevent changing is_default of default category
-                return response()->json([
-                    "success" => false,
-                    "message" => "Default question category cannot be modified"
-                ], 406);
+                if ($questionCategory->business_id !== $user->business_id) {
+                    throw new AccessDeniedHttpException('Question category ' . $questionCategory->id . ' belongs to another business.');
+                }
             }
 
-            // Update the is_active field
+            // ==================== TOGGLE ACTIVE STATE ====================
             $questionCategory->is_active = !$questionCategory->is_active;
             $questionCategory->save();
 
@@ -557,11 +563,7 @@ class QuestionCategoryController extends Controller
                 'data' => $questionCategory
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 
@@ -627,46 +629,50 @@ class QuestionCategoryController extends Controller
     public function deleteQuestionCategories(string $ids, Request $request)
     {
         try {
-            // Parse IDs (comma-separated)
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('superadmin') && !$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('You do not have permission to delete question categories.');
+            }
+
+            // ==================== PARSE AND VALIDATE IDS ====================
             $idArray = array_filter(array_map('intval', explode(',', $ids)));
 
             if (empty($idArray)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid question category IDs provided.'
-                ], 400);
+                throw new BadRequestHttpException('Invalid question category IDs provided: ' . $ids);
             }
 
-            // Get all question categories to verify they exist
+            // ==================== FETCH CATEGORIES ====================
             $questionCategories = QuestionCategory::whereIn('id', $idArray)->get();
 
-            // Check if all requested IDs exist
             $foundIds = $questionCategories->pluck('id')->toArray();
             $missingIds = array_diff($idArray, $foundIds);
 
             if (!empty($missingIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Question categories not found: ' . implode(', ', $missingIds)
-                ], 404);
+                throw new NotFoundHttpException('Question categories not found: ' . implode(', ', $missingIds));
             }
 
-            // Check for default categories
-            $defaultIds = [];
+            // ==================== VALIDATE PERMISSIONS ====================
             foreach ($questionCategories as $category) {
-                if ($category->is_default) {
-                    $defaultIds[] = $category->id;
+                if ($user->hasRole('superadmin')) {
+                    // Superadmin can ONLY delete default categories
+                    if (!$category->is_default) {
+                        throw new AccessDeniedHttpException('Superadmin can only delete default question categories. Category ID ' . $category->id . ' is not a default category.');
+                    }
+                } else {
+                    // Business owner can ONLY delete their own business categories (NOT default)
+                    if ($category->is_default) {
+                        throw new AccessDeniedHttpException('Cannot delete default question categories. Category ID ' . $category->id . ' is a default category.');
+                    }
+
+                    if ($category->business_id !== $user->business_id) {
+                        throw new AccessDeniedHttpException('You do not own this business. Category ID ' . $category->id . ' belongs to another business.');
+                    }
                 }
             }
 
-            if (!empty($defaultIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Default question categories cannot be deleted: ' . implode(', ', $defaultIds)
-                ], 403);
-            }
-
-            // Delete the question categories
+            // ==================== DELETE CATEGORIES ====================
             $deletedCount = QuestionCategory::whereIn('id', $idArray)->delete();
 
             return response()->json([
@@ -675,11 +681,7 @@ class QuestionCategoryController extends Controller
                 'data' => ['deleted_count' => $deletedCount]
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false,
-                "message" => "Something went wrong",
-                "original_message" => $e->getMessage()
-            ], 500);
+            throw $e;
         }
     }
 }
