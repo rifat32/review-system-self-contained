@@ -11,6 +11,7 @@ use App\Services\Notification\NotificationService;
 use App\Services\Rule\RuleEngineService;
 use App\Services\Business\BusinessAnalyticsService;
 use Carbon\Carbon;
+use DB;
 
 class ReviewService
 {
@@ -270,40 +271,42 @@ class ReviewService
             ? $user->default_branch_id
             : null;
 
-        // Get all tags with their mention counts
-        $tags = Tag::where('business_id', $businessId)
-            ->withCount([
-                'review_values' => function ($query) use ($dateRange, $userBranchId) {
-                    $query->whereHas('review', function ($q) use ($dateRange, $userBranchId) {
-                        // Apply date range filter if provided
-                        $q->when($dateRange, function ($q) use ($dateRange) {
-                            $q->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-                        });
+        // Build WHERE conditions for filters
+        $whereConditions = ['(t.business_id = ? OR t.business_id IS NULL)'];
+        $bindings = [$businessId];
 
-                        // Apply branch filter if provided
-                        $q->when($userBranchId, function ($q) use ($userBranchId) {
-                            $q->where('branch_id', $userBranchId);
-                        });
-                    });
-                }
-            ])
-            ->when($dateRange || $userBranchId, function ($query) use ($dateRange, $userBranchId) {
-                // Only include tags that have at least one matching review
-                $query->whereHas('review_values', function ($q) use ($dateRange, $userBranchId) {
-                    $q->whereHas('review', function ($q) use ($dateRange, $userBranchId) {
-                        $q->when($dateRange, function ($q) use ($dateRange) {
-                            $q->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-                        });
-                        $q->when($userBranchId, function ($q) use ($userBranchId) {
-                            $q->where('branch_id', $userBranchId);
-                        });
-                    });
-                });
-            })
-            ->orderByDesc('review_values_count')
-            ->get();
+        if ($dateRange) {
+            $whereConditions[] = 'r.created_at BETWEEN ? AND ?';
+            $bindings[] = $dateRange['start'];
+            $bindings[] = $dateRange['end'];
+        }
 
-        $totalTagMentions = $tags->sum('review_values_count');
+        if ($userBranchId) {
+            $whereConditions[] = 'r.branch_id = ?';
+            $bindings[] = $userBranchId;
+        }
+
+        $whereClause = implode(' AND ', $whereConditions);
+
+        // OPTIMIZED: Single query with JOIN and GROUP BY
+        $tagsData = DB::select("
+            SELECT 
+                t.id,
+                t.tag,
+                COUNT(DISTINCT rvt.review_value_id) as mention_count
+            FROM tags t
+            LEFT JOIN review_value_tag rvt ON t.id = rvt.tag_id
+            LEFT JOIN review_value_news rv ON rvt.review_value_id = rv.id
+            LEFT JOIN review_news r ON rv.review_id = r.id
+            WHERE {$whereClause}
+            GROUP BY t.id, t.tag
+            HAVING mention_count > 0
+            ORDER BY mention_count DESC
+        ", $bindings);
+
+        // Convert to collection for easier manipulation
+        $tags = collect($tagsData);
+        $totalTagMentions = $tags->sum('mention_count');
 
         // Color palette for visualization
         $colorPalette = [
@@ -321,7 +324,7 @@ class ReviewService
 
         // Prepare breakdown
         $breakdown = $tags->map(function ($tag, $index) use ($totalTagMentions, $colorPalette) {
-            $count = $tag->review_values_count;
+            $count = $tag->mention_count;
             $percentage = $totalTagMentions > 0 ? round(($count / $totalTagMentions) * 100) : 0;
             $colorIndex = $index % count($colorPalette);
 
@@ -342,7 +345,7 @@ class ReviewService
             'summary' => [
                 'total_tags' => $tags->count(),
                 'total_tag_mentions' => $totalTagMentions,
-                'tags_with_mentions' => $tags->where('review_values_count', '>', 0)->count(),
+                'tags_with_mentions' => $tags->where('mention_count', '>', 0)->count(),
                 'top_tag' => $topTags->isNotEmpty() ? $topTags->first()['tag'] : null,
                 'top_tag_percentage' => $topTags->isNotEmpty() ? $topTags->first()['percentage'] : 0,
                 'average_mentions_per_tag' => $tags->count() > 0 ? round($totalTagMentions / $tags->count(), 1) : 0
