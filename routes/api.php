@@ -8,6 +8,7 @@ use App\Http\Controllers\BusinessDaysController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomWebhookController;
 use App\Http\Controllers\DailyViewsController;
+use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\EmailTemplateController;
 use App\Http\Controllers\EmailTemplateWrapperController;
 use App\Http\Controllers\ForgotPasswordController;
@@ -85,7 +86,7 @@ Route::post('/v1.0/auth/check-branch-email', [AuthController::class, "checkBranc
 Route::middleware(['auth:api'])->group(function () {
 
 
-
+    Route::post('/v1.0/register-device-token', [DeviceTokenController::class, 'createDeviceToken']);
 
     // =====================================================================================
     // SUPER ADMIN ROUTES (no "superadmin" in the URL; all under /v1.0; access via middleware)
