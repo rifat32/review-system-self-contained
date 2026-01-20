@@ -672,9 +672,9 @@ class AiReadyDemoBusinessSeeder extends Seeder
             echo "   Creating {$group['count']} {$group['label']} reviews...\n";
 
             for ($i = 0; $i < $group['count']; $i++) {
-                // Temporal distribution: more recent reviews
+                // Uniform temporal distribution: random day and random second
                 $daysAgo = $this->weightedRandomDays($totalDays);
-                $createdAt = Carbon::now()->subDays($daysAgo)->setTime(rand(9, 21), rand(0, 59));
+                $createdAt = Carbon::now()->subDays($daysAgo)->subSeconds(rand(0, 86399));
 
                 // Select random branch and staff from that branch
                 $branchIndex = rand(0, count($this->branches) - 1);
@@ -801,9 +801,8 @@ class AiReadyDemoBusinessSeeder extends Seeder
      */
     private function weightedRandomDays(int $maxDays): int
     {
-        // Exponential distribution favoring recent dates
-        $random = mt_rand() / mt_getrandmax();
-        return (int)($maxDays * pow($random, 2));
+        // Uniform distribution matching suggested SQL: FLOOR(RAND() * maxDays)
+        return rand(0, $maxDays - 1);
     }
 
     /**
