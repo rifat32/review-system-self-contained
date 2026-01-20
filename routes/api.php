@@ -455,7 +455,7 @@ Route::middleware(['auth:api'])->group(function () {
 
 
 
-    // Route::get('/v1.0/reports/staff-comparison/{businessId}', [DashboardController::class, 'staffComparison']); //unused
+    Route::get('/v1.0/reports/staff-comparison/{businessId}', [DashboardController::class, 'staffComparison']);
     Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [DashboardController::class, 'staffPerformance']);
     Route::get('/v1.0/reports/review-analytics/{businessId}', [DashboardController::class, 'reviewAnalytics']);
     // Route::get('/v1.0/branch-dashboard/{branchId}', [DashboardController::class, 'getBranchDashboard']);
@@ -575,7 +575,7 @@ Route::middleware(['auth:api'])->group(function () {
 Route::post('/v1.0/register-guest-users', [OwnerController::class, "createGuestUser"]);
 // Route::post('/owner/staffregister/{businessId}', [OwnerController::class, "createStaffUser"]);
 Route::post('/owner/pin/{ownerId}', [OwnerController::class, "updatePin"]);
-// Route::get('/owner/{ownerId}', [OwnerController::class, "getOwnerById"]);
+Route::get('/owner/{ownerId}', [OwnerController::class, "getOwnerById"]);
 // Route::get('/owner/getAllowner/withourbusiness', [OwnerController::class, "getOwnerNotHaveRestaurent"]);
 // Route::get('/owner/loaduser/bynumber/{phoneNumber}', [OwnerController::class, "getOwnerByPhoneNumber"]);
 

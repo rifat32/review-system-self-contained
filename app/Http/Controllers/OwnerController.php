@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Business\BusinessService;
 use App\Services\User\UserService;
 use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -1452,68 +1453,53 @@ class OwnerController extends Controller
 
     public function updateUserByUser(Request $request)
     {
+        // DETERMINE TARGET USER
         $authUser = $request->user();
+
         if ($authUser->hasRole("superadmin")) {
             // Superadmin: update user by id from request
             $request->validate(['id' => 'required|integer|exists:users,id']);
-            $user = User::find($request->id);
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User not found.'
-                ], 404);
-            }
+            $user = User::findOrFail($request->id);
         } else {
             // Regular user: update self
             $user = $authUser;
         }
 
-        // Validate input
+        // VALIDATE INPUT
         $validated = $request->validate([
             'first_Name' => 'required|string|max:255',
             'last_Name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
-            'Address' => 'required|string|max:255',
+            'Address' => 'nullable|string|max:255',
             'door_no' => 'nullable|string|max:50',
             'post_code' => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:8|confirmed', // assumes password_confirmation is sent if needed
+            'password' => 'nullable|string|min:8|confirmed',
             'old_password' => 'required_with:password|string',
         ]);
 
-        // GET VALIDATED DATA
-        $updatableData = [
-            'first_Name' => $validated['first_Name'],
-            'last_Name' => $validated['last_Name'],
-            'phone' => $validated['phone'],
-            'Address' => $validated['Address'],
-        ];
 
-        if (!empty($validated['post_code'])) {
-            $updatableData['post_code'] = $validated['post_code'];
-        }
-        if (!empty($validated['door_no'])) {
-            $updatableData['door_no'] = $validated['door_no'];
-        }
+        // BUILD UPDATE DATA (exclude password fields, handle them separately)
+        $updatableData = \Illuminate\Support\Arr::except($validated, ['password', 'old_password']);
 
-        // Handle password update securely
+        // HANDLE PASSWORD UPDATE
         if (!empty($validated['password'])) {
+            // Verify old password
             if (!Hash::check($validated['old_password'], $user->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'The old password is incorrect.'
-                ], 401);
+                throw new AuthorizationException('Password does not match');
             }
+
             $updatableData['password'] = Hash::make($validated['password']);
         }
 
-        // Update user (using tap + update + first() to get fresh instance)
-        $updatedUser = tap($user)->update($updatableData);
-        $updatedUser = $updatedUser->fresh();
+        // UPDATE USER
+        $user->fill($updatableData)->save();
+        $user->refresh();
 
+        // RETURN SUCCESS RESPONSE
         return response()->json([
             'success' => true,
             'message' => 'User updated successfully',
-            'data' => $updatedUser
+            'data' => $user
         ], 200);
     }
 

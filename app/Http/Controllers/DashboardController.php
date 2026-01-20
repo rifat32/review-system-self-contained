@@ -1421,7 +1421,7 @@ class DashboardController extends Controller
      * @OA\Get(
      *      path="/v1.0/reports/branch-comparison",
      *      operationId="branchComparison",
-     *      tags={"report"},
+     *      tags={"Reports"},
      *      summary="Compare multiple branches performance",
      *      description="Compare up to 5 branches with real metrics from database",
      *      security={
