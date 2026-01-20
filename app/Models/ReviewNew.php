@@ -175,6 +175,13 @@ class ReviewNew extends Model
         return $this->belongsTo(Survey::class);
     }
 
+    // ReviewNews.php (Model)
+
+    public function review_values()
+    {
+        return $this->hasMany(ReviewValueNew::class, 'review_id');
+    }
+
     // In your QuestionValue model (or the model that has 'value' relation)
     public function scopeFilterByOverall($query, $is_overall)
     {
@@ -182,7 +189,7 @@ class ReviewNew extends Model
     }
 
 
-    public function scopeGlobaReviewlFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
+    public function scopeGlobalReviewFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
     {
         // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
         $userBranchId = request()->user() && (request()->user()->hasRole('branch_manager') || request()->user()->hasRole('business_owner'))
@@ -266,8 +273,6 @@ class ReviewNew extends Model
     }
 
 
-
-
     /**
      * Add calculated rating to review query
      */
@@ -287,12 +292,7 @@ class ReviewNew extends Model
         ');
     }
 
-    // ReviewNews.php (Model)
 
-    public function review_values()
-    {
-        return $this->hasMany(ReviewValueNew::class, 'review_id');
-    }
 
     public function getCalculatedRatingAttribute()
     {

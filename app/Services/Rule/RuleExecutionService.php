@@ -132,7 +132,7 @@ class RuleExecutionService
             'branch' => "rule_{$ruleId}_branch_" . ($review->branch_id ?? 'none'),
 
             'staff_category' => "rule_{$ruleId}_staff_" . ($context['staff_id'] ?? 'none') .
-                "_cat_" . ($context['category'] ?? 'general'),
+            "_cat_" . ($context['category'] ?? 'general'),
 
             default => "rule_{$ruleId}_review_{$review->id}"
         };
@@ -198,7 +198,7 @@ class RuleExecutionService
         $actions = $rule->actions;
 
         // Handle both list of strings and associative array of actions
-        $actionList = array_is_list($actions) ? $actions : array_keys(array_filter((array)$actions));
+        $actionList = array_is_list($actions) ? $actions : array_keys(array_filter((array) $actions));
 
         foreach ($actionList as $action) {
             Log::info("Processing rule action", [
@@ -478,7 +478,7 @@ class RuleExecutionService
     public function getReviewsForRule(AiRule $rule, ?int $limit = 100)
     {
         $query = ReviewNew::where('business_id', $rule->business_id)
-            ->globaReviewlFilters(0, $rule->business_id)
+            ->globalReviewFilters(0, $rule->business_id)
             ->orderBy('created_at', 'desc');
 
         if ($rule->run_frequency === 'real_time') {

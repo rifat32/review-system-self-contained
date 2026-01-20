@@ -517,7 +517,7 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
             "rate" => $rate
         ])
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->with("business", "value")
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
@@ -587,7 +587,7 @@ class ReviewNewController extends Controller
         $reviewValue = ReviewNew::with("value")->where([
             "business_id" => $businessId,
         ])
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating()
             ->get();
@@ -670,7 +670,7 @@ class ReviewNewController extends Controller
         // Get reviews with their values
         $reviews = ReviewNew::with(['value'])
             ->where("business_id", $businessId)
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating()
@@ -955,7 +955,7 @@ class ReviewNewController extends Controller
         if ($business->enable_ip_check) {
             $existing_review = ReviewNew::where('business_id', $businessId)
                 ->where('ip_address', $ip_address)
-                ->globaReviewlFilters(0, $businessId)
+                ->globalReviewFilters(0, $businessId)
                 ->whereDate('created_at', now()->toDateString())
                 ->orderBy('order_no', 'asc')
                 ->first();
@@ -1603,7 +1603,7 @@ class ReviewNewController extends Controller
                 "business_id" => $businessId,
                 $idColumnToFilter => $filterValue,
             ])
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment")
             ->withCalculatedRating();
@@ -2341,7 +2341,7 @@ class ReviewNewController extends Controller
                 $primaryIdColumn => $filterValue,
                 $secondaryIdColumn => $secondaryFilterValue,
             ])
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment")
             ->withCalculatedRating();
@@ -2640,7 +2640,7 @@ class ReviewNewController extends Controller
     public function getAverageRatingClient($businessId, Request $request)
     {
         $query = ReviewNew::where('business_id', $businessId)
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating();
 
@@ -2841,7 +2841,7 @@ class ReviewNewController extends Controller
             "survey"
         ])
 
-            ->globaReviewlFilters(1, $businessId)
+            ->globalReviewFilters(1, $businessId)
 
             ->where("business_id", $businessId)
             ->withCalculatedRating();
@@ -3417,7 +3417,7 @@ class ReviewNewController extends Controller
             "guest_user",
             "survey",
         ])->where("business_id", $businessId)
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->withCalculatedRating();
 
         // Apply review_ids filter (comma-separated IDs)
@@ -3636,7 +3636,7 @@ class ReviewNewController extends Controller
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
 
             ->with(['user', 'guest_user', 'survey'])
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->withCalculatedRating();
 
         // GENERATE DATA FOR TRENDS
@@ -3733,7 +3733,7 @@ class ReviewNewController extends Controller
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->with(['user', 'guest_user', 'survey'])
             ->withCalculatedRating()
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->when($request->has('is_overall'), function ($query) {
                 $query->where('is_overall', 1);
             })

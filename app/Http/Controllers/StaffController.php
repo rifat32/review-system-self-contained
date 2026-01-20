@@ -1119,7 +1119,7 @@ class StaffController extends Controller
 
         // Get reviews with calculated ratings
         $reviews = ReviewNew::withCalculatedRating()
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->where('staff_id', $staffId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
@@ -1155,7 +1155,7 @@ class StaffController extends Controller
         $previousStart = $previousEnd->copy()->subDays($durationDays - 1);
 
         $previousReviews = ReviewNew::withCalculatedRating()
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->where('staff_id', $staffId)
             ->whereBetween('created_at', [$previousStart, $previousEnd])
             ->get();
@@ -1346,7 +1346,7 @@ class StaffController extends Controller
                     $query->whereNull('comment');
                 }
             })
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->withCalculatedRating();
 
         // Apply filter based on calculated_rating
@@ -1521,7 +1521,7 @@ class StaffController extends Controller
         // GET CURRENT REVIEWS
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->withCalculatedRating()
             ->when($dateRange, function ($query) use ($dateRange) {
                 // FILTER BY DATE RANGE
@@ -1624,7 +1624,7 @@ class StaffController extends Controller
 
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->when($dateRange, function ($query) use ($dateRange) {
                 // FILTER BY DATE RANGE
                 return $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);

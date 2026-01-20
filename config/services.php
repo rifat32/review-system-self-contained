@@ -24,8 +24,8 @@ return [
         'timeout' => env('OPENAI_TIMEOUT', 30),
     ],
     'firebase' => [
-        'project_id' => env('FIREBASE_PROJECT_ID'),
-        'client_email' => env('FIREBASE_CLIENT_EMAIL'), // optional, can be omitted if no subject is needed
+        'project_id' => env('FIREBASE_PROJECT_ID', 'feed-genius-business'),
+        'client_email' => env('FIREBASE_CLIENT_EMAIL', 'firebase-adminsdk-fbsvc@feed-genius-business.iam.gserviceaccount.com'), // optional, can be omitted if no subject is needed
     ],
 
     'apn' => [

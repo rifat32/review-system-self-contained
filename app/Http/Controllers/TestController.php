@@ -22,13 +22,13 @@ class TestController extends Controller
 
 
 
-        $query =  Question::where(["business_id" => $business->id, "is_default" => false]);
+        $query = Question::where(["business_id" => $business->id, "is_default" => false]);
 
-        $questions =  $query->get();
+        $questions = $query->get();
 
         $questionsCount = $query->get()->count();
 
-        $data =  json_decode(json_encode($questions), true);
+        $data = json_decode(json_encode($questions), true);
         foreach ($questions as $key1 => $question) {
 
             $tags_rating = [];
@@ -73,7 +73,7 @@ class TestController extends Controller
 
                     if ($starTag->question_id == $question->id) {
 
-                        $starTag->tag->count =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                        $starTag->tag->count = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                             ->where(
                                 [
                                     "review_news.business_id" => $business->id,
@@ -96,7 +96,7 @@ class TestController extends Controller
                         }
 
 
-                        $starTag->tag->total =  ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
+                        $starTag->tag->total = ReviewValueNew::leftjoin('review_news', 'review_value_news.review_id', '=', 'review_news.id')
                             ->where(
                                 [
                                     "review_news.business_id" => $business->id,
@@ -166,7 +166,7 @@ class TestController extends Controller
             "business_id" => $business->id,
             "guest_id" => NULL,
         ])
-            ->globaReviewlFilters(1, $business->id)
+            ->globalReviewFilters(1, $business->id)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($start_date) && !empty($end_date)) {
@@ -180,8 +180,8 @@ class TestController extends Controller
         $data2["total_comment"] = $data2["total_comment"]->get();
 
         return [
-            "part1" =>  $data2,
-            "part2" =>  $data
+            "part1" => $data2,
+            "part2" => $data
         ];
     }
 
@@ -191,12 +191,12 @@ class TestController extends Controller
 
 
         $business_list = Business::where([
-                "user_review_report" => TRUE,
-            ])
+            "user_review_report" => TRUE,
+        ])
             ->get();
         foreach ($business_list as $business) {
 
-            $data =  $this->getReport($business, NULL, NULL);
+            $data = $this->getReport($business, NULL, NULL);
 
 
             $pdf = PDF::loadView('user-review-report-pdf', compact("data", "business"));
@@ -216,12 +216,12 @@ class TestController extends Controller
 
 
         $business_list = Business::where([
-                "user_review_report" => TRUE,
-            ])
+            "user_review_report" => TRUE,
+        ])
             ->get();
         foreach ($business_list as $business) {
 
-            $data =  $this->getReport($business, NULL, NULL);
+            $data = $this->getReport($business, NULL, NULL);
 
             return response()->json([$data, $business], 200);
             $pdf = PDF::loadView('user-review-report-pdf', compact("data", "business"));

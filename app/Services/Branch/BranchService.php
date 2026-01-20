@@ -171,7 +171,7 @@ class BranchService
                 $endDate = Carbon::parse($dateRange['end'])->endOfDay();
                 return $query->whereBetween('created_at', [$startDate, $endDate]);
             })
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->withCalculatedRating()
             ->with('staff:id,first_Name,last_Name,image')
             ->get();

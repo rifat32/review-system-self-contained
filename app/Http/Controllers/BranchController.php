@@ -161,14 +161,14 @@ class BranchController extends Controller
         $totalBranches = $branchIds->count();
 
         $avgRating = ReviewNew::whereIn('branch_id', $branchIds)
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->withCalculatedRating()
             ->get()
             ->avg('calculated_rating') ?? 0;
 
 
         $overallSentiment = ReviewNew::whereIn('branch_id', $branchIds)
-            ->globaReviewlFilters(0, $businessId)
+            ->globalReviewFilters(0, $businessId)
             ->avg('sentiment_score') ?? 0;
 
         // SEND RESPONSE

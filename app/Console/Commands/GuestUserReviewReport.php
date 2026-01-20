@@ -190,7 +190,7 @@ class GuestUserReviewReport extends Command
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
-            ->globaReviewlFilters(0, $business->id)
+            ->globalReviewFilters(0, $business->id)
 
             ->whereNotNull("comment")
             ->orderBy('order_no', 'asc');
@@ -224,8 +224,8 @@ class GuestUserReviewReport extends Command
 
 
         $business_list = Business::where([
-                "guest_user_review_report" => TRUE,
-            ])
+            "guest_user_review_report" => TRUE,
+        ])
             ->get();
         foreach ($business_list as $business) {
 
