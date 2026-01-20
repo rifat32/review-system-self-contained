@@ -118,6 +118,7 @@ class BusinessService
             'is_review_slider' => $payloadData['is_review_slider'] ?? false,
             'review_only' => $payloadData['review_only'] ?? true,
             'is_branch' => $payloadData['is_branch'] ?? false,
+            'has_rule_management' => $payloadData['has_rule_management'] ?? false,
             'Is_guest_user' => true,
             'guest_user_review_report' => true,
             'is_guest_user_overall_review' => true,

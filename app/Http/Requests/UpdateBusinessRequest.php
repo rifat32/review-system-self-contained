@@ -51,6 +51,7 @@ class UpdateBusinessRequest extends FormRequest
             'is_review_slider' => 'nullable|boolean',
             'review_only' => 'nullable|boolean',
             'is_branch' => 'nullable|boolean',
+            'has_rule_management' => 'nullable|boolean',
             'header_image' => 'nullable|string',
             'primary_color' => 'nullable|string',
             'secondary_color' => 'nullable|string',
@@ -65,7 +66,6 @@ class UpdateBusinessRequest extends FormRequest
             'is_guest_user_overall_review' => 'nullable|boolean',
             'is_guest_user_survey' => 'nullable|boolean',
             'is_guest_user_survey_required' => 'nullable|boolean',
-            'is_branch' => ['nullable', 'boolean'],
             'is_guest_user_show_stuffs' => 'nullable|boolean',
             'is_guest_user_show_stuff_image' => 'nullable|boolean',
             'is_guest_user_show_stuff_name' => 'nullable|boolean',
@@ -86,7 +86,7 @@ class UpdateBusinessRequest extends FormRequest
             'registered_user_survey_id' => ['nullable', 'integer', new ValidSurvey($this->route('businessId'))],
 
             'default_color_threshold' => 'present|array',
-      
+
         ];
     }
 
