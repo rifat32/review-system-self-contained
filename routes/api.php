@@ -8,7 +8,6 @@ use App\Http\Controllers\BusinessDaysController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomWebhookController;
 use App\Http\Controllers\DailyViewsController;
-use App\Http\Controllers\DashboardManagementController;
 use App\Http\Controllers\EmailTemplateController;
 use App\Http\Controllers\EmailTemplateWrapperController;
 use App\Http\Controllers\ForgotPasswordController;
@@ -33,7 +32,6 @@ use App\Http\Controllers\StarTagQuestionController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdminController;
-use App\Http\Controllers\SuperAdminReportController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\SurveyQuestionController;
 use App\Http\Controllers\TagController;
@@ -450,16 +448,16 @@ Route::middleware(['auth:api'])->group(function () {
     // ReportController & DashboardManagementController – Reports/dashboards (protected)
     // ============================================================================
 
-    Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
-    Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
-    Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
+    // Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
+    // Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
+    // Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
 
 
 
     // Route::get('/v1.0/reports/staff-comparison/{businessId}', [DashboardController::class, 'staffComparison']); //unused
     Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [DashboardController::class, 'staffPerformance']);
     Route::get('/v1.0/reports/review-analytics/{businessId}', [DashboardController::class, 'reviewAnalytics']);
-    Route::get('/v1.0/branch-dashboard/{branchId}', [DashboardController::class, 'getBranchDashboard']);
+    // Route::get('/v1.0/branch-dashboard/{branchId}', [DashboardController::class, 'getBranchDashboard']);
     Route::get('/v1.0/reports/branch-comparison', [DashboardController::class, 'branchComparison']);
 
 
@@ -467,8 +465,8 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // ReviewNewController – Owner Questions (protected)
     // ============================================================================
-    Route::post('/review-new/owner/create/questions', [QuestionController::class, "storeOwnerQuestion"]);
-    Route::patch('/review-new/owner/update/questions', [QuestionController::class, "updateOwnerQuestion"]);
+    // Route::post('/review-new/owner/create/questions', [QuestionController::class, "storeOwnerQuestion"]);
+    // Route::patch('/review-new/owner/update/questions', [QuestionController::class, "updateOwnerQuestion"]);
 
     // ============================================================================
     // ReviewNewController – Review by id (protected)
@@ -572,26 +570,26 @@ Route::middleware(['auth:api'])->group(function () {
 // ============================================================================
 // OwnerController – Public owner routes
 // ============================================================================
-Route::post('/owner', [OwnerController::class, "createUser"]);
+// Route::post('/owner', [OwnerController::class, "createUser"]);
 Route::post('/v1.0/register-guest-users', [OwnerController::class, "createGuestUser"]);
-Route::post('/owner/staffregister/{businessId}', [OwnerController::class, "createStaffUser"]);
+// Route::post('/owner/staffregister/{businessId}', [OwnerController::class, "createStaffUser"]);
 Route::post('/owner/pin/{ownerId}', [OwnerController::class, "updatePin"]);
-Route::get('/owner/{ownerId}', [OwnerController::class, "getOwnerById"]);
-Route::get('/owner/getAllowner/withourbusiness', [OwnerController::class, "getOwnerNotHaveRestaurent"]);
-Route::get('/owner/loaduser/bynumber/{phoneNumber}', [OwnerController::class, "getOwnerByPhoneNumber"]);
+// Route::get('/owner/{ownerId}', [OwnerController::class, "getOwnerById"]);
+// Route::get('/owner/getAllowner/withourbusiness', [OwnerController::class, "getOwnerNotHaveRestaurent"]);
+// Route::get('/owner/loaduser/bynumber/{phoneNumber}', [OwnerController::class, "getOwnerByPhoneNumber"]);
 
 
 // ============================================================================
 // ReviewNewController – Public/unauthorized question sets
 // ============================================================================
-Route::get('/review-new/get/questions-all/customer', [ReviewNewController::class, 'getQuestionAllUnauthorized'])->name('getQuestionAllUnauthorized');
+// Route::get('/review-new/get/questions-all/customer', [ReviewNewController::class, 'getQuestionAllUnauthorized'])->name('getQuestionAllUnauthorized');
 
-Route::get('/review-new/get/questions-all-overall/customer', [ReviewNewController::class, 'getQuestionAllUnauthorizedOverall'])->name('getQuestionAllUnauthorizedOverall');
+// Route::get('/review-new/get/questions-all-overall/customer', [ReviewNewController::class, 'getQuestionAllUnauthorizedOverall'])->name('getQuestionAllUnauthorizedOverall');
 
 
 
-Route::get('/review-new/get/questions-all-report/unauthorized', [ReviewNewController::class, "getQuestionAllReportUnauthorized"]);
-Route::get('/review-new/get/questions-all-report/guest/unauthorized', [ReviewNewController::class, "getQuestionAllReportGuestUnauthorized"]);
+// Route::get('/review-new/get/questions-all-report/unauthorized', [ReviewNewController::class, "getQuestionAllReportUnauthorized"]);
+// Route::get('/review-new/get/questions-all-report/guest/unauthorized', [ReviewNewController::class, "getQuestionAllReportGuestUnauthorized"]);
 
 // ============================================================================
 // ReviewNewController – Public guest review operations
@@ -612,13 +610,13 @@ Route::get('/v1.0/client/business/{businessId}', [BusinessController::class, "ge
 // ============================================================================
 Route::get('/client/v1.0/business-days/{restaurentId}', [BusinessDaysController::class, "getBusinessDays"]);
 Route::get('/v1.0/client/staffs', [StaffController::class, 'getClientAllStaffs']);
-Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetailsClient"]);
+// Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetailsClient"]);
 
 // ============================================================================
 // ReviewNewController – Overall business dashboard (public)
 // ============================================================================
 
-Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updatedReviewSettings']);
+// Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updatedReviewSettings']);
 
 // ============================================================================
 // ReviewNewController – Client review analytics & privacy (public client)
