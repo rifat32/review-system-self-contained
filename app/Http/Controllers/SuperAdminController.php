@@ -189,6 +189,7 @@ class SuperAdminController extends Controller
 
             // BUILD REVIEW QUERY
             $reviewsQuery = ReviewNew::where('user_id', $customer->id)
+
                 ->withCalculatedRating()
                 ->with([
                     'staff:id,first_Name,last_Name,image',
@@ -201,6 +202,7 @@ class SuperAdminController extends Controller
                 ->when($request->filled('business_id'), function ($q) use ($request) {
                     $q->where('business_id', $request->business_id);
                 })
+
                 // FILTER: SEARCH KEY
                 ->when($request->filled('search_key'), function ($q) use ($request) {
                     $q->where('comment', 'like', '%' . $request->search_key . '%');

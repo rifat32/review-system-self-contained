@@ -58,7 +58,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
     private const REGISTERED_USERS_COUNT = 100;
     private const BRANCHES_COUNT = 4;
     private const STAFF_PER_BRANCH = 3;
-    private const WEEKS_OF_DATA = 12;
+    private const DAYS_OF_DATA = 9;
 
     public function __construct()
     {
@@ -121,7 +121,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
             echo "🏪 Branches: " . count($this->branches) . "\n";
             echo "👥 Staff: " . count($this->staff) . "\n";
             echo "📝 Reviews: " . self::REVIEW_COUNT . "\n";
-            echo "⏰ Date Range: " . Carbon::now()->subWeeks(self::WEEKS_OF_DATA)->format('Y-m-d') . " to " . Carbon::now()->format('Y-m-d') . "\n";
+            echo "⏰ Date Range: " . Carbon::now()->subDays(self::DAYS_OF_DATA)->format('Y-m-d') . " to " . Carbon::now()->format('Y-m-d') . "\n";
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
             echo "🤖 Ready for AI cron execution!\n\n";
         } catch (\Exception $e) {
@@ -634,7 +634,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
      */
     private function createReviews(): void
     {
-        $startDate = Carbon::now()->subWeeks(self::WEEKS_OF_DATA);
+        $startDate = Carbon::now()->subDays(self::DAYS_OF_DATA);
         $endDate = Carbon::now();
         $totalDays = $startDate->diffInDays($endDate);
 
