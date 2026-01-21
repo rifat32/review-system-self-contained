@@ -657,9 +657,6 @@ class RuleEngineService
 
     public function generateBranchComparisonInsights($branchesData): array
     {
-        $insightTemplates = AiRule::where('category', 'branch_comparison_templates')
-            ->get();
-
         if (empty($branchesData)) {
             return [
                 'overview' => 'No branch data available for comparison.',
@@ -667,12 +664,27 @@ class RuleEngineService
             ];
         }
 
-        $template = $insightTemplates->first();
-        $data = json_decode($template->value, true);
+        // Generate dynamic insights from actual branch data
+        $findings = [];
+        $totalBranches = count($branchesData);
+
+        if ($totalBranches >= 2) {
+            // Find best and worst performing branches
+            $ratings = array_column(array_column($branchesData, 'metrics'), 'average_rating');
+            $maxRating = max($ratings);
+            $minRating = min($ratings);
+
+            $findings[] = "Comparing {$totalBranches} branches with ratings ranging from {$minRating} to {$maxRating}";
+
+            // Identify performance gaps
+            if ($maxRating - $minRating > 0.5) {
+                $findings[] = "Significant performance gap detected between branches";
+            }
+        }
 
         return [
-            'overview' => $data['overview'] ?? 'Branch comparison insights generated.',
-            'key_findings' => $data['findings'] ?? []
+            'overview' => "Analysis of {$totalBranches} branch" . ($totalBranches > 1  ? 'es' : '') . " completed successfully.",
+            'key_findings' => $findings
         ];
     }
 
@@ -811,7 +823,7 @@ class RuleEngineService
             ->value('value') ?? 'insufficient_data';
     }
 
-    public static function getStableTrendMessage(): string
+    public function getStableTrendMessage(): string
     {
         return AiRule::where('key_name', 'stable_trend_message')
             ->value('value') ?? 'stable';
