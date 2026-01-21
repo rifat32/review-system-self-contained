@@ -14,6 +14,7 @@ class StaffPerformanceService
     private RuleEngineService $ruleEngineService;
     private ReviewService $reviewService;
 
+
     public function __construct(
         RuleEngineService $ruleEngineService,
         ReviewService $reviewService
@@ -375,7 +376,7 @@ class StaffPerformanceService
         } elseif ($secondHalfAvg < $firstHalfAvg - $trendThreshold) {
             return RuleEngineService::getDecliningTrendMessage();
         } else {
-            return RuleEngineService::getStableTrendMessage();
+            return $this->ruleEngineService->getStableTrendMessage();
         }
     }
 
