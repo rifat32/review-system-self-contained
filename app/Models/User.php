@@ -26,6 +26,12 @@ class User extends Authenticatable
         'CUSTOMER' => 'customer',
     ];
 
+    const superAdmin = 'superadmin';
+    const businessOwner = 'business_owner';
+    const branchManager = 'branch_manager';
+    const businessStaff = 'business_staff';
+    const customer = 'customer';
+
     protected $fillable = [
         'first_Name',
         'last_Name',

@@ -4,222 +4,134 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\NotificationRequest;
 use App\Models\Notification;
+use App\Models\User;
+use App\Services\Notification\NotificationService;
+use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class NotificationController extends Controller
 {
-    // ##################################################
-    // This method is to store notification
-    // ##################################################
+    // ==================== PROPERTIES ====================
+    protected NotificationService $notificationService;
 
-
-    // /**
-    //  *
-    //  * @OA\Post(
-    //  *      path="/v1.0/notification",
-    //  *      operationId="createNotification",
-    //  *      tags={"notification"},
-    //  *       security={
-    //  *           {"bearerAuth": {}}
-    //  *       },
-    //  *      summary="This method is to store notification",
-    //  *      description="This method is to store notification",
-
-    //  *  @OA\RequestBody(
-    //  *         required=true,
-    //  *         @OA\JsonContent(
-    //  *            required={"message","receiver_id"},
-    //  *            @OA\Property(property="receiver_id", type="integer", example=1, description="ID of the user to receive the notification"),
-    //  *            @OA\Property(property="title", type="string", example="Notification Title"),
-    //  *            @OA\Property(property="message", type="string", example="Notification message content"),
-    //  *            @OA\Property(property="business_id", type="integer", nullable=true, example=1),
-    //  *            @OA\Property(property="type", type="string", example="info"),
-    //  *            @OA\Property(property="link", type="string", nullable=true, example="https://example.com"),
-    //  *            @OA\Property(property="priority", type="string", nullable=true, example="high"),
-    //  *            @OA\Property(property="entity_id", type="integer", nullable=true, example=123),
-    //  *            @OA\Property(property="entity_ids", type="array", nullable=true, @OA\Items(type="integer"), example={1,2,3}),
-    //  *         ),
-    //  *      ),
-    //  *      @OA\Response(
-    //  *          response=200,
-    //  *          description="Successful operation",
-    //  *          @OA\JsonContent(
-    //  *              @OA\Property(property="success", type="boolean", example=true),
-    //  *              @OA\Property(property="message", type="string", example="Notification created successfully"),
-    //  *              @OA\Property(property="data", type="object",
-    //  *                  @OA\Property(property="id", type="integer", example=1),
-    //  *                  @OA\Property(property="receiver_id", type="integer", example=1),
-    //  *                  @OA\Property(property="sender_id", type="integer", example=2),
-    //  *                  @OA\Property(property="business_id", type="integer", nullable=true, example=1),
-    //  *                  @OA\Property(property="sender_type", type="string", example="superadmin"),
-    //  *                  @OA\Property(property="message", type="string", example="Notification message content"),
-    //  *                  @OA\Property(property="status", type="string", example="unread"),
-    //  *                  @OA\Property(property="title", type="string", example="Notification Title"),
-    //  *                  @OA\Property(property="type", type="string", example="info"),
-    //  *                  @OA\Property(property="read_at", type="string", nullable=true, format="date-time"),
-    //  *                  @OA\Property(property="link", type="string", nullable=true, example="https://example.com"),
-    //  *                  @OA\Property(property="priority", type="string", nullable=true, example="high"),
-    //  *                  @OA\Property(property="entity_id", type="integer", nullable=true, example=123),
-    //  *                  @OA\Property(property="entity_ids", type="array", nullable=true, @OA\Items(type="integer"), example={1,2,3})
-    //  *              )
-    //  *          )
-    //  *      ),
-    //  *      @OA\Response(
-    //  *          response=401,
-    //  *          description="Unauthenticated",
-    //  * @OA\JsonContent(),
-    //  *      ),
-    //  *        @OA\Response(
-    //  *          response=422,
-    //  *          description="Unprocessable Content",
-    //  *    @OA\JsonContent(),
-    //  *      ),
-    //  *      @OA\Response(
-    //  *          response=403,
-    //  *          description="Forbidden",
-    //  *   @OA\Response(
-    //  *      response=400,
-    //  *      description="Bad Request"
-    //  *   ),
-    //  * @OA\Response(
-    //  *      response=404,
-    //  *      description="not found"
-    //  *   ),
-    //  *@OA\JsonContent()
-    //  *      )
-    //  *     )
-    //  */
-
-
-    // public function createNotification(NotificationRequest $request)
-    // {
-
-    //     $body = $request->validated();
-    //     $body["sender_id"] = $request->user()->id;
-    //     $body["status"] = "unread";
-    //     $body["sender_type"] = $request->user()->hasRole("superadmin") ? "superadmin" : "";
-    //     $notification = Notification::create($body);
-
-    //     //  SEND RESPONSE
-    //     return response([
-    //         "success" => true,
-    //         "message" => "Notification created successfully",
-    //         "data" => $notification
-    //     ], 200);
-    // }
-
+    // ==================== CONSTRUCTOR ====================
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
 
     // ##################################################
-    // This method is to update notification
+    // CREATE NOTIFICATION
     // ##################################################
 
-    // /**
-    //  *
-    //  * @OA\Patch(
-    //  *      path="/v1.0/notification/{notificationId}",
-    //  *      operationId="updateNotification",
-    //  *      tags={"notification"},
-    //  *       security={
-    //  *           {"bearerAuth": {}}
-    //  *       },
-    //  *      summary="This method is to update notification",
-    //  *      description="This method is to update notification",
-    //  *  @OA\Parameter(
-    //  * name="notificationId",
-    //  * in="path",
-    //  * description="notificationId",
-    //  * required=true,
-    //  * example="1"
-    //  * ),
-    //  *  @OA\RequestBody(
-    //  *         required=false,
-    //  *         @OA\JsonContent(
-    //  *            @OA\Property(property="title", type="string", example="Updated Title"),
-    //  *
-    //  *            @OA\Property(property="message", type="string", example="Updated message content"),
-    //  *            @OA\Property(property="status", type="string", enum={"read", "unread"}, example="read"),
-    //  *            @OA\Property(property="read_at", type="string", format="date-time", nullable=true, example="2025-12-30T10:00:00Z"),
-    //  *            @OA\Property(property="type", type="string", example="warning"),
-    //  *            @OA\Property(property="link", type="string", nullable=true, example="https://updated-link.com"),
-    //  *            @OA\Property(property="priority", type="string", nullable=true, example="low"),
-    //  *            @OA\Property(property="entity_id", type="integer", nullable=true, example=456),
-    //  *            @OA\Property(property="entity_ids", type="array", nullable=true, @OA\Items(type="integer"), example={4,5,6}),
-    //  *      ),
-    //  *      @OA\Response(
-    //  *          response=200,
-    //  *          description="Successful operation",
-    //  *          @OA\JsonContent(
-    //  *              @OA\Property(property="success", type="boolean", example=true),
-    //  *              @OA\Property(property="message", type="string", example="Notification updated successfully"),
-    //  *              @OA\Property(property="data", type="object",
-    //  *                  @OA\Property(property="id", type="integer", example=1),
-    //  *                  @OA\Property(property="receiver_id", type="integer", example=1),
-    //  *                  @OA\Property(property="sender_id", type="integer", example=2),
-    //  *                  @OA\Property(property="business_id", type="integer", nullable=true, example=1),
-    //  *                  @OA\Property(property="sender_type", type="string", example="superadmin"),
-    //  *                  @OA\Property(property="message", type="string", example="Updated message content"),
-    //  *                  @OA\Property(property="status", type="string", example="read"),
-    //  *                  @OA\Property(property="title", type="string", example="Updated Title"),
-    //  *                  @OA\Property(property="type", type="string", example="warning"),
-    //  *                  @OA\Property(property="read_at", type="string", nullable=true, format="date-time"),
-    //  *                  @OA\Property(property="link", type="string", nullable=true, example="https://updated-link.com"),
-    //  *                  @OA\Property(property="priority", type="string", nullable=true, example="low"),
-    //  *                  @OA\Property(property="entity_id", type="integer", nullable=true, example=456),
-    //  *                  @OA\Property(property="entity_ids", type="array", nullable=true, @OA\Items(type="integer"), example={4,5,6})
-    //  *              )
-    //  *          )
-    //  *      ),
-    //  *      @OA\Response(
-    //  *          response=401,
-    //  *          description="Unauthenticated",
-    //  * @OA\JsonContent(),
-    //  *      ),
-    //  *        @OA\Response(
-    //  *          response=422,
-    //  *          description="Unprocessable Content",
-    //  *    @OA\JsonContent(),
-    //  *      ),
-    //  *      @OA\Response(
-    //  *          response=403,
-    //  *          description="Forbidden",
-    //  *   @OA\Response(
-    //  *      response=400,
-    //  *      description="Bad Request"
-    //  *   ),
-    //  * @OA\Response(
-    //  *      response=404,
-    //  *      description="not found"
-    //  *   ),
-    //  *@OA\JsonContent()
-    //  *      )
-    //  *     )
-    //  */
-    // public function updateNotification($notificationId, NotificationRequest $request)
-    // {
+    /**
+     * @OA\Post(
+     *      path="/v1.0/notification",
+     *      operationId="createNotification",
+     *      tags={"notification_management"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="This method is to store notification",
+     *      description="This method is to store notification",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"message","receiver_id"},
+     *              @OA\Property(property="receiver_id", type="integer", example=1, description="ID of the user to receive the notification"),
+     *              @OA\Property(property="title", type="string", example="Notification Title"),
+     *              @OA\Property(property="message", type="string", example="Notification message content"),
+     *              @OA\Property(property="business_id", type="integer", nullable=true, example=1),
+     *              @OA\Property(property="type", type="string", example="info"),
+     *              @OA\Property(property="priority", type="string", nullable=true, example="high"),
+     *              @OA\Property(property="entity_id", type="integer", nullable=true, example=123)
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=201,
+     *          description="Notification created successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Notification created successfully"),
+     *              @OA\Property(property="data", type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="receiver_id", type="integer", example=1),
+     *                  @OA\Property(property="sender_id", type="integer", example=2),
+     *                  @OA\Property(property="business_id", type="integer", nullable=true, example=1),
+     *                  @OA\Property(property="sender_type", type="string", example="super_admin"),
+     *                  @OA\Property(property="message", type="string", example="Notification message content"),
+     *                  @OA\Property(property="status", type="string", example="unread"),
+     *                  @OA\Property(property="title", type="string", example="Notification Title"),
+     *                  @OA\Property(property="type", type="string", example="info"),
+     *                  @OA\Property(property="read_at", type="string", nullable=true, format="date-time"),
+     *                  @OA\Property(property="link", type="string", nullable=true, example="https://example.com"),
+     *                  @OA\Property(property="priority", type="string", nullable=true, example="high"),
+     *                  @OA\Property(property="entity_id", type="integer", nullable=true, example=123),
+     *                  @OA\Property(property="entity_ids", type="array", nullable=true, @OA\Items(type="integer"), example={1,2,3})
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=500,
+     *          description="Internal Server Error",
+     *          @OA\JsonContent()
+     *      )
+     * )
+     */
+    public function createNotification(NotificationRequest $request): JsonResponse
+    {
+        try {
+            // CHECK AUTHORIZATION
+            $authUser = auth()->user();
 
-    //     // VALIDATE REQUEST
-    //     $request_payload = $request->validated();
+            if (!$authUser->hasRole(User::superAdmin)) {
+                throw new AuthorizationException('You are not authorized to perform this action');
+            }
 
-    //     $notification = Notification::find($notificationId);
+            // PREPARE NOTIFICATION DATA
+            $payload = $request->validated();
+            $payload["sender_id"] = $authUser->id;
+            $payload["sender_type"] = 'super_admin';
 
-    //     if (!$notification) {
-    //         return response([
-    //             "success" => false,
-    //             "message" => "Notification not found",
-    //         ], 404);
-    //     }
+            // CREATE NOTIFICATION USING SERVICE
+            DB::beginTransaction();
+            $notification = $this->notificationService->send_notification($payload);
 
-    //     // UPDATE Notification
-    //     $notification->update($request_payload);
+            DB::commit();
 
-    //     // SEND RESPONSE
-    //     return response([
-    //         "success" => true,
-    //         "message" => "Notification updated successfully",
-    //         "data" => $notification
-    //     ], 200);
-    // }
+            // SEND RESPONSE
+            return response()->json([
+                "success" => true,
+                "message" => "Notification created successfully",
+                "data" => $notification
+            ], 201);
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            throw $e;
+        }
+    }
+
+
 
 
     /**
@@ -227,7 +139,7 @@ class NotificationController extends Controller
      * @OA\Get(
      *      path="/v1.0/notification",
      *      operationId="getNotification",
-     *      tags={"notification"},
+     *      tags={"notification_management"},
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -338,13 +250,15 @@ class NotificationController extends Controller
      *      )
      *     )
      */
-    public function getNotification(Request $request)
+    public function getNotification(Request $request): JsonResponse
     {
-        $query = Notification::where(["receiver_id" => $request->user()->id])->filters();
-
+        // GET NOTIFICATIONS FOR CURRENT USER
+        $query = Notification::where(["receiver_id" => $request->user()->id])
+            ->notificationFilters();
         $notification = retrieve_data($query);
 
-        return response([
+        // SEND RESPONSE
+        return response()->json([
             "success" => true,
             "message" => "Notifications retrieved successfully",
             "meta" => $notification["meta"],
@@ -361,7 +275,7 @@ class NotificationController extends Controller
      * @OA\Patch(
      *      path="/v1.0/notification/{notificationId}/status",
      *      operationId="changeNotificationStatus",
-     *      tags={"notification"},
+     *      tags={"notification_management"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -426,35 +340,24 @@ class NotificationController extends Controller
      */
 
 
-    public function changeNotificationStatus($notificationId, Request $request)
+    public function changeNotificationStatus($notificationId, Request $request): JsonResponse
     {
+        // FIND NOTIFICATION
+        $notification = Notification::findOrFail($notificationId);
 
-        // FIND Notification
-        $notification = Notification::find($notificationId);
-
-        if (!$notification) {
-            return response([
-                "success" => false,
-                "message" => "Notification not found"
-            ], 404);
-        }
-
-        // CHECK IF USER IS THE RECEIVER
+        // CHECK AUTHORIZATION (USER MUST BE THE RECEIVER)
         if ($notification->receiver_id !== $request->user()->id) {
-            return response([
-                "success" => false,
-                "message" => "You are not authorized to change this notification status"
-            ], 403);
+            throw new AccessDeniedHttpException("You are not authorized to change this notification status");
         }
 
-        // UPDATE STATUS TO READ AND SET READ_AT
-        $notification->update([
-            'status' => 'read',
-            'read_at' => now()
-        ]);
+        // MARK AS READ USING SERVICE
+        $this->notificationService->markAsRead($notification);
+
+        // REFRESH NOTIFICATION TO GET UPDATED DATA
+        $notification->refresh();
 
         // SEND RESPONSE
-        return response([
+        return response()->json([
             "success" => true,
             "message" => "Notification status changed successfully",
             "data" => $notification
@@ -470,7 +373,7 @@ class NotificationController extends Controller
      * @OA\Patch(
      *      path="/v1.0/notification/mark-all-read",
      *      operationId="markAsAllRead",
-     *      tags={"notification"},
+     *      tags={"notification_management"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -511,19 +414,13 @@ class NotificationController extends Controller
      */
 
 
-    public function markAsAllRead(Request $request)
+    public function markAsAllRead(Request $request): JsonResponse
     {
-
-        // UPDATE ALL UNREAD NOTIFICATIONS FOR THE CURRENT USER
-        $updatedCount = Notification::where('receiver_id', $request->user()->id)
-            ->where('status', 'unread')
-            ->update([
-                'status' => 'read',
-                'read_at' => now()
-            ]);
+        // MARK ALL AS READ USING SERVICE
+        $updatedCount = $this->notificationService->markAllAsRead($request->user()->id);
 
         // SEND RESPONSE
-        return response([
+        return response()->json([
             "success" => true,
             "message" => "All notifications marked as read successfully",
             "data" => [
@@ -541,7 +438,7 @@ class NotificationController extends Controller
      * @OA\Delete(
      *      path="/v1.0/notification/{notificationId}",
      *      operationId="deleteNotification",
-     *      tags={"notification"},
+     *      tags={"notification_management"},
      *       security={
      *           {"bearerAuth": {}}
      *       },
@@ -589,25 +486,22 @@ class NotificationController extends Controller
      */
 
 
-    public function deleteNotification($notificationId, Request $request)
+    public function deleteNotification($notificationId, Request $request): JsonResponse
     {
+        // FIND NOTIFICATION
+        $notification = Notification::findOrFail($notificationId);
 
-        // FIND Notification
-        $notification = Notification::find($notificationId);
-
-        if (!$notification) {
-            return response([
-                "success" => false,
-                "message" => "Notification not found"
-            ], 404);
+        // CHECK AUTHORIZATION (USER MUST BE THE RECEIVER OR SUPER ADMIN)
+        $user = $request->user();
+        if ($notification->receiver_id !== $user->id && !$user->hasRole(User::superAdmin)) {
+            throw new AccessDeniedHttpException("You are not authorized to delete this notification");
         }
 
-        // DELETE Notification
+        // DELETE NOTIFICATION
         $notification->delete();
 
-
         // SEND RESPONSE
-        return response([
+        return response()->json([
             "success" => true,
             "message" => "Notification deleted successfully"
         ], 200);

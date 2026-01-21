@@ -31,7 +31,12 @@ class NotificationRequest extends FormRequest
         return [
             'title' => 'nullable|string',
             'message' => 'required|string',
-            'reciever_id' => 'required|string',
+            'receiver_id' => 'required|integer|exists:users,id',
+            'business_id' => 'nullable|integer|exists:businesses,id',
+            'status' => 'nullable|string|in:unread,read',
+            'type' => 'nullable|string',
+            'priority' => 'nullable|string',
+            'entity_id' => 'nullable|integer',
         ];
     }
 }

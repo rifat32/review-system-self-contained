@@ -293,10 +293,12 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/v1.0/tags/{ids}', [TagController::class, 'deleteTag']);
 
     // ============================================================================
-    // NotificationController – Notifications CRUD (protected)
+    // NotificationController – Notifications Management (protected)
     // ============================================================================
-    // Route::post('/v1.0/notification', [NotificationController::class, "createNotification"]);
-    // Route::patch('/v1.0/notification/{notificationId}', [NotificationController::class, "updateNotification"]);
+    // Super Admin Only - Create notification
+    Route::post('/v1.0/notification', [NotificationController::class, "createNotification"]);
+
+    // Authenticated User Routes - Get, update status, mark all read, delete
     Route::get('/v1.0/notification', [NotificationController::class, "getNotification"]);
     Route::patch('/v1.0/notification/{notificationId}/status', [NotificationController::class, "changeNotificationStatus"]);
     Route::patch('/v1.0/notification/mark-all-read', [NotificationController::class, "markAsAllRead"]);

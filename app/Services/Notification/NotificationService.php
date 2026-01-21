@@ -420,6 +420,7 @@ class NotificationService
      * @param array $data
      * @return array
      */
+
     public function createForMultipleReceivers(array $receiverIds, array $data): array
     {
         $notifications = [];
@@ -441,7 +442,6 @@ class NotificationService
     public function markAsRead(Notification $notification): bool
     {
         return $notification->update([
-            'status' => 'read',
             'read_at' => now(),
         ]);
     }
@@ -455,9 +455,8 @@ class NotificationService
     public function markAllAsRead(int $userId): int
     {
         return Notification::where('receiver_id', $userId)
-            ->where('status', 'unread')
+            ->whereNull('read_at')
             ->update([
-                'status' => 'read',
                 'read_at' => now(),
             ]);
     }
@@ -471,24 +470,10 @@ class NotificationService
     public function getUnreadCount(int $userId): int
     {
         return Notification::where('receiver_id', $userId)
-            ->where('status', 'unread')
+            ->whereNull('read_at')
             ->count();
     }
 
-    /**
-     * Get notifications for a user
-     *
-     * @param int $userId
-     * @param int $limit
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getByUser(int $userId, int $limit = 20)
-    {
-        return Notification::where('receiver_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
-    }
 
     /**
      * Delete old notifications
@@ -499,7 +484,7 @@ class NotificationService
     public function deleteOldNotifications(int $days = 30): int
     {
         return Notification::where('created_at', '<', now()->subDays($days))
-            ->where('status', 'read')
+            ->whereNotNull('read_at')
             ->delete();
     }
 
