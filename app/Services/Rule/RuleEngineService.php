@@ -422,7 +422,8 @@ class RuleEngineService
     public function triggerRuleActions(AiRule $rule, ReviewNew $review, array $openaiData): void
     {
         $actions = $rule->actions;
-        if (empty($actions)) return;
+        if (empty($actions))
+            return;
 
         // Trigger alert
         if ($actions['trigger_alert'] ?? false) {
@@ -726,7 +727,7 @@ class RuleEngineService
             ->value('value') ?? 'Improving sentiment trend';
     }
 
-    public static function  getDecliningTrendMessage(): string
+    public static function getDecliningTrendMessage(): string
     {
         return AiRule::where('key_name', 'declining_trend_message')
             ->value('value') ?? 'Declining sentiment trend';
@@ -810,7 +811,7 @@ class RuleEngineService
             ->value('value') ?? 'insufficient_data';
     }
 
-    public function getStableTrendMessage(): string
+    public static function getStableTrendMessage(): string
     {
         return AiRule::where('key_name', 'stable_trend_message')
             ->value('value') ?? 'stable';

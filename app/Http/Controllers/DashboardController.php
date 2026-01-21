@@ -738,20 +738,6 @@ class DashboardController extends Controller
      *         example="last_30_days",
      *         @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month"})
      *      ),
-     *      @OA\Parameter(
-     *         name="start_date",
-     *         in="query",
-     *         description="Custom start date (d-m-Y format)",
-     *         required=false,
-     *         example="01-01-2025"
-     *      ),
-     *      @OA\Parameter(
-     *         name="end_date",
-     *         in="query",
-     *         description="Custom end date (d-m-Y format)",
-     *         required=false,
-     *         example="31-01-2025"
-     *      ),
      *      security={
      *          {"bearerAuth": {}}
      *      },
@@ -808,22 +794,22 @@ class DashboardController extends Controller
         $request->validate([
             'businessId' => 'required|integer|exists:businesses,id',
             'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
-            'start_date' => 'nullable|date_format:d-m-Y',
-            'end_date' => 'nullable|date_format:d-m-Y'
+            // 'start_date' => 'nullable|date_format:d-m-Y',
+            // 'end_date' => 'nullable|date_format:d-m-Y'
         ]);
 
         $businessId = $request->input('businessId');
 
         // Get date range - using existing function
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $dateRange = [
-                'start' => Carbon::parse($request->input('start_date'))->startOfDay(),
-                'end' => Carbon::parse($request->input('end_date'))->endOfDay()
-            ];
-        } else {
-            $period = $request->input('period', 'last_30_days');
-            $dateRange = getDateRangeByPeriod($period);
-        }
+        // if ($request->has('start_date') && $request->has('end_date')) {
+        //     $dateRange = [
+        //         'start' => Carbon::parse($request->input('start_date'))->startOfDay(),
+        //         'end' => Carbon::parse($request->input('end_date'))->endOfDay()
+        //     ];
+        // } else {
+        // }
+        $period = $request->input('period', 'last_30_days');
+        $dateRange = getDateRangeByPeriod($period);
 
 
         // Get insights overview data

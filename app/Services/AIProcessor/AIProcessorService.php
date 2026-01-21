@@ -4,24 +4,19 @@ namespace App\Services\AIProcessor;
 
 use App\Models\Branch;
 use App\Models\BusinessArea;
-use App\Models\BusinessService;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Services\Business\BusinessAnalyticsService;
 use App\Services\Review\ReviewService;
 use App\Services\Staff\StaffPerformanceService;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 use getID3;
 use Carbon\Carbon;
-
 use App\Services\AIProcessor\InsightAggregationService;
 use App\Services\AIProcessor\RecommendationGeneratorService;
 use App\Services\Rule\RuleEngineService;
 use App\Models\InsightRecord;
-use App\Models\Tag;
 
 class AIProcessorService
 {
@@ -144,21 +139,6 @@ class AIProcessorService
         }
 
         return $result;
-    }
-
-    /**
-     * Extract recommended training dynamically
-     */
-    private function extractRecommendedTraining($suggestions)
-    {
-
-        $skillGaps = $this->staffPerformanceService->extractSkillGapsFromSuggestions($suggestions);
-
-        if (!empty($skillGaps)) {
-            return $skillGaps[0] . ' Training';
-        }
-
-        return $this->ruleEngineService->getDefaultTrainingRecommendation();
     }
 
     /**
@@ -1889,7 +1869,7 @@ class AIProcessorService
                 'negative_reviews' => $negativeCount,
                 'common_praise' => array_slice($commonPraise, 0, 3),
                 'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'No reviews',
-                'recommended_training' => $this->extractRecommendedTraining($suggestions),
+                'recommended_training' => $staffPerformanceService->extractRecommendedTraining($suggestions),
                 'skill_gaps' => $staffPerformanceService->extractSkillGapsFromSuggestions($suggestions),
                 'rating_trend' => $staffPerformanceService->calculateStaffRatingTrend(collect($reviews)),
                 'performance_level' => $performanceScore

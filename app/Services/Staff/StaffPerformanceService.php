@@ -4,7 +4,6 @@ namespace App\Services\Staff;
 
 use App\Models\ReviewNew;
 use App\Models\User;
-use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Rule\RuleEngineService;
 use App\Services\Review\ReviewService;
 use Carbon\Carbon;
@@ -439,7 +438,7 @@ class StaffPerformanceService
     /**
      * Extract recommended training dynamically
      */
-    private function extractRecommendedTraining($suggestions)
+    public function extractRecommendedTraining($suggestions)
     {
         $skillGaps = $this->extractSkillGapsFromSuggestions($suggestions);
 
