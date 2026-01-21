@@ -88,6 +88,17 @@ class User extends Authenticatable
         return null;
     }
 
+    /**
+     * Get the user's primary role as a single object
+     * Returns the first role assigned to the user
+     *
+     * @return \Spatie\Permission\Models\Role|null
+     */
+    public function role()
+    {
+        return $this->roles()->first();
+    }
+
     public function ownedBusiness(): HasOne
     {
         return $this->hasOne(Business::class, "OwnerID", "id");

@@ -81,6 +81,10 @@ class StaffPerformanceService
                 'email' => $staff->email,
                 "branches" => $staff->branches->pluck('name')->toArray(),
                 'job_title' => $staff->job_title ?? 'Staff',
+                'role' => $staff->role() ? [
+                    'id' => $staff->role()->id,
+                    'name' => $staff->role()->name
+                ] : null,
                 'rating' => $avgRating,
                 'image' => $staff->image ?? null,
                 'review_count' => $reviews->count(),
