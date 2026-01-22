@@ -607,73 +607,11 @@ class RuleEngineService
         return (int) \config('ai.sentiment.thresholds.high_priority_threshold', 4);
     }
 
-    public function getIssuePatterns($reviews = null): array
-    {
-        $baselinePatterns = \config('ai.topics.issue_patterns', []);
 
-        if (!$reviews || (is_countable($reviews) && count($reviews) === 0)) {
-            return $baselinePatterns;
-        }
 
-        $dynamicPatterns = [];
-        foreach ($reviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
 
-            $categories = $openaiData['category_analysis'] ?? [];
-            foreach ($categories as $cat) {
-                $main = $cat['main_category'] ?? null;
-                $sub = $cat['sub_category'] ?? null;
 
-                if ($main) {
-                    if (!isset($dynamicPatterns[$main])) {
-                        $dynamicPatterns[$main] = [
-                            'keywords' => [strtolower($main)],
-                            'description' => "Issues related to $main"
-                        ];
-                    }
-                    if ($sub && !in_array(strtolower($sub), $dynamicPatterns[$main]['keywords'])) {
-                        $dynamicPatterns[$main]['keywords'][] = strtolower($sub);
-                    }
-                }
-            }
-        }
 
-        return array_merge($baselinePatterns, $dynamicPatterns);
-    }
-
-    public function detectStaffPraise($reviews): array
-    {
-        $praisePatterns = \config('ai.feedback_analysis.praise_patterns', []);
-
-        $praiseCount = 0;
-        foreach ($reviews as $review) {
-            if (empty($review->comment))
-                continue;
-
-            $text = strtolower(trim($review->comment));
-            foreach ($praisePatterns as $pattern) {
-                if (preg_match($pattern, $text)) {
-                    $praiseCount++;
-                    break;
-                }
-            }
-        }
-
-        return [
-            'count' => $praiseCount,
-            'title' => 'Staff Excellence',
-            'description' => 'Customers appreciate your staff\'s service and professionalism.'
-        ];
-    }
-
-    public function getCommonTopicKeywords(): array
-    {
-        return AiRule::where('category', 'common_topics')
-            ->pluck('value')
-            ->toArray();
-    }
 
     public function generateBranchComparisonInsights($branchesData): array
     {
@@ -822,42 +760,9 @@ class RuleEngineService
         return $value >= 0 ? 'positive' : 'negative';
     }
 
-    public function getCommonStaffTopicKeywords(): array
-    {
-        return \config('ai.topics.staff_topic_keywords', []);
-    }
 
-    public function getIssueKeywords($reviews = null): array
-    {
-        $baselineKeywords = \config('ai.topics.issue_keywords', []);
 
-        if (!$reviews || (is_countable($reviews) && count($reviews) === 0)) {
-            return $baselineKeywords;
-        }
 
-        $dynamicKeywords = [];
-        foreach ($reviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
-
-            $categories = $openaiData['category_analysis'] ?? [];
-            foreach ($categories as $cat) {
-                if (isset($cat['main_category'])) {
-                    $dynamicKeywords[$cat['main_category']] = true;
-                }
-                if (isset($cat['sub_category'])) {
-                    $dynamicKeywords[$cat['sub_category']] = true;
-                }
-            }
-        }
-
-        if (empty($dynamicKeywords)) {
-            return $baselineKeywords;
-        }
-
-        return array_unique(array_merge($baselineKeywords, array_keys($dynamicKeywords)));
-    }
 
     public function getTrainingRecommendations($reviews): array
     {

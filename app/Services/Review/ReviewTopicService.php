@@ -94,63 +94,13 @@ class ReviewTopicService
             ];
         }
 
-        // Method 3: Ultimate fallback - analyze comments for common keywords
-        $commonWords = $this->extractCommonKeywords($reviews);
-
-        if (!empty($commonWords)) {
-            return [
-                'name' => $commonWords[0]['word'],
-                'count' => $commonWords[0]['count']
-            ];
-        }
-
         return [
             'name' => 'Service',
             'count' => 0
         ];
     }
 
-    /**
-     * Extract common keywords from review comments
-     */
-    private function extractCommonKeywords($reviews, $limit = 1)
-    {
-        $stopWords = \config('ai.topics.stop_words', ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'it', 'its', 'they', 'their', 'them', 'very', 'good', 'bad', 'great', 'nice']);
 
-
-        $wordCounts = [];
-
-        foreach ($reviews as $review) {
-            if (!$review->comment) {
-                continue;
-            }
-
-            $words = str_word_count(strtolower($review->comment), 1);
-
-            foreach ($words as $word) {
-                if (strlen($word) > 3 && !in_array($word, $stopWords)) {
-                    $wordCounts[$word] = ($wordCounts[$word] ?? 0) + 1;
-                }
-            }
-        }
-
-        arsort($wordCounts);
-
-        $result = [];
-        $count = 0;
-        foreach ($wordCounts as $word => $frequency) {
-            if ($count >= $limit) {
-                break;
-            }
-            $result[] = [
-                'word' => ucfirst($word),
-                'count' => $frequency
-            ];
-            $count++;
-        }
-
-        return $result;
-    }
 
     /**
      * Get top topic using business ID and date range (for backward compatibility)

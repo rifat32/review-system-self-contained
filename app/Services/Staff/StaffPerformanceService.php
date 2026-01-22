@@ -258,14 +258,15 @@ class StaffPerformanceService
                 }
             }
 
-            if (empty($review->topics) && $review->comment) {
-                $commonWords = $this->ruleEngineService->getCommonStaffTopicKeywords();
-                $comment = strtolower($review->comment);
+            if ($review->comment) {
+                $openaiData = is_string($review->openai_raw_response)
+                    ? json_decode($review->openai_raw_response, true)
+                    : ($review->openai_raw_response ?? []);
 
-                foreach ($commonWords as $word) {
-                    if (strpos($comment, $word) !== false) {
-                        $allTopics[$word] = ($allTopics[$word] ?? 0) + 1;
-                    }
+                $categories = $openaiData['category_analysis'] ?? [];
+                foreach ($categories as $cat) {
+                    $topic = $cat['main_category'] ?? 'General';
+                    $allTopics[$topic] = ($allTopics[$topic] ?? 0) + 1;
                 }
             }
         }

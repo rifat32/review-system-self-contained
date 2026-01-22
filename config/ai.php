@@ -137,15 +137,7 @@ return [
             'lack'
         ],
 
-        // Regex patterns for baseline issue detection
-        'issue_patterns' => [
-            'wait_time' => '/wait|slow|delay|long time/i',
-            'staff_behavior' => '/rude|unprofessional|attitude|ignored/i',
-            'price' => '/expensive|overpriced|cost/i',
-        ],
 
-        'issue_keywords' => ['technical', 'service', 'cleanliness', 'billing', 'wait time', 'staff'],
-        'staff_topic_keywords' => ['helpful', 'friendly', 'rude', 'professional', 'slow', 'ignored'],
     ],
 
     /*
@@ -190,13 +182,7 @@ return [
     */
 
     'training' => [
-        // Mapping of keywords to training skills (Anchors for categorization)
-        'skill_mapping' => [
-            '/wait|slow|delay/i' => 'Operational Efficiency',
-            '/rude|unprofessional|attitude/i' => 'Soft Skills & Empathy',
-            '/error|wrong|incorrect/i' => 'Accuracy & Detail',
-            '/clean|dirty|mess/i' => 'Hygiene & Standards',
-        ],
+
 
         // Staff evaluations
         'staff_evaluations' => [

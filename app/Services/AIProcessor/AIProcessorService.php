@@ -56,40 +56,48 @@ class AIProcessorService
             return [];
         }
 
-        // Get issue patterns dynamically from rule engine
-        $issuePatterns = resolve(RuleEngineService::class)->getIssuePatterns($reviews);
-
+        $businessId = $reviews->first()->business_id ?? 0;
         $results = [];
 
-        foreach ($reviews as $review) {
-            if (empty($review->comment)) {
-                continue;
+        // Method 1: Check InsightRecord (Pre-aggregated by Cron)
+        if ($businessId) {
+            $insights = InsightRecord::where('business_id', $businessId)
+                ->where('mentions_count', '>=', 2)
+                ->orderByDesc('mentions_count')
+                ->limit(5)
+                ->get();
+
+            if ($insights->isNotEmpty()) {
+                return $insights->map(function ($insight) {
+                    return [
+                        'topic' => $insight->main_category,
+                        'count' => $insight->mentions_count,
+                        'description' => "Common issues related to {$insight->main_category} ({$insight->sub_category})",
+                        'severity' => $insight->severity,
+                        'trend' => $insight->trend
+                    ];
+                })->toArray();
             }
+        }
 
-            $comment = strtolower(trim($review->comment));
+        // Method 2: Fallback - On-the-fly aggregation from AI payloads
+        foreach ($reviews as $review) {
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
 
-            foreach ($issuePatterns as $topic => $patternData) {
-                $matched = false;
-
-                foreach ($patternData['keywords'] as $keyword) {
-                    if (strpos($comment, $keyword) !== false) {
-                        $matched = true;
-                        break;
-                    }
+            $categories = $openaiData['category_analysis'] ?? [];
+            foreach ($categories as $cat) {
+                $topic = $cat['main_category'] ?? 'General';
+                if (!isset($results[$topic])) {
+                    $results[$topic] = [
+                        'topic' => $topic,
+                        'count' => 0,
+                        'description' => "Issues related to $topic",
+                        'severity' => $cat['severity'] ?? 'low'
+                    ];
                 }
-
-                if ($matched) {
-                    if (!isset($results[$topic])) {
-                        $results[$topic] = [
-                            'topic' => $topic,
-                            'count' => 0,
-                            'description' => $patternData['description'],
-                            'keyword_matches' => []
-                        ];
-                    }
-
-                    $results[$topic]['count']++;
-                }
+                $results[$topic]['count']++;
             }
         }
 
@@ -98,7 +106,7 @@ class AIProcessorService
             return $b['count'] <=> $a['count'];
         });
 
-        return $sortedResults;
+        return array_slice($sortedResults, 0, 5);
     }
 
 
@@ -366,44 +374,42 @@ class AIProcessorService
         $recommendations = [];
         $totalReviews = $reviews->count();
 
-        $debugInfo = [
-            'total_reviews' => $totalReviews,
-            'positive_reviews' => 0,
-            'has_comments' => 0
-        ];
-
-        // Get thresholds from rule engine
+        // Use thresholds from rule engine for grouping
         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
         $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold);
-        $debugInfo['positive_reviews'] = $positiveReviews->count();
 
-        $reviewsWithComments = $reviews->filter(function ($review) {
-            return !empty(trim($review->comment ?? ''));
-        });
-        $debugInfo['has_comments'] = $reviewsWithComments->count();
+        // Analyze staff intelligence directly from AI payloads
+        $staffPerformance = [];
+        foreach ($positiveReviews as $review) {
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
 
-        // Use rule engine to detect staff praise
-        $staffPraise = $this->ruleEngineService->detectStaffPraise($positiveReviews);
+            $staffEvaluation = $openaiData['staff_intelligence']['performance_evaluation'] ?? null;
+            if ($staffEvaluation) {
+                $staffPerformance[] = $staffEvaluation;
+            }
+        }
 
-        if ($staffPraise['count'] >= $this->ruleEngineService->getMinimumPraiseForRecommendation()) {
+        if (count($staffPerformance) >= 3) {
             $recommendations[] = [
                 'type' => 'Strength',
-                'title' => $staffPraise['title'],
-                'description' => $staffPraise['description'],
-                'evidence_count' => $staffPraise['count'],
+                'title' => 'Positive Staff Mentions',
+                'description' => 'Customers are consistently praising staff performance and professionalism.',
+                'evidence_count' => count($staffPerformance),
                 'priority' => 'low'
             ];
         }
 
-        // Find common issues dynamically
+        // Find common issues using the AI-driven method
         $issues = self::findCommonIssues($reviews);
 
         foreach ($issues as $issue) {
-            if ($issue['count'] >= $this->ruleEngineService->getMinimumMentionsForIssue() && count($recommendations) < 3) {
+            if ($issue['count'] >= 2 && count($recommendations) < 3) {
                 $recommendations[] = [
                     'type' => 'Weak Area',
                     'title' => $issue['topic'],
-                    'description' => $issue['description'] . " (mentioned {$issue['count']} times)",
+                    'description' => "Recognized trend in the '{$issue['topic']}' category. (mentioned {$issue['count']} times)",
                     'evidence_count' => $issue['count'],
                     'priority' => $issue['count'] >= $this->ruleEngineService->getHighPriorityThreshold() ? 'high' : 'medium'
                 ];
@@ -413,9 +419,8 @@ class AIProcessorService
         if (empty($recommendations)) {
             $recommendations[] = [
                 'type' => 'Info',
-                'title' => 'Insufficient Feedback Data',
-                'description' => 'Not enough specific feedback to generate recommendations.',
-                'debug_info' => $debugInfo
+                'title' => 'Insufficient Qualitative Data',
+                'description' => 'Not enough specific feedback patterns to generate automated recommendations.'
             ];
         }
 
@@ -550,20 +555,18 @@ class AIProcessorService
         $topicCounts = [];
 
         foreach ($reviews as $review) {
-            if ($review->topics && is_array($review->topics)) {
-                foreach ($review->topics as $topic) {
-                    $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
-                }
-            }
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
 
-            if ($review->comment) {
-                $commonTopics = $this->ruleEngineService->getCommonTopicKeywords();
-                $comment = strtolower($review->comment);
+            $categories = $openaiData['category_analysis'] ?? [];
+            foreach ($categories as $cat) {
+                $topic = $cat['main_category'] ?? 'General';
+                $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
 
-                foreach ($commonTopics as $topic) {
-                    if (strpos($comment, $topic) !== false) {
-                        $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
-                    }
+                if (isset($cat['sub_category'])) {
+                    $sub = $cat['sub_category'];
+                    $topicCounts[$sub] = ($topicCounts[$sub] ?? 0) + 1;
                 }
             }
         }
@@ -733,21 +736,14 @@ class AIProcessorService
         $topicCounts = [];
 
         foreach ($reviews as $review) {
-            if ($review->topics && is_array($review->topics)) {
-                foreach ($review->topics as $topic) {
-                    $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
-                }
-            }
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
 
-            if ($review->comment) {
-                $commonTopics = $this->ruleEngineService->getCommonTopicKeywords();
-                $comment = strtolower($review->comment);
-
-                foreach ($commonTopics as $topic) {
-                    if (strpos($comment, $topic) !== false) {
-                        $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
-                    }
-                }
+            $categories = $openaiData['category_analysis'] ?? [];
+            foreach ($categories as $cat) {
+                $topic = $cat['main_category'] ?? 'General';
+                $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
             }
         }
 
@@ -1401,19 +1397,10 @@ class AIProcessorService
      */
     public function extractIssuesFromSuggestions($suggestions, $reviews = null)
     {
-        $issueKeywords = $this->ruleEngineService->getIssueKeywords($reviews);
-
+        // suggestions are already pre-extracted issues from OpenAI
         $issues = collect($suggestions)
-            ->filter(function ($s) use ($issueKeywords) {
-                foreach ($issueKeywords as $keyword) {
-                    if ($keyword && stripos((string)$s, (string)$keyword) !== false) {
-                        return true;
-                    }
-                }
-                return false;
-            })
             ->map(fn($s) => [
-                'issue' => $s,
+                'issue' => (string)$s,
                 'mention_count' => 1
             ])
             ->take(3)
@@ -1421,7 +1408,7 @@ class AIProcessorService
 
         return $issues->isEmpty() ? [
             [
-                'issue' => 'No major issues detected.',
+                'issue' => 'Analysis completed.',
                 'mention_count' => 0
             ]
         ] : $issues->toArray();
