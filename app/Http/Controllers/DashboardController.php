@@ -1227,14 +1227,14 @@ class DashboardController extends Controller
         // 6. Flagged reviews (reviews below threshold)
         $flagged_reviews = (clone $queries['base_review'])
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->whereDoesNotMeetsThreshold($businessId)
+            ->whereDoesNotMeetsThreshold()
             ->count();
 
         // 7. CSAT Score (percentage of reviews meeting threshold)
         $totalReviewsInPeriod = $currentPeriodReviews;
         $csatReviewsCount = (clone $queries['base_review'])
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->whereMeetsThreshold($businessId)
+            ->whereMeetsThreshold()
             ->count();
 
         $csatPercentage = $totalReviewsInPeriod > 0
@@ -1244,7 +1244,7 @@ class DashboardController extends Controller
         // 8. Calculate CSAT percentage change vs previous period
         $previousPeriodCSATCount = (clone $queries['base_review'])
             ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
-            ->whereMeetsThreshold($businessId)
+            ->whereMeetsThreshold()
             ->count();
 
         $previousPeriodTotalReviews = $previousPeriodReviews;

@@ -34,7 +34,7 @@ class ReviewMetricsService
 
         // Query for reviews meeting threshold
         $qualifyingCount = (clone $totalQuery)
-            ->whereMeetsThreshold($businessId)
+            ->whereMeetsThreshold()
             ->count();
 
         $score = $totalCount > 0 ? round(($qualifyingCount / $totalCount) * 100, 1) : 0;
@@ -74,7 +74,7 @@ class ReviewMetricsService
 
         // Count flagged reviews using scope
         $flaggedCount = (clone $baseQuery)
-            ->whereDoesNotMeetsThreshold($businessId)
+            ->whereDoesNotMeetsThreshold()
             ->count();
 
         $percentage = $totalCount > 0 ? round(($flaggedCount / $totalCount) * 100, 1) : 0;
@@ -94,9 +94,30 @@ class ReviewMetricsService
      */
     public function calculateSentimentBreakdown($reviews): array
     {
-        $positiveCount = $reviews->where('sentiment', 'positive')->count();
-        $negativeCount = $reviews->where('sentiment', 'negative')->count();
-        $neutralCount = $reviews->where('sentiment', 'neutral')->count();
+        // Use a more robust counting method that handles missing labels
+        $counts = [
+            'positive' => 0,
+            'negative' => 0,
+            'neutral' => 0
+        ];
+
+        foreach ($reviews as $review) {
+            $label = $review->sentiment_label;
+
+            // Fallback to score if label is missing
+            if (!$label && isset($review->sentiment_score)) {
+                $label = \App\Services\Rule\RuleEngineService::getSentimentLabelFromScore($review->sentiment_score);
+            }
+
+            $label = $label ?: 'neutral';
+            if (isset($counts[$label])) {
+                $counts[$label]++;
+            }
+        }
+
+        $positiveCount = $counts['positive'];
+        $negativeCount = $counts['negative'];
+        $neutralCount = $counts['neutral'];
         $totalCount = $reviews->count();
 
         $currentSentimentScore = $reviews->avg('sentiment_score') ?? 0;

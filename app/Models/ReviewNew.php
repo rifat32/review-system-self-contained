@@ -43,7 +43,6 @@ class ReviewNew extends Model
 
         "is_ai_processed",
         'sentiment_score',
-        'sentiment',
         'emotion',
         'key_phrases',
         'topics',
@@ -212,7 +211,7 @@ class ReviewNew extends Model
                 $q->where('review_news.is_voice_review', request()->input('is_voice_review'));
             })
             ->when($show_published_only, function ($q) use ($businessId, $is_staff_review) {
-                $q->whereMeetsThreshold($businessId, $is_staff_review);
+                $q->whereMeetsThreshold($is_staff_review);
             })
             ->when(request()->filled("question_category_id") || request()->filled("question_sub_category_id"), function ($q) {
 
@@ -308,11 +307,10 @@ class ReviewNew extends Model
 
 
 
-    public function scopeWhereMeetsThreshold($query, $businessId, $is_staff_review = 0)
+    public function scopeWhereMeetsThreshold($query, $is_staff_review = 0)
     {
-        // Get threshold rating
-        $business = Business::find($businessId);
-        $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
+        // Get global threshold rating from AI config
+        $thresholdRating = (float) config('ai.sentiment.thresholds.csat', 4.0);
 
         return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
             $subQuery->select(DB::raw(1))
@@ -341,11 +339,10 @@ class ReviewNew extends Model
     }
 
 
-    public function scopeWhereDoesNotMeetsThreshold($query, $businessId, $is_staff_review = 0)
+    public function scopeWhereDoesNotMeetsThreshold($query, $is_staff_review = 0)
     {
-        // Get threshold rating
-        $business = Business::find($businessId);
-        $thresholdRating = $business->threshold_rating ?? 3; // Default to 3
+        // Get global threshold rating from AI config
+        $thresholdRating = (float) config('ai.sentiment.thresholds.csat', 4.0);
 
         return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
             $subQuery->select(DB::raw(1))

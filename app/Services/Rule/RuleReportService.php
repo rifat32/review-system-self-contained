@@ -61,7 +61,15 @@ class RuleReportService
         ];
 
         foreach ($reviews as $review) {
-            $sentiment = $review->sentiment ?? 'neutral';
+            $sentiment = $review->sentiment_label;
+
+            // Fallback to score if label is missing
+            if (!$sentiment && isset($review->sentiment_score)) {
+                $sentiment = RuleEngineService::getSentimentLabelFromScore($review->sentiment_score);
+            }
+
+            $sentiment = $sentiment ?: 'neutral';
+
             if (isset($sentimentCounts[$sentiment])) {
                 $sentimentCounts[$sentiment]++;
             }
@@ -87,8 +95,12 @@ class RuleReportService
             ],
             'trends' => $this->getSentimentTrends($businessId, $startDate, $endDate),
             'sample_reviews' => [
-                'positive' => $reviews->where('sentiment', 'positive')->take(5)->values(),
-                'negative' => $reviews->where('sentiment', 'negative')->take(5)->values()
+                'positive' => $reviews->filter(function ($r) {
+                    return $r->sentiment_label === 'positive' || ($r->sentiment_label === null && $r->sentiment_score >= RuleEngineService::getPositiveSentimentThreshold());
+                })->take(5)->values(),
+                'negative' => $reviews->filter(function ($r) {
+                    return $r->sentiment_label === 'negative' || ($r->sentiment_label === null && $r->sentiment_score <= RuleEngineService::getNegativeSentimentThreshold());
+                })->take(5)->values()
             ]
         ];
     }
@@ -137,12 +149,20 @@ class RuleReportService
 
         $reviews = $query->get();
 
-        $highRatingNegativeComment = $reviews->filter(function ($review) {
-            return ($review->calculated_rating ?? 0) >= 4 && $review->sentiment === 'negative';
+        $highRatingNegativeComment = $reviews->filter(function ($review) use ($businessId) {
+            $label = $review->sentiment_label;
+            if (!$label && isset($review->sentiment_score)) {
+                $label = RuleEngineService::getSentimentLabelFromScore($review->sentiment_score, $businessId);
+            }
+            return ($review->calculated_rating ?? 0) >= 4 && $label === 'negative';
         });
 
-        $lowRatingPositiveComment = $reviews->filter(function ($review) {
-            return ($review->calculated_rating ?? 0) <= 2 && $review->sentiment === 'positive';
+        $lowRatingPositiveComment = $reviews->filter(function ($review) use ($businessId) {
+            $label = $review->sentiment_label;
+            if (!$label && isset($review->sentiment_score)) {
+                $label = RuleEngineService::getSentimentLabelFromScore($review->sentiment_score, $businessId);
+            }
+            return ($review->calculated_rating ?? 0) <= 2 && $label === 'positive';
         });
 
         $totalMismatches = $highRatingNegativeComment->count() + $lowRatingPositiveComment->count();
@@ -233,9 +253,9 @@ class RuleReportService
         $query = ReviewNew::where('business_id', $businessId)
             ->select(
                 DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(CASE WHEN sentiment = "positive" THEN 1 ELSE 0 END) as positive'),
-                DB::raw('SUM(CASE WHEN sentiment = "neutral" THEN 1 ELSE 0 END) as neutral'),
-                DB::raw('SUM(CASE WHEN sentiment = "negative" THEN 1 ELSE 0 END) as negative')
+                DB::raw('SUM(CASE WHEN sentiment_label = "positive" THEN 1 ELSE 0 END) as positive'),
+                DB::raw('SUM(CASE WHEN sentiment_label = "neutral" THEN 1 ELSE 0 END) as neutral'),
+                DB::raw('SUM(CASE WHEN sentiment_label = "negative" THEN 1 ELSE 0 END) as negative')
             )
             ->groupBy('date')
             ->orderBy('date', 'desc')

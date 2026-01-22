@@ -1296,12 +1296,13 @@ PROMPT;
             // Convert to database format
             $dbData = $this->convertForDatabase($openAIResult, $review, $enabledModules);
 
+            // Update the review model BEFORE rule evaluation so rules can access the data
+            $review->fill($dbData);
 
             $ruleResults = $this->ruleEngineService->evaluateReviewRules($review, $openAIResult);
             Log::info('Review rules evaluated', ['results' => $ruleResults]);
 
-            // Update the review
-            $review->fill($dbData);
+            // Save the updated review
             $review->save();
 
             Log::info('Review analysis completed', [
@@ -1715,7 +1716,7 @@ PROMPT;
 
         $dbData = [
             'sentiment_score' => $result['sentiment']['score'] ?? 0,
-            'sentiment_label' => $result['sentiment']['label'] ?? 'Neutral',
+            'sentiment_label' => strtolower($result['sentiment']['label'] ?? 'neutral'),
             'emotion' => $result['emotion'] ?? 'neutral',
             'is_abusive' => $result['flagging']['is_abusive'] ?? false,
             'is_ai_processed' => true,
@@ -1770,14 +1771,14 @@ PROMPT;
         $rating = $payload['rating'] ?? 3;
 
         // Simple sentiment mapping based on rating
-        $sentimentLabel = 'Neutral';
+        $sentimentLabel = 'neutral';
         $sentimentScore = 0;
 
         if ($rating >= 4) {
-            $sentimentLabel = 'Positive';
+            $sentimentLabel = 'positive';
             $sentimentScore = 0.8;
         } elseif ($rating <= 2) {
-            $sentimentLabel = 'Negative';
+            $sentimentLabel = 'negative';
             $sentimentScore = -0.8;
         }
 

@@ -56,8 +56,8 @@ class AIProcessorService
             return [];
         }
 
-        // Get issue patterns from rule engine
-        $issuePatterns = RuleEngineService::getIssuePatterns();
+        // Get issue patterns dynamically from rule engine
+        $issuePatterns = resolve(RuleEngineService::class)->getIssuePatterns($reviews);
 
         $results = [];
 
@@ -1399,14 +1399,14 @@ class AIProcessorService
     /**
      * Extract issues from suggestions dynamically
      */
-    public function extractIssuesFromSuggestions($suggestions)
+    public function extractIssuesFromSuggestions($suggestions, $reviews = null)
     {
-        $issueKeywords = $this->ruleEngineService->getIssueKeywords();
+        $issueKeywords = $this->ruleEngineService->getIssueKeywords($reviews);
 
         $issues = collect($suggestions)
             ->filter(function ($s) use ($issueKeywords) {
                 foreach ($issueKeywords as $keyword) {
-                    if (stripos($s, $keyword) !== false) {
+                    if ($keyword && stripos((string)$s, (string)$keyword) !== false) {
                         return true;
                     }
                 }
@@ -1568,7 +1568,7 @@ class AIProcessorService
             ];
         }
 
-        $commonIssues = self::findCommonIssues($reviews);
+        $commonIssues = $this->findCommonIssues($reviews);
         $totalReviews = $reviews->count();
         $issuesWithPercentages = [];
 

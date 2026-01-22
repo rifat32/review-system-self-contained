@@ -535,7 +535,7 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // RuleReportController - Default Rule-Based Reports (NEW)
     // ============================================================================
-    Route::prefix('reports')->group(function () {
+    Route::prefix('v1.0/reports')->group(function () {
         // 1. Sentiment Analysis Report
         Route::get('/sentiment-analysis', [RuleReportController::class, 'sentimentAnalysis']);
 

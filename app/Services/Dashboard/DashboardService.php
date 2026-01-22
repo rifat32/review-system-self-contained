@@ -162,7 +162,7 @@ class DashboardService
                     $dateRange['start']->copy()->subDays(30),
                     $dateRange['end']->copy()->subDays(30)
                 ])
-                ->whereMeetsThreshold($businessId)
+                ->whereMeetsThreshold()
                 ->globalReviewFilters(0, $businessId)
                 ->count();
 

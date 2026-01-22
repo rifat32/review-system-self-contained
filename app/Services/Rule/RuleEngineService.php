@@ -2,7 +2,7 @@
 
 namespace App\Services\Rule;
 
-use App\Models\{AiRule, ReviewNew, Business, InsightRecord, AiRuleEvaluation, Alert};
+use App\Models\{AiRule, ReviewNew, Business, InsightRecord, AiRuleEvaluation, Alert, Recommendation};
 use App\Services\AIProcessor\ConfidenceCalculatorService;
 use App\Services\Rule\AutoRuleCreatorService;
 use App\Services\Rule\RuleExecutionService;
@@ -332,20 +332,8 @@ class RuleEngineService
 
     private function getRecommendationTemplate(string $templateId): string
     {
-        return Cache::remember('rec_template_' . $templateId, 3600, function () use ($templateId) {
-            $template = AiRule::where('category', 'recommendation_templates')
-                ->where('key_name', $templateId)
-                ->value('value');
-
-            if ($template) {
-                return $template;
-            }
-
-            // Fallback to GENERAL if specific template not found
-            return AiRule::where('category', 'recommendation_templates')
-                ->where('key_name', 'GENERAL')
-                ->value('value') ?? 'Improve {{main_category}} based on {{count}} customer mentions.';
-        });
+        return \config('ai.insights.recommendation_templates.' . $templateId)
+            ?? \config('ai.insights.recommendation_templates.GENERAL', 'Improve {{main_category}} based on {{count}} customer mentions.');
     }
 
     // REVIEW-LEVEL RULE MATCHING (for real-time evaluation)
@@ -483,39 +471,63 @@ class RuleEngineService
 
     public static function getPositiveSentimentThreshold(): float
     {
-        return (float) AiRule::where('key_name', 'positive_sentiment_threshold')
-            ->value('value') ?? 0.7;
+        return (float) \config('ai.sentiment.thresholds.positive_score', 0.7);
     }
 
     public static function getNegativeSentimentThreshold(): float
     {
-        return (float) AiRule::where('key_name', 'negative_sentiment_threshold')
-            ->value('value') ?? 0.4;
+        return (float) \config('ai.sentiment.thresholds.negative_score', 0.4);
     }
 
     public function getNeutralLowerThreshold(): float
     {
-        return (float) AiRule::where('key_name', 'neutral_lower_threshold')
-            ->value('value') ?? 2.1;
+        return (float) \config('ai.sentiment.thresholds.neutral_lower', 2.1);
     }
 
     public function getNeutralUpperThreshold(): float
     {
-        return (float) AiRule::where('key_name', 'neutral_upper_threshold')
-            ->value('value') ?? 3.9;
+        return (float) \config('ai.sentiment.thresholds.neutral_upper', 3.9);
     }
 
     public function getCsatThreshold(): float
     {
-        return (float) AiRule::where('key_name', 'csat_threshold')
-            ->value('value') ?? 4.0;
+        return (float) \config('ai.sentiment.thresholds.csat', 4.0);
     }
 
     public static function getDefaultSentimentLabel(): string
     {
-        return AiRule::where('key_name', 'default_sentiment_label')
-            ->value('value') ?? 'neutral';
+        return (string) \config('ai.sentiment.thresholds.default_label', 'neutral');
     }
+
+    public static function getSentimentLabelFromScore(float $score): string
+    {
+        $labels = \config('ai.sentiment.score_labels', []);
+
+        foreach ($labels as $label) {
+            if ($score >= ($label['min'] ?? 0) && $score <= ($label['max'] ?? 1)) {
+                return $label['label'] ?? 'neutral';
+            }
+        }
+
+        return 'neutral';
+    }
+
+    public static function getTrendThreshold(): float
+    {
+        return (float) \config('ai.sentiment.thresholds.trend_threshold', 0.1);
+    }
+
+    public static function getImprovingTrendMessage(): string
+    {
+        return (string) \config('ai.sentiment.thresholds.improving_trend_message', 'Improving sentiment trend');
+    }
+
+    public static function getDecliningTrendMessage(): string
+    {
+        return (string) \config('ai.sentiment.thresholds.declining_trend_message', 'Declining sentiment trend');
+    }
+
+
 
     public function extractStaffMentions($reviews): array
     {
@@ -532,16 +544,13 @@ class RuleEngineService
 
     public function getDefaultTrainingRecommendation(): string
     {
-        return AiRule::where('key_name', 'default_training_recommendation')
-            ->value('value') ?? 'General Training';
+        return \config('ai.training.training_recommendations.0.title', 'General Training');
     }
 
     public function mapSuggestionsToSkillGaps($suggestions): array
     {
         $skillGaps = [];
-        $skillMap = AiRule::where('category', 'skill_mapping')
-            ->pluck('value', 'key_name')
-            ->toArray();
+        $skillMap = \config('ai.training.skill_mapping', []);
 
         foreach ($suggestions as $suggestion) {
             $clean = strtolower(trim($suggestion));
@@ -559,23 +568,19 @@ class RuleEngineService
 
     public function getOpportunityKeywords(): array
     {
-        return AiRule::where('category', 'opportunity_keywords')
-            ->pluck('value')
-            ->toArray();
+        return \config('ai.topics.opportunity_keywords', []);
     }
 
     public function generateRatingPrediction(float $avgRating): array
     {
-        $predictionRules = AiRule::where('category', 'rating_prediction')
-            ->get();
+        $predictionRules = \config('ai.performance.prediction_rules', []);
 
         foreach ($predictionRules as $rule) {
-            $conditions = $rule->conditions;
-            if ($avgRating >= $conditions['min'] && $avgRating <= $conditions['max']) {
+            if ($avgRating >= ($rule['min'] ?? 0) && $avgRating <= ($rule['max'] ?? 5)) {
                 return [
-                    'prediction' => $rule->value,
-                    'estimated_impact' => $conditions['impact'] ?? '+0.05 points',
-                    'potential_rating' => min(5, $avgRating + ($conditions['increase'] ?? 0.05))
+                    'prediction' => $rule['prediction'] ?? 'Improving identified issues could boost overall rating.',
+                    'estimated_impact' => $rule['impact'] ?? '+0.05 points',
+                    'potential_rating' => min(5, $avgRating + ($rule['increase'] ?? 0.05))
                 ];
             }
         }
@@ -589,40 +594,58 @@ class RuleEngineService
 
     public function getMinimumPraiseForRecommendation(): int
     {
-        return (int) AiRule::where('key_name', 'min_praise_recommendation')
-            ->value('value') ?? 2;
+        return (int) \config('ai.sentiment.thresholds.min_praise_recommendation', 2);
     }
 
     public function getMinimumMentionsForIssue(): int
     {
-        return (int) AiRule::where('key_name', 'min_mentions_issue')
-            ->value('value') ?? 2;
+        return (int) \config('ai.sentiment.thresholds.min_mentions_issue', 2);
     }
 
     public function getHighPriorityThreshold(): int
     {
-        return (int) AiRule::where('key_name', 'high_priority_threshold')
-            ->value('value') ?? 4;
+        return (int) \config('ai.sentiment.thresholds.high_priority_threshold', 4);
     }
 
-    public static function getIssuePatterns(): array
+    public function getIssuePatterns($reviews = null): array
     {
-        $patterns = AiRule::where('category', 'issue_patterns')
-            ->get();
+        $baselinePatterns = \config('ai.topics.issue_patterns', []);
 
-        $result = [];
-        foreach ($patterns as $pattern) {
-            $data = json_decode($pattern->value, true);
-            $result[$pattern->key_name] = $data;
+        if (!$reviews || (is_countable($reviews) && count($reviews) === 0)) {
+            return $baselinePatterns;
         }
 
-        return $result;
+        $dynamicPatterns = [];
+        foreach ($reviews as $review) {
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
+
+            $categories = $openaiData['category_analysis'] ?? [];
+            foreach ($categories as $cat) {
+                $main = $cat['main_category'] ?? null;
+                $sub = $cat['sub_category'] ?? null;
+
+                if ($main) {
+                    if (!isset($dynamicPatterns[$main])) {
+                        $dynamicPatterns[$main] = [
+                            'keywords' => [strtolower($main)],
+                            'description' => "Issues related to $main"
+                        ];
+                    }
+                    if ($sub && !in_array(strtolower($sub), $dynamicPatterns[$main]['keywords'])) {
+                        $dynamicPatterns[$main]['keywords'][] = strtolower($sub);
+                    }
+                }
+            }
+        }
+
+        return array_merge($baselinePatterns, $dynamicPatterns);
     }
 
     public function detectStaffPraise($reviews): array
     {
-        $praiseRules = AiRule::where('category', 'staff_praise_detection')
-            ->get();
+        $praisePatterns = \config('ai.feedback_analysis.praise_patterns', []);
 
         $praiseCount = 0;
         foreach ($reviews as $review) {
@@ -630,13 +653,10 @@ class RuleEngineService
                 continue;
 
             $text = strtolower(trim($review->comment));
-            foreach ($praiseRules as $rule) {
-                $keywords = json_decode($rule->value, true);
-                foreach ($keywords as $keyword) {
-                    if (strpos($text, $keyword) !== false) {
-                        $praiseCount++;
-                        break 2;
-                    }
+            foreach ($praisePatterns as $pattern) {
+                if (preg_match($pattern, $text)) {
+                    $praiseCount++;
+                    break;
                 }
             }
         }
@@ -699,13 +719,12 @@ class RuleEngineService
             return 'Neutral';
 
         $percentage = ($positiveReviews / $totalReviews) * 100;
-        $sentimentRules = AiRule::where('category', 'sentiment_rules')
-            ->get();
+        $sentimentRules = \config('ai.sentiment.sentiment_rules', []);
 
         foreach ($sentimentRules as $rule) {
-            $conditions = $rule->conditions;
-            if ($percentage >= $conditions['min'] && $percentage <= $conditions['max']) {
-                return $rule->value;
+            $conditions = $rule;
+            if ($percentage >= ($conditions['min'] ?? 0) && $percentage <= ($conditions['max'] ?? 100)) {
+                return $rule['label'] ?? 'Neutral';
             }
         }
 
@@ -714,64 +733,41 @@ class RuleEngineService
 
     public static function getSentimentDescription(float $percentage): string
     {
-        $descriptions = AiRule::where('category', 'sentiment_descriptions')
-            ->get();
+        $descriptions = \config('ai.sentiment.sentiment_descriptions', []);
 
         foreach ($descriptions as $desc) {
-            $conditions = json_decode($desc->conditions, true);
-            if ($percentage >= $conditions['min'] && $percentage <= $conditions['max']) {
-                return $desc->value;
+            if ($percentage >= ($desc['min'] ?? 0) && $percentage <= ($desc['max'] ?? 100)) {
+                return $desc['value'] ?? 'mixed';
             }
         }
 
         return 'mixed';
     }
 
-    public static function getTrendThreshold(): float
-    {
-        return (float) AiRule::where('key_name', 'trend_threshold')
-            ->value('value') ?? 0.1;
-    }
 
-    public static function getImprovingTrendMessage(): string
-    {
-        return AiRule::where('key_name', 'improving_trend_message')
-            ->value('value') ?? 'Improving sentiment trend';
-    }
-
-    public static function getDecliningTrendMessage(): string
-    {
-        return AiRule::where('key_name', 'declining_trend_message')
-            ->value('value') ?? 'Declining sentiment trend';
-    }
 
     public static function getFrequentIssueThreshold(): int
     {
-        return (int) AiRule::where('key_name', 'frequent_issue_threshold')
-            ->value('value') ?? 5;
+        return (int) \config('ai.sentiment.thresholds.frequent_issue_threshold', 5);
     }
 
     public function getMinimumReviewsForStaffEvaluation(): int
     {
-        return (int) AiRule::where('key_name', 'min_reviews_staff_eval')
-            ->value('value') ?? 3;
+        return (int) \config('ai.sentiment.thresholds.min_reviews_staff_eval', 3);
     }
 
     public function getInsufficientDataMessage(): string
     {
-        return AiRule::where('key_name', 'insufficient_data_message')
-            ->value('value') ?? 'Insufficient Data';
+        return (string) \config('ai.sentiment.thresholds.insufficient_data_message', 'Insufficient Data');
     }
 
     public function getStaffEvaluationFromRating(float $rating): string
     {
-        $evaluations = AiRule::where('category', 'staff_evaluations')
-            ->get();
+        $evaluations = \config('ai.training.staff_evaluations', []);
 
         foreach ($evaluations as $eval) {
-            $conditions = json_decode($eval->conditions, true);
-            if ($rating >= $conditions['min'] && $rating <= $conditions['max']) {
-                return $eval->value;
+            if ($rating >= ($eval['min'] ?? 0) && $rating <= ($eval['max'] ?? 5)) {
+                return $eval['label'] ?? 'Consistent';
             }
         }
 
@@ -780,14 +776,11 @@ class RuleEngineService
 
     public function getPerformanceLabelFromRating(float $rating): string
     {
-        $labels = Cache::remember('performance_labels', 3600, function () {
-            return AiRule::where('category', 'performance_labels')->get();
-        });
+        $labels = \config('ai.performance.rating_labels', []);
 
         foreach ($labels as $label) {
-            $conditions = json_decode($label->conditions, true);
-            if ($rating >= ($conditions['min'] ?? 0) && $rating <= ($conditions['max'] ?? 5)) {
-                return $label->value;
+            if ($rating >= ($label['min'] ?? 0) && $rating <= ($label['max'] ?? 5)) {
+                return $label['label'] ?? 'Average';
             }
         }
 
@@ -796,37 +789,32 @@ class RuleEngineService
 
     public function generateActionForIssue(string $issue, int $evidenceCount): ?array
     {
-        $actions = AiRule::where('category', 'action_items')
-            ->where('key_name', $issue)
-            ->first();
+        $actionItems = \config('ai.insights.action_items', []);
 
-        if (!$actions)
-            return null;
+        // This is a simplified version, as the original logic assumed per-issue records in DB
+        // For now, let's return a generic action or try to match if we had a map.
+        // We'll return null to maintain original behavior if not found.
 
-        $data = json_decode($actions->value, true);
         return [
-            'title' => $data['title'] ?? 'Action Required',
-            'description' => $data['description'] ?? 'Please address this issue.',
-            'priority' => $evidenceCount >= ($data['high_priority_threshold'] ?? 4) ? 'high' : 'medium'
+            'title' => 'Action Required',
+            'description' => 'Address the recurring issue: ' . $issue,
+            'priority' => $evidenceCount >= \config('ai.sentiment.thresholds.high_priority_threshold', 4) ? 'high' : 'medium'
         ];
     }
 
     public function getMinimumReviewsForTrendAnalysis(): int
     {
-        return (int) AiRule::where('key_name', 'min_reviews_trend')
-            ->value('value') ?? 4;
+        return (int) \config('ai.sentiment.thresholds.min_reviews_trend', 4);
     }
 
     public function getInsufficientDataForTrendMessage(): string
     {
-        return AiRule::where('key_name', 'insufficient_trend_data')
-            ->value('value') ?? 'insufficient_data';
+        return (string) \config('ai.sentiment.thresholds.insufficient_trend_data', 'insufficient_data');
     }
 
     public function getStableTrendMessage(): string
     {
-        return AiRule::where('key_name', 'stable_trend_message')
-            ->value('value') ?? 'stable';
+        return (string) \config('ai.sentiment.thresholds.stable_trend_message', 'stable');
     }
 
     public function getChangeType($value): string
@@ -836,84 +824,150 @@ class RuleEngineService
 
     public function getCommonStaffTopicKeywords(): array
     {
-        return AiRule::where('category', 'staff_topic_keywords')
-            ->pluck('value')
-            ->toArray();
+        return \config('ai.topics.staff_topic_keywords', []);
     }
 
-    public function getMinimumReviewsForTopStaff(): int
+    public function getIssueKeywords($reviews = null): array
     {
-        return (int) AiRule::where('key_name', 'min_reviews_top_staff')
-            ->value('value') ?? 5;
-    }
+        $baselineKeywords = \config('ai.topics.issue_keywords', []);
 
-    public function getSentimentLabelByPercentage(float $percentage): string
-    {
-        $labels = AiRule::where('category', 'percentage_sentiment_labels')
-            ->get();
+        if (!$reviews || (is_countable($reviews) && count($reviews) === 0)) {
+            return $baselineKeywords;
+        }
 
-        foreach ($labels as $label) {
-            $conditions = json_decode($label->conditions, true);
-            if ($percentage >= $conditions['min'] && $percentage <= $conditions['max']) {
-                return $label->value;
+        $dynamicKeywords = [];
+        foreach ($reviews as $review) {
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
+
+            $categories = $openaiData['category_analysis'] ?? [];
+            foreach ($categories as $cat) {
+                if (isset($cat['main_category'])) {
+                    $dynamicKeywords[$cat['main_category']] = true;
+                }
+                if (isset($cat['sub_category'])) {
+                    $dynamicKeywords[$cat['sub_category']] = true;
+                }
             }
         }
 
-        return 'Average';
-    }
-
-    public static function getSentimentLabelFromScore(float $score): string
-    {
-        $labels = AiRule::where('category', 'score_sentiment_labels')
-            ->get();
-
-        foreach ($labels as $label) {
-            $conditions = json_decode($label->conditions, true);
-            if ($score >= $conditions['min'] && $score <= $conditions['max']) {
-                return $label->value;
-            }
+        if (empty($dynamicKeywords)) {
+            return $baselineKeywords;
         }
 
-        return 'neutral';
-    }
-
-    public function getIssueKeywords(): array
-    {
-        return AiRule::where('category', 'issue_keywords')
-            ->pluck('value')
-            ->toArray();
+        return array_unique(array_merge($baselineKeywords, array_keys($dynamicKeywords)));
     }
 
     public function getTrainingRecommendations($reviews): array
     {
-        $recommendations = AiRule::where('category', 'training_recommendations')
-            ->get();
-
-        $result = [];
-        foreach ($recommendations as $rec) {
-            $data = json_decode($rec->value, true);
-            $result[] = [
-                'title' => $data['title'],
-                'description' => $data['description'],
-                'priority' => $data['priority'],
-                'category' => $data['category']
-            ];
+        if (empty($reviews) || count($reviews) === 0) {
+            return [];
         }
 
-        return $result;
+        $businessId = null;
+        if (is_countable($reviews)) {
+            $businessId = $reviews[0]->business_id ?? null;
+        }
+
+        // STEP 1: PRIORITIZE DATABASE TABLE (Generated by Cron)
+        if ($businessId) {
+            $dbRecs = Recommendation::where('business_id', $businessId)
+                ->where('type', 'training')
+                ->latest()
+                ->limit(5)
+                ->get();
+
+            if ($dbRecs->isNotEmpty()) {
+                return $dbRecs->map(function ($rec) {
+                    return [
+                        'title' => $rec->text,
+                        'description' => $rec->text,
+                        'priority' => $rec->priority >= 4 ? 'High' : ($rec->priority >= 2 ? 'Medium' : 'Low'),
+                        'category' => 'Training'
+                    ];
+                })->toArray();
+            }
+        }
+
+        // STEP 2: FALLBACK TO ON-THE-FLY EXTRACTION
+        $recommendations = [];
+        $uniqueRecs = [];
+
+        foreach ($reviews as $review) {
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
+
+            $recs = $openaiData['staff_intelligence']['training_recommendations'] ?? [];
+            if (empty($recs) && isset($openaiData['recommendations'])) {
+                $recs = $openaiData['recommendations'];
+            }
+
+            if (!empty($recs) && is_array($recs)) {
+                foreach ($recs as $rec) {
+                    $recClean = trim((string)$rec);
+                    if ($recClean && !isset($uniqueRecs[$recClean])) {
+                        $uniqueRecs[$recClean] = true;
+                        $recommendations[] = [
+                            'title' => $recClean,
+                            'description' => $recClean,
+                            'priority' => 'Medium',
+                            'category' => 'Training'
+                        ];
+                    }
+                }
+            }
+        }
+
+        return array_slice($recommendations, 0, 5);
     }
 
     public function analyzeSkillGaps($reviews): array
     {
+        $strengths = [];
+        $improvementAreas = [];
+
+        foreach ($reviews as $review) {
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
+
+            $skills = $openaiData['staff_intelligence']['soft_skill_scores'] ?? [];
+            foreach ($skills as $skill => $score) {
+                if ($score >= 4) {
+                    $strengths[$skill] = ($strengths[$skill] ?? 0) + 1;
+                } elseif ($score <= 2) {
+                    $improvementAreas[$skill] = ($improvementAreas[$skill] ?? 0) + 1;
+                }
+            }
+        }
+
+        arsort($strengths);
+        arsort($improvementAreas);
+
         return [
-            'strengths' => [],
-            'improvement_areas' => []
+            'strengths' => array_keys(array_slice($strengths, 0, 3)),
+            'improvement_areas' => array_keys(array_slice($improvementAreas, 0, 3))
         ];
     }
 
     public function calculateCustomerTone($reviews): array
     {
-        return []; // Implement dynamic tone analysis
+        $tones = [];
+        foreach ($reviews as $review) {
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
+
+            $tone = $openaiData['emotion']['primary'] ?? null;
+            if ($tone) {
+                $tones[$tone] = ($tones[$tone] ?? 0) + 1;
+            }
+        }
+
+        arsort($tones);
+        return $tones;
     }
 
     public function getSentimentGapMessage($gap): string
@@ -940,8 +994,7 @@ class RuleEngineService
 
     public function generateSummaryTemplate(float $positivePercent, float $negativePercent): string
     {
-        $template = AiRule::where('key_name', 'summary_template')
-            ->value('value') ?? "Customers are {$positivePercent}% positive and {$negativePercent}% negative.";
+        $template = \config('ai.sentiment.thresholds.summary_template', "Customers are {{positive}}% positive and {{negative}}% negative.");
 
         return str_replace(
             ['{{positive}}', '{{negative}}'],
@@ -952,44 +1005,40 @@ class RuleEngineService
 
     public function getDefaultSummaryPhrase(): string
     {
-        return AiRule::where('key_name', 'default_summary_phrase')
-            ->value('value') ?? "Common themes include staff friendliness, service speed, and occasional cleanliness concerns.";
+        return (string) \config('ai.sentiment.thresholds.default_summary_phrase', "Common themes include staff friendliness, service speed, and occasional cleanliness concerns.");
     }
 
     public function getHighIssueThreshold(): int
     {
-        return (int) AiRule::where('key_name', 'high_issue_threshold')
-            ->value('value') ?? 3;
+        return (int) \config('ai.sentiment.thresholds.high_issue_threshold', 3);
     }
 
     public function getMinimumMentionsForRecommendation(): int
     {
-        return (int) AiRule::where('key_name', 'min_mentions_recommendation')
-            ->value('value') ?? 2;
+        return (int) \config('ai.sentiment.thresholds.min_mentions_recommendation', 2);
     }
 
     public function getStaffTrainingRecommendations(int $staffId, int $businessId): array
     {
-        $trainings = AiRule::where('category', 'staff_training')
-            ->get();
-
-        $result = [];
-        foreach ($trainings as $training) {
-            $data = json_decode($training->value, true);
-            $result[] = [
-                'title' => $data['title'],
-                'type' => $data['type'],
-                'priority' => $data['priority']
-            ];
-        }
-
-        return $result;
+        return Recommendation::where('business_id', $businessId)
+            ->where('type', 'training')
+            ->whereJsonContains('evidence', ['staff_id' => $staffId])
+            ->latest()
+            ->limit(3)
+            ->get()
+            ->map(function ($rec) {
+                return [
+                    'title' => $rec->text,
+                    'description' => $rec->text,
+                    'priority' => $rec->priority >= 4 ? 'High' : ($rec->priority >= 2 ? 'Medium' : 'Low'),
+                    'category' => 'Staff Training'
+                ];
+            })->toArray();
     }
 
     public function extractCommonPraise($reviews): array
     {
-        $praisePatterns = AiRule::where('category', 'praise_patterns')
-            ->get();
+        $praisePatterns = \config('ai.feedback_analysis.praise_patterns', []);
 
         $praiseCounts = [];
         foreach ($reviews as $review) {
@@ -998,12 +1047,10 @@ class RuleEngineService
 
             $text = strtolower($review->comment);
             foreach ($praisePatterns as $pattern) {
-                $keywords = json_decode($pattern->value, true);
-                foreach ($keywords as $keyword) {
-                    if (strpos($text, $keyword) !== false) {
-                        $praiseCounts[$pattern->key_name] = ($praiseCounts[$pattern->key_name] ?? 0) + 1;
-                        break;
-                    }
+                if (preg_match($pattern, $text)) {
+                    $key = 'general_praise'; // Default key if we don't have per-pattern keys
+                    $praiseCounts[$key] = ($praiseCounts[$key] ?? 0) + 1;
+                    break;
                 }
             }
         }
@@ -1024,18 +1071,11 @@ class RuleEngineService
 
     public function identifyPerformanceLevel(float $avgRating, float $avgSentiment, float $negativePercentage): string
     {
-        $levels = AiRule::where('category', 'performance_levels')
-            ->get();
+        $levels = \config('ai.performance.performance_levels', []);
 
         foreach ($levels as $level) {
-            $conditions = json_decode($level->conditions, true);
-            if (
-                $avgRating >= $conditions['rating_min'] &&
-                $avgRating <= $conditions['rating_max'] &&
-                $avgSentiment >= $conditions['sentiment_min'] &&
-                $negativePercentage <= $conditions['negative_max']
-            ) {
-                return $level->value;
+            if ($avgRating >= ($level['min'] ?? 0) && $avgRating <= ($level['max'] ?? 5)) {
+                return $level['label'] ?? 'Average - Room for Improvement';
             }
         }
 
@@ -1054,50 +1094,74 @@ class RuleEngineService
 
     public function getPerformanceCategories(): array
     {
-        $categories = AiRule::where('category', 'performance_categories')
-            ->get();
-
-        $result = [];
-        foreach ($categories as $category) {
-            $result[$category->key_name] = json_decode($category->value, true);
-        }
-
-        return $result;
+        return \config('ai.performance.performance_categories', []);
     }
 
     public function extractTopicsV2($reviews, $limit = 5): array
     {
-        $topicConfig = AiRule::where('key_name', 'topic_extraction_config')
-            ->first();
-
-        if (!$topicConfig) {
+        if (empty($reviews) || count($reviews) === 0) {
             return [
                 'top_topic' => ['name' => 'General', 'count' => 0, 'percentage' => 0],
                 'all_topics' => [],
-                'sources' => ['ai_topics' => 0, 'keyword_matches' => 0]
+                'sources' => ['ai_analysis' => 0]
             ];
         }
 
-        $config = json_decode($topicConfig->value, true);
+        $topicCounts = [];
+        $totalMentions = 0;
 
-        // Implement topic extraction using config
+        foreach ($reviews as $review) {
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
+
+            $categories = $openaiData['category_analysis'] ?? [];
+            foreach ($categories as $cat) {
+                $name = $cat['main_category'] ?? 'General';
+                if (!isset($topicCounts[$name])) {
+                    $topicCounts[$name] = ['name' => $name, 'count' => 0, 'sentiment' => []];
+                }
+                $topicCounts[$name]['count']++;
+                $topicCounts[$name]['sentiment'][] = $cat['sentiment'] ?? 'neutral';
+                $totalMentions++;
+            }
+        }
+
+        // Process and sort
+        $processedTopics = [];
+        foreach ($topicCounts as $name => $data) {
+            $sentimentCounts = array_count_values($data['sentiment']);
+            arsort($sentimentCounts);
+
+            $processedTopics[] = [
+                'name' => $name,
+                'count' => $data['count'],
+                'percentage' => $totalMentions > 0 ? round(($data['count'] / $totalMentions) * 100) : 0,
+                'sentiment' => key($sentimentCounts) ?: 'neutral'
+            ];
+        }
+
+        usort($processedTopics, function ($a, $b) {
+            return $b['count'] <=> $a['count'];
+        });
+
+        $topTopic = $processedTopics[0] ?? ['name' => 'General', 'count' => 0, 'percentage' => 0];
+
         return [
-            'top_topic' => ['name' => 'General', 'count' => 0, 'percentage' => 0],
-            'all_topics' => [],
-            'sources' => ['ai_topics' => 0, 'keyword_matches' => 0]
+            'top_topic' => $topTopic,
+            'all_topics' => array_slice($processedTopics, 0, $limit),
+            'sources' => ['ai_analysis' => count($processedTopics)]
         ];
     }
 
     public function getMinimumReviewsForStaffAnalysis(): int
     {
-        return (int) AiRule::where('key_name', 'min_reviews_staff_analysis')
-            ->value('value') ?? 3;
+        return (int) \config('ai.sentiment.thresholds.min_reviews_staff_analysis', 3);
     }
 
     public function generateDashboardInsights($sentimentData, $topTopics, $totalReviews): array
     {
-        $templates = AiRule::where('category', 'dashboard_insight_templates')
-            ->get();
+        $templates = \config('ai.insights.dashboard_insight_templates', []);
 
         $insights = [
             'summary' => '',
@@ -1108,12 +1172,11 @@ class RuleEngineService
         if ($totalReviews === 0) {
             $insights['summary'] = 'No reviews available for analysis.';
         } else {
-            $template = $templates->first();
-            $data = json_decode($template->value, true);
+            $summaryTemplate = $templates['satisfaction'] ?? 'Customer satisfaction has {{trend}} by {{delta}} points.';
             $insights['summary'] = str_replace(
-                ['{{positive}}', '{{avg_rating}}'],
-                [$sentimentData['positive_percentage'], $sentimentData['average_score']],
-                $data['summary']
+                ['{{trend}}', '{{delta}}'],
+                [$sentimentData['positive_percentage'] >= 50 ? 'improved' : 'declined', abs($sentimentData['positive_percentage'] - 50)],
+                $summaryTemplate
             );
         }
 

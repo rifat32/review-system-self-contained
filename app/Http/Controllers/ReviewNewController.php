@@ -3488,9 +3488,9 @@ class ReviewNewController extends Controller
         if ($request->has('meets_threshold')) {
             $meetsThreshold = $request->input('meets_threshold');
             if ($meetsThreshold == 1) {
-                $query->whereMeetsThreshold($businessId);
+                $query->whereMeetsThreshold();
             } elseif ($meetsThreshold == 0) {
-                $query->whereDoesNotMeetsThreshold($businessId);
+                $query->whereDoesNotMeetsThreshold();
             }
         }
 

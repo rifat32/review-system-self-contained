@@ -189,8 +189,12 @@ class BranchService
                 'avg_rating' => round($avgRating, 2),
                 'avg_sentiment' => round($avgSentiment, 2),
                 'review_count' => $staffReviews->count(),
-                'positive_reviews' => $staffReviews->where('sentiment', 'positive')->count(),
-                'negative_reviews' => $staffReviews->where('sentiment', 'negative')->count(),
+                'positive_reviews' => $staffReviews->filter(function ($r) {
+                    return $r->sentiment_label === 'positive' || ($r->sentiment_label === null && $r->sentiment_score >= \App\Services\Rule\RuleEngineService::getPositiveSentimentThreshold());
+                })->count(),
+                'negative_reviews' => $staffReviews->filter(function ($r) {
+                    return $r->sentiment_label === 'negative' || ($r->sentiment_label === null && $r->sentiment_score <= \App\Services\Rule\RuleEngineService::getNegativeSentimentThreshold());
+                })->count(),
             ];
         })->sortByDesc('avg_rating')->take($limit)->values()->toArray();
 

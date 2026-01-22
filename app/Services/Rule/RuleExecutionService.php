@@ -132,7 +132,7 @@ class RuleExecutionService
             'branch' => "rule_{$ruleId}_branch_" . ($review->branch_id ?? 'none'),
 
             'staff_category' => "rule_{$ruleId}_staff_" . ($context['staff_id'] ?? 'none') .
-            "_cat_" . ($context['category'] ?? 'general'),
+                "_cat_" . ($context['category'] ?? 'general'),
 
             default => "rule_{$ruleId}_review_{$review->id}"
         };
@@ -440,9 +440,9 @@ class RuleExecutionService
     private function getReviewAIData(ReviewNew $review): array
     {
         return [
-            'sentiment' => $review->sentiment ?: ($review->sentiment_label ?: 'neutral'),
+            'sentiment' => $review->sentiment_label ?: 'neutral',
             'sentiment_score' => $review->sentiment_score ?? 0.5,
-            'sentiment_label' => $review->sentiment_label ?: ($review->sentiment ?: 'neutral'),
+            'sentiment_label' => $review->sentiment_label ?: 'neutral',
             'emotion' => $review->emotion ?? 'neutral',
             'staff_mentions' => $review->key_phrases['staff_mentions'] ?? [],
             'areas' => $review->key_phrases['areas_mentioned'] ?? [],

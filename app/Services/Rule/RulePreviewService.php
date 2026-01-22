@@ -101,7 +101,7 @@ class RulePreviewService
     private function getReviewAIData(ReviewNew $review): array
     {
         return [
-            'sentiment' => $review->sentiment ?? 'neutral',
+            'sentiment' => $review->sentiment_label ?? 'neutral',
             'emotions' => [], // In real app, fetch from emotions table
             'staff_mentions' => [],
             'areas' => [],
