@@ -21,8 +21,11 @@ return new class extends Migration {
 
             $table->unsignedBigInteger('user_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('guest_id')->references('id')->on('users')->nullOnDelete();
             $table->unsignedBigInteger('guest_id')->nullable();
             $table->text('comment')->nullable();
+
+
 
             // Added fields from alterations
             $table->string('source')->nullable();
