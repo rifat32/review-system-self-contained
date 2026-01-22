@@ -80,8 +80,7 @@ class DashboardService
             ? $user->default_branch_id
             : null;
 
-        log_message('User Branch ID: ' . $userBranchId, 'branch.log');
-        log_message($user, 'branch.log');
+
 
         // ==================== GET REVIEWS USING REVIEW SERVICE ====================
 

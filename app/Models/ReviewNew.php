@@ -208,11 +208,12 @@ class ReviewNew extends Model
             ->when(request()->has('staff_id'), function ($q) {
                 $q->where('review_news.staff_id', request()->input('staff_id'));
             })
+            ->when(request()->has('is_voice_review'), function ($q) {
+                $q->where('review_news.is_voice_review', request()->input('is_voice_review'));
+            })
             ->when($show_published_only, function ($q) use ($businessId, $is_staff_review) {
                 $q->whereMeetsThreshold($businessId, $is_staff_review);
             })
-
-
             ->when(request()->filled("question_category_id") || request()->filled("question_sub_category_id"), function ($q) {
 
                 $q

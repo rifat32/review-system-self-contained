@@ -947,54 +947,53 @@ class StaffController extends Controller
      *   )
      * )
      */
-    public function staffPerformanceReport(Request $request, $staffId)
+    public function staffPerformanceReport(Request $request, int $staff_id)
     {
-        $filterable_fields = [
-            "last_30_days",
-            "last_7_days",
-            "this_month",
-            "last_month"
+        $allowed_date_ranges = [
+            'last_30_days',
+            'last_7_days',
+            'this_month',
+            'last_month',
         ];
 
-        $businessId = $request->user()->business->id;
+        $business_id = $request->user()->business->id;
+        $date_range  = $request->query('date_range', 'last_30_days');
 
-        // Validate staff exists and belongs to the business
-        $staff = User::where('business_id', $businessId)
-            // ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
-            ->find($staffId);
+        // Validate date range
+        if (!in_array($date_range, $allowed_date_ranges, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid date range provided. Valid options: ' . implode(', ', $allowed_date_ranges),
+            ], 400);
+        }
+
+        // Fetch staff (ensure belongs to business)
+        $staff = User::with(['branches', 'roles'])
+            ->where('business_id', $business_id)
+            ->find($staff_id);
 
         if (!$staff) {
             return response()->json([
                 'success' => false,
-                'message' => 'Staff not found'
+                'message' => 'Staff not found',
             ], 404);
         }
 
-        // Get period dates
-        $period = $request->query('date_range', 'last_30_days');
+        $date_range_data = getDateRangeByPeriod($date_range);
 
-        // Validate date range
-        if (!in_array($period, $filterable_fields)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid date range provided. Valid options: ' . implode(', ', $filterable_fields)
-            ], 400);
-        }
-
-        $dateRange = getDateRangeByPeriod($period);
-        // Get staff performance using existing staff suggestions
-        $data["staff_performance"] = $this->staffPerformanceService->getStaffPerformanceSnapshot($businessId, $dateRange, $staffId);
-
-        $staff = User::with("branches")->find($staffId);
-
-        $data['staff'] = $staff;
+        $data = [
+            'staff' => $staff,
+            'staff_performance' => $this->staffPerformanceService
+                ->getStaffPerformanceSnapshot($business_id, $date_range_data, $staff_id),
+        ];
 
         return response()->json([
             'success' => true,
             'message' => 'Staff performance report retrieved successfully',
-            'data' => $data
-        ], 200);
+            'data' => $data,
+        ]);
     }
+
 
     /**
      * @OA\Get(
@@ -1318,7 +1317,11 @@ class StaffController extends Controller
 
         // Validate staff exists and belongs to the business
         $staff = User::where('business_id', $businessId)
-            ->whereHas('roles', fn($r) => $r->where('name', 'business_staff'))
+
+            ->whereHas('roles', fn($r) => $r
+                ->where('name', 'business_staff'))
+
+
             ->find($staffId);
 
         if (!$staff) {

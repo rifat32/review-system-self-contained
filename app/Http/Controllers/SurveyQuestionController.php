@@ -141,12 +141,6 @@ class SurveyQuestionController extends Controller
         // ==================== GET AUTHENTICATED USER ====================
         $businessId = $request->user()->business_id;
 
-        // ==================== BRANCH MANAGER SCOPE ====================
-        // Only filter by branch for branch managers, not business owners
-        $userBranchId = null;
-        if ($request->user()->hasRole('branch_manager')) {
-            $userBranchId = $request->user()->default_branch_id;
-        }
 
         // ==================== PARSE COMMA-SEPARATED IDS ====================
         $surveyIds = $request->has('survey_ids') && $request->input('survey_ids')
@@ -166,11 +160,7 @@ class SurveyQuestionController extends Controller
         if (!empty($surveyIds)) {
             $existingSurveyIds = Survey::whereIn('id', $surveyIds)
                 ->where('business_id', $businessId)
-                ->when($userBranchId, function ($query) use ($userBranchId) {
-                    return $query->whereHas('reviews', function ($query) use ($userBranchId) {
-                        return $query->where('branch_id', $userBranchId);
-                    });
-                })
+
                 ->pluck('id')
                 ->toArray();
 
@@ -214,14 +204,7 @@ class SurveyQuestionController extends Controller
         // Start with base query and relationships
         $query = SurveyQuestion::with(['question', 'survey']);
 
-        // Apply branch filter ONLY if user is branch manager
-        if ($userBranchId) {
-            $query->whereHas('survey', function ($query) use ($userBranchId) {
-                return $query->whereHas('reviews', function ($query) use ($userBranchId) {
-                    return $query->where('branch_id', $userBranchId);
-                });
-            });
-        }
+
 
         // ==================== FILTER BY SURVEY IDS ====================
         if (!empty($surveyIds)) {

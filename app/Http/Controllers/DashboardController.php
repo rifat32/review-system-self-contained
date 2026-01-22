@@ -1752,8 +1752,8 @@ class DashboardController extends Controller
             ->get();
 
         // Calculate metrics from ReviewValueNew
-        $staffAMetrics = calculateStaffMetricsFromReviewValue($staffAReviews, $staffA);
-        $staffBMetrics = calculateStaffMetricsFromReviewValue($staffBReviews, $staffB);
+        $staffAMetrics = $this->aiProcessorService->calculateStaffMetricsFromReviewValue($staffAReviews, $staffA);
+        $staffBMetrics = $this->aiProcessorService->calculateStaffMetricsFromReviewValue($staffBReviews, $staffB);
 
         // Calculate gaps
         $ratingGap = round($staffAMetrics['avg_rating'] - $staffBMetrics['avg_rating'], 1);
@@ -1767,9 +1767,9 @@ class DashboardController extends Controller
                 'business_name' => $business->name,
                 'comparison' => [
                     'rating_gap' => $ratingGap,
-                    'rating_gap_message' => getRatingGapMessage($ratingGap),
+                    'rating_gap_message' => $this->aiProcessorService->getRatingGapMessage($ratingGap),
                     'sentiment_gap' => $sentimentGap,
-                    'sentiment_gap_message' => getSentimentGapMessage($sentimentGap),
+                    'sentiment_gap_message' => $this->aiProcessorService->getSentimentGapMessage($sentimentGap),
                     'better_performer' => $ratingGap >= 0 ? $staffA->name : $staffB->name
                 ],
                 'staff_a' => $staffAMetrics,
