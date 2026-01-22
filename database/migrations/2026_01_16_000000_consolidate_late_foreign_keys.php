@@ -19,12 +19,19 @@ return new class extends Migration
             $table->foreign('default_branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('guest_survey_id')->references('id')->on('surveys')->nullOnDelete();
             $table->foreign('registered_user_survey_id')->references('id')->on('surveys')->nullOnDelete();
+            $table->foreign('business_id')->references('id')->on('businesses')->onDelete('cascade');
         });
 
         // Review News Late Foreign Keys
         Schema::table('review_news', function (Blueprint $table) {
             $table->foreign('survey_id')->references('id')->on('surveys')->nullOnDelete();
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
+            $table->foreign('guest_id')->references('id')->on('users')->nullOnDelete();
+            $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
+        });
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreign('business_id')->references('id')->on('businesses')->onDelete('cascade');
         });
     }
 
@@ -43,6 +50,12 @@ return new class extends Migration
         Schema::table('review_news', function (Blueprint $table) {
             $table->dropForeign(['survey_id']);
             $table->dropForeign(['branch_id']);
+            $table->dropForeign(['guest_id']);
+            $table->dropForeign(['user_id']);
+        });
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['business_id']);
         });
     }
 };

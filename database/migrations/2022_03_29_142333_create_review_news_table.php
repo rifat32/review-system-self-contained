@@ -56,6 +56,8 @@ return new class extends Migration {
             $table->boolean('rating_comment_mismatch')->default(false);
             $table->json('mismatch_insights')->nullable();
 
+            $table->unsignedBigInteger('branch_id')->nullable();
+
 
             $table->decimal('ai_confidence', 3, 2)->nullable()->comment('Confidence score 0.00-1.00');
             $table->string('sentiment_label', 20)->nullable()->comment('very_negative, negative, neutral, positive, very_positive');
