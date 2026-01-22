@@ -305,7 +305,7 @@ class RuleWizardController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Rules retrieved successfully',
-            'meta' => $rules['meat'],
+            'meta' => $rules['meta'],
             'data' => $rules['data'],
         ]);
     }
