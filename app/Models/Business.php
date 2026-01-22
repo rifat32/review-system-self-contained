@@ -82,13 +82,15 @@ class Business extends Model
         'registered_user_survey_id',
         'default_color_threshold',
         'default_branch_id',
-        'has_rule_management'
+        'has_rule_management',
+        'is_treat_manager_as_staff'
 
     ];
 
     protected $casts = [
         'review_labels' => 'array',
         'default_color_threshold' => 'array',
+        'is_treat_manager_as_staff' => 'boolean',
     ];
 
     protected $hidden = [

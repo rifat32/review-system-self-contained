@@ -1088,6 +1088,14 @@ class UserController extends Controller
      *          @OA\Schema(type="integer"),
      *          example=1
      *      ),
+     *      @OA\Parameter(
+     *          name="is_treat_manager_as_staff",
+     *          in="query",
+     *          required=false,
+     *          description="Filter by is_treat_manager_as_staff",
+     *          @OA\Schema(type="boolean"),
+     *          example=false
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",
@@ -1132,19 +1140,7 @@ class UserController extends Controller
 
 
         // QUERY
-        $query = User::with('branch')
-            ->where('business_id', $business_id)
-            ->when(request()->role, function ($query) {
-                $query->whereHas('roles', function ($query) {
-                    $query->where('name', request()->role);
-                });
-            })
-            ->when(request()->branch_id, function ($query) {
-                $query->whereHas('branch', function ($query) {
-                    $query->where('branch_id', request()->branch_id);
-                });
-            })
-            ->filterStaff(businessId: $business_id);
+        $query = User::with('branch')->filterStaff(businessId: $business_id);
 
         $users = retrieve_data($query);
 

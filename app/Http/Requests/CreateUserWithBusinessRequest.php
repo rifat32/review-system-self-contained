@@ -46,6 +46,7 @@ class CreateUserWithBusinessRequest extends FormRequest
             'review_only' => ['nullable', 'boolean'],
             'is_branch' => ['nullable', 'boolean'],
             'has_rule_management' => ['nullable', 'boolean'],
+            'is_treat_manager_as_staff' => ['nullable', 'boolean'],
             'review_type' => ['nullable', 'string', 'in:emoji,star'],
             'google_map_iframe' => ['nullable', 'string'],
             'show_image' => ['nullable', 'string'],

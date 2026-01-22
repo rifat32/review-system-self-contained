@@ -587,7 +587,7 @@ Route::get('/owner/{ownerId}', [OwnerController::class, "getOwnerById"]);
 // ============================================================================
 // Route::get('/review-new/get/questions-all/customer', [ReviewNewController::class, 'getQuestionAllUnauthorized'])->name('getQuestionAllUnauthorized');
 
-// Route::get('/review-new/get/questions-all-overall/customer', [ReviewNewController::class, 'getQuestionAllUnauthorizedOverall'])->name('getQuestionAllUnauthorizedOverall');
+Route::get('/review-new/get/questions-all-overall/customer', [ReviewNewController::class, 'getQuestionAllUnauthorizedOverall'])->name('getQuestionAllUnauthorizedOverall');
 
 
 

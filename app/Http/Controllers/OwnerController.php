@@ -240,6 +240,7 @@ class OwnerController extends Controller
      *            @OA\Property(property="review_only", type="boolean", example=true),
      *            @OA\Property(property="is_branch", type="boolean", example=true),
      *            @OA\Property(property="has_rule_management", type="boolean", example=false),
+     *            @OA\Property(property="is_treat_manager_as_staff", type="boolean", example=false),
      *
      *            @OA\Property(property="header_image", type="string", example="/header_image/default.png"),
      *            @OA\Property(property="primary_color", type="string", example="#FF0000"),
@@ -336,6 +337,7 @@ class OwnerController extends Controller
      *            @OA\Property(property="review_only", type="boolean", example=true),
      *            @OA\Property(property="is_branch", type="boolean", example=true),
      *            @OA\Property(property="has_rule_management", type="boolean", example=false),
+     *            @OA\Property(property="is_treat_manager_as_staff", type="boolean", example=false),
      *            @OA\Property(property="header_image", type="string", example="/header_image/default.png"),
      *            @OA\Property(property="primary_color", type="string", example="#FF0000"),
      *            @OA\Property(property="secondary_color", type="string", example="#00FF00"),
