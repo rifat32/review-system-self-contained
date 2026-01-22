@@ -16,8 +16,45 @@ class RuleReportController extends Controller
     }
 
     /**
-     * 1. Sentiment Analysis Report
-     * GET /api/reports/sentiment-analysis
+     * @OA\Get(
+     *     path="/v1.0/reports/sentiment-analysis",
+     *     operationId="sentimentAnalysisReport",
+     *     tags={"Reports"},
+     *     summary="Get sentiment analysis report",
+     *     description="Aggregates and returns sentiment data for a business, including counts and trends.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="branch_id",
+     *         in="query",
+     *         description="ID of the branch to filter by",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful report generation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Server Error")
+     * )
      */
     public function sentimentAnalysis(Request $request)
     {
@@ -56,8 +93,38 @@ class RuleReportController extends Controller
     }
 
     /**
-     * 2. Emotion Intensity Report
-     * GET /api/reports/emotion-intensity
+     * @OA\Get(
+     *     path="/v1.0/reports/emotion-intensity",
+     *     operationId="emotionIntensityReport",
+     *     tags={"Reports"},
+     *     summary="Get emotion intensity report",
+     *     description="Returns analysis of emotional strength (joy, frustration, etc.) within reviews.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful report generation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Server Error")
+     * )
      */
     public function emotionIntensity(Request $request)
     {
@@ -88,8 +155,38 @@ class RuleReportController extends Controller
     }
 
     /**
-     * 3. Rating/Comment Mismatch Report
-     * GET /api/reports/rating-comment-mismatch
+     * @OA\Get(
+     *     path="/v1.0/reports/rating-comment-mismatch",
+     *     operationId="ratingCommentMismatchReport",
+     *     tags={"Reports"},
+     *     summary="Get rating/comment mismatch report",
+     *     description="Detects reviews where the numeric rating and text sentiment do not align.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful report generation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Server Error")
+     * )
      */
     public function ratingCommentMismatch(Request $request)
     {
@@ -120,8 +217,38 @@ class RuleReportController extends Controller
     }
 
     /**
-     * 4. Category Issues Report
-     * GET /api/reports/category-issues
+     * @OA\Get(
+     *     path="/v1.0/reports/category-issues",
+     *     operationId="categoryIssuesReport",
+     *     tags={"Reports"},
+     *     summary="Get category issues report",
+     *     description="Analyzes performance across business categories like Price, Quality, etc.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful report generation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Server Error")
+     * )
      */
     public function categoryIssues(Request $request)
     {
@@ -148,8 +275,38 @@ class RuleReportController extends Controller
     }
 
     /**
-     * 5. Service Types Report
-     * GET /api/reports/service-types
+     * @OA\Get(
+     *     path="/v1.0/reports/service-types",
+     *     operationId="serviceTypesReport",
+     *     tags={"Reports"},
+     *     summary="Get service types report",
+     *     description="Identifies trends in specific service areas like Installation or Maintenance.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful report generation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Server Error")
+     * )
      */
     public function serviceTypes(Request $request)
     {
@@ -176,8 +333,38 @@ class RuleReportController extends Controller
     }
 
     /**
-     * 6. Business Areas Report
-     * GET /api/reports/business-areas
+     * @OA\Get(
+     *     path="/v1.0/reports/business-areas",
+     *     operationId="businessAreasReport",
+     *     tags={"Reports"},
+     *     summary="Get business areas report",
+     *     description="Tracks satisfaction scores across different physical locations or business units.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful report generation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Server Error")
+     * )
      */
     public function businessAreas(Request $request)
     {
@@ -204,8 +391,38 @@ class RuleReportController extends Controller
     }
 
     /**
-     * 7. Staff Mentions Report
-     * GET /api/reports/staff-mentions
+     * @OA\Get(
+     *     path="/v1.0/reports/staff-mentions",
+     *     operationId="staffMentionsReport",
+     *     tags={"Reports"},
+     *     summary="Get staff mentions report",
+     *     description="Aggregates individual staff performance based on customer text mentions.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful report generation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Server Error")
+     * )
      */
     public function staffMentions(Request $request)
     {
@@ -232,8 +449,38 @@ class RuleReportController extends Controller
     }
 
     /**
-     * 8. Staff Performance Risk Report
-     * GET /api/reports/staff-performance-risk
+     * @OA\Get(
+     *     path="/v1.0/reports/staff-performance-risk",
+     *     operationId="staffPerformanceRiskReport",
+     *     tags={"Reports"},
+     *     summary="Get staff performance risk report",
+     *     description="Identifies staff members with recurring negative mentions or behavioral concerns.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful report generation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Server Error")
+     * )
      */
     public function staffPerformanceRisk(Request $request)
     {
@@ -260,8 +507,38 @@ class RuleReportController extends Controller
     }
 
     /**
-     * 9. Flagged Reviews Report
-     * GET /api/reports/flagged-reviews
+     * @OA\Get(
+     *     path="/v1.0/reports/flagged-reviews",
+     *     operationId="flaggedReviewsReport",
+     *     tags={"Reports"},
+     *     summary="Get flagged reviews report",
+     *     description="List and analysis of reviews flagged by AI for urgent attention.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Start date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="End date for filtering reviews (Y-m-d)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful report generation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Server Error")
+     * )
      */
     public function flaggedReviews(Request $request)
     {
