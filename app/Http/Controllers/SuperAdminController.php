@@ -209,7 +209,7 @@ class SuperAdminController extends Controller
                 })
                 // FILTER: SENTIMENT
                 ->when($request->filled('sentiment'), function ($q) use ($request) {
-                    $q->where('sentiment', $request->sentiment);
+                    $q->where('sentiment_label', $request->sentiment);
                 })
                 // FILTER: DATE RANGE
                 ->when($request->filled('start_date'), function ($q) use ($request) {

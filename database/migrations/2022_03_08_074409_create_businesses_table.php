@@ -80,8 +80,11 @@ return new class extends Migration {
             $table->unsignedBigInteger('registered_user_survey_id')->nullable();
 
             $table->boolean('enable_detailed_survey')->default(false);
+            $table->boolean('is_treat_manager_as_staff')->default(false);
+
 
             $table->json('export_settings')->nullable();
+            $table->boolean('has_rule_management')->default(false);
 
 
             $table->json('default_color_threshold')->default(json_encode([

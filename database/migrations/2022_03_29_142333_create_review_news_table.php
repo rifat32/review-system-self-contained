@@ -29,7 +29,6 @@ return new class extends Migration {
             $table->string('language')->nullable();
             $table->timestamp('responded_at')->nullable();
             $table->string('review_type')->nullable();
-            $table->enum('sentiment', ['positive', 'neutral', 'negative'])->nullable();
             $table->unsignedBigInteger('topic_id')->nullable();
             $table->text('reply_content')->nullable();
             $table->text('raw_text')->nullable();
