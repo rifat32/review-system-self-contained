@@ -169,7 +169,13 @@ class User extends Authenticatable
             });
         }
 
-        return $query;
+        return $query->when(request()->role, function ($query) {
+            $query->whereHas('roles', function ($query) {
+                $query->where('name', request()->role);
+            });
+        }, function ($query) {
+            $query->whereHas('roles', fn($r) => $r->whereIn('name', ['business_staff', 'branch_manager']));
+        });
     }
 
     /**
@@ -182,7 +188,18 @@ class User extends Authenticatable
     public function scopeFilterStaff($query, $businessId)
     {
         return $query->where('business_id', $businessId)
-            ->whereHas('roles', fn($r) => $r->whereIn('name', ['business_staff', 'branch_manager']))
+            ->when(request()->role, function ($query) {
+                $query->whereHas('roles', function ($query) {
+                    $query->where('name', request()->role);
+                });
+            }, function ($query) {
+                $query->whereHas('roles', fn($r) => $r->whereIn('name', ['business_staff', 'branch_manager']));
+            })
+            ->when(request()->branch_id, function ($query) {
+                $query->whereHas('branch', function ($query) {
+                    $query->where('branch_id', request()->branch_id);
+                });
+            })
             ->when(request()->filled('search_key'), function ($qq) {
                 $s = request()->input('search_key');
                 $qq->where(function ($w) use ($s) {

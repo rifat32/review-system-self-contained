@@ -52,6 +52,7 @@ class UpdateBusinessRequest extends FormRequest
             'review_only' => 'nullable|boolean',
             'is_branch' => 'nullable|boolean',
             'has_rule_management' => 'nullable|boolean',
+            'is_treat_manager_as_staff' => 'nullable|boolean',
             'header_image' => 'nullable|string',
             'primary_color' => 'nullable|string',
             'secondary_color' => 'nullable|string',

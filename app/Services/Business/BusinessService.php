@@ -119,6 +119,7 @@ class BusinessService
             'review_only' => $payloadData['review_only'] ?? true,
             'is_branch' => $payloadData['is_branch'] ?? false,
             'has_rule_management' => $payloadData['has_rule_management'] ?? false,
+            'is_treat_manager_as_staff' => $payloadData['is_treat_manager_as_staff'] ?? false,
             'Is_guest_user' => true,
             'guest_user_review_report' => true,
             'is_guest_user_overall_review' => true,
