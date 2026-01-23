@@ -132,6 +132,7 @@ class BusinessService
             'is_registered_user_show_stuffs' => true,
             'is_registered_user_show_stuff_image' => true,
             'is_registered_user_show_stuff_name' => true,
+            'service_plan_id' => $payloadData['service_plan_id'],
         ]);
     }
 

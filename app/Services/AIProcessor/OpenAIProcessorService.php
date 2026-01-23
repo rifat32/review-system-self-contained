@@ -75,31 +75,36 @@ class OpenAIProcessorService
     /**
      * Get business AI modules with fallback to defaults
      */
-    public function getBusinessAiModules(int $businessId): array
+    public function getBusinessAiModules(int $business_id): array
     {
         try {
+            $business = \App\Models\Business::with('current_subscription.service_plan.modules')->find($business_id);
+            if (!$business) return [];
 
-            $aiModules = BusinessAiModule::where('business_id', $businessId)->first();
-
-            if ($aiModules) {
-                return $aiModules->getEnabledModules();
+            $allowedModules = [];
+            if ($business->current_subscription && $business->current_subscription->service_plan) {
+                $allowedModules = $business->current_subscription->service_plan->modules->pluck('name')->toArray();
             }
 
-            // Create default if not exists
-            $defaultModules = BusinessAiModule::getDefaultForBusiness($businessId);
-            BusinessAiModule::create($defaultModules);
+            $modules = \App\Models\Module::where('is_enabled', true)->get();
+            $enabledModules = [];
 
-            return $defaultModules;
+            foreach ($modules as $module) {
+                // Feature is enabled only if it's both active in system AND allowed by plan
+                $enabledModules[$module->name] = in_array($module->name, $allowedModules);
+            }
+
+            return $enabledModules;
         } catch (\Exception $e) {
             Log::error('Failed to get business AI modules', [
-                'business_id' => $businessId,
+                'business_id' => $business_id,
                 'error' => $e->getMessage()
             ]);
 
-            // Return all enabled as fallback
-            return BusinessAiModule::getDefaultForBusiness($businessId);
+            return [];
         }
     }
+
 
     // In processReviewWithOpenAI method, update caching:
 
@@ -1807,9 +1812,6 @@ PROMPT;
         ];
     }
 
-    /**
-     * Track token usage for business
-     */
     public function trackTokenUsage(
         ?int $businessId,
         ?int $reviewId,
@@ -1823,7 +1825,7 @@ PROMPT;
         try {
             $cost = $this->calculateEstimatedCost($model, $promptTokens, $completionTokens);
 
-            OpenAITokenUsage::create([
+            \App\Models\OpenAITokenUsage::create([
                 'business_id' => $businessId,
                 'review_id' => $reviewId,
                 'branch_id' => $branchId,
@@ -1832,16 +1834,13 @@ PROMPT;
                 'completion_tokens' => $completionTokens,
                 'total_tokens' => $totalTokens,
                 'estimated_cost' => $cost,
-                'metadata' => json_encode($metadata),
-                'used_at' => \now(),
+                'metadata' => $metadata,
+                'created_at' => \now(),
             ]);
 
-            // Update business running total
-            if ($businessId) {
-                $this->updateBusinessAiModule($businessId, $totalTokens, $cost);
-            }
+            // Note: Tokens are now checked against the limit in Businesses table before processing.
         } catch (\Exception $e) {
-            Log::error('Failed to track token usage', [
+            Log::error('Failed to track OpenAI token usage', [
                 'business_id' => $businessId,
                 'error' => $e->getMessage()
             ]);
@@ -1962,40 +1961,24 @@ PROMPT;
     public function updateBusinessAiModules(int $businessId, array $modules): bool
     {
         try {
-            $aiModule = BusinessAiModule::firstOrNew(['business_id' => $businessId]);
-
-            // Only update optional modules (required modules are always true)
-            $updatableModules = [
-                'category_analysis',
-                'staff_intelligence',
-                'service_unit_intelligence',
-                'business_recommendations',
-                'alerts'
-            ];
-
-            foreach ($updatableModules as $module) {
-                if (isset($modules[$module])) {
-                    $aiModule->$module = (bool) $modules[$module];
+            foreach ($modules as $moduleName => $isEnabled) {
+                $module = \App\Models\Module::where('name', $moduleName)->first();
+                if ($module) {
+                    \App\Models\BusinessModule::updateOrCreate(
+                        ['business_id' => $businessId, 'module_id' => $module->id],
+                        ['is_enabled' => (bool)$isEnabled]
+                    );
                 }
             }
 
-            // Ensure required modules are always true
-            $aiModule->language_translation = true;
-            $aiModule->sentiment_analysis = true;
-            $aiModule->emotion_detection = true;
-            $aiModule->abuse_detection = true;
-            $aiModule->explainability = true;
-
-            $aiModule->save();
-
-            Log::info('Business AI modules updated', [
+            Log::info('Business modules updated', [
                 'business_id' => $businessId,
                 'modules' => $modules
             ]);
 
             return true;
         } catch (\Exception $e) {
-            Log::error('Failed to update business AI modules', [
+            Log::error('Failed to update business modules', [
                 'business_id' => $businessId,
                 'error' => $e->getMessage()
             ]);

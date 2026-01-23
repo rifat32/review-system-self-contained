@@ -86,6 +86,7 @@ class CreateUserWithBusinessRequest extends FormRequest
                     $this->validateTimeSlot($attribute, $value, $fail);
                 },
             ],
+            'service_plan_id' => ['required', 'exists:service_plans,id'],
         ];
     }
 

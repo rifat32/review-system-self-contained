@@ -116,19 +116,31 @@ class BusinessAiModuleController extends Controller
         }
 
         try {
-            // GET OR CREATE AI MODULES CONFIGURATION
-            $aiModules = BusinessAiModule::firstOrCreate(
-                ['business_id' => $businessId],
-                BusinessAiModule::getDefaultForBusiness($businessId)
-            );
+            // GET ALL AVAILABLE MODULES
+            $modules = \App\Models\Module::all();
+            $businessModules = \App\Models\BusinessModule::where('business_id', $businessId)->get()->keyBy('module_id');
 
-            // LOAD BUSINESS RELATIONSHIP
-            $aiModules->load('business');
+            $data = $modules->map(function ($module) use ($businessModules) {
+                $bm = $businessModules->get($module->id);
+                return [
+                    'id' => $module->id,
+                    'name' => $module->name,
+                    'is_enabled' => $bm ? (bool)$bm->is_enabled : false,
+                    'business_module_id' => $bm ? $bm->id : null
+                ];
+            });
 
             return response()->json([
                 "success" => true,
                 "message" => "AI modules retrieved successfully",
-                "data" => $aiModules
+                "data" => [
+                    'business_id' => $businessId,
+                    'modules' => $data,
+                    'business' => [
+                        'id' => $business->id,
+                        'Name' => $business->Name
+                    ]
+                ]
             ], 200);
         } catch (\Exception $e) {
             Log::error('Failed to get business AI modules', [
@@ -312,13 +324,9 @@ class BusinessAiModuleController extends Controller
                 ], 500);
             }
 
-            // GET UPDATED CONFIGURATION
-            $aiModules = BusinessAiModule::where('business_id', $businessId)->first();
-
             return response()->json([
                 "success" => true,
-                "message" => "AI modules updated successfully",
-                "data" => $aiModules
+                "message" => "AI modules updated successfully"
             ], 200);
         } catch (\Exception $e) {
             Log::error('Failed to update business AI modules', [
@@ -438,21 +446,15 @@ class BusinessAiModuleController extends Controller
         }
 
         try {
-            // GET OR CREATE AI MODULES CONFIGURATION
-            $aiModules = BusinessAiModule::firstOrCreate(
-                ['business_id' => $businessId],
-                BusinessAiModule::getDefaultForBusiness($businessId)
-            );
-
-            // LOAD BUSINESS RELATIONSHIP
-            $aiModules->load('business');
+            // GET ENABLED MODULES USING SERVICE
+            $enabledModules = $this->openAiProcessorService->getBusinessAiModules($businessId);
 
             return response()->json([
                 "success" => true,
                 "message" => "Enabled AI modules retrieved successfully",
                 "data" => [
                     'business_id' => $businessId,
-                    'enabled_modules' => $aiModules->getEnabledModules(),
+                    'enabled_modules' => $enabledModules,
                     'business' => [
                         'id' => $business->id,
                         'Name' => $business->Name

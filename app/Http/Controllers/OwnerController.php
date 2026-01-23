@@ -272,7 +272,7 @@ class OwnerController extends Controller
      *      @OA\Response(response=404, description="Not found")
      * )
      */
-    public function createUserWithBusiness(CreateUserWithBusinessRequest $request, )
+    public function createUserWithBusiness(CreateUserWithBusinessRequest $request,)
     {
         return DB::transaction(function () use ($request) {
             $validatedData = $request->validated();
@@ -291,13 +291,19 @@ class OwnerController extends Controller
             // Generate access token
             $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
 
+            // Generate Stripe Link
+            $id = bin2hex(random_bytes(5)) . $business->id . bin2hex(random_bytes(5));
+            $stripe_url = route('subscription.redirect', ['id' => $id]);
+
+
             // SEND RESPONSE
             return response()->json([
                 'success' => true,
                 'message' => 'You have successfully registered',
                 'data' => [
                     'user' => $user,
-                    'business' => $business
+                    'business' => $business,
+                    'stripe_url' => $stripe_url
                 ],
             ], 200);
         });
@@ -368,7 +374,7 @@ class OwnerController extends Controller
      *      @OA\Response(response=404, description="Not found")
      * )
      */
-    public function createUserWithBusinessClient(CreateUserWithBusinessRequest $request, )
+    public function createUserWithBusinessClient(CreateUserWithBusinessRequest $request,)
     {
         return DB::transaction(function () use ($request) {
             $validatedData = $request->validated();
@@ -388,13 +394,18 @@ class OwnerController extends Controller
             // Generate access token
             $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
 
+            // Generate Stripe Link
+            $id = bin2hex(random_bytes(5)) . $business->id . bin2hex(random_bytes(5));
+            $stripe_url = route('subscription.redirect', ['id' => $id]);
+
 
             return response()->json([
                 'success' => true,
                 'message' => 'You have successfully registered',
                 'data' => [
                     'user' => $user,
-                    'business' => $business
+                    'business' => $business,
+                    'stripe_url' => $stripe_url
                 ],
             ], 200);
         });

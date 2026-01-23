@@ -33,8 +33,7 @@ class StripeController extends Controller
 
 
 
-        Stripe::setApiKey($business->STRIPE_SECRET);
-        Stripe::setClientId($business->STRIPE_KEY);
+        Stripe::setApiKey(config('cashier.stripe.secret'));
 
 
 
@@ -235,11 +234,10 @@ class StripeController extends Controller
 
 
         $data["business"] = tap(Business::where(["id" => $restaurentId]))->update($request->only(
-
-            "STRIPE_KEY",
-            "STRIPE_SECRET",
-
-
+            "Name",
+            "Layout",
+            "Address",
+            "PostCode"
         ))
             // ->with("somthing")
             ->first();
@@ -327,8 +325,8 @@ class StripeController extends Controller
         }
 
         $data["enable_customer_order_payment"] = $business->enable_customer_order_payment;
-        $data["STRIPE_KEY"] = $business->STRIPE_KEY;
-        $data["STRIPE_SECRET"] = $business->STRIPE_SECRET;
+        $data["STRIPE_KEY"] = config('cashier.stripe.key');
+        $data["STRIPE_SECRET"] = "******";
 
 
 
@@ -402,15 +400,11 @@ class StripeController extends Controller
         // }
 
         $data["enable_customer_order_payment"] = $business->enable_customer_order_payment;
-        $data["STRIPE_KEY"] = $business->STRIPE_KEY;
+        $data["STRIPE_KEY"] = config('cashier.stripe.key');
         // $data["STRIPE_SECRET"] = $business->STRIPE_SECRET;
 
 
 
         return response($data, 200);
     }
-
-
-
-
 }

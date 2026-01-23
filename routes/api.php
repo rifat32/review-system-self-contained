@@ -40,6 +40,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\BusinessAiModuleController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\RuleReportController;
+use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\ServicePlanController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -67,7 +69,13 @@ Route::patch('/v1.0/forget-password/reset/{token}', [ForgotPasswordController::c
 // ============================================================================
 // CustomWebhookController – Webhooks
 // ============================================================================
-Route::post('webhooks/stripe', [CustomWebhookController::class, "handleStripeWebhook"]);
+Route::post('webhooks/stripe', [CustomWebhookController::class, "handleStripeWebhook"])->name('stripe.webhook');
+Route::get('subscription/redirect', [SubscriptionController::class, "redirectUserToStripe"])->name('subscription.redirect');
+Route::get('subscription/success', [SubscriptionController::class, "stripePaymentSuccess"])->name('subscription.success_payment');
+Route::get('subscription/failed', [SubscriptionController::class, "stripePaymentFailed"])->name('subscription.failed_payment');
+
+Route::apiResource('service-plans', ServicePlanController::class);
+
 
 // ============================================================================
 // OwnerController – Public owner registration helpers

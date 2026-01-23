@@ -83,7 +83,9 @@ class Business extends Model
         'default_color_threshold',
         'default_branch_id',
         'has_rule_management',
-        'is_treat_manager_as_staff'
+        'is_treat_manager_as_staff',
+        'openai_token_limit',
+        'service_plan_id'
 
     ];
 
@@ -94,10 +96,7 @@ class Business extends Model
     ];
 
     protected $hidden = [
-        "pin",
-        "STRIPE_KEY",
-        "STRIPE_SECRET"
-
+        "pin"
     ];
 
 
@@ -114,9 +113,22 @@ class Business extends Model
         });
     }
 
-    public function aiModules()
+    public function businessModules()
     {
-        return $this->hasOne(BusinessAiModule::class);
+        return $this->hasMany(BusinessModule::class);
+    }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(BusinessSubscription::class);
+    }
+
+    public function current_subscription()
+    {
+        return $this->hasOne(BusinessSubscription::class)
+            ->where('status', 'active')
+            ->where('end_date', '>=', now())
+            ->orderBy('end_date', 'desc');
     }
 
 
@@ -143,30 +155,43 @@ class Business extends Model
         return !$parsedDate->isPast();
     }
 
-    public function getIsSubscribedAttribute($value)
+    public function getIsSubscribedAttribute(): bool
     {
-        $user = auth()->user();
-        if (empty($user)) {
-            return 0;
-        }
-        // Check for self-registered businesses
-        if ($this->is_self_registered_businesses ?? 0) {
-            $validTrailDate = $this->isTrailDateValid($this->trail_end_date);
-            $latest_subscription = $this->current_subscription;
-
-            // If no valid subscription and no valid trail date, return 0
-            if (!$this->isValidSubscription($latest_subscription) && !$validTrailDate) {
-                return 0;
-            }
-        } else {
-            // For non-self-registered businesses
-            // If the trail date is empty or invalid, return 0
-            if (!$this->isTrailDateValid($this->expiry_date)) {
-                return 0;
-            }
+        // 1. Check legacy trail/expiry logic
+        if ($this->expiry_date && Carbon::parse($this->expiry_date)->isFuture()) {
+            return true;
         }
 
-        return 1;
+        // 2. Check new subscription system
+        return $this->subscriptions()
+            ->where('status', 'active')
+            ->where('end_date', '>=', now())
+            ->exists();
+    }
+
+    /**
+     * Check if business has reached its OpenAI token limit
+     */
+    public function getIsTokenLimitReachedAttribute(): bool
+    {
+        $limit = $this->openai_token_limit;
+
+        // -1 means unlimited
+        if ($limit === -1) {
+            return false;
+        }
+
+        // If limit is 0 and not explicitly -1, consider it reached (no quota)
+        if ($limit === 0 || $limit === null) {
+            return true;
+        }
+
+        // Calculate usage for current month (standard fallback)
+        $used = \App\Models\OpenAITokenUsage::where('business_id', $this->id)
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->sum('total_tokens');
+
+        return $used >= $limit;
     }
 
     private function isValidSubscription($subscription)

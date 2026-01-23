@@ -288,6 +288,24 @@ class ProcessAIReviews extends Command
                     Log::channel('daily')->info($logMessage);
                 } else {
                     // Production mode
+                    $business = $review->business;
+                    if (!$business) {
+                        Log::channel('daily')->info("Review #{$review->id} has no valid business, skipping\n");
+                        continue;
+                    }
+
+                    // Check subscription
+                    if (!$business->is_subscribed) {
+                        Log::channel('daily')->info("Business #{$business->id} has no active subscription, skipping review #{$review->id}\n");
+                        continue;
+                    }
+
+                    // Check token limit
+                    if ($business->is_token_limit_reached) {
+                        Log::channel('daily')->info("Business #{$business->id} has reached AI token limit, skipping review #{$review->id}\n");
+                        continue;
+                    }
+
                     $forceReprocess = $this->option('force');
 
                     if ($review->is_ai_processed && !$forceReprocess) {
