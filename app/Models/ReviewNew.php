@@ -137,12 +137,12 @@ class ReviewNew extends Model
         return str_starts_with($value, 'http') ? $value : asset('storage/' . $value);
     }
 
-    public function getAudioUrlAttribute()
+    public function getAudioAttribute()
     {
         if (empty($this->audio)) {
             return null;
         }
-        return asset("storage-proxy/business_1/business_{$this->business_id}/voice-reviews/{$this->audio}");
+        return asset("storage-proxy/business_{$this->business->OwnerID}/business_{$this->business_id}/voice-reviews/{$this->audio}");
     }
 
     public function value()

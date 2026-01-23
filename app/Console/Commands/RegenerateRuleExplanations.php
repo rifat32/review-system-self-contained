@@ -26,21 +26,46 @@ class RegenerateRuleExplanations extends Command
     {
         try {
             Log::channel('daily')->info("\n" . str_repeat('=', 50));
+            log_message([
+                'message' => str_repeat('=', 50),
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
             Log::channel('daily')->info("Regenerate Rule Explanations started at " . now());
+            log_message([
+                'message' => "Regenerate Rule Explanations started at " . now(),
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
 
             $this->info('Starting rule explanation regeneration...');
             Log::channel('daily')->info("Starting documentation regeneration...");
+            log_message([
+                'message' => 'Starting documentation regeneration...',
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
 
             $rules = $this->getRulesToProcess();
 
             if ($rules->isEmpty()) {
                 $this->info('No rules found needing regeneration (use --all to force).');
                 Log::channel('daily')->info("No rules found to process.");
+                log_message([
+                    'message' => 'No rules found to process.',
+                    'path' => __FILE__,
+                    'other information' => 'AI Process Logging'
+                ], 'ai_process.log');
                 return 0;
             }
 
             $this->info("Found {$rules->count()} rule(s) to process");
             Log::channel('daily')->info("Found {$rules->count()} rule(s) to process");
+            log_message([
+                'message' => "Found {$rules->count()} rule(s) to process",
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
 
             $results = [
                 'success' => 0,
@@ -73,17 +98,32 @@ class RegenerateRuleExplanations extends Command
 
                         $results['success']++;
                         Log::channel('daily')->info("✓ Rule {$rule->rule_id}: Updated explanations");
+                        log_message([
+                            'message' => "Rule {$rule->rule_id}: Updated explanations",
+                            'path' => __FILE__,
+                            'other information' => 'AI Process Logging'
+                        ], 'ai_process.log');
                     } else {
                         $results['failed']++;
                         $this->newLine();
                         $this->warn("Failed: {$rule->rule_id}");
                         Log::channel('daily')->info("✗ Failed: {$rule->rule_id}");
+                        log_message([
+                            'message' => "Failed: {$rule->rule_id}",
+                            'path' => __FILE__,
+                            'other information' => 'AI Process Logging'
+                        ], 'ai_process.log');
                     }
                 } catch (\Exception $e) {
                     $results['failed']++;
                     $this->newLine();
                     $this->error("Error: {$rule->rule_id} - {$e->getMessage()}");
                     Log::channel('daily')->info("Error: {$rule->rule_id} - {$e->getMessage()}");
+                    log_message([
+                        'message' => "Error: {$rule->rule_id} - {$e->getMessage()}",
+                        'path' => __FILE__,
+                        'other information' => 'AI Process Logging'
+                    ], 'ai_process.log');
                 }
 
                 $progressBar->advance();
@@ -109,16 +149,31 @@ class RegenerateRuleExplanations extends Command
             if ($results['failed'] > 0) {
                 $this->error("Some explanations failed to regenerate. Check logs for details.");
                 Log::channel('daily')->info("Some explanations failed to regenerate.");
+                log_message([
+                    'message' => 'Some explanations failed to regenerate.',
+                    'path' => __FILE__,
+                    'other information' => 'AI Process Logging'
+                ], 'ai_process.log');
                 return 1;
             }
 
             $this->info('Explanation regeneration completed successfully!');
             Log::channel('daily')->info("Explanation regeneration completed successfully!");
+            log_message([
+                'message' => 'Explanation regeneration completed successfully!',
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
 
             return 0;
         } catch (\Exception $e) {
             $this->error($e->getMessage());
             Log::channel('daily')->info("FATAL ERROR: " . $e->getMessage());
+            log_message([
+                'message' => "FATAL ERROR: " . $e->getMessage(),
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
             return 1;
         }
     }

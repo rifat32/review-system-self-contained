@@ -821,7 +821,7 @@ class ReviewNewController extends Controller
         ];
 
         if ($request->hasFile('audio')) {
-            $folder_path = "business_1/business_{$businessId}/voice-reviews";
+            $folder_path = "business_{$business->OwnerID}/business_{$businessId}/voice-reviews";
             $file = $request->file('audio');
             $filename = $file->hashName();
             $file->storeAs($folder_path, $filename, 'public');
@@ -1012,7 +1012,8 @@ class ReviewNewController extends Controller
         ];
 
         if ($request->hasFile('audio')) {
-            $folder_path = "business_1/business_{$businessId}/voice-reviews";
+            $business = Business::findOrFail($businessId);
+            $folder_path = "business_{$business->OwnerID}/business_{$businessId}/voice-reviews";
             $file = $request->file('audio');
             $filename = $file->hashName();
             $file->storeAs($folder_path, $filename, 'public');

@@ -55,7 +55,8 @@ class ReviewFeedService
                 })->filter()->unique()->values()->toArray(),
                 'is_voice' => $review->is_voice_review,
                 'sentiment' => AIProcessorService::getSentimentLabel($review->sentiment_score),
-                'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? [])
+                'is_ai_flagged' => !empty($review->moderation_results['issues_found'] ?? []),
+                "audio" => $review->audio,
             ];
         });
     }

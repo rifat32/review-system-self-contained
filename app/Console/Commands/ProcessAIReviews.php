@@ -30,10 +30,30 @@ class ProcessAIReviews extends Command
     public function handle()
     {
         Log::channel('daily')->info("\n" . str_repeat("=", 80));
+        log_message([
+            'message' => str_repeat("=", 80),
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
         Log::channel('daily')->info("AI Review Processing started at " . now());
+        log_message([
+            'message' => "AI Review Processing started at " . now(),
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
         Log::channel('daily')->info(str_repeat("=", 80));
+        log_message([
+            'message' => str_repeat("=", 80),
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
 
         Log::channel('daily')->info('🚀 Starting OpenAI Review Processing...');
+        log_message([
+            'message' => '🚀 Starting OpenAI Review Processing...',
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
 
         try {
             if ($this->option('review-id')) {
@@ -43,11 +63,31 @@ class ProcessAIReviews extends Command
             }
 
             Log::channel('daily')->info("Processing completed successfully at " . now());
+            log_message([
+                'message' => "Processing completed successfully at " . now(),
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
             Log::channel('daily')->info(str_repeat("=", 80) . "\n");
+            log_message([
+                'message' => str_repeat("=", 80),
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
         } catch (\Exception $e) {
             $errorMessage = "❌ Processing failed: " . $e->getMessage();
             Log::channel('daily')->info("ERROR: " . $errorMessage);
+            log_message([
+                'message' => "ERROR: " . $errorMessage,
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
             Log::channel('daily')->info(str_repeat("=", 80) . "\n");
+            log_message([
+                'message' => str_repeat("=", 80),
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
         }
     }
 
@@ -55,6 +95,11 @@ class ProcessAIReviews extends Command
     {
         $reviewId = $this->option('review-id');
         Log::channel('daily')->info("Processing single review ID: {$reviewId}\n");
+        log_message([
+            'message' => "Processing single review ID: {$reviewId}",
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
 
         $review = ReviewNew::find($reviewId);
 
@@ -68,16 +113,31 @@ class ProcessAIReviews extends Command
         $logMessage .= "Staff: " . ($review->staff_id ? "Yes (ID: {$review->staff_id})" : "No") . ", ";
         $logMessage .= "Already Processed: " . ($review->is_ai_processed ? 'Yes' : 'No');
         Log::channel('daily')->info($logMessage . "\n");
+        log_message([
+            'message' => $logMessage,
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
 
         Log::channel('daily')->info("📋 Processing Review #{$review->id}\n");
         Log::channel('daily')->info("   Business: {$review->business_id}\n");
         Log::channel('daily')->info("   Staff: " . ($review->staff_id ? "Yes (ID: {$review->staff_id})" : "No") . "\n");
         Log::channel('daily')->info("   Text: " . substr($review->raw_text ?? $review->comment ?? '', 0, 100) . "...\n");
         Log::channel('daily')->info("   Already Processed: " . ($review->is_ai_processed ? 'Yes' : 'No') . "\n");
+        log_message([
+            'message' => "Processing Review Details #{$review->id}",
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
 
         try {
             if ($this->option('test')) {
                 Log::channel('daily')->info("TEST MODE: Analyzing review without saving\n");
+                log_message([
+                    'message' => 'TEST MODE: Analyzing review without saving',
+                    'path' => __FILE__,
+                    'other information' => 'AI Process Logging'
+                ], 'ai_process.log');
                 $payload = $this->processor->createPayloadFromReview($review);
                 $enabledModules = $this->processor->getBusinessAiModules($review->business_id);
                 $result = $this->processor->processReviewWithOpenAI($payload, $enabledModules);
@@ -105,6 +165,11 @@ class ProcessAIReviews extends Command
                 }
             } else {
                 Log::channel('daily')->info("PRODUCTION MODE: Processing and saving results\n");
+                log_message([
+                    'message' => 'PRODUCTION MODE: Processing and saving results',
+                    'path' => __FILE__,
+                    'other information' => 'AI Process Logging'
+                ], 'ai_process.log');
                 $forceReprocess = $this->option('force');
 
                 if ($forceReprocess) {
@@ -134,6 +199,11 @@ class ProcessAIReviews extends Command
                 Log::channel('daily')->info("   Key Phrases: " . substr($review->key_phrases ?? '[]', 0, 100) . "\n");
                 Log::channel('daily')->info("   AI Confidence: " . round(($review->ai_confidence ?? 0) * 100) . "%\n");
                 Log::channel('daily')->info("   Status: " . ($review->is_abusive ? '⚠️ Flagged' : '✅ Active') . "\n");
+                log_message([
+                    'message' => "Review Processed Successfully #{$review->id}",
+                    'path' => __FILE__,
+                    'other information' => 'AI Process Logging'
+                ], 'ai_process.log');
 
                 // Log detailed results
                 Log::channel('daily')->info("Review #{$review->id} processed successfully\n");
@@ -150,6 +220,11 @@ class ProcessAIReviews extends Command
         } catch (\Exception $e) {
             $errorMessage = "Processing failed for review #{$review->id}: " . $e->getMessage();
             Log::channel('daily')->info("ERROR: " . $errorMessage . "\n");
+            log_message([
+                'message' => "ERROR: " . $errorMessage,
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
             Log::channel('daily')->info("Stack trace: " . $e->getTraceAsString() . "\n");
         }
     }
@@ -226,9 +301,12 @@ class ProcessAIReviews extends Command
                             Log::channel('daily')->info("Review #{$review->id} already processed (via API), skipping\n");
                         } else {
                             $successCount++;
-                            Log::channel('daily')->info("Review #{$review->id} processed successfully\n");
-                            Log::channel('daily')->info("  Sentiment: " . ($review->sentiment_label ?? 'N/A') . "\n");
                             Log::channel('daily')->info("  AI Confidence: " . round(($review->ai_confidence ?? 0) * 100) . "%\n");
+                            log_message([
+                                'message' => "Review processed successfully #{$review->id}",
+                                'path' => __FILE__,
+                                'other information' => 'AI Process Logging'
+                            ], 'ai_process.log');
                         }
                     }
                 }
@@ -249,6 +327,11 @@ class ProcessAIReviews extends Command
         }
 
         Log::channel('daily')->info("📈 Processing Complete:\n");
+        log_message([
+            'message' => 'Processing Complete',
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
         Log::channel('daily')->info("   ✅ Successfully processed: {$successCount}\n");
 
         if ($alreadyProcessed > 0) {
@@ -268,6 +351,11 @@ class ProcessAIReviews extends Command
 
         // Log summary
         Log::channel('daily')->info("\nBatch Processing Summary:\n");
+        log_message([
+            'message' => 'Batch Processing Summary',
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
         Log::channel('daily')->info("  Successfully processed: {$successCount}\n");
         Log::channel('daily')->info("  Already processed (skipped): {$alreadyProcessed}\n");
         Log::channel('daily')->info("  Failed: {$failedCount}\n");
