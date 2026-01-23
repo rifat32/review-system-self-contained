@@ -61,8 +61,8 @@ class ReviewNew extends Model
         "mismatch_insights",
         "ai_insights",
         "ai_recommendations",
-        "audio"
-
+        "audio",
+        "service_analysis"
     ];
 
 

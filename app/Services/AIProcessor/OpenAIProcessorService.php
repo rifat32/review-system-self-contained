@@ -1729,8 +1729,20 @@ PROMPT;
             'mismatch_insights' => json_encode($mismatchInsights),
 
             // Store detailed insights and tags
-            'ai_insights' => json_encode($this->extractInsights($result, $enabledModules)),
-            'ai_recommendations' => json_encode($this->generateRecommendations($result, $enabledModules))
+            'ai_insights' => $this->extractInsights($result, $enabledModules),
+            'ai_recommendations' => $this->generateRecommendations($result, $enabledModules),
+
+            // Map additional fields for dashboard and reporting
+            'language' => $result['language']['detected'] ?? 'en',
+            'summary' => $result['summary']['one_line'] ?? ($result['summary']['manager_summary'] ?? ''),
+            'openai_raw_response' => json_encode($result),
+            'key_phrases' => $result['tags'] ?? [],
+            'topics' => $result['category_analysis'] ?? [],
+            'service_analysis' => $result['category_analysis'] ?? [],
+            'moderation_results' => $result['flagging'] ?? [],
+            'ai_suggestions' => $result['recommendations']['business_actions'] ?? [],
+            'staff_suggestions' => $result['recommendations']['staff_actions'] ?? [],
+            'review_type' => $review->review_type ?? ($review->is_voice_review ? 'voice' : 'text'),
         ];
 
         // Process tags if present
@@ -1904,6 +1916,7 @@ PROMPT;
 
         return round($inputCost + $outputCost, 6); // Round to 6 decimal places for cents
     }
+
 
     /**
      * Get token usage statistics for a business
