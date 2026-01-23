@@ -16,6 +16,7 @@ return new class extends Migration
             $table->double('duration_months');
             $table->unsignedBigInteger('openai_token_limit')->default(0);
             $table->boolean('is_active')->default(true);
+            $table->double('set_up_amount')->default(0);
             $table->unsignedBigInteger("created_by")->nullable();
             $table->timestamps();
         });

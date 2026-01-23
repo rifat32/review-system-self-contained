@@ -58,7 +58,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
     private const REGISTERED_USERS_COUNT = 100;
     private const BRANCHES_COUNT = 4;
     private const STAFF_PER_BRANCH = 3;
-    private const DAYS_OF_DATA = 9;
+    private const DAYS_OF_DATA = 90;
 
     public function __construct()
     {
@@ -188,7 +188,12 @@ class AiReadyDemoBusinessSeeder extends Seeder
             'is_branch' => true,
             'is_review_slider' => false,
             'review_only' => false,
+            'service_plan_id' => 3,
+
+            "trial_end_date" => Carbon::now()->addDays(365),
+
         ];
+
 
         // Use BusinessService to create business (ensures all defaults and AI rules are set)
         $this->business = $this->businessService->createBusiness($this->owner, $businessData);
@@ -697,24 +702,32 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 $surveyId = $group['survey'] ? $group['survey']->id : $specificSurveys[array_rand($specificSurveys)]->id;
 
                 // Create review using ReviewNew (triggers observers/events)
-                $review = ReviewNew::create([
+                $review = new ReviewNew([
                     'survey_id' => $surveyId,
                     'description' => 'Customer feedback',
                     'business_id' => $this->business->id,
                     'user_id' => $userId,
-                    'guest_id' => null,
                     'comment' => $reviewTemplate['comment'],
                     'raw_text' => $reviewTemplate['comment'],
                     'ip_address' => $this->randomIp(),
                     'is_overall' => $group['is_overall'],
                     'staff_id' => $staffMember['user']->id,
                     'branch_id' => $branch->id,
-                    'is_ai_processed' => 0, // AI cron will process these
+                    'is_ai_processed' => 0,
                     'source' => rand(0, 1) ? 'web' : 'app',
                     'is_voice_review' => false,
                     'created_at' => $createdAt,
                     'updated_at' => $createdAt,
                 ]);
+
+                $review->timestamps = false;
+
+                $review->forceFill([
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
+                ]);
+
+                $review->save();
 
                 // Create review values (questions + stars) using ReviewService
                 $this->createReviewValues($review, $rating, $group['is_overall']);

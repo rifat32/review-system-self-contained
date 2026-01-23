@@ -48,8 +48,7 @@ return new class extends Migration {
             $table->boolean('user_review_report')->default(1);
             $table->boolean('guest_user_review_report')->default(1);
             $table->string('pin')->nullable();
-            $table->string('STRIPE_KEY')->nullable();
-            $table->string('STRIPE_SECRET')->nullable();
+
             $table->boolean('is_report_email_enabled')->default(0);
 
             // Added fields from alterations
@@ -81,6 +80,7 @@ return new class extends Migration {
 
             $table->boolean('enable_detailed_survey')->default(false);
             $table->boolean('is_treat_manager_as_staff')->default(false);
+
 
 
             $table->json('export_settings')->nullable();
@@ -116,9 +116,18 @@ return new class extends Migration {
 
             $table->boolean('is_branch')->default(false);
 
+            $table->unsignedBigInteger('openai_token_limit')->default(0);
+
+            $table->unsignedBigInteger("service_plan_id")->nullable();
+            $table->date('start_date')->nullable();
+
+            $table->string("service_plan_discount_code")->nullable();
+            $table->date('trial_end_date');
+            $table->double("service_plan_discount_amount")->nullable();
             $table->softDeletes();
             $table->timestamp('last_recommendation_at')->nullable();
             $table->timestamps();
+
 
             // Indexes
             $table->index('is_active');

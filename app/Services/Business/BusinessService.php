@@ -2,6 +2,7 @@
 
 namespace App\Services\Business;
 
+use App\Http\Utils\DiscountUtil;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\BusinessDay;
@@ -16,6 +17,7 @@ use Illuminate\Support\Str;
 
 class BusinessService
 {
+    use DiscountUtil;
     /**
      * Enrich business object with ratings and timing information
      *
@@ -87,6 +89,8 @@ class BusinessService
      */
     public function createBusiness(User $user, array $payloadData): Business
     {
+        $discountAmount = $this->getDiscountAmount($payloadData);
+
         return Business::create([
             'OwnerID' => $user->id,
             'Status' => 'Inactive',
@@ -132,7 +136,11 @@ class BusinessService
             'is_registered_user_show_stuffs' => true,
             'is_registered_user_show_stuff_image' => true,
             'is_registered_user_show_stuff_name' => true,
-            'service_plan_id' => $payloadData['service_plan_id'],
+            'service_plan_id' => $payloadData['service_plan_id'] ?? null,
+            'service_plan_discount_code' => $payloadData['service_plan_discount_code'] ?? null,
+            'service_plan_discount_amount' => $discountAmount,
+            'start_date' => now()->toDateString(),
+            'trial_end_date' => now()->addDays(14)->toDateString(),
         ]);
     }
 

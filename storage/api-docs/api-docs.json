@@ -1496,6 +1496,103 @@
                 ]
             }
         },
+        "/v1.0/auth/check-branch-email": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "This method is to check branch email",
+                "description": "This method is to check if a branch email already exists",
+                "operationId": "checkBranchEmail",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "description": "Branch ID to exclude from check",
+                                        "type": "integer",
+                                        "format": "integer",
+                                        "example": 1
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "branch@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Email already exists"
+                                        },
+                                        "data": {
+                                            "type": "boolean",
+                                            "example": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/branches": {
             "get": {
                 "tags": [
@@ -1869,7 +1966,7 @@
                                                 },
                                                 "email": {
                                                     "type": "string",
-                                                    "example": "branch@example.com"
+                                                    "example": "branch@yopmail.com"
                                                 },
                                                 "is_active": {
                                                     "type": "boolean",
@@ -2065,7 +2162,7 @@
                                                 },
                                                 "email": {
                                                     "type": "string",
-                                                    "example": "branch@example.com"
+                                                    "example": "branch@yopmail.com"
                                                 },
                                                 "is_active": {
                                                     "type": "boolean",
@@ -2373,7 +2470,7 @@
                                     "email": {
                                         "description": "Email of the branch",
                                         "type": "string",
-                                        "example": "updated@example.com"
+                                        "example": "updated@yopmail.com"
                                     },
                                     "is_active": {
                                         "description": "Whether the branch is active",
@@ -2477,7 +2574,7 @@
                                                 },
                                                 "email": {
                                                     "type": "string",
-                                                    "example": "updated@example.com"
+                                                    "example": "updated@yopmail.com"
                                                 },
                                                 "is_active": {
                                                     "type": "boolean",
@@ -2692,7 +2789,7 @@
                                                 },
                                                 "email": {
                                                     "type": "string",
-                                                    "example": "branch@example.com"
+                                                    "example": "branch@yopmail.com"
                                                 },
                                                 "is_active": {
                                                     "type": "boolean",
@@ -5757,6 +5854,65 @@
                         "example": "1"
                     },
                     {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "sort by field name",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "sort order asc or desc order",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "search key only allowed Name and email",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for metrics",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "last_30_days",
+                            "enum": [
+                                "last_7_days",
+                                "last_30_days",
+                                "last_90_days",
+                                "this_week",
+                                "last_week",
+                                "this_month",
+                                "last_month",
+                                "this_quarter",
+                                "last_quarter",
+                                "this_year",
+                                "last_year"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "search key only allowed Name and email",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
                         "name": "response_type",
                         "in": "query",
                         "description": "Export format (PDF, CSV, or JSON by default)",
@@ -6917,6 +7073,16 @@
                                         "description": "Business has branches",
                                         "type": "boolean",
                                         "example": true
+                                    },
+                                    "has_rule_management": {
+                                        "description": "Enable rule management",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_treat_manager_as_staff": {
+                                        "description": "Enable rule management",
+                                        "type": "boolean",
+                                        "example": false
                                     },
                                     "header_image": {
                                         "description": "Header image path",
@@ -9931,20 +10097,6 @@
                             ]
                         },
                         "example": "last_30_days"
-                    },
-                    {
-                        "name": "start_date",
-                        "in": "query",
-                        "description": "Custom start date (d-m-Y format)",
-                        "required": false,
-                        "example": "01-01-2025"
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "description": "Custom end date (d-m-Y format)",
-                        "required": false,
-                        "example": "31-01-2025"
                     }
                 ],
                 "responses": {
@@ -10477,7 +10629,7 @@
         "/v1.0/reports/branch-comparison": {
             "get": {
                 "tags": [
-                    "report"
+                    "Reports"
                 ],
                 "summary": "Compare multiple branches performance",
                 "description": "Compare up to 5 branches with real metrics from database",
@@ -14508,7 +14660,7 @@
         "/v1.0/notification": {
             "get": {
                 "tags": [
-                    "notification"
+                    "notification_management"
                 ],
                 "summary": "This method is to get notification by receiver_id",
                 "description": "This method is to get notification by receiver_id with pagination and filters",
@@ -14750,12 +14902,201 @@
                         "bearerAuth": []
                     }
                 ]
+            },
+            "post": {
+                "tags": [
+                    "notification_management"
+                ],
+                "summary": "This method is to store notification",
+                "description": "This method is to store notification",
+                "operationId": "createNotification",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "message",
+                                    "receiver_id"
+                                ],
+                                "properties": {
+                                    "receiver_id": {
+                                        "description": "ID of the user to receive the notification",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Notification Title"
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "example": "Notification message content"
+                                    },
+                                    "business_id": {
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "example": "info"
+                                    },
+                                    "priority": {
+                                        "type": "string",
+                                        "example": "high",
+                                        "nullable": true
+                                    },
+                                    "entity_id": {
+                                        "type": "integer",
+                                        "example": 123,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Notification created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Notification created successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "receiver_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "sender_id": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "business_id": {
+                                                    "type": "integer",
+                                                    "example": 1,
+                                                    "nullable": true
+                                                },
+                                                "sender_type": {
+                                                    "type": "string",
+                                                    "example": "super_admin"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Notification message content"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "unread"
+                                                },
+                                                "title": {
+                                                    "type": "string",
+                                                    "example": "Notification Title"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "info"
+                                                },
+                                                "read_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "nullable": true
+                                                },
+                                                "link": {
+                                                    "type": "string",
+                                                    "example": "https://example.com",
+                                                    "nullable": true
+                                                },
+                                                "priority": {
+                                                    "type": "string",
+                                                    "example": "high",
+                                                    "nullable": true
+                                                },
+                                                "entity_id": {
+                                                    "type": "integer",
+                                                    "example": 123,
+                                                    "nullable": true
+                                                },
+                                                "entity_ids": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer"
+                                                    },
+                                                    "example": [
+                                                        1,
+                                                        2,
+                                                        3
+                                                    ],
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/v1.0/notification/{notificationId}/status": {
             "patch": {
                 "tags": [
-                    "notification"
+                    "notification_management"
                 ],
                 "summary": "This method is to change notification status to read",
                 "description": "This method is to change notification status to read and set read_at timestamp",
@@ -14898,7 +15239,7 @@
         "/v1.0/notification/mark-all-read": {
             "patch": {
                 "tags": [
-                    "notification"
+                    "notification_management"
                 ],
                 "summary": "This method is to mark all notifications as read for the current user",
                 "description": "This method is to mark all unread notifications as read and set read_at timestamp",
@@ -14968,7 +15309,7 @@
         "/v1.0/notification/{notificationId}": {
             "delete": {
                 "tags": [
-                    "notification"
+                    "notification_management"
                 ],
                 "summary": "This method is to delete notification",
                 "description": "This method is to delete notification",
@@ -15530,6 +15871,14 @@
                                         "type": "boolean",
                                         "example": true
                                     },
+                                    "has_rule_management": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_treat_manager_as_staff": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
                                     "header_image": {
                                         "type": "string",
                                         "example": "/header_image/default.png"
@@ -15744,6 +16093,14 @@
                                     "is_branch": {
                                         "type": "boolean",
                                         "example": true
+                                    },
+                                    "has_rule_management": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_treat_manager_as_staff": {
+                                        "type": "boolean",
+                                        "example": false
                                     },
                                     "header_image": {
                                         "type": "string",
@@ -17877,12 +18234,6 @@
                                         "type": "string",
                                         "example": "How was your experience?"
                                     },
-                                    "business_id": {
-                                        "description": "Required for non-superadmin",
-                                        "type": "integer",
-                                        "example": 1,
-                                        "nullable": true
-                                    },
                                     "question_sub_category_ids": {
                                         "description": "Array of question sub-category IDs",
                                         "type": "array",
@@ -18034,16 +18385,6 @@
                                         "type": "string",
                                         "example": "How was your experience?"
                                     },
-                                    "business_id": {
-                                        "description": "Required for non-superadmin",
-                                        "type": "integer",
-                                        "example": 1,
-                                        "nullable": true
-                                    },
-                                    "is_active": {
-                                        "type": "boolean",
-                                        "example": true
-                                    },
                                     "show_in_guest_user": {
                                         "type": "boolean",
                                         "example": true
@@ -18051,16 +18392,6 @@
                                     "show_in_user": {
                                         "type": "boolean",
                                         "example": true
-                                    },
-                                    "survey_name": {
-                                        "type": "string",
-                                        "example": "Post-Service Survey",
-                                        "nullable": true
-                                    },
-                                    "survey_id": {
-                                        "type": "integer",
-                                        "example": 5,
-                                        "nullable": true
                                     },
                                     "type": {
                                         "type": "string",
@@ -23129,7 +23460,592 @@
                 ]
             }
         },
-        "/api/v1.0/ai-rules": {
+        "/v1.0/reports/sentiment-analysis": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get sentiment analysis report",
+                "description": "Aggregates and returns sentiment data for a business, including counts and trends.",
+                "operationId": "sentimentAnalysisReport",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "branch_id",
+                        "in": "query",
+                        "description": "ID of the branch to filter by",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful report generation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/emotion-intensity": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get emotion intensity report",
+                "description": "Returns analysis of emotional strength (joy, frustration, etc.) within reviews.",
+                "operationId": "emotionIntensityReport",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful report generation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/rating-comment-mismatch": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get rating/comment mismatch report",
+                "description": "Detects reviews where the numeric rating and text sentiment do not align.",
+                "operationId": "ratingCommentMismatchReport",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful report generation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/category-issues": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get category issues report",
+                "description": "Analyzes performance across business categories like Price, Quality, etc.",
+                "operationId": "categoryIssuesReport",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful report generation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/service-types": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get service types report",
+                "description": "Identifies trends in specific service areas like Installation or Maintenance.",
+                "operationId": "serviceTypesReport",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful report generation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/business-areas": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get business areas report",
+                "description": "Tracks satisfaction scores across different physical locations or business units.",
+                "operationId": "businessAreasReport",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful report generation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/staff-mentions": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get staff mentions report",
+                "description": "Aggregates individual staff performance based on customer text mentions.",
+                "operationId": "staffMentionsReport",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful report generation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/staff-performance-risk": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get staff performance risk report",
+                "description": "Identifies staff members with recurring negative mentions or behavioral concerns.",
+                "operationId": "staffPerformanceRiskReport",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful report generation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/reports/flagged-reviews": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get flagged reviews report",
+                "description": "List and analysis of reviews flagged by AI for urgent attention.",
+                "operationId": "flaggedReviewsReport",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for filtering reviews (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful report generation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/ai-rules": {
             "get": {
                 "tags": [
                     "AI Rules"
@@ -23456,7 +24372,7 @@
                 ]
             }
         },
-        "/api/v1.0/ai-rules/{id}": {
+        "/v1.0/ai-rules/{id}": {
             "get": {
                 "tags": [
                     "AI Rules"
@@ -23708,7 +24624,7 @@
                 ]
             }
         },
-        "/api/v1.0/ai-rules/preview": {
+        "/v1.0/ai-rules/preview": {
             "post": {
                 "tags": [
                     "AI Rules"
@@ -23722,26 +24638,81 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "business_id",
                                     "conditions",
                                     "actions",
                                     "category"
                                 ],
                                 "properties": {
-                                    "business_id": {
-                                        "type": "integer",
-                                        "example": 1
-                                    },
                                     "conditions": {
                                         "type": "array",
                                         "items": {
+                                            "properties": {
+                                                "source": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Comment",
+                                                        "Rating",
+                                                        "Staff",
+                                                        "Area",
+                                                        "Emotion",
+                                                        "Trend"
+                                                    ]
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "sentiment",
+                                                        "rating",
+                                                        "keyword",
+                                                        "staff_mention",
+                                                        "area_mention",
+                                                        "emotion",
+                                                        "service_type",
+                                                        "frequency",
+                                                        "trend_direction"
+                                                    ]
+                                                },
+                                                "operator": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "equals",
+                                                        "contains",
+                                                        "greater_than",
+                                                        "less_than",
+                                                        "between",
+                                                        "not_equals",
+                                                        "starts_with",
+                                                        "ends_with",
+                                                        "regex"
+                                                    ]
+                                                },
+                                                "value": {
+                                                    "type": "string"
+                                                },
+                                                "logic": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "AND",
+                                                        "OR"
+                                                    ]
+                                                }
+                                            },
                                             "type": "object"
                                         }
                                     },
                                     "actions": {
                                         "type": "array",
                                         "items": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "enum": [
+                                                "flag_review",
+                                                "notify_manager",
+                                                "recommend_coaching",
+                                                "link_staff",
+                                                "escalate",
+                                                "notify_slack",
+                                                "notify_email"
+                                            ]
                                         }
                                     },
                                     "category": {
@@ -23797,6 +24768,251 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/service-plans": {
+            "get": {
+                "tags": [
+                    "service-plans"
+                ],
+                "summary": "List all active service plans",
+                "description": "Returns a list of all active service plans with their modules.",
+                "operationId": "getServicePlans",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "service-plans"
+                ],
+                "summary": "Create a new service plan",
+                "description": "Creates a new service plan and optionally syncs modules.",
+                "operationId": "storeServicePlan",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "price",
+                                    "duration_months",
+                                    "openai_token_limit"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Pro Plan"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Full featured plan"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 29.989999999999998436805981327779591083526611328125
+                                    },
+                                    "duration_months": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "openai_token_limit": {
+                                        "type": "integer",
+                                        "example": 10000
+                                    },
+                                    "module_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Service plan created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/service-plans/{id}": {
+            "get": {
+                "tags": [
+                    "service-plans"
+                ],
+                "summary": "Get details of a specific service plan",
+                "description": "Returns plan details with modules by ID.",
+                "operationId": "getServicePlanById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "The ID of the service plan",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Service plan not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "service-plans"
+                ],
+                "summary": "Update an existing service plan",
+                "description": "Updates plan details and optionally syncs modules.",
+                "operationId": "updateServicePlan",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "The ID of the service plan",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Updated Pro Plan"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 39.99000000000000198951966012828052043914794921875
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "module_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Service plan updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Service plan not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "service-plans"
+                ],
+                "summary": "Deactivate a service plan",
+                "description": "Marks a service plan as inactive.",
+                "operationId": "deleteServicePlan",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "The ID of the service plan",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Service plan deactivated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Service plan not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
             }
         },
         "/v1.0/staffs": {
@@ -26219,6 +27435,606 @@
                 ]
             }
         },
+        "/v1.0/customers/{customerId}/reviews": {
+            "get": {
+                "tags": [
+                    "super_admin.customer_management"
+                ],
+                "summary": "Get all reviews for a specific customer",
+                "description": "Retrieve all reviews submitted by a specific customer with optional filtering and pagination",
+                "operationId": "getCustomerReviews",
+                "parameters": [
+                    {
+                        "name": "customerId",
+                        "in": "path",
+                        "description": "Customer ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "business_id",
+                        "in": "query",
+                        "description": "Business ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of reviews per page for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Field to sort by (e.g., created_at, calculated_rating)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "created_at"
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort direction (ASC or DESC)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ASC",
+                                "DESC"
+                            ]
+                        },
+                        "example": "DESC"
+                    },
+                    {
+                        "name": "rating",
+                        "in": "query",
+                        "description": "Filter reviews by rating (1-5)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 5,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Filter reviews created after this date (DD-MM-YYYY)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "Filter reviews created before this date (DD-MM-YYYY)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "search_key",
+                        "in": "query",
+                        "description": "Search term for review comment",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sentiment",
+                        "in": "query",
+                        "description": "Filter by sentiment (positive, negative, neutral)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "positive",
+                                "negative",
+                                "neutral"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer reviews retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer reviews retrieved successfully."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "comment": {
+                                                        "type": "string",
+                                                        "example": "Great service!"
+                                                    },
+                                                    "sentiment": {
+                                                        "type": "string",
+                                                        "example": "positive"
+                                                    },
+                                                    "calculated_rating": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 4.5
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "meta": {
+                                            "description": "Pagination metadata (only when per_page is provided)",
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 50
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "total_pages": {
+                                                    "type": "integer",
+                                                    "example": 4
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Customer not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Super admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Internal server error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/customers/{customerId}/email": {
+            "patch": {
+                "tags": [
+                    "super_admin.customer_management"
+                ],
+                "summary": "Change customer email address",
+                "description": "Update a customer's email address (Super Admin only)",
+                "operationId": "customerEmailChange",
+                "parameters": [
+                    {
+                        "name": "customerId",
+                        "in": "path",
+                        "description": "Customer ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "description": "New email address",
+                                        "type": "string",
+                                        "format": "email"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Email updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer email updated successfully."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "newemail@example.com"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Customer not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The email has already been taken."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Super admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/customers/metrics": {
+            "get": {
+                "tags": [
+                    "super_admin.customer_management"
+                ],
+                "summary": "Get customer metrics",
+                "description": "Retrieve customer metrics including total customers with period-based comparisons (Super Admin only)",
+                "operationId": "customerMetrics",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for metrics",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "last_30_days",
+                            "enum": [
+                                "last_7_days",
+                                "last_30_days",
+                                "last_90_days",
+                                "this_week",
+                                "last_week",
+                                "this_month",
+                                "last_month",
+                                "this_quarter",
+                                "last_quarter",
+                                "this_year",
+                                "last_year"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer metrics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer metrics retrieved successfully."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "total_customers": {
+                                                    "properties": {
+                                                        "current": {
+                                                            "description": "Customers registered in current period",
+                                                            "type": "integer",
+                                                            "example": 3000
+                                                        },
+                                                        "comparison": {
+                                                            "description": "Customers registered in comparison period",
+                                                            "type": "integer",
+                                                            "example": 2500
+                                                        },
+                                                        "change_type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "increase",
+                                                                "decrease",
+                                                                "no_change"
+                                                            ],
+                                                            "example": "increase"
+                                                        },
+                                                        "value": {
+                                                            "description": "Percentage change (absolute value)",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 20
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "today": {
+                                                    "properties": {
+                                                        "count": {
+                                                            "description": "Customers registered today",
+                                                            "type": "integer",
+                                                            "example": 50
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "last_7_days": {
+                                                    "properties": {
+                                                        "count": {
+                                                            "description": "Customers registered in last 7 days",
+                                                            "type": "integer",
+                                                            "example": 350
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "last_30_days": {
+                                                    "properties": {
+                                                        "count": {
+                                                            "description": "Customers registered in last 30 days",
+                                                            "type": "integer",
+                                                            "example": 1200
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Super admin access required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1.0/dashboard/business-metrics": {
             "get": {
                 "tags": [
@@ -27012,7 +28828,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -27890,7 +29706,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -28891,598 +30707,6 @@
                                     },
                                     "type": "object"
                                 }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/create/tags": {
-            "post": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to store tag",
-                "description": "This method is to store tag",
-                "operationId": "storeTag",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "tag",
-                                    "business_id"
-                                ],
-                                "properties": {
-                                    "tag": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
-                                    },
-                                    "business_id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1.0/review-new/create/tags/multiple/{businessId}": {
-            "post": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "Store multiple tags for a business",
-                "description": "Create multiple tags at once for a specific business. Checks for duplicate tags and validates business ownership.",
-                "operationId": "storeTagMultiple",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "description": "Business ID",
-                        "required": true,
-                        "example": "1"
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "tags"
-                                ],
-                                "properties": {
-                                    "tags": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        },
-                                        "example": [
-                                            "Excellent Service",
-                                            "Great Food",
-                                            "Clean Environment"
-                                        ]
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Tags created successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Tags created successfully"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "tag": {
-                                                        "type": "string",
-                                                        "example": "Excellent Service"
-                                                    },
-                                                    "business_id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "is_default": {
-                                                        "type": "boolean",
-                                                        "example": false
-                                                    },
-                                                    "is_active": {
-                                                        "type": "boolean",
-                                                        "example": true
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden - Not business owner",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "You do not own this business"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Business not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Business not found"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Duplicate tags found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Duplicate tags found"
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "duplicate_indexes": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "integer"
-                                                    },
-                                                    "example": [
-                                                        0,
-                                                        2
-                                                    ]
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation failed",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Validation failed"
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/update/tags": {
-            "put": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to update tag",
-                "description": "This method is to update tag",
-                "operationId": "updatedTag",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "tag",
-                                    "id"
-                                ],
-                                "properties": {
-                                    "tag": {
-                                        "type": "string",
-                                        "format": "string",
-                                        "example": "How was this?"
-                                    },
-                                    "id": {
-                                        "type": "number",
-                                        "format": "number",
-                                        "example": "1"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/get/tags": {
-            "get": {
-                "tags": [
-                    "review.setting.tag"
-                ],
-                "summary": "This method is to get tag",
-                "description": "This method is to get tag",
-                "operationId": "getTag",
-                "parameters": [
-                    {
-                        "name": "business_id",
-                        "in": "query",
-                        "description": "business Id",
-                        "required": false
-                    },
-                    {
-                        "name": "is_active",
-                        "in": "query",
-                        "description": "is_active",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/get/tags/{id}": {
-            "get": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to get tag  by id",
-                "description": "This method is to get tag  by id",
-                "operationId": "TagById",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "tag Id",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/get/tags/{id}/{restaurantId}": {
-            "get": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to get tag  by id",
-                "description": "This method is to get tag  by id",
-                "operationId": "getTagById2",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "tag Id",
-                        "required": false
-                    },
-                    {
-                        "name": "restaurantId",
-                        "in": "path",
-                        "description": "restaurantId",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/delete/tags/{id}": {
-            "delete": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to delete tag  by id",
-                "description": "This method is to delete tag  by id",
-                "operationId": "deleteTagById",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "tag Id",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocesseble Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
                             }
                         }
                     }
@@ -30881,6 +32105,16 @@
                             "type": "integer"
                         },
                         "example": 1
+                    },
+                    {
+                        "name": "is_treat_manager_as_staff",
+                        "in": "query",
+                        "description": "Filter by is_treat_manager_as_staff",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": false
                     }
                 ],
                 "responses": {
@@ -31245,151 +32479,6 @@
                 },
                 "type": "object"
             },
-            "AiRule": {
-                "title": "AI Rule",
-                "description": "AI Rule model",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "example": 1
-                    },
-                    "rule_id": {
-                        "type": "string",
-                        "example": "custom_abc123"
-                    },
-                    "rule_name": {
-                        "type": "string",
-                        "example": "High Priority Negative Sentiment Alert"
-                    },
-                    "description": {
-                        "type": "string",
-                        "example": "Alert managers when reviews have negative sentiment"
-                    },
-                    "scope": {
-                        "type": "string",
-                        "example": "business"
-                    },
-                    "business_id": {
-                        "type": "integer",
-                        "example": 1
-                    },
-                    "category": {
-                        "type": "string",
-                        "enum": [
-                            "sentiment",
-                            "staff",
-                            "area",
-                            "rating_mismatch",
-                            "trend",
-                            "quality"
-                        ],
-                        "example": "sentiment"
-                    },
-                    "priority": {
-                        "type": "string",
-                        "enum": [
-                            "critical",
-                            "high",
-                            "medium",
-                            "low"
-                        ],
-                        "example": "high"
-                    },
-                    "enabled": {
-                        "type": "boolean",
-                        "example": true
-                    },
-                    "conditions": {
-                        "type": "array",
-                        "items": {
-                            "properties": {
-                                "source": {
-                                    "type": "string"
-                                },
-                                "type": {
-                                    "type": "string"
-                                },
-                                "operator": {
-                                    "type": "string"
-                                },
-                                "value": {
-                                    "type": "string"
-                                },
-                                "logic": {
-                                    "type": "string"
-                                }
-                            },
-                            "type": "object"
-                        }
-                    },
-                    "actions": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "multi_tag_detection": {
-                        "type": "boolean",
-                        "example": false
-                    },
-                    "trigger_only_on_first_occurrence": {
-                        "type": "boolean",
-                        "example": false
-                    },
-                    "run_frequency": {
-                        "type": "string",
-                        "enum": [
-                            "real_time",
-                            "hourly",
-                            "daily",
-                            "weekly"
-                        ],
-                        "example": "daily"
-                    },
-                    "cooldown_days": {
-                        "type": "integer",
-                        "example": 7
-                    },
-                    "deduplication_scope": {
-                        "type": "string",
-                        "example": "staff"
-                    },
-                    "applies_to": {
-                        "type": "string",
-                        "enum": [
-                            "new_reviews_only",
-                            "all_reviews"
-                        ],
-                        "example": "new_reviews_only"
-                    },
-                    "branch_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        },
-                        "nullable": true
-                    },
-                    "created_by": {
-                        "type": "integer",
-                        "example": 1
-                    },
-                    "version": {
-                        "type": "integer",
-                        "example": 1
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "example": "2024-01-14T10:00:00Z"
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "example": "2024-01-14T10:00:00Z"
-                    }
-                },
-                "type": "object"
-            },
             "Tag": {
                 "required": [
                     "id",
@@ -31478,6 +32567,273 @@
                                 "The tag field is required."
                             ]
                         }
+                    }
+                },
+                "type": "object"
+            },
+            "AiRule": {
+                "title": "AI Rule",
+                "description": "AI Rule model for automated review analysis and actions",
+                "required": [
+                    "id",
+                    "rule_id",
+                    "rule_name",
+                    "category",
+                    "priority",
+                    "enabled",
+                    "conditions",
+                    "actions"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Primary key",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "rule_id": {
+                        "description": "Unique rule identifier",
+                        "type": "string",
+                        "example": "custom_abc123"
+                    },
+                    "rule_name": {
+                        "description": "Human-readable rule name",
+                        "type": "string",
+                        "example": "Low Rating Alert"
+                    },
+                    "description": {
+                        "description": "Rule description",
+                        "type": "string",
+                        "example": "Alert managers when rating is below threshold"
+                    },
+                    "scope": {
+                        "description": "Rule scope",
+                        "type": "string",
+                        "enum": [
+                            "business",
+                            "system"
+                        ],
+                        "example": "business"
+                    },
+                    "business_id": {
+                        "description": "Business ID (null for system rules)",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "category": {
+                        "description": "Rule category",
+                        "type": "string",
+                        "enum": [
+                            "sentiment",
+                            "staff",
+                            "area",
+                            "rating_mismatch",
+                            "trend",
+                            "quality"
+                        ],
+                        "example": "sentiment"
+                    },
+                    "priority": {
+                        "description": "Priority level",
+                        "type": "string",
+                        "enum": [
+                            "critical",
+                            "high",
+                            "medium",
+                            "low"
+                        ],
+                        "example": "high"
+                    },
+                    "enabled": {
+                        "description": "Whether rule is active",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "conditions": {
+                        "description": "Array of conditions that must be met",
+                        "type": "array",
+                        "items": {
+                            "required": [
+                                "source",
+                                "type",
+                                "operator",
+                                "value"
+                            ],
+                            "properties": {
+                                "source": {
+                                    "description": "Data source",
+                                    "type": "string",
+                                    "enum": [
+                                        "Comment",
+                                        "Rating",
+                                        "Staff",
+                                        "Area",
+                                        "Emotion",
+                                        "Trend"
+                                    ]
+                                },
+                                "type": {
+                                    "description": "Condition type",
+                                    "type": "string",
+                                    "enum": [
+                                        "sentiment",
+                                        "rating",
+                                        "keyword",
+                                        "staff_mention",
+                                        "area_mention",
+                                        "emotion",
+                                        "service_type",
+                                        "frequency",
+                                        "trend_direction"
+                                    ]
+                                },
+                                "operator": {
+                                    "description": "Comparison operator",
+                                    "type": "string",
+                                    "enum": [
+                                        "equals",
+                                        "contains",
+                                        "greater_than",
+                                        "less_than",
+                                        "between",
+                                        "not_equals",
+                                        "starts_with",
+                                        "ends_with",
+                                        "regex"
+                                    ]
+                                },
+                                "value": {
+                                    "description": "Value to compare against",
+                                    "type": "string"
+                                },
+                                "logic": {
+                                    "description": "Logic operator to combine with next condition",
+                                    "type": "string",
+                                    "enum": [
+                                        "AND",
+                                        "OR"
+                                    ],
+                                    "nullable": true
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "actions": {
+                        "description": "Actions to execute when rule matches",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "flag_review",
+                                "notify_manager",
+                                "recommend_coaching",
+                                "link_staff",
+                                "escalate",
+                                "notify_slack",
+                                "notify_email"
+                            ]
+                        }
+                    },
+                    "multi_tag_detection": {
+                        "description": "Detect multiple matching tags",
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "trigger_only_on_first_occurrence": {
+                        "description": "Only trigger on first occurrence",
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "run_frequency": {
+                        "description": "How often to run",
+                        "type": "string",
+                        "enum": [
+                            "real_time",
+                            "hourly",
+                            "daily",
+                            "weekly"
+                        ],
+                        "example": "daily"
+                    },
+                    "cooldown_days": {
+                        "description": "Days to wait before triggering again",
+                        "type": "integer",
+                        "example": 7
+                    },
+                    "deduplication_scope": {
+                        "description": "Deduplication scope",
+                        "type": "string",
+                        "enum": [
+                            "review",
+                            "staff",
+                            "category",
+                            "branch",
+                            "staff_category"
+                        ],
+                        "example": "staff"
+                    },
+                    "applies_to": {
+                        "description": "Which reviews to apply to",
+                        "type": "string",
+                        "enum": [
+                            "new_reviews_only",
+                            "all_reviews"
+                        ],
+                        "example": "new_reviews_only"
+                    },
+                    "branch_ids": {
+                        "description": "Specific branches (null = all branches)",
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "nullable": true
+                    },
+                    "created_by": {
+                        "description": "User who created the rule",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "version": {
+                        "description": "Rule version number",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "ai_explanation_title": {
+                        "description": "AI-generated short explanation",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ai_plain_explanation": {
+                        "description": "AI-generated detailed explanation",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ai_why_it_matters": {
+                        "description": "AI-generated business impact",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ai_when_it_triggers": {
+                        "description": "AI-generated trigger conditions",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ai_generated_at": {
+                        "description": "When AI explanations were generated",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-14T10:00:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-14T10:00:00Z"
                     }
                 },
                 "type": "object"
@@ -31750,10 +33106,6 @@
             "description": "dashboard_management"
         },
         {
-            "name": "report",
-            "description": "report"
-        },
-        {
             "name": "Reports",
             "description": "Reports"
         },
@@ -31790,8 +33142,8 @@
             "description": "notes"
         },
         {
-            "name": "notification",
-            "description": "notification"
+            "name": "notification_management",
+            "description": "notification_management"
         },
         {
             "name": "OpenAI Tokens",
@@ -31822,6 +33174,10 @@
             "description": "question_management.client"
         },
         {
+            "name": "report",
+            "description": "report"
+        },
+        {
             "name": "voice",
             "description": "voice"
         },
@@ -31850,8 +33206,16 @@
             "description": "AI Rules"
         },
         {
+            "name": "service-plans",
+            "description": "service-plans"
+        },
+        {
             "name": "staff_management",
             "description": "staff_management"
+        },
+        {
+            "name": "super_admin.customer_management",
+            "description": "super_admin.customer_management"
         },
         {
             "name": "super_admin.dashboard_management",
@@ -31872,10 +33236,6 @@
         {
             "name": "Tags",
             "description": "Tags"
-        },
-        {
-            "name": "review.setting.tag",
-            "description": "review.setting.tag"
         },
         {
             "name": "user_management.super_admin",

@@ -12,6 +12,7 @@ return new class extends Migration
         Schema::create('modules', function (Blueprint $table) {
             $table->id();
             $table->string("name")->unique();
+            $table->text("description");
             $table->boolean('is_enabled')->default(true);
             $table->unsignedBigInteger("created_by")->nullable();
             $table->timestamps();

@@ -85,8 +85,11 @@ class Business extends Model
         'has_rule_management',
         'is_treat_manager_as_staff',
         'openai_token_limit',
-        'service_plan_id'
-
+        'service_plan_id',
+        'service_plan_discount_code',
+        'service_plan_discount_amount',
+        'trial_end_date',
+        'start_date',
     ];
 
     protected $casts = [
@@ -133,19 +136,19 @@ class Business extends Model
 
 
 
-    private function isTrailDateValid($trail_end_date)
+    private function isTrialDateValid($trial_end_date)
     {
         // If date is null, empty, or zero-date → treat as NOT expired
         if (
-            empty($trail_end_date) ||
-            $trail_end_date === '0000-00-00 00:00:00' ||
-            $trail_end_date === '0000-00-00'
+            empty($trial_end_date) ||
+            $trial_end_date === '0000-00-00 00:00:00' ||
+            $trial_end_date === '0000-00-00'
         ) {
             return true;
         }
 
         try {
-            $parsedDate = Carbon::parse($trail_end_date)->endOfDay();
+            $parsedDate = Carbon::parse($trial_end_date)->endOfDay();
         } catch (\Exception $e) {
             // If parsing fails, assume not expired
             return true;
@@ -157,12 +160,17 @@ class Business extends Model
 
     public function getIsSubscribedAttribute(): bool
     {
-        // 1. Check legacy trail/expiry logic
+        // 1. Check trial logic (mirrored from HRM)
+        if ($this->trial_end_date && $this->isTrialDateValid($this->trial_end_date)) {
+            return true;
+        }
+
+        // 2. Check legacy expiry logic
         if ($this->expiry_date && Carbon::parse($this->expiry_date)->isFuture()) {
             return true;
         }
 
-        // 2. Check new subscription system
+        // 3. Check new subscription system
         return $this->subscriptions()
             ->where('status', 'active')
             ->where('end_date', '>=', now())

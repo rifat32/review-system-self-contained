@@ -74,6 +74,10 @@ Route::get('subscription/redirect', [SubscriptionController::class, "redirectUse
 Route::get('subscription/success', [SubscriptionController::class, "stripePaymentSuccess"])->name('subscription.success_payment');
 Route::get('subscription/failed', [SubscriptionController::class, "stripePaymentFailed"])->name('subscription.failed_payment');
 
+Route::get('subscription/renewal/redirect', [SubscriptionController::class, "redirectUserToStripeRenewal"])->name('subscription.renewal.redirect');
+Route::get('subscription/renewal/success', [SubscriptionController::class, "stripeRenewPaymentSuccess"])->name('subscription.success_renewal');
+Route::get('subscription/renewal/failed', [SubscriptionController::class, "stripeRenewPaymentFailed"])->name('subscription.failed_renewal');
+
 Route::apiResource('service-plans', ServicePlanController::class);
 
 

@@ -87,6 +87,10 @@ class CreateUserWithBusinessRequest extends FormRequest
                 },
             ],
             'service_plan_id' => ['required', 'exists:service_plans,id'],
+            'service_plan_discount_code' => ['nullable', 'string', 'max:255'],
+            'service_plan_discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'trial_end_date' => ['nullable', 'date'],
+            'start_date' => ['nullable', 'date'],
         ];
     }
 

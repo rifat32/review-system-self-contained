@@ -12,6 +12,7 @@ class ServicePlan extends Model
     protected $fillable = [
         "name",
         "description",
+        "set_up_amount",
         'price',
         'duration_months',
         'openai_token_limit',
