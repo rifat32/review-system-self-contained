@@ -78,19 +78,35 @@ class OpenAIProcessorService
     public function getBusinessAiModules(int $business_id): array
     {
         try {
-            $business = \App\Models\Business::with('current_subscription.service_plan.modules')->find($business_id);
+            // Eager load everything needed for the modules check
+            $business = \App\Models\Business::with([
+                'current_subscription.service_plan.modules',
+                'service_plan.modules'
+            ])->find($business_id);
+
             if (!$business) return [];
 
+            // 1. Check if the business is considered subscribed (trial, legacy, or new system)
+            if (!$business->is_subscribed) {
+                return [];
+            }
+
             $allowedModules = [];
+
+            // 2. Try getting modules from the official subscription record
             if ($business->current_subscription && $business->current_subscription->service_plan) {
                 $allowedModules = $business->current_subscription->service_plan->modules->pluck('name')->toArray();
+            }
+            // 3. Fallback to direct plan ID if subscribed via trial/legacy but no subscription record
+            elseif ($business->service_plan) {
+                $allowedModules = $business->service_plan->modules->pluck('name')->toArray();
             }
 
             $modules = \App\Models\Module::where('is_enabled', true)->get();
             $enabledModules = [];
 
             foreach ($modules as $module) {
-                // Feature is enabled only if it's both active in system AND allowed by plan
+                // Feature is enabled only if it's both active in system AND allowed by plan/subscription
                 $enabledModules[$module->name] = in_array($module->name, $allowedModules);
             }
 

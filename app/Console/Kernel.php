@@ -14,6 +14,10 @@ class Kernel extends ConsoleKernel
             Artisan::call('guest_user_review_report:generate');
         })->name('generate-guest-report')->dailyAt('03:00');
 
+        $schedule->call(function () {
+            Artisan::call('user_review_report:generate');
+        })->name('generate-user-report')->dailyAt('04:00');
+
         // 1. Process New Reviews (Data Preparation)
         // This is the entry point where raw reviews are analyzed by AI (sentiment, etc.)
         $schedule->call(function () {

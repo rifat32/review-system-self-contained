@@ -83,8 +83,21 @@ class ConditionBuilderService
      * @param string $logic Logic operator (AND or OR)
      * @return bool True if conditions match
      */
-    public static function evaluateConditions(array $conditionData, ReviewNew $review, array $aiData, string $defaultLogic = 'AND'): bool
+    public static function evaluateConditions($conditionData, ReviewNew $review, array $aiData, string $defaultLogic = 'AND'): bool
     {
+        // Recursively decode if it's a double-encoded string
+        while (is_string($conditionData)) {
+            $decoded = json_decode($conditionData, true);
+            if (json_last_error() !== JSON_ERROR_NONE || $decoded === $conditionData) {
+                break;
+            }
+            $conditionData = $decoded;
+        }
+
+        if (!is_array($conditionData)) {
+            return false;
+        }
+
         // Handle both simple array of conditions and complex [logic => ..., conditions => ...] structure
         if (isset($conditionData['logic']) && isset($conditionData['conditions'])) {
             $logic = $conditionData['logic'];
@@ -101,6 +114,10 @@ class ConditionBuilderService
         $results = [];
 
         foreach ($conditions as $condition) {
+            if (!is_array($condition)) {
+                continue;
+            }
+
             if (isset($condition['group']) || (isset($condition['logic']) && isset($condition['conditions']))) {
                 // Evaluate nested group
                 $nestedConditions = $condition['group'] ?? $condition;

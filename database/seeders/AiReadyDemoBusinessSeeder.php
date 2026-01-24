@@ -52,9 +52,9 @@ class AiReadyDemoBusinessSeeder extends Seeder
     private array $reviewTexts = [];
     private array $registeredUsers = [];
 
-    private const REVIEW_COUNT = 300;
-    private const REGISTERED_OVERALL_REVIEWS = 150;
-    private const REGISTERED_SURVEY_REVIEWS = 150;
+    private const REVIEW_COUNT = 20;
+    private const REGISTERED_OVERALL_REVIEWS = 10;
+    private const REGISTERED_SURVEY_REVIEWS = 10;
     private const REGISTERED_USERS_COUNT = 100;
     private const BRANCHES_COUNT = 4;
     private const STAFF_PER_BRANCH = 3;

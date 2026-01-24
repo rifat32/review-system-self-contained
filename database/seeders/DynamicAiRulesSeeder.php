@@ -20,7 +20,7 @@ class DynamicAiRulesSeeder extends Seeder
                     'overview' => 'Branch comparison insights generated.',
                     'findings' => []
                 ]),
-                'conditions' => json_encode(['default' => true]),
+                'conditions' => ['default' => true],
                 'priority' => 'medium',
             ],
             // ... (Add other templates as needed or leave separate if they use key_name)
@@ -32,7 +32,7 @@ class DynamicAiRulesSeeder extends Seeder
                 'rule_name' => 'English Stop Words',
                 'description' => 'List of stop words to exclude from topic extraction',
                 'value' => json_encode(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'it', 'its', 'they', 'their', 'them', 'very', 'good', 'bad', 'great', 'nice']),
-                'conditions' => json_encode(['lang' => 'en']),
+                'conditions' => ['lang' => 'en'],
                 'priority' => 'low',
             ],
 
@@ -43,7 +43,7 @@ class DynamicAiRulesSeeder extends Seeder
                 'rule_name' => 'Performance Label: Excellent',
                 'description' => 'Label for excellent performance',
                 'value' => 'Excellent',
-                'conditions' => json_encode(['min' => 4.5, 'max' => 5.0]),
+                'conditions' => ['min' => 4.5, 'max' => 5.0],
                 'priority' => 'medium',
             ],
             [
@@ -52,7 +52,7 @@ class DynamicAiRulesSeeder extends Seeder
                 'rule_name' => 'Performance Label: Very Good',
                 'description' => 'Label for very good performance',
                 'value' => 'Very Good',
-                'conditions' => json_encode(['min' => 4.0, 'max' => 4.49]),
+                'conditions' => ['min' => 4.0, 'max' => 4.49],
                 'priority' => 'medium',
             ],
             [
@@ -61,7 +61,7 @@ class DynamicAiRulesSeeder extends Seeder
                 'rule_name' => 'Performance Label: Good',
                 'description' => 'Label for good performance',
                 'value' => 'Good',
-                'conditions' => json_encode(['min' => 3.5, 'max' => 3.99]),
+                'conditions' => ['min' => 3.5, 'max' => 3.99],
                 'priority' => 'medium',
             ],
             [
@@ -70,7 +70,7 @@ class DynamicAiRulesSeeder extends Seeder
                 'rule_name' => 'Performance Label: Average',
                 'description' => 'Label for average performance',
                 'value' => 'Average',
-                'conditions' => json_encode(['min' => 3.0, 'max' => 3.49]),
+                'conditions' => ['min' => 3.0, 'max' => 3.49],
                 'priority' => 'medium',
             ],
             [
@@ -79,7 +79,7 @@ class DynamicAiRulesSeeder extends Seeder
                 'rule_name' => 'Performance Label: Below Average',
                 'description' => 'Label for below average performance',
                 'value' => 'Below Average',
-                'conditions' => json_encode(['min' => 2.0, 'max' => 2.99]),
+                'conditions' => ['min' => 2.0, 'max' => 2.99],
                 'priority' => 'medium',
             ],
             [
@@ -88,7 +88,7 @@ class DynamicAiRulesSeeder extends Seeder
                 'rule_name' => 'Performance Label: Poor',
                 'description' => 'Label for poor performance',
                 'value' => 'Poor',
-                'conditions' => json_encode(['min' => 0.0, 'max' => 1.99]),
+                'conditions' => ['min' => 0.0, 'max' => 1.99],
                 'priority' => 'medium',
             ],
         ];
@@ -116,7 +116,13 @@ class DynamicAiRulesSeeder extends Seeder
                 'description' => 'Template for ' . str_replace('_', ' ', strtolower($key)),
                 'key_name' => $key,
                 'value' => $template,
-                'conditions' => json_encode([]),
+                'conditions' => [],
+                'actions' => [
+                    'suggest_action' => [
+                        'type' => 'business',
+                        'template_id' => $key
+                    ]
+                ],
                 'priority' => 'low',
             ];
         }
@@ -124,10 +130,12 @@ class DynamicAiRulesSeeder extends Seeder
         foreach ($rules as $rule) {
             AiRule::updateOrCreate(
                 ['rule_id' => $rule['rule_id']],
-                array_merge($rule, [
+                array_merge([
+                    'actions' => [],
+                    'conditions' => []
+                ], $rule, [
                     'scope' => 'system',
                     'enabled' => true,
-                    'actions' => json_encode([]),
                     'created_by' => 'system_seeder',
                     'version' => 1
                 ])

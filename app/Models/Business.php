@@ -133,70 +133,10 @@ class Business extends Model
             ->orderBy('end_date', 'desc');
     }
 
-    private function isTrialDateValid($trial_end_date)
+    public function subscription()
     {
-        // If date is null, empty, or zero-date → treat as NOT expired
-        if (
-            empty($trial_end_date) ||
-            $trial_end_date === '0000-00-00 00:00:00' ||
-            $trial_end_date === '0000-00-00'
-        ) {
-            return true;
-        }
-
-        try {
-            $parsedDate = Carbon::parse($trial_end_date)->endOfDay();
-        } catch (\Exception $e) {
-            // If parsing fails, assume not expired
-            return true;
-        }
-
-        // Valid if today or future
-        return !$parsedDate->isPast();
-    }
-
-    public function getIsSubscribedAttribute(): bool
-    {
-        // 1. Check trial logic (mirrored from HRM)
-        if ($this->trial_end_date && $this->isTrialDateValid($this->trial_end_date)) {
-            return true;
-        }
-
-        // 2. Check legacy expiry logic
-        if ($this->expiry_date && Carbon::parse($this->expiry_date)->isFuture()) {
-            return true;
-        }
-
-        // 3. Check new subscription system
-        return $this->subscriptions()
-            ->where('status', 'active')
-            ->where('end_date', '>=', now())
-            ->exists();
-    }
-
-    /**
-     * Check if business has reached its OpenAI token limit
-     */
-    public function getIsTokenLimitReachedAttribute(): bool
-    {
-        $limit = $this->openai_token_limit;
-
-        // -1 means unlimited
-        if ($limit === -1) {
-            return false;
-        }
-
-        // If limit is 0 and not explicitly -1, consider it reached (no quota)
-        if ($limit === 0 || $limit === null) {
-            return true;
-        }
-
-        // Calculate usage for current month (standard fallback)
-        $used = \App\Models\OpenAITokenUsage::where('business_id', $this->id)
-            ->where('created_at', '>=', now()->startOfMonth())
-            ->sum('total_tokens');
-
-        return $used >= $limit;
+        return $this->hasOne(BusinessSubscription::class, 'business_id', 'id')
+            ->orderByDesc("business_subscriptions.id");
     }
 
     private function isValidSubscription($subscription)
@@ -228,6 +168,71 @@ class Business extends Model
         return true;
     }
 
+    private function isTrialDateValid($trial_end_date)
+    {
+        // Return false if trial_end_date is empty or null
+        if (empty($trial_end_date)) {
+            return false;
+        }
+
+        // Parse the date and check validity
+        $parsedDate = Carbon::parse($trial_end_date);
+        return !($parsedDate->isPast() && !$parsedDate->isToday());
+    }
+
+    public function getIsSubscribedAttribute(): bool
+    {
+        $user = auth()->user();
+        if (empty($user) && !app()->runningInConsole()) {
+            return false;
+        }
+
+        // Return false if the business is not active
+        if (!$this->is_active) {
+            return false;
+        }
+
+        $validTrialDate = $this->isTrialDateValid($this->trial_end_date);
+        $latest_subscription = $this->current_subscription;
+
+        // If no valid subscription AND no valid trial date, return false
+        if (!$this->isValidSubscription($latest_subscription) && !$validTrialDate) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if business has reached its OpenAI token limit
+     */
+    public function getIsTokenLimitReachedAttribute(): bool
+    {
+        $limit = $this->openai_token_limit;
+
+        // -1 means unlimited
+        if ($limit === -1) {
+            return false;
+        }
+
+        // If limit is 0 and not explicitly -1, consider it reached (no quota)
+        if ($limit === 0 || $limit === null) {
+            return true;
+        }
+
+        // Calculate usage for current month (standard fallback)
+        $used = \App\Models\OpenAITokenUsage::where('business_id', $this->id)
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->sum('total_tokens');
+
+        return $used >= $limit;
+    }
+
+    public function getIsSelfRegisteredBusinessesAttribute()
+    {
+        return $this->attributes['is_self_registered_businesses'] ?? false;
+    }
+
     public function times()
     {
         return $this->hasMany(BusinessDay::class, 'business_id', 'id');
@@ -253,6 +258,11 @@ class Business extends Model
     public function defaultBranch()
     {
         return $this->belongsTo(Branch::class, 'default_branch_id');
+    }
+
+    public function service_plan()
+    {
+        return $this->belongsTo(ServicePlan::class, 'service_plan_id');
     }
 
 
@@ -329,30 +339,53 @@ class Business extends Model
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeFilterClients($query)
+    public function scopeActiveStatus($query, $is_active)
     {
-        // Apply sorting if provided
-        if (request()->filled('sort_by') && request()->filled('sort_type')) {
-            $query->orderBy(request()->input('sort_by'), request()->input('sort_type'));
-        }
-
-        // Search by business name
-        if (request()->filled('search_key')) {
-            $searchTerm = request()->input('search_key');
-            $query->where('Name', 'like', '%' . $searchTerm . '%');
-        }
-
-        // Select only necessary fields for client view
-        $query->select(
-            'id',
-            'Name',
-            'header_image',
-            'rating_page_image',
-            'placeholder_image',
-            'Logo',
-            'Address'
-        );
-
-        return $query;
+        return $query->when($is_active !== null, function ($query) use ($is_active) {
+            $query->where(function ($subQuery) use ($is_active) {
+                if ($is_active) {
+                    // For active or subscribed businesses
+                    $subQuery->where('is_active', 1)
+                        ->where(function ($q) {
+                            $q->where(function ($innerQuery) {
+                                $innerQuery->whereNotNull('trial_end_date')
+                                    ->where(function ($trialEndQuery) {
+                                        $trialEndQuery->where('trial_end_date', '>', now())
+                                            ->orWhere('trial_end_date', now()->toDateString());
+                                    });
+                            })
+                                ->orWhereHas('current_subscription', function ($subQuery) {
+                                    $subQuery->where(function ($subscriptionQuery) {
+                                        $subscriptionQuery->where('start_date', '<=', now())
+                                            ->where(function ($endDateQuery) {
+                                                $endDateQuery->whereNull('end_date')
+                                                    ->orWhere('end_date', '>=', now());
+                                            });
+                                    });
+                                });
+                        });
+                } else {
+                    // For inactive or unsubscribed businesses
+                    $subQuery->where('is_active', 0)
+                        ->orWhere(function ($q) {
+                            $q->where(function ($innerQuery) {
+                                $innerQuery->whereNull('trial_end_date')
+                                    ->orWhere(function ($trialQuery) {
+                                        $trialQuery->whereNotNull('trial_end_date')
+                                            ->where('trial_end_date', '<', now())
+                                            ->where('trial_end_date', '!=', now()->toDateString());
+                                    });
+                            })
+                                ->whereDoesntHave('current_subscription', function ($subQuery) {
+                                    $subQuery->where('start_date', '<=', now())
+                                        ->where(function ($endDateQuery) {
+                                            $endDateQuery->whereNull('end_date')
+                                                ->orWhere('end_date', '>=', now());
+                                        });
+                                });
+                        });
+                }
+            });
+        });
     }
 }
