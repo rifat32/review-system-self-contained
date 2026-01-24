@@ -332,6 +332,17 @@ class RuleEngineService
 
     private function getRecommendationTemplate(string $templateId): string
     {
+        // 1. Try to get from database first (seeded templates)
+        $dbTemplate = AiRule::where('category', 'recommendation_templates')
+            ->where('key_name', $templateId)
+            ->where('enabled', true)
+            ->value('value');
+
+        if ($dbTemplate) {
+            return $dbTemplate;
+        }
+
+        // 2. Fallback to config
         return \config('ai.insights.recommendation_templates.' . $templateId)
             ?? \config('ai.insights.recommendation_templates.GENERAL', 'Improve {{main_category}} based on {{count}} customer mentions.');
     }

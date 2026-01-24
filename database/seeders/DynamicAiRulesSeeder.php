@@ -93,30 +93,63 @@ class DynamicAiRulesSeeder extends Seeder
             ],
         ];
 
-        // Recommendation Templates (using key_name for lookup)
-        $templates = [
-            'FOOD_TEMP_IMPROVEMENT' => 'Review kitchen processes to ensure {{main_category}} is served at correct temperature. Issue mentioned {{count}} times.',
-            'SERVICE_SPEED_IMPROVEMENT' => 'Optimize {{main_category}} flow during peak hours. {{count}} complaints about wait times.',
-            'STAFF_TRAINING_GENERAL' => 'Provide {{sub_category}} training for staff. Mentioned in {{count}} reviews.',
-            'CLEANLINESS_PROTOCOL' => 'Implement regular {{main_category}} checks. {{count}} mentions of cleanliness issues.',
-            'HOTEL_NOISE_CONTROL' => 'Address noise concerns in rooms. {{count}} guests mentioned noise issues.',
-            'RESTAURANT_FOOD_QUALITY' => 'Review {{sub_category}} preparation standards. {{count}} quality complaints.',
-            'CLINIC_WAIT_TIME' => 'Reduce wait times for appointments. {{count}} patients reported long waits.',
-            'GENERIC_MAIN_CATEGORY' => 'Address {{main_category}} issues reported by {{count}} customers.',
-            'GENERIC_STAFF_ISSUE' => 'Provide staff training for {{sub_category}} issues mentioned {{count}} times.',
-            'GENERIC_PROCESS_ISSUE' => 'Review {{main_category}} processes. Issue mentioned {{count}} times.',
-            'GENERAL' => 'Improve {{main_category}} based on {{count}} customer mentions.'
+        // Recommendation Templates with specific matching criteria
+        $templateConfigs = [
+            'FOOD_TEMP_IMPROVEMENT' => [
+                'template' => 'Review kitchen processes to ensure {{main_category}} is served at correct temperature. Issue mentioned {{count}} times.',
+                'conditions' => ['category_match' => ['main_category' => 'Food', 'match_type' => 'contains']]
+            ],
+            'SERVICE_SPEED_IMPROVEMENT' => [
+                'template' => 'Optimize {{main_category}} flow during peak hours. {{count}} complaints about wait times.',
+                'conditions' => ['category_match' => ['main_category' => 'Service', 'match_type' => 'contains']]
+            ],
+            'STAFF_TRAINING_GENERAL' => [
+                'template' => 'Provide {{sub_category}} training for staff. Mentioned in {{count}} reviews.',
+                'conditions' => ['category_match' => ['main_category' => 'Staff', 'match_type' => 'contains']]
+            ],
+            'CLEANLINESS_PROTOCOL' => [
+                'template' => 'Implement regular {{main_category}} checks. {{count}} mentions of cleanliness issues.',
+                'conditions' => ['category_match' => ['main_category' => 'Cleanliness', 'match_type' => 'contains']]
+            ],
+            'HOTEL_NOISE_CONTROL' => [
+                'template' => 'Address noise concerns in rooms. {{count}} guests mentioned noise issues.',
+                'conditions' => ['category_match' => ['main_category' => 'Hotel', 'match_type' => 'contains']]
+            ],
+            'RESTAURANT_FOOD_QUALITY' => [
+                'template' => 'Review {{sub_category}} preparation standards. {{count}} quality complaints.',
+                'conditions' => ['category_match' => ['main_category' => 'Food', 'match_type' => 'contains']]
+            ],
+            'CLINIC_WAIT_TIME' => [
+                'template' => 'Reduce wait times for appointments. {{count}} patients reported long waits.',
+                'conditions' => ['category_match' => ['main_category' => 'Wait', 'match_type' => 'contains']]
+            ],
+            'GENERIC_MAIN_CATEGORY' => [
+                'template' => 'Address {{main_category}} issues reported by {{count}} customers.',
+                'conditions' => ['category_match' => ['match_type' => 'contains']] // Matches anything if key exists
+            ],
+            'GENERIC_STAFF_ISSUE' => [
+                'template' => 'Provide staff training for {{sub_category}} issues mentioned {{count}} times.',
+                'conditions' => ['category_match' => ['main_category' => 'Staff', 'match_type' => 'contains']]
+            ],
+            'GENERIC_PROCESS_ISSUE' => [
+                'template' => 'Review {{main_category}} processes. Issue mentioned {{count}} times.',
+                'conditions' => ['category_match' => ['match_type' => 'contains']]
+            ],
+            'GENERAL' => [
+                'template' => 'Improve {{main_category}} based on {{count}} customer mentions.',
+                'conditions' => [] // Fallback
+            ]
         ];
 
-        foreach ($templates as $key => $template) {
+        foreach ($templateConfigs as $key => $config) {
             $rules[] = [
                 'category' => 'recommendation_templates',
                 'rule_id' => 'REC_TEMPLATE_' . $key,
                 'rule_name' => 'Recommendation Template: ' . $key,
                 'description' => 'Template for ' . str_replace('_', ' ', strtolower($key)),
                 'key_name' => $key,
-                'value' => $template,
-                'conditions' => [],
+                'value' => $config['template'],
+                'conditions' => $config['conditions'],
                 'actions' => [
                     'suggest_action' => [
                         'type' => 'business',
