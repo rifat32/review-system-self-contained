@@ -18,7 +18,7 @@ use App\Models\User;
 use App\Http\Requests\StoreBusinessRequest;
 use App\Http\Requests\StoreBusinessByOwnerRequest;
 use App\Http\Requests\UpdateBusinessRequest;
-use App\Services\Business\BusinessService;
+use App\Services\Business\BusinessProfileService;
 use App\Services\Review\ReviewService;
 use App\Traits\AuthorizesRoles;
 use Carbon\Carbon;
@@ -35,7 +35,7 @@ class BusinessController extends Controller
 {
     use AuthorizesRoles;
 
-    protected $businessService;
+    protected $businessProfileService;
     protected $reviewService;
 
     /**
@@ -43,9 +43,9 @@ class BusinessController extends Controller
      *
      * @param BusinessService $businessService
      */
-    public function __construct(BusinessService $businessService, ReviewService $reviewService)
+    public function __construct(BusinessProfileService $businessProfileService, ReviewService $reviewService)
     {
-        $this->businessService = $businessService;
+        $this->businessProfileService = $businessProfileService;
         $this->reviewService = $reviewService;
     }
 
@@ -1334,7 +1334,7 @@ class BusinessController extends Controller
 
         // Transform collection with ratings and timing
         $result['data'] = collect($result['data'])->map(function ($business) use ($today, $request) {
-            return $this->businessService->enrichBusinessWithRatingsAndTiming($business, $today, $request);
+            return $this->businessProfileService->enrichBusinessWithRatingsAndTiming($business, $today, $request);
         })->toArray();
 
         return response()->json([
@@ -1533,7 +1533,4 @@ class BusinessController extends Controller
             "data" => $business
         ], 200);
     }
-
-
-
 }

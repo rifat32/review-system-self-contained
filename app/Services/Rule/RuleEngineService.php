@@ -560,21 +560,13 @@ class RuleEngineService
 
     public function mapSuggestionsToSkillGaps($suggestions): array
     {
-        $skillGaps = [];
-        $skillMap = \config('ai.training.skill_mapping', []);
-
-        foreach ($suggestions as $suggestion) {
-            $clean = strtolower(trim($suggestion));
-
-            foreach ($skillMap as $pattern => $skill) {
-                if (preg_match($pattern, $clean)) {
-                    $skillGaps[] = $skill;
-                    break;
-                }
-            }
-        }
-
-        return array_unique($skillGaps);
+        // Suggestions are already dynamic AI outputs
+        // We just need to ensure they are clean and unique
+        return collect($suggestions)
+            ->map(fn($s) => ucwords((string)$s))
+            ->unique()
+            ->values()
+            ->toArray();
     }
 
     public function getOpportunityKeywords(): array
@@ -954,19 +946,21 @@ class RuleEngineService
 
     public function extractCommonPraise($reviews): array
     {
-        $praisePatterns = \config('ai.feedback_analysis.praise_patterns', []);
-
         $praiseCounts = [];
-        foreach ($reviews as $review) {
-            if (empty($review->comment))
-                continue;
+        $totalReviews = count($reviews);
 
-            $text = strtolower($review->comment);
-            foreach ($praisePatterns as $pattern) {
-                if (preg_match($pattern, $text)) {
-                    $key = 'general_praise'; // Default key if we don't have per-pattern keys
-                    $praiseCounts[$key] = ($praiseCounts[$key] ?? 0) + 1;
-                    break;
+        foreach ($reviews as $review) {
+            $openaiData = is_string($review->openai_raw_response)
+                ? json_decode($review->openai_raw_response, true)
+                : ($review->openai_raw_response ?? []);
+
+            $categories = $openaiData['category_analysis'] ?? [];
+
+            foreach ($categories as $cat) {
+                $sentiment = strtolower($cat['sentiment'] ?? 'neutral');
+                if (in_array($sentiment, ['positive', 'very_positive'])) {
+                    $name = $cat['main_category'] ?? 'General';
+                    $praiseCounts[$name] = ($praiseCounts[$name] ?? 0) + 1;
                 }
             }
         }
@@ -976,9 +970,9 @@ class RuleEngineService
         $result = [];
         foreach ($praiseCounts as $key => $count) {
             $result[] = [
-                'strength' => ucwords(str_replace('_', ' ', $key)),
+                'strength' => $key,
                 'count' => $count,
-                'percentage' => count($reviews) > 0 ? round(($count / count($reviews)) * 100) : 0
+                'percentage' => $totalReviews > 0 ? round(($count / $totalReviews) * 100) : 0
             ];
         }
 
@@ -1000,11 +994,32 @@ class RuleEngineService
 
     public function generateTopWorstSummary($topStaff, $worstStaff, $allStaff): array
     {
+        $topRating = !empty($topStaff) ? $topStaff[0]['avg_rating'] : 0;
+        $worstRating = !empty($worstStaff) ? $worstStaff[0]['avg_rating'] : 0;
+        $gap = round($topRating - $worstRating, 1);
+
+        $strengths = [];
+        foreach ($topStaff as $staff) {
+            foreach ($staff['common_praise'] ?? [] as $praise) {
+                $name = $praise['strength'] ?? 'General';
+                $strengths[$name] = ($strengths[$name] ?? 0) + 1;
+            }
+        }
+        arsort($strengths);
+
+        $issues = [];
+        foreach ($worstStaff as $staff) {
+            foreach ($staff['skill_gaps'] ?? [] as $gap_item) {
+                $issues[$gap_item] = ($issues[$gap_item] ?? 0) + 1;
+            }
+        }
+        arsort($issues);
+
         return [
-            'overall_status' => 'Performance analysis completed',
-            'rating_gap' => 0,
-            'top_performers_key_strengths' => [],
-            'worst_performers_key_issues' => []
+            'overall_status' => $gap > 1 ? 'Significant performance variations detected' : 'Consistent performance levels across staff',
+            'rating_gap' => $gap,
+            'top_performers_key_strengths' => array_keys(array_slice($strengths, 0, 3)),
+            'worst_performers_key_issues' => array_keys(array_slice($issues, 0, 3))
         ];
     }
 

@@ -1622,19 +1622,19 @@ class DashboardController extends Controller
         $reviews = $reviewsQuery->get();
 
         // Calculate summary metrics
-        $summary = calculateBranchSummary($reviews);
+        $summary = $this->aiProcessorService->calculateBranchSummary($reviews);
 
         // Get AI insights
-        $aiInsights = AIProcessorService::generateAiInsights($reviews);
+        $aiInsights = $this->aiProcessorService->generateAiInsights($reviews);
 
         // Get recommendations
-        $recommendations = generateBranchRecommendations($reviews, $branchId);
+        $recommendations = $this->aiProcessorService->generateBranchRecommendations($reviews);
 
         // Get recent reviews (last 5)
         $recentReviews = $this->recentReviewService->getRecentReviews($reviews);
 
         // Get staff performance (top 5)
-        $staffPerformance = getStaffPerformance($branchId, $businessId, $startDate, $endDate);
+        $staffPerformance = $this->aiProcessorService->getStaffPerformance($branchId, $businessId, $startDate, $endDate);
 
         $data = [
             'branch' => [
@@ -1887,7 +1887,7 @@ class DashboardController extends Controller
                 'performance_summary' => [
                     'total_reviews' => $reviews->count(),
                     'avg_rating' => $avgRating, // From ReviewValueNew
-                    'sentiment_distribution' => calculateSentimentDistribution($reviews)
+                    'sentiment_distribution' => $this->aiProcessorService->calculateSentimentDistribution($reviews)
                 ],
                 'rating_trend' => $ratingTrend,
                 'review_samples' => $reviewSamples,

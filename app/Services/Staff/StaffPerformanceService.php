@@ -254,7 +254,8 @@ class StaffPerformanceService
         foreach ($staffReviews as $review) {
             if ($review->topics && is_array($review->topics)) {
                 foreach ($review->topics as $topic) {
-                    $allTopics[$topic] = ($allTopics[$topic] ?? 0) + 1;
+                    $topicName = is_array($topic) ? ($topic['main_category'] ?? 'General') : $topic;
+                    $allTopics[$topicName] = ($allTopics[$topicName] ?? 0) + 1;
                 }
             }
 

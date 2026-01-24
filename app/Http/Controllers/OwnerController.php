@@ -10,7 +10,7 @@ use App\Mail\NotifyMail;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\User;
-use App\Services\Business\BusinessService;
+use App\Services\Business\BusinessProfileService;
 use App\Services\User\UserService;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -50,18 +50,12 @@ class OwnerController extends Controller
 {
 
 
-    protected $businessService;
+    protected $businessProfileService;
     protected $userService;
 
-    /**
-     * Constructor to inject BusinessService
-     *
-     * @param BusinessService $businessService
-     * @param UserService $userService
-     */
-    public function __construct(BusinessService $businessService, UserService $userService)
+    public function __construct(BusinessProfileService $businessProfileService, UserService $userService)
     {
-        $this->businessService = $businessService;
+        $this->businessProfileService = $businessProfileService;
         $this->userService = $userService;
     }
 
@@ -281,7 +275,7 @@ class OwnerController extends Controller
             $user = $this->userService->createBusinessOwner($validatedData);
 
             // Create business with all configurations
-            $business = $this->businessService->createBusinessWithSchedule($user, $validatedData);
+            $business = $this->businessProfileService->createBusinessWithSchedule($user, $validatedData);
 
             // Associate business ID with user
             $user->business_id = $business->id;
@@ -384,7 +378,7 @@ class OwnerController extends Controller
 
 
             // Create business with all configurations
-            $business = $this->businessService->createBusinessWithSchedule($user, $validatedData);
+            $business = $this->businessProfileService->createBusinessWithSchedule($user, $validatedData);
 
             // Associate business ID with user
             $user->business_id = $business->id;

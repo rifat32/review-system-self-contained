@@ -12,7 +12,7 @@ use App\Models\Survey;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\AIProcessor\AIProcessorService;
-use App\Services\Business\BusinessService;
+use App\Services\Business\BusinessProfileService;
 use App\Services\Review\ReviewService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -35,7 +35,7 @@ use Illuminate\Support\Str;
  */
 class AiReadyDemoBusinessSeeder extends Seeder
 {
-    private BusinessService $businessService;
+    private BusinessProfileService $businessProfileService;
     private ReviewService $reviewService;
     private AIProcessorService $aiProcessorService;
 
@@ -62,7 +62,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
 
     public function __construct()
     {
-        $this->businessService = app(BusinessService::class);
+        $this->businessProfileService = app(BusinessProfileService::class);
         $this->reviewService = app(ReviewService::class);
         $this->aiProcessorService = app(AIProcessorService::class);
     }
@@ -196,16 +196,16 @@ class AiReadyDemoBusinessSeeder extends Seeder
 
 
         // Use BusinessService to create business (ensures all defaults and AI rules are set)
-        $this->business = $this->businessService->createBusiness($this->owner, $businessData);
+        $this->business = $this->businessProfileService->createBusiness($this->owner, $businessData);
 
         // Update owner's business_id link
         $this->updateOwnerBusinessRelation();
 
         // Create default branch
-        $this->businessService->createDefaultBranch($this->business);
+        $this->businessProfileService->createDefaultBranch($this->business);
 
         // Create default AI rules
-        $this->businessService->createDefaultAiRules($this->business);
+        $this->businessProfileService->createDefaultAiRules($this->business);
 
         // Set business settings
         $this->business->update([
