@@ -252,23 +252,9 @@ class StaffPerformanceService
         $allTopics = [];
 
         foreach ($staffReviews as $review) {
-            if ($review->topics && is_array($review->topics)) {
-                foreach ($review->topics as $topic) {
-                    $topicName = is_array($topic) ? ($topic['main_category'] ?? 'General') : $topic;
-                    $allTopics[$topicName] = ($allTopics[$topicName] ?? 0) + 1;
-                }
-            }
-
-            if ($review->comment) {
-                $openaiData = is_string($review->openai_raw_response)
-                    ? json_decode($review->openai_raw_response, true)
-                    : ($review->openai_raw_response ?? []);
-
-                $categories = $openaiData['category_analysis'] ?? [];
-                foreach ($categories as $cat) {
-                    $topic = $cat['main_category'] ?? 'General';
-                    $allTopics[$topic] = ($allTopics[$topic] ?? 0) + 1;
-                }
+            foreach ($review->topics ?? [] as $topic) {
+                $topicName = is_array($topic) ? ($topic['main_category'] ?? 'General') : $topic;
+                $allTopics[$topicName] = ($allTopics[$topicName] ?? 0) + 1;
             }
         }
 

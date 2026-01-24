@@ -837,10 +837,7 @@ class RuleEngineService
         $improvementAreas = [];
 
         foreach ($reviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
-
+            $openaiData = $review->openai_raw_response ?: [];
             $skills = $openaiData['staff_intelligence']['soft_skill_scores'] ?? [];
             foreach ($skills as $skill => $score) {
                 if ($score >= 4) {
@@ -864,11 +861,7 @@ class RuleEngineService
     {
         $tones = [];
         foreach ($reviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
-
-            $tone = $openaiData['emotion']['primary'] ?? null;
+            $tone = $review->emotion['primary'] ?? 'neutral';
             if ($tone) {
                 $tones[$tone] = ($tones[$tone] ?? 0) + 1;
             }
@@ -1042,12 +1035,7 @@ class RuleEngineService
         $totalMentions = 0;
 
         foreach ($reviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
-
-            $categories = $openaiData['category_analysis'] ?? [];
-            foreach ($categories as $cat) {
+            foreach ($review->topics ?? [] as $cat) {
                 $name = $cat['main_category'] ?? 'General';
                 if (!isset($topicCounts[$name])) {
                     $topicCounts[$name] = ['name' => $name, 'count' => 0, 'sentiment' => []];

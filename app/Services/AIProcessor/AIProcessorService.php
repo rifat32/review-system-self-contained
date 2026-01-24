@@ -82,12 +82,7 @@ class AIProcessorService
 
         // Method 2: Fallback - On-the-fly aggregation from AI payloads
         foreach ($reviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
-
-            $categories = $openaiData['category_analysis'] ?? [];
-            foreach ($categories as $cat) {
+            foreach ($review->topics ?? [] as $cat) {
                 $topic = $cat['main_category'] ?? 'General';
                 if (!isset($results[$topic])) {
                     $results[$topic] = [
@@ -375,10 +370,7 @@ class AIProcessorService
         // Analyze staff intelligence directly from AI payloads
         $staffPerformance = [];
         foreach ($positiveReviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
-
+            $openaiData = $review->openai_raw_response ?: [];
             $staffEvaluation = $openaiData['staff_intelligence']['performance_evaluation'] ?? null;
             if ($staffEvaluation) {
                 $staffPerformance[] = $staffEvaluation;
@@ -1037,13 +1029,7 @@ class AIProcessorService
         $aggregates = [];
 
         foreach ($reviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
-
-            $categories = $openaiData['category_analysis'] ?? [];
-
-            foreach ($categories as $cat) {
+            foreach ($review->topics ?? [] as $cat) {
                 $name = $cat['main_category'] ?? 'General';
                 $sentiment = strtolower($cat['sentiment'] ?? 'neutral');
 

@@ -35,7 +35,7 @@ return new class extends Migration {
 
             $table->text('reply_content')->nullable();
             $table->text('raw_text')->nullable();
-            $table->string('emotion')->nullable();
+            $table->json('emotion')->nullable();
             $table->json('key_phrases')->nullable();
             $table->string('ip_address')->nullable();
             $table->boolean('is_overall')->default(false);

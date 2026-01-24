@@ -1,11 +1,130 @@
-1. language 
-2. review type
-3. topic id
-4. key phrases 
-5. topics
-6. moderation results
-7. ai suggestions
-8. stff suggestion
-9. open ai response 
-10 summary
-11.  service analysis
+{
+    "language": {
+        "detected": "en",
+        "translated_text": ""
+    },
+    "sentiment": {
+        "label": "neutral",
+        "score": 0
+    },
+    "emotion": {
+        "primary": "neutral",
+        "intensity": "low"
+    },
+    "moderation": {
+        "is_abusive": false,
+        "safe_for_public_display": true,
+        "issues_found": [],
+        "severity": "low"
+    },
+    "rating_comment_alignment": {
+        "is_aligned": true,
+        "mismatch_type": "none",
+        "confidence": 1,
+        "explanation": "The rating of 3\/5 aligns with the comment indicating a balanced experience.",
+        "key_contradiction": ""
+    },
+    "category_analysis": [
+        {
+            "main_category": "Others",
+            "sub_category": "Overall Experience",
+            "sentiment": "neutral",
+            "severity": "medium",
+            "evidence_from_comment": "Good points and bad points balanced out to an okay experience."
+        }
+    ],
+    "staff_intelligence": {
+        "staff_id": "5",
+        "staff_name": "Michael Williams",
+        "mentioned_explicitly": true,
+        "sentiment_towards_staff": "neutral",
+        "soft_skill_scores": {
+            "politeness": 3,
+            "communication": 3,
+            "empathy": 3,
+            "professionalism": 3
+        },
+        "training_recommendations": [],
+        "risk_level": "medium",
+        "blame_detected": false,
+        "staff_context": "neutral experience"
+    },
+    "service_unit_intelligence": {
+        "unit_type": "Other",
+        "unit_id": "",
+        "issues_detected": [],
+        "maintenance_required": false,
+        "severity": "low"
+    },
+    "area_insights": [],
+    "business_insights": {
+        "root_cause": "Mixed experience with both positive and negative aspects.",
+        "repeat_issue_likelihood": "medium",
+        "impact_level": "medium",
+        "affected_areas": []
+    },
+    "recommendations": {
+        "business_actions": [
+            "Gather more detailed feedback to identify specific areas for improvement."
+        ],
+        "staff_actions": [],
+        "immediate_actions": [],
+        "priority": "medium"
+    },
+    "alerts": {
+        "triggered": false,
+        "type": "",
+        "priority": "low",
+        "message": "",
+        "reason": "",
+        "recommended_action": ""
+    },
+    "flags": [],
+    "staff_impact": {
+        "staff_blame_detected": false,
+        "note": "The experience was neutral and does not reflect poorly on the staff."
+    },
+    "explainability": {
+        "decision_basis": [
+            "Rating aligns with neutral comment.",
+            "Balanced feedback indicates no extreme issues."
+        ],
+        "confidence_score": 1,
+        "key_factors": [
+            "Overall rating of 3\/5",
+            "Comment reflects mixed feelings."
+        ],
+        "why_flagged": "",
+        "how_decision_was_made": "Analysis of rating and comment alignment."
+    },
+    "summary": {
+        "one_line": "The review reflects a balanced experience with both good and bad points.",
+        "manager_summary": "The customer had an overall neutral experience, indicating that there are areas of strength and areas needing improvement.",
+        "customer_sentiment_summary": "Neutral sentiment with a balanced view.",
+        "overall_assessment": "mixed"
+    },
+    "_metadata": {
+        "model": "gpt-4o-mini",
+        "tokens_used": 3625,
+        "prompt_tokens": 2872,
+        "completion_tokens": 753,
+        "enabled_modules": {
+            "language_translation": true,
+            "sentiment_analysis": true,
+            "emotion_detection": true,
+            "abuse_detection": true,
+            "explainability": true,
+            "category_analysis": true,
+            "staff_intelligence": true,
+            "service_unit_intelligence": true,
+            "business_recommendations": true,
+            "alerts": true
+        },
+        "processing_time": "2026-01-24T15:15:50.022204Z",
+        "business_id": 1,
+        "review_id": 20,
+        "finish_reason": "stop",
+        "max_tokens_setting": 2500,
+        "token_usage_percentage": 30.10000000000000142108547152020037174224853515625
+    }
+}

@@ -386,6 +386,7 @@ class OpenAIProcessorService
             ]);
 
             $fallback = $this->getFallbackAnalysis($payload, $enabledModules);
+
             $fallback['_error'] = $e->getMessage();
             $fallback['_error_type'] = 'openai_json_parse';
             $fallback['_metadata'] = [
@@ -1705,7 +1706,7 @@ PROMPT;
         $dbData = [
             'sentiment_score' => $result['sentiment']['score'] ?? 0,
             'sentiment_label' => strtolower($result['sentiment']['label'] ?? 'neutral'),
-            'emotion' => $result['emotion'] ?? 'neutral',
+            'emotion' => $result['emotion'] ?? ["primary" => "neutral", "intensity" => "low"],
             'is_abusive' => $result['flagging']['is_abusive'] ?? false,
             'is_ai_processed' => true,
             'ai_confidence' => $result['confidence_score'] ?? 0.8,
@@ -1976,7 +1977,7 @@ PROMPT;
                 $results[$review->id] = [
                     'success' => true,
                     'sentiment' => $result['sentiment_label'] ?? 'unknown',
-                    'emotion' => $result['emotion'] ?? 'unknown'
+                    'emotion' => $result['emotion'] ?? ["primary" => "neutral", "intensity" => "low"]
                 ];
 
                 // Rate limiting delay

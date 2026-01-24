@@ -443,7 +443,7 @@ class RuleExecutionService
             'sentiment' => $review->sentiment_label ?: 'neutral',
             'sentiment_score' => $review->sentiment_score ?? 0.5,
             'sentiment_label' => $review->sentiment_label ?: 'neutral',
-            'emotion' => $review->emotion ?? 'neutral',
+            'emotion' => $review->emotion['primary'] ?? 'neutral',
             'staff_mentions' => $review->key_phrases['staff_mentions'] ?? [],
             'areas' => $review->key_phrases['areas_mentioned'] ?? [],
             'key_phrases' => $review->key_phrases ?? [],

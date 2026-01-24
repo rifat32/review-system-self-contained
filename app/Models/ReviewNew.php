@@ -65,6 +65,7 @@ class ReviewNew extends Model
 
 
     protected $casts = [
+        "emotion" => "array",
         'key_phrases' => 'array',
         'topics' => 'array',
         'moderation_results' => 'array',
@@ -81,6 +82,15 @@ class ReviewNew extends Model
         'openai_raw_response' => 'array',
         'mismatch_insights' => 'array',
     ];
+
+
+    public function getAiMetadataAttribute()
+    {
+        if (empty($this->openai_raw_response)) return [];
+        return is_array($this->openai_raw_response)
+            ? $this->openai_raw_response
+            : json_decode($this->openai_raw_response, true);
+    }
 
     public function setSourceAttribute($value)
     {
