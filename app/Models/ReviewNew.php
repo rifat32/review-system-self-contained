@@ -28,11 +28,8 @@ class ReviewNew extends Model
         'staff_id',
         'order_no',
         "status",
-
-
         'responded_at',
         'review_type',
-        'topic_id',
         'reply_content',
         'is_voice_review',
         'voice_url',

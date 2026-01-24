@@ -67,7 +67,7 @@ Route::get('/reviews', function () {
             'summary',
             'rating_comment_mismatch',
             'mismatch_insights',
-            'topic_id',
+
             'transcription_metadata',
             'branch_id',
             'is_ai_processed',
