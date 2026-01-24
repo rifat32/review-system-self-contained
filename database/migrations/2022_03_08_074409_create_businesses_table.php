@@ -116,7 +116,7 @@ return new class extends Migration {
 
             $table->boolean('is_branch')->default(false);
 
-            $table->unsignedBigInteger('openai_token_limit')->default(0);
+            $table->bigInteger('openai_token_limit')->default(-1);
 
             $table->unsignedBigInteger("service_plan_id")->nullable();
             $table->date('start_date')->nullable();

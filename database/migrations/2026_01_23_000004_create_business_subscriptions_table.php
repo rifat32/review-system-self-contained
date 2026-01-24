@@ -18,7 +18,7 @@ return new class extends Migration
             $table->double('amount')->nullable();
             $table->timestamp('paid_at')->nullable();
             $table->string('transaction_id')->nullable();
-            $table->unsignedBigInteger('openai_token_limit')->default(0);
+            $table->bigInteger('openai_token_limit')->default(-1);
 
             // Stripe fields
             $table->string('stripe_id')->nullable()->index();

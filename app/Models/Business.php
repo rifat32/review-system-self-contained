@@ -53,7 +53,6 @@ class Business extends Model
         "pin",
         "time_zone",
 
-
         'is_guest_user_overall_review',
         'is_guest_user_survey',
         'is_guest_user_survey_required',
@@ -133,8 +132,6 @@ class Business extends Model
             ->where('end_date', '>=', now())
             ->orderBy('end_date', 'desc');
     }
-
-
 
     private function isTrialDateValid($trial_end_date)
     {
@@ -241,8 +238,6 @@ class Business extends Model
     {
         return $this->belongsToMany(User::class, "review_news", 'business_id', 'user_id');
     }
-
-
 
 
     public function owner()

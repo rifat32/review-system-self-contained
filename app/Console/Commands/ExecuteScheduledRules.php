@@ -55,8 +55,53 @@ class ExecuteScheduledRules extends Command
                 'other information' => 'AI Process Logging'
             ], 'ai_process.log');
 
-            // Execute directly via service - NO QUEUE INVOLVED
-            $executionService->runScheduledRules();
+            // Execute directly via service
+            $rules = $executionService->getRulesToExecute();
+
+            if ($rules->isEmpty()) {
+                $this->info('No rules to execute.');
+                Log::channel('daily')->info("No rules to execute.");
+                log_message([
+                    'message' => 'No rules to execute.',
+                    'path' => __FILE__,
+                    'other information' => 'AI Process Logging'
+                ], 'ai_process.log');
+                return 0;
+            }
+
+            $progressBar = $this->output->createProgressBar($rules->count());
+            $progressBar->start();
+            $this->newLine();
+
+            foreach ($rules as $rule) {
+                try {
+                    $reviews = $executionService->getReviewsForRule($rule);
+
+                    if ($reviews->isEmpty()) {
+                        $rule->update([
+                            'last_run_at' => \now(),
+                            'next_run_at' => $executionService->calculateNextRun($rule)
+                        ]);
+                    } else {
+                        $executionService->executeRule($rule, $reviews);
+                        $rule->update([
+                            'last_run_at' => \now(),
+                            'next_run_at' => $executionService->calculateNextRun($rule)
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Rule failed: " . $rule->rule_id . " - " . $e->getMessage());
+                    // Advance even on failure to prevent stuck state
+                    $rule->update([
+                        'last_run_at' => \now(),
+                        'next_run_at' => $executionService->calculateNextRun($rule)
+                    ]);
+                }
+                $progressBar->advance();
+            }
+
+            $progressBar->finish();
+            $this->newLine();
 
             $this->info('Scheduled rules executed successfully.');
             Log::channel('daily')->info("Scheduled rules executed successfully.");

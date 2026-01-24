@@ -9,11 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class ProcessAIReviews extends Command
 {
-    protected $signature = 'reviews:process 
-                          {--batch-size=50 : Number of reviews to process}
-                          {--review-id= : Process specific review ID}
-                          {--test : Test mode without saving}
-                          {--force : Reprocess already processed reviews}';
+    protected $signature = 'reviews:process';
 
     protected $description = 'Process reviews with OpenAI AI analysis';
 
@@ -56,11 +52,7 @@ class ProcessAIReviews extends Command
         ], 'ai_process.log');
 
         try {
-            if ($this->option('review-id')) {
-                $this->processSingleReview();
-            } else {
-                $this->processBatch();
-            }
+            $this->processBatch();
 
             Log::channel('daily')->info("Processing completed successfully at " . now());
             log_message([
@@ -91,258 +83,150 @@ class ProcessAIReviews extends Command
         }
     }
 
-    protected function processSingleReview()
+
+
+    protected function processBatch()
     {
-        $reviewId = $this->option('review-id');
-        Log::channel('daily')->info("Processing single review ID: {$reviewId}\n");
-        log_message([
-            'message' => "Processing single review ID: {$reviewId}",
-            'path' => __FILE__,
-            'other information' => 'AI Process Logging'
-        ], 'ai_process.log');
+        $query = ReviewNew::whereNotNull('raw_text')
+            ->where('is_ai_processed', 0);
 
-        $review = ReviewNew::find($reviewId);
+        $reviews = $query->orderBy('id', 'asc')
+            ->get();
 
-        if (!$review) {
-            $errorMessage = "Review ID {$reviewId} not found.";
-            Log::channel('daily')->info("ERROR: " . $errorMessage . "\n");
+        if ($reviews->isEmpty()) {
+            $logMessage = "No reviews to process.\n";
+            Log::channel('daily')->info($logMessage);
+            log_message([
+                'message' => $logMessage,
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
             return;
         }
 
-        $logMessage = "Processing Review #{$review->id}, Business: {$review->business_id}, ";
-        $logMessage .= "Staff: " . ($review->staff_id ? "Yes (ID: {$review->staff_id})" : "No") . ", ";
-        $logMessage .= "Already Processed: " . ($review->is_ai_processed ? 'Yes' : 'No');
-        Log::channel('daily')->info($logMessage . "\n");
+        $logMessage = "Found {$reviews->count()} reviews to process\n";
+        Log::channel('daily')->info($logMessage);
         log_message([
             'message' => $logMessage,
             'path' => __FILE__,
             'other information' => 'AI Process Logging'
         ], 'ai_process.log');
 
-        Log::channel('daily')->info("📋 Processing Review #{$review->id}\n");
-        Log::channel('daily')->info("   Business: {$review->business_id}\n");
-        Log::channel('daily')->info("   Staff: " . ($review->staff_id ? "Yes (ID: {$review->staff_id})" : "No") . "\n");
-        Log::channel('daily')->info("   Text: " . substr($review->raw_text ?? $review->comment ?? '', 0, 100) . "...\n");
-        Log::channel('daily')->info("   Already Processed: " . ($review->is_ai_processed ? 'Yes' : 'No') . "\n");
+        Log::channel('daily')->info("📊 Found {$reviews->count()} reviews to process\n");
         log_message([
-            'message' => "Processing Review Details #{$review->id}",
+            'message' => "Found {$reviews->count()} reviews to process",
             'path' => __FILE__,
             'other information' => 'AI Process Logging'
         ], 'ai_process.log');
 
-        try {
-            if ($this->option('test')) {
-                Log::channel('daily')->info("TEST MODE: Analyzing review without saving\n");
-                log_message([
-                    'message' => 'TEST MODE: Analyzing review without saving',
-                    'path' => __FILE__,
-                    'other information' => 'AI Process Logging'
-                ], 'ai_process.log');
-                $payload = $this->processor->createPayloadFromReview($review);
-                $enabledModules = $this->processor->getBusinessAiModules($review->business_id);
-                $result = $this->processor->processReviewWithOpenAI($payload, $enabledModules);
-
-                Log::channel('daily')->info("\n✅ OpenAI Analysis Results:\n");
-                Log::channel('daily')->info("   Sentiment: " . ($result['sentiment']['label'] ?? 'N/A') . "\n");
-                Log::channel('daily')->info("   Emotion: " . ($result['emotion']['primary'] ?? 'N/A') . "\n");
-                Log::channel('daily')->info("   Language: " . ($result['language']['detected'] ?? 'N/A') . "\n");
-                Log::channel('daily')->info("   Themes: " . count($result['themes'] ?? []) . "\n");
-                Log::channel('daily')->info("   Confidence: " . round(($result['explainability']['confidence_score'] ?? 0) * 100) . "%\n");
-                Log::channel('daily')->info("   Summary: " . ($result['summary']['one_line'] ?? '') . "\n");
-
-                // Log results
-                Log::channel('daily')->info("Test Analysis Results:\n");
-                Log::channel('daily')->info("  Sentiment: " . ($result['sentiment']['label'] ?? 'N/A') . "\n");
-                Log::channel('daily')->info("  Emotion: " . ($result['emotion']['primary'] ?? 'N/A') . "\n");
-                Log::channel('daily')->info("  Language: " . ($result['language']['detected'] ?? 'N/A') . "\n");
-                Log::channel('daily')->info("  Themes Count: " . count($result['themes'] ?? []) . "\n");
-                Log::channel('daily')->info("  Confidence: " . round(($result['explainability']['confidence_score'] ?? 0) * 100) . "%\n");
-
-                if (isset($result['_metadata']['tokens_used'])) {
-                    $tokens = $result['_metadata']['tokens_used'];
-                    Log::channel('daily')->info("   Tokens Used: " . $tokens . "\n");
-                    Log::channel('daily')->info("  Tokens Used: " . $tokens . "\n");
-                }
-            } else {
-                Log::channel('daily')->info("PRODUCTION MODE: Processing and saving results\n");
-                log_message([
-                    'message' => 'PRODUCTION MODE: Processing and saving results',
-                    'path' => __FILE__,
-                    'other information' => 'AI Process Logging'
-                ], 'ai_process.log');
-                $forceReprocess = $this->option('force');
-
-                if ($forceReprocess) {
-                    Log::channel('daily')->info("Force reprocessing enabled\n");
-                }
-
-                $result = $this->processor->analyzeReview($review, $forceReprocess);
-
-                if ($result['status'] === 'already_processed' && !$forceReprocess) {
-                    $logMessage = "Review #{$review->id} already processed. Skipping.\n";
-                    Log::channel('daily')->info($logMessage);
-
-                    Log::channel('daily')->info("\n⚠️  Review already processed!\n");
-                    Log::channel('daily')->info("   Sentiment: " . ($result['sentiment_label'] ?? 'N/A') . "\n");
-                    Log::channel('daily')->info("   AI Confidence: " . round(($result['ai_confidence'] ?? 0) * 100) . "%\n");
-                    Log::channel('daily')->info("   Status: " . ($result['is_abusive'] ? '⚠️ Flagged' : '✅ Active') . "\n");
-                    Log::channel('daily')->info("   Use --force flag to reprocess.\n");
-                    return;
-                }
-
-                // Refresh the review from database
-                $review->refresh();
-
-                Log::channel('daily')->info("\n✅ Review Processed Successfully:\n");
-                Log::channel('daily')->info("   Sentiment: " . ($review->sentiment_label ?? 'N/A') . "\n");
-                Log::channel('daily')->info("   Emotion: " . ($review->emotion ?? 'N/A') . "\n");
-                Log::channel('daily')->info("   Key Phrases: " . substr($review->key_phrases ?? '[]', 0, 100) . "\n");
-                Log::channel('daily')->info("   AI Confidence: " . round(($review->ai_confidence ?? 0) * 100) . "%\n");
-                Log::channel('daily')->info("   Status: " . ($review->is_abusive ? '⚠️ Flagged' : '✅ Active') . "\n");
-                log_message([
-                    'message' => "Review Processed Successfully #{$review->id}",
-                    'path' => __FILE__,
-                    'other information' => 'AI Process Logging'
-                ], 'ai_process.log');
-
-                // Log detailed results
-                Log::channel('daily')->info("Review #{$review->id} processed successfully\n");
-                Log::channel('daily')->info("  Sentiment: " . ($review->sentiment_label ?? 'N/A') . "\n");
-                Log::channel('daily')->info("  Emotion: " . ($review->emotion ?? 'N/A') . "\n");
-                Log::channel('daily')->info("  AI Confidence: " . round(($review->ai_confidence ?? 0) * 100) . "%\n");
-                Log::channel('daily')->info("  Is Abusive: " . ($review->is_abusive ? 'Yes' : 'No') . "\n");
-                Log::channel('daily')->info("  Status: " . ($result['message'] ?? 'completed') . "\n");
-
-                if (isset($result['message'])) {
-                    Log::channel('daily')->info("   Status: " . $result['message'] . "\n");
-                }
-            }
-        } catch (\Exception $e) {
-            $errorMessage = "Processing failed for review #{$review->id}: " . $e->getMessage();
-            Log::channel('daily')->info("ERROR: " . $errorMessage . "\n");
-            log_message([
-                'message' => "ERROR: " . $errorMessage,
-                'path' => __FILE__,
-                'other information' => 'AI Process Logging'
-            ], 'ai_process.log');
-            Log::channel('daily')->info("Stack trace: " . $e->getTraceAsString() . "\n");
-        }
-    }
-
-    protected function processBatch()
-    {
-        $query = ReviewNew::whereNotNull('raw_text');
-
-        if (!$this->option('force')) {
-            $query->where('is_ai_processed', 0);
-        }
-
-        $reviews = $query->take($this->option('batch-size'))
-            ->orderBy('created_at', 'asc')
-            ->get();
-
-        if ($reviews->isEmpty()) {
-            $logMessage = "No reviews to process.\n";
-            Log::channel('daily')->info($logMessage);
-            return;
-        }
-
-        $logMessage = "Found {$reviews->count()} reviews to process";
-        if ($this->option('force')) {
-            $logMessage .= " (force mode: reprocess already processed)";
-        }
-        $logMessage .= "\n";
-        Log::channel('daily')->info($logMessage);
-
-        Log::channel('daily')->info("📊 Found {$reviews->count()} reviews to process\n");
-        if ($this->option('force')) {
-            Log::channel('daily')->info("⚠️  Force mode: Will reprocess already processed reviews\n");
-        }
 
         $successCount = 0;
         $failedCount = 0;
-        $totalTokens = 0;
         $alreadyProcessed = 0;
 
         Log::channel('daily')->info("Starting batch processing of " . $reviews->count() . " reviews\n");
+        $progressBar = $this->output->createProgressBar($reviews->count());
+        $progressBar->start();
+
+        log_message([
+            'message' => "Starting batch processing of " . $reviews->count() . " reviews",
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
+
 
         foreach ($reviews as $index => $review) {
             Log::channel('daily')->info("Processing review " . ($index + 1) . " of " . $reviews->count() . " (ID: {$review->id})\n");
+            log_message([
+                'message' => "Processing review " . ($index + 1) . " of " . $reviews->count() . " (ID: {$review->id})",
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
 
             try {
-                if ($this->option('test')) {
-                    // Test mode
-                    Log::channel('daily')->info("Testing review #{$review->id}\n");
-                    $payload = $this->processor->createPayloadFromReview($review);
+                // Production mode
+                $business = $review->business;
+                if (!$business) {
+                    Log::channel('daily')->info("Review #{$review->id} has no valid business, skipping\n");
+                    log_message([
+                        'message' => "Review #{$review->id} has no valid business, skipping",
+                        'path' => __FILE__,
+                        'other information' => 'AI Process Logging'
+                    ], 'ai_process.log');
+                    continue;
+                }
 
-                    $enabledModules = $this->processor->getBusinessAiModules($review->business_id);
-                    $result = $this->processor->processReviewWithOpenAI($payload, $enabledModules);
+                // Check subscription
+                if (!$business->is_subscribed) {
+                    Log::channel('daily')->info("Business #{$business->id} has no active subscription, skipping review #{$review->id}\n");
+                    log_message([
+                        'message' => "Business #{$business->id} has no active subscription, skipping review #{$review->id}",
+                        'path' => __FILE__,
+                        'other information' => 'AI Process Logging'
+                    ], 'ai_process.log');
+                    continue;
+                }
 
-                    $tokens = $result['_metadata']['tokens_used'] ?? 0;
-                    $totalTokens += $tokens;
+                // Check token limit
+                if ($business->is_token_limit_reached) {
+                    Log::channel('daily')->info("Business #{$business->id} has reached AI token limit, skipping review #{$review->id}\n");
+                    log_message([
+                        'message' => "Business #{$business->id} has reached AI token limit, skipping review #{$review->id}",
+                        'path' => __FILE__,
+                        'other information' => 'AI Process Logging'
+                    ], 'ai_process.log');
+                    continue;
+                }
 
-                    $logMessage = "Review #{$review->id}: " .
-                        ($result['sentiment']['label'] ?? 'unknown') .
-                        " sentiment, " . ($result['themes'][0]['topic'] ?? 'no themes') .
-                        " (Tokens: {$tokens})\n";
-                    Log::channel('daily')->info($logMessage);
+                if ($review->is_ai_processed) {
+                    $alreadyProcessed++;
+                    Log::channel('daily')->info("Review #{$review->id} already processed, skipping\n");
+                    log_message([
+                        'message' => "Review #{$review->id} already processed, skipping",
+                        'path' => __FILE__,
+                        'other information' => 'AI Process Logging'
+                    ], 'ai_process.log');
                 } else {
-                    // Production mode
-                    $business = $review->business;
-                    if (!$business) {
-                        Log::channel('daily')->info("Review #{$review->id} has no valid business, skipping\n");
-                        continue;
-                    }
+                    $result = $this->processor->analyzeReview($review, false);
 
-                    // Check subscription
-                    if (!$business->is_subscribed) {
-                        Log::channel('daily')->info("Business #{$business->id} has no active subscription, skipping review #{$review->id}\n");
-                        continue;
-                    }
-
-                    // Check token limit
-                    if ($business->is_token_limit_reached) {
-                        Log::channel('daily')->info("Business #{$business->id} has reached AI token limit, skipping review #{$review->id}\n");
-                        continue;
-                    }
-
-                    $forceReprocess = $this->option('force');
-
-                    if ($review->is_ai_processed && !$forceReprocess) {
+                    if ($result['status'] === 'already_processed') {
                         $alreadyProcessed++;
-                        Log::channel('daily')->info("Review #{$review->id} already processed, skipping\n");
+                        Log::channel('daily')->info("Review #{$review->id} already processed (via API), skipping\n");
+                        log_message([
+                            'message' => "Review #{$review->id} already processed (via API), skipping",
+                            'path' => __FILE__,
+                            'other information' => 'AI Process Logging'
+                        ], 'ai_process.log');
                     } else {
-                        $result = $this->processor->analyzeReview($review, $forceReprocess);
-
-                        if ($result['status'] === 'already_processed') {
-                            $alreadyProcessed++;
-                            Log::channel('daily')->info("Review #{$review->id} already processed (via API), skipping\n");
-                        } else {
-                            $successCount++;
-                            Log::channel('daily')->info("  AI Confidence: " . round(($review->ai_confidence ?? 0) * 100) . "%\n");
-                            log_message([
-                                'message' => "Review processed successfully #{$review->id}",
-                                'path' => __FILE__,
-                                'other information' => 'AI Process Logging'
-                            ], 'ai_process.log');
-                        }
+                        $successCount++;
+                        Log::channel('daily')->info("  AI Confidence: " . round(($review->ai_confidence ?? 0) * 100) . "%\n");
+                        log_message([
+                            'message' => "Review processed successfully #{$review->id}",
+                            'path' => __FILE__,
+                            'other information' => 'AI Process Logging'
+                        ], 'ai_process.log');
                     }
                 }
             } catch (\Exception $e) {
                 $failedCount++;
                 $errorMessage = "Review #{$review->id} failed: " . $e->getMessage();
                 Log::channel('daily')->info("ERROR: " . $errorMessage . "\n");
+                log_message([
+                    'message' => "ERROR: " . $errorMessage,
+                    'path' => __FILE__,
+                    'other information' => 'AI Process Logging'
+                ], 'ai_process.log');
 
-                if (!$this->option('test')) {
-                    $review->update(['is_ai_processed' => 1]);
-                }
+                $review->update(['is_ai_processed' => 1]);
             }
 
             // Rate limiting delay
-            if (!$this->option('test')) {
-                usleep(300000); // 300ms delay
-            }
+            usleep(300000); // 300ms delay
+            $progressBar->advance();
         }
+
+        $progressBar->finish();
+        $this->info("\n");
 
         Log::channel('daily')->info("📈 Processing Complete:\n");
         log_message([
@@ -351,20 +235,35 @@ class ProcessAIReviews extends Command
             'other information' => 'AI Process Logging'
         ], 'ai_process.log');
         Log::channel('daily')->info("   ✅ Successfully processed: {$successCount}\n");
+        log_message([
+            'message' => "Successfully processed: {$successCount}",
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
 
         if ($alreadyProcessed > 0) {
             Log::channel('daily')->info("   ⏭️  Already processed (skipped): {$alreadyProcessed}\n");
+            log_message([
+                'message' => "Already processed (skipped): {$alreadyProcessed}",
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
         }
 
         Log::channel('daily')->info("   ❌ Failed: {$failedCount}\n");
-
-        if ($this->option('test')) {
-            Log::channel('daily')->info("   ⚡ Estimated tokens used: {$totalTokens}\n");
-            Log::channel('daily')->info("   💰 Estimated cost: $" . number_format($totalTokens * 0.00015 / 1000, 4) . "\n");
-        }
+        log_message([
+            'message' => "Failed: {$failedCount}",
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
 
         if ($failedCount > 0) {
             Log::channel('daily')->info("   ⚠️ Check logs for failed reviews\n");
+            log_message([
+                'message' => 'Check logs for failed reviews',
+                'path' => __FILE__,
+                'other information' => 'AI Process Logging'
+            ], 'ai_process.log');
         }
 
         // Log summary
@@ -375,12 +274,22 @@ class ProcessAIReviews extends Command
             'other information' => 'AI Process Logging'
         ], 'ai_process.log');
         Log::channel('daily')->info("  Successfully processed: {$successCount}\n");
+        log_message([
+            'message' => "Successfully processed: {$successCount}",
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
         Log::channel('daily')->info("  Already processed (skipped): {$alreadyProcessed}\n");
+        log_message([
+            'message' => "Already processed (skipped): {$alreadyProcessed}",
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
         Log::channel('daily')->info("  Failed: {$failedCount}\n");
-
-        if ($this->option('test')) {
-            Log::channel('daily')->info("  Estimated tokens used: {$totalTokens}\n");
-            Log::channel('daily')->info("  Estimated cost: $" . number_format($totalTokens * 0.00015 / 1000, 4) . "\n");
-        }
+        log_message([
+            'message' => "Failed: {$failedCount}",
+            'path' => __FILE__,
+            'other information' => 'AI Process Logging'
+        ], 'ai_process.log');
     }
 }

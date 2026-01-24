@@ -226,6 +226,15 @@ class UserReviewReport extends Command
             "user_review_report" => TRUE,
         ])
             ->get();
+
+        if ($business_list->isEmpty()) {
+            return 0;
+        }
+
+        $progressBar = $this->output->createProgressBar($business_list->count());
+        $progressBar->start();
+        $this->newLine();
+
         foreach ($business_list as $business) {
 
             if (empty($business->is_report_email_enabled)) {
@@ -248,7 +257,11 @@ class UserReviewReport extends Command
 
             Mail::to($to)
                 ->send(new UserReviewReportMail($pdfContents, 'report.pdf'));
+            $progressBar->advance();
         }
+
+        $progressBar->finish();
+        $this->newLine();
 
         Log::info('Task executed.');
         // return 'Email sent with PDF attachment.';

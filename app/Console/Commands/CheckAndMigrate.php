@@ -29,6 +29,10 @@ class CheckAndMigrate extends Command
                 'other information' => 'AI Process Logging'
             ], 'ai_process.log');
 
+            $progressBar = $this->output->createProgressBar(count($migrationFiles));
+            $progressBar->start();
+            $this->newLine();
+
             foreach ($migrationFiles as $file) {
                 // Get the migration file name (without the path)
                 $migrationName = basename($file);
@@ -73,7 +77,11 @@ class CheckAndMigrate extends Command
                         throw new Exception($errorMessage, 400);
                     }
                 }
+                $progressBar->advance();
             }
+
+            $progressBar->finish();
+            $this->newLine();
 
             Log::channel('daily')->info("Migration finished at " . now() . "\n");
             log_message([

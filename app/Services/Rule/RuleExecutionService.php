@@ -456,7 +456,7 @@ class RuleExecutionService
     /**
      * Calculate next run time for scheduled rules
      */
-    private function calculateNextRun(AiRule $rule): ?\Carbon\Carbon
+    public function calculateNextRun(AiRule $rule): ?\Carbon\Carbon
     {
         if ($rule->run_frequency === 'real_time') {
             return null; // Real-time rules don't have next run
@@ -605,7 +605,7 @@ class RuleExecutionService
      * Get rules that should be executed based on frequency
      * CRITICAL: Only custom rules (is_default=false) should trigger notifications
      */
-    private function getRulesToExecute(?string $frequency = 'all')
+    public function getRulesToExecute(?string $frequency = 'all')
     {
         $query = AiRule::where('enabled', true)
             ->where('run_frequency', '!=', 'real_time');

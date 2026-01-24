@@ -64,6 +64,10 @@ class CleanupRecommendations extends Command
                 return 0;
             }
 
+            $progressBar = $this->output->createProgressBar(2);
+            $progressBar->start();
+            $this->newLine();
+
             if ($recCount > 0) {
                 Recommendation::where('created_at', '<', $cutoff)->delete();
                 $this->info("Deleted {$recCount} recommendations");
@@ -74,6 +78,7 @@ class CleanupRecommendations extends Command
                     'other information' => 'AI Process Logging'
                 ], 'ai_process.log');
             }
+            $progressBar->advance();
 
             if ($insightCount > 0) {
                 InsightRecord::where('time_window_end', '<', $cutoff)->delete();
@@ -85,6 +90,10 @@ class CleanupRecommendations extends Command
                     'other information' => 'AI Process Logging'
                 ], 'ai_process.log');
             }
+            $progressBar->advance();
+
+            $progressBar->finish();
+            $this->newLine();
 
             Log::channel('daily')->info("Cleanup completed.");
             log_message([

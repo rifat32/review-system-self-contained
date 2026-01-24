@@ -227,6 +227,15 @@ class GuestUserReviewReport extends Command
             "guest_user_review_report" => TRUE,
         ])
             ->get();
+
+        if ($business_list->isEmpty()) {
+            return 0;
+        }
+
+        $progressBar = $this->output->createProgressBar($business_list->count());
+        $progressBar->start();
+        $this->newLine();
+
         foreach ($business_list as $business) {
 
             if (empty($business->is_report_email_enabled)) {
@@ -252,6 +261,9 @@ class GuestUserReviewReport extends Command
 
             Mail::to($to)
                 ->send(new GuestUserReviewReportMail($pdfContents, 'report.pdf'));
+            $progressBar->advance();
         }
+        $progressBar->finish();
+        $this->newLine();
     }
 }

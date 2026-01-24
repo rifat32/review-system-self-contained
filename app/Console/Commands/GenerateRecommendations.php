@@ -79,7 +79,12 @@ class GenerateRecommendations extends Command
                 'other information' => 'AI Process Logging'
             ], 'ai_process.log');
 
+
             $results = ['success' => 0, 'failed' => 0];
+
+            $progressBar = $this->output->createProgressBar($businesses->count());
+            $progressBar->start();
+            $this->newLine();
 
             foreach ($businesses as $business) {
                 try {
@@ -157,7 +162,11 @@ class GenerateRecommendations extends Command
                     ]);
                     $results['failed']++;
                 }
+                $progressBar->advance();
             }
+
+            $progressBar->finish();
+            $this->newLine();
 
             $endMsg = "\nComplete: {$results['success']} success, {$results['failed']} failed";
             $this->info($endMsg);
