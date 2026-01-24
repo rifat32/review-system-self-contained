@@ -53,7 +53,8 @@ class InsightAggregationService
         $patterns = [];
 
         foreach ($reviews as $review) {
-            $openaiData = json_decode($review->openai_raw_response ?? '{}', true);
+            $rawResponse = $review->openai_raw_response;
+            $openaiData = is_array($rawResponse) ? $rawResponse : json_decode($rawResponse ?? '{}', true);
             $categories = $openaiData['category_analysis'] ?? [];
 
             foreach ($categories as $category) {

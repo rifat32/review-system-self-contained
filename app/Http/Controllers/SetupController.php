@@ -9,8 +9,8 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+
+use Illuminate\Support\Facades\File;
 
 
 class SetupController extends Controller
@@ -67,6 +67,12 @@ class SetupController extends Controller
         Artisan::call('route:clear');
         Artisan::call('view:clear');
 
+        // Clear storage logs
+        $log_path = storage_path('logs');
+        if (File::exists($log_path)) {
+            File::cleanDirectory($log_path); // removes all files inside logs
+        }
+
         // Run migrations
         Artisan::call('migrate:fresh');
 
@@ -75,15 +81,9 @@ class SetupController extends Controller
         // Generate Swagger Documentation
         Artisan::call('l5-swagger:generate');
 
-
         Artisan::call('db:seed', ['--class' => 'DatabaseSeeder']);
 
 
-        // // Seed Super Admin
-        // Artisan::call('db:seed', ['--class' => 'SuperAdminSeeder']);
-
-        // // Setup Roles and Permissions
-        // Artisan::call('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
 
 
         return response()->json([

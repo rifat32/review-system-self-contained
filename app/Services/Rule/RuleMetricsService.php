@@ -66,8 +66,12 @@ class RuleMetricsService
         $metrics->incrementTriggers();
 
         // Record individual actions
-        foreach ($actionsTriggered as $action) {
-            $metrics->recordAction($action);
+        $actionList = array_is_list($actionsTriggered) ? $actionsTriggered : array_keys(array_filter((array) $actionsTriggered));
+
+        foreach ($actionList as $action) {
+            if (is_string($action)) {
+                $metrics->recordAction($action);
+            }
         }
 
         return $metrics;

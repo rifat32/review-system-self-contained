@@ -76,6 +76,10 @@ class ReviewNew extends Model
         'is_flagged' => 'boolean',
         'ai_insights' => 'array',
         'ai_recommendations' => 'array',
+        'topics' => 'array',
+        'service_analysis' => 'array',
+        'openai_raw_response' => 'array',
+        'mismatch_insights' => 'array',
     ];
 
     public function setSourceAttribute($value)

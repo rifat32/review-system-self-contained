@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             ModuleSeeder::class,
             ServicePlanSeeder::class,
+            DynamicAiRulesSeeder::class,
         ]);
     }
 }

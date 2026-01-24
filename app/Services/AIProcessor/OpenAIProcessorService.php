@@ -1496,7 +1496,7 @@ PROMPT;
         $ratingPatterns = [];
 
         foreach ($reviews as $review) {
-            $insights = json_decode($review->mismatch_insights ?? '{}', true);
+            $insights = is_array($review->mismatch_insights) ? $review->mismatch_insights : json_decode($review->mismatch_insights ?? '{}', true);
             $mismatchType = $insights['mismatch_type'] ?? 'unknown';
 
             if (isset($mismatchByType[$mismatchType])) {
@@ -1723,7 +1723,7 @@ PROMPT;
             // Map additional fields for dashboard and reporting
             'language' => $result['language']['detected'] ?? 'en',
             'summary' => $result['summary']['one_line'] ?? ($result['summary']['manager_summary'] ?? ''),
-            'openai_raw_response' => json_encode($result),
+            'openai_raw_response' => $result,
             'key_phrases' => $result['tags'] ?? [],
             'topics' => $result['category_analysis'] ?? [],
             'service_analysis' => $result['category_analysis'] ?? [],
