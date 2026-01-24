@@ -4,7 +4,7 @@ namespace App\Services\Rule;
 
 use App\Models\{AiRule, AiRuleTrigger, ReviewNew, SupportTicket, Notification};
 use App\Services\Rule\ConditionBuilderService;
-use App\Services\AIProcessor\EmotionAnalysisService;
+use App\Services\AIProcessor\InsightAggregationService;
 use Illuminate\Support\Facades\{DB, Log};
 
 class RuleExecutionService

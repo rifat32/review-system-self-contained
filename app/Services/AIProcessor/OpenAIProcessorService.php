@@ -1641,40 +1641,7 @@ PROMPT;
         return $issues;
     }
 
-    /**
-     * Get rating mismatch alert for dashboard
-     */
-    public function getRatingMismatchAlert($reviews, $businessId = null, $dateRange = null)
-    {
-        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
-            $reviews = $reviews->get();
-        }
 
-        $mismatchCount = $reviews->where('rating_comment_mismatch', true)->count();
-        $totalCount = $reviews->count();
-
-        if ($mismatchCount == 0) {
-            return null;
-        }
-
-        $percentage = $totalCount > 0 ? round(($mismatchCount / $totalCount) * 100) : 0;
-
-        // Get common issues from mismatched reviews
-        $commonIssues = $this->extractCommonMismatchIssues($reviews->where('rating_comment_mismatch', true));
-
-        return [
-            'type' => 'insight',
-            'title' => 'Hidden Issues Detected',
-            'message' => "{$percentage}% of positive reviews contain negative comments",
-            'severity' => $percentage > 20 ? 'medium' : 'low',
-            'count' => $mismatchCount,
-            'percentage' => $percentage,
-            'common_issues' => array_slice($commonIssues, 0, 3),
-            'recommendation' => 'Review flagged comments for hidden operational issues',
-            'icon' => '⚠️',
-            'link' => $businessId ? \route('dashboard.mismatch.insights', ['business' => $businessId, 'start_date' => $dateRange['start'] ?? null, 'end_date' => $dateRange['end'] ?? null]) : null
-        ];
-    }
 
     public function generateRecommendations(array $aiResult, array $enabledModules): array
     {
@@ -1766,35 +1733,10 @@ PROMPT;
             'review_type' => $review->review_type ?? ($review->is_voice_review ? 'voice' : 'text'),
         ];
 
-        // Process tags if present
-        if (isset($result['tags']) && is_array($result['tags'])) {
-            $this->processReviewTags($review, $result['tags']);
-        }
 
         return $dbData;
     }
 
-    /**
-     * Process tags from AI result
-     */
-    private function processReviewTags(ReviewNew $review, array $aiTags): void
-    {
-        try {
-            foreach ($aiTags as $tagName) {
-                $tag = Tag::firstOrCreate(
-                    ['name' => $tagName, 'business_id' => $review->business_id],
-                    ['type' => 'ai_generated', 'color' => '#E5E7EB']
-                );
-
-                $review->tags()->syncWithoutDetaching([$tag->id]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Failed to process AI tags', [
-                'review_id' => $review->id,
-                'error' => $e->getMessage()
-            ]);
-        }
-    }
 
     /**
      * Fallback analysis if OpenAI fails

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Recommendation extends Model
 {
-      /**
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -37,13 +37,12 @@ class Recommendation extends Model
 
 
     public function insight()
-{
-    return $this->belongsTo(InsightRecord::class, 'insight_id');
-}
+    {
+        return $this->belongsTo(InsightRecord::class, 'insight_id');
+    }
 
-public function rule()
-{
-    return $this->belongsTo(RecommendationRule::class, 'rule_id');
-}
-
+    public function rule()
+    {
+        return $this->belongsTo(AiRule::class, 'rule_id');
+    }
 }
