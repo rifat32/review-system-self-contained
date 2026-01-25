@@ -94,12 +94,17 @@ return new class extends Migration {
                     "color" => "bg-green-500",
                 ],
                 [
-                    "score_range" => [60, 79],
+                    "score_range" => [65, 79],
                     "status" => "Good",
+                    "color" => "bg-lime-500",
+                ],
+                [
+                    "score_range" => [50, 64],
+                    "status" => "Average",
                     "color" => "bg-yellow-500",
                 ],
                 [
-                    "score_range" => [40, 59],
+                    "score_range" => [40, 49],
                     "status" => "Needs Attention",
                     "color" => "bg-orange-500",
                 ],
@@ -109,6 +114,7 @@ return new class extends Migration {
                     "color" => "bg-red-500",
                 ],
             ]));
+
 
 
 
