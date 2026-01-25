@@ -145,8 +145,10 @@ class AiReadyDemoBusinessSeeder extends Seeder
             'phone' => '+1234567890',
             'type' => 'business_Owner',
             'remember_token' => Str::random(10),
-            'email_verified_at' => now(),
+
         ]);
+        $this->owner->email_verified_at = now();
+        $this->owner->save();
 
         $this->owner->assignRole('business_owner');
     }
@@ -290,6 +292,8 @@ class AiReadyDemoBusinessSeeder extends Seeder
                     'job_title' => $i === 0 ? 'Senior Server' : 'Server',
                     'join_date' => Carbon::now()->subMonths(rand(6, 24))->format('Y-m-d'),
                 ]);
+                $staff->email_verified_at = now();
+                $staff->save();
 
                 $staff->assignRole('business_staff');
 
@@ -373,8 +377,10 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 'type' => 'customer',
                 'business_id' => null, // Regular customer, not tied to business
                 'remember_token' => Str::random(10),
-                'email_verified_at' => now(),
+
             ]);
+            $user->email_verified_at = now();
+            $user->save();
 
             $user->assignRole('customer');
 
