@@ -42,6 +42,8 @@ use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\RuleReportController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\ServicePlanController;
+use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\OrganizationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -99,6 +101,14 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     Route::post('/v1.0/register-device-token', [DeviceTokenController::class, 'createDeviceToken']);
+
+    // modules  management section
+    Route::put('/v1.0/modules/toggle-active', [ModuleController::class, "toggleActiveModule"]);
+    Route::put('/v1.0/business-modules/enable', [ModuleController::class, "enableBusinessModule"]);
+    Route::put('/v1.0/service-plan-modules/enable', [ModuleController::class, "enableServicePlanModule"]);
+    Route::get('/v1.0/business-modules/{business_id}', [ModuleController::class, "getBusinessModules"]);
+    Route::get('/v1.0/modules', [ModuleController::class, "getModules"]);
+    // end modules management section
 
     // =====================================================================================
     // SUPER ADMIN ROUTES (no "superadmin" in the URL; all under /v1.0; access via middleware)

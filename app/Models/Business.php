@@ -125,6 +125,11 @@ class Business extends Model
         return $this->hasMany(BusinessSubscription::class);
     }
 
+    public function filterClientsAttribute()
+    {
+        return $this->where('is_active', true);
+    }
+
     public function current_subscription()
     {
         return $this->hasOne(BusinessSubscription::class)
