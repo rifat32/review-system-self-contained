@@ -44,16 +44,17 @@ class RuleEngineService
 
     public function generateRecommendation(AiRule $rule, InsightRecord $insight): array
     {
-        $actions = $rule->actions;
+        // $actions = $rule->actions;
 
-        if (!isset($actions['suggest_action']))
-            return [];
+        // if (!isset($actions['suggest_action']))
+        //     return [];
 
-        $template = $this->getRecommendationTemplate($actions['suggest_action']['template_id'] ?? 'GENERAL');
-        $filledTemplate = $this->fillTemplate($template, $insight->business_id, $rule, $insight);
+        // instead of suggest_action use existing action and proceed. 
+        $text = $rule->short_explanation ?? $rule->rule_name;
+        $filledTemplate = $this->fillTemplate($text, $insight->business_id, $rule, $insight);
 
         return [
-            'type' => $actions['suggest_action']['type'] ?? 'business',
+            'type' => $rule->category ?? 'business',
             'text' => $filledTemplate,
             'priority' => $rule->priority,
             'confidence' => $this->calculateRuleConfidence($rule, $insight),
@@ -95,7 +96,7 @@ class RuleEngineService
         }
 
         // Auto-create rules for new patterns
-        AutoRuleCreatorService::checkAndCreateRules($review, $openaiData);
+        // AutoRuleCreatorService::checkAndCreateRules($review, $openaiData);
 
         return $results;
     }

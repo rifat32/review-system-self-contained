@@ -9,6 +9,7 @@ use App\Http\Requests\OwnerRequest;
 use App\Mail\NotifyMail;
 use App\Models\Business;
 use App\Models\ReviewNew;
+use App\Models\ServicePlan;
 use App\Models\User;
 use App\Services\Business\BusinessProfileService;
 use App\Services\User\UserService;
@@ -372,6 +373,11 @@ class OwnerController extends Controller
     {
         return DB::transaction(function () use ($request) {
             $validatedData = $request->validated();
+
+            // Default trial_end_date based on ServicePlan free trial duration
+            $plan = ServicePlan::find($validatedData['service_plan_id']);
+            $trialDays = $plan ? $plan->free_trial_duration_days : 30;
+            $validatedData['trial_end_date'] = Carbon::now()->addDays($trialDays)->toDateTimeString();
 
             // Create user with verification email
             $user = $this->userService->createBusinessOwner($validatedData);

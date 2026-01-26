@@ -71,6 +71,7 @@ class ServicePlanController extends Controller
             'price' => 'required|numeric',
             'duration_months' => 'required|integer',
             'openai_token_limit' => 'required|integer',
+            'free_trial_duration_date' => 'required|integer',
             'module_ids' => 'nullable|array',
             'module_ids.*' => 'exists:modules,id'
         ]);
@@ -87,7 +88,8 @@ class ServicePlanController extends Controller
             'description',
             'price',
             'duration_months',
-            'openai_token_limit'
+            'openai_token_limit',
+            'free_trial_duration_date'
         ]) + ['created_by' => auth()->id()]);
 
         if ($request->has('module_ids')) {
@@ -186,6 +188,7 @@ class ServicePlanController extends Controller
             'price' => 'sometimes|required|numeric',
             'duration_months' => 'sometimes|required|integer',
             'openai_token_limit' => 'sometimes|required|integer',
+            'free_trial_duration_date' => 'required|integer',
             'is_active' => 'sometimes|required|boolean',
             'module_ids' => 'nullable|array',
             'module_ids.*' => 'exists:modules,id'
@@ -204,6 +207,7 @@ class ServicePlanController extends Controller
             'price',
             'duration_months',
             'openai_token_limit',
+            'free_trial_duration_date',
             'is_active'
         ]));
 

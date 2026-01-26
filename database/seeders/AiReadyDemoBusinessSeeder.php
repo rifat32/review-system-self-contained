@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\BusinessArea;
+use App\Models\BusinessService;
 use App\Models\Question;
 use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
@@ -26,10 +28,11 @@ use Illuminate\Support\Str;
  * 
  * Creates a complete, production-ready business with:
  * - New owner, business, branches, staff, registered users
+ * - Business services and areas (multiple services and areas)
  * - Multiple surveys with 40+ questions (overall + survey-specific)
  * - 300 reviews from registered users:
- *   - 150 registered user overall reviews (is_overall=1)
- *   - 150 registered user survey reviews (is_overall=0)
+ *   - 150 registered user overall reviews (is_overall=1) with business services/areas
+ *   - 150 registered user survey reviews (is_overall=0) with business services/areas
  * - All data created through APIs/services (no raw DB inserts for AI data)
  * - Ready for AI cron execution and analytics
  */
@@ -51,6 +54,13 @@ class AiReadyDemoBusinessSeeder extends Seeder
     private array $stars = [];
     private array $reviewTexts = [];
     private array $registeredUsers = [];
+    private array $businessServices = [];
+    private array $businessAreas = [];
+
+    // private const REVIEW_COUNT = 20;
+    // private const REGISTERED_OVERALL_REVIEWS = 10;
+    // private const REGISTERED_SURVEY_REVIEWS = 10;
+    // private const REGISTERED_USERS_COUNT = 10;
 
     private const REVIEW_COUNT = 300;
     private const REGISTERED_OVERALL_REVIEWS = 150;
@@ -59,6 +69,8 @@ class AiReadyDemoBusinessSeeder extends Seeder
     private const BRANCHES_COUNT = 4;
     private const STAFF_PER_BRANCH = 3;
     private const DAYS_OF_DATA = 90;
+    private const SERVICES_PER_BUSINESS = 5;
+    private const AREAS_PER_SERVICE = 3;
 
     public function __construct()
     {
@@ -97,20 +109,28 @@ class AiReadyDemoBusinessSeeder extends Seeder
             $this->createRegisteredUsers();
             echo "✅ Created " . count($this->registeredUsers) . " registered users\n";
 
-            // Step 5: Create surveys and questions
+            // Step 5: Create business services and areas
+            $this->createBusinessServicesAndAreas();
+            echo "✅ Created " . count($this->businessServices) . " services and " . count($this->businessAreas) . " areas\n";
+
+            // Step 6: Create surveys and questions
             $this->createSurveysAndQuestions();
             echo "✅ Created " . count($this->surveys) . " surveys with " . count($this->questions) . " questions\n";
 
-            // Step 6: Load stars and tags
+            // Step 7: Link services to surveys
+            $this->linkServicesToSurveys();
+            echo "✅ Linked services to surveys\n";
+
+            // Step 8: Load stars and tags
             $this->loadStarsAndTags();
             echo "✅ Loaded " . count($this->stars) . " stars and " . count($this->tags) . " tags\n";
 
-            // Step 7: Prepare review templates
+            // Step 9: Prepare review templates
             $this->prepareReviewTexts();
 
-            // Step 8: Create 300 reviews using proper review creation flow
+            // Step 10: Create 300 reviews using proper review creation flow
             $this->createReviews();
-            echo "✅ Created " . self::REVIEW_COUNT . " reviews across time/branches/staff\n";
+            echo "✅ Created " . self::REVIEW_COUNT . " reviews with services/areas\n";
 
             DB::commit();
 
@@ -120,7 +140,9 @@ class AiReadyDemoBusinessSeeder extends Seeder
             echo "🏢 Business: {$this->business->Name}\n";
             echo "🏪 Branches: " . count($this->branches) . "\n";
             echo "👥 Staff: " . count($this->staff) . "\n";
-            echo "📝 Reviews: " . self::REVIEW_COUNT . "\n";
+            echo "🛠️  Services: " . count($this->businessServices) . "\n";
+            echo "📍 Areas: " . count($this->businessAreas) . "\n";
+            echo "📝 Reviews: " . self::REVIEW_COUNT . " (150 overall + 150 survey)\n";
             echo "⏰ Date Range: " . Carbon::now()->subDays(self::DAYS_OF_DATA)->format('Y-m-d') . " to " . Carbon::now()->format('Y-m-d') . "\n";
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
             echo "🤖 Ready for AI cron execution!\n\n";
@@ -389,6 +411,65 @@ class AiReadyDemoBusinessSeeder extends Seeder
     }
 
     /**
+     * Create business services and areas
+     */
+    private function createBusinessServicesAndAreas(): void
+    {
+        // Create business services
+        $services = [
+            [
+                'name' => 'Dine-in Restaurant',
+                'description' => 'Full-service restaurant dining experience',
+                'areas' => ['Main Dining Hall', 'Private Booth', 'Outdoor Patio']
+            ],
+            [
+                'name' => 'Takeaway Service',
+                'description' => 'Food to-go with quick pickup',
+                'areas' => ['Counter Pickup', 'Drive-thru', 'Curbside Pickup']
+            ],
+            [
+                'name' => 'Delivery Service',
+                'description' => 'Home and office delivery',
+                'areas' => ['Local Delivery', 'Express Delivery', 'Corporate Delivery']
+            ],
+            [
+                'name' => 'Catering Service',
+                'description' => 'Event and party catering',
+                'areas' => ['Wedding Catering', 'Corporate Events', 'Private Parties']
+            ],
+            [
+                'name' => 'Coffee Shop',
+                'description' => 'Coffee and light snacks',
+                'areas' => ['Coffee Bar', 'Seating Area', 'Outdoor Terrace']
+            ]
+        ];
+
+        foreach ($services as $serviceData) {
+            $service = BusinessService::create([
+                'business_id' => $this->business->id,
+                'name' => $serviceData['name'],
+                'description' => $serviceData['description'],
+                'is_active' => true,
+                'question_title' => 'How was your experience with our ' . $serviceData['name'] . '?',
+            ]);
+
+            $this->businessServices[] = $service;
+
+            // Create areas for this service
+            foreach ($serviceData['areas'] as $areaName) {
+                $area = BusinessArea::create([
+                    'business_id' => $this->business->id,
+                    'business_service_id' => $service->id,
+                    'area_name' => $areaName,
+                    'is_active' => true,
+                ]);
+
+                $this->businessAreas[] = $area;
+            }
+        }
+    }
+
+    /**
      * Create surveys and questions using API/service structure
      * Creates questions with is_overall=1 for overall business reviews
      * and is_overall=0 for survey-specific reviews
@@ -423,13 +504,13 @@ class AiReadyDemoBusinessSeeder extends Seeder
         $this->surveys[] = $overallGuestSurvey;
         $this->surveys[] = $overallRegisteredSurvey;
 
-        // Create additional surveys for specific surveys
+        // Create additional surveys for specific services
         $surveyNames = [
-            'Food Quality Survey',
-            'Service Quality Survey',
-            'Ambiance & Cleanliness Survey',
-            'Value for Money Survey',
-            'Delivery Experience Survey',
+            'Dine-in Restaurant Survey',
+            'Takeaway Service Survey',
+            'Delivery Service Survey',
+            'Catering Service Survey',
+            'Coffee Shop Survey',
         ];
 
         foreach ($surveyNames as $index => $name) {
@@ -495,7 +576,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
 
         // Create survey-specific questions (is_overall = 0)
         $surveyQuestionTemplates = [
-            // Food Quality
+            // Dine-in Restaurant
             'How would you rate the taste of your meal?',
             'How would you rate food presentation?',
             'How fresh were the ingredients?',
@@ -503,37 +584,37 @@ class AiReadyDemoBusinessSeeder extends Seeder
             'How would you rate the menu variety?',
             'How was the temperature of your food?',
 
-            // Service Quality
-            'How friendly was the staff?',
-            'How knowledgeable was the staff about the menu?',
-            'How quick was the service?',
-            'How attentive was the staff to your needs?',
-            'How efficient was the order processing?',
-            'How well did the staff handle requests?',
+            // Takeaway Service
+            'How friendly was the pickup staff?',
+            'How quick was the order preparation?',
+            'How well was your order packaged?',
+            'How accurate was your takeaway order?',
+            'How satisfied were you with pickup instructions?',
+            'How would you rate the takeaway experience?',
 
-            // Ambiance & Cleanliness
-            'How clean was the dining area?',
-            'How comfortable was the seating?',
-            'How pleasant was the atmosphere?',
-            'How appropriate was the music/noise level?',
-            'How clean were the restrooms?',
-            'How modern was the decor?',
-
-            // Value for Money
-            'How fair were the prices?',
-            'How good was the value for money?',
-            'How satisfied were you with drink prices?',
-            'Would you say the quality matched the price?',
-            'How satisfied were you with portion-to-price ratio?',
-            'How competitive are our prices?',
-
-            // Delivery Experience
+            // Delivery Service
             'How timely was the delivery?',
             'How well-packaged was your order?',
             'How accurate was your order?',
             'How satisfied were you with the delivery experience?',
             'How professional was the delivery driver?',
             'How would you rate the food temperature upon arrival?',
+
+            // Catering Service
+            'How satisfied were you with catering setup?',
+            'How would you rate food variety for catering?',
+            'How professional was the catering staff?',
+            'How well did we accommodate dietary requests?',
+            'How would you rate the catering presentation?',
+            'How satisfied were you with catering timing?',
+
+            // Coffee Shop
+            'How would you rate coffee quality?',
+            'How friendly was the barista?',
+            'How quick was the service?',
+            'How would you rate pastry freshness?',
+            'How comfortable was the seating area?',
+            'How satisfied were you with the atmosphere?',
         ];
 
         foreach ($surveyQuestionTemplates as $index => $questionText) {
@@ -562,6 +643,25 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+        }
+    }
+
+    /**
+     * Link business services to surveys
+     */
+    private function linkServicesToSurveys(): void
+    {
+        // Link each service-specific survey to its corresponding business service
+        // Surveys indices: 0-1 are overall, 2-6 are service-specific
+        foreach ($this->businessServices as $index => $service) {
+            if (isset($this->surveys[$index + 2])) { // +2 to skip overall surveys
+                DB::table('business_service_surveys')->insert([
+                    'business_service_id' => $service->id,
+                    'survey_id' => $this->surveys[$index + 2]->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 
@@ -640,8 +740,8 @@ class AiReadyDemoBusinessSeeder extends Seeder
     /**
      * Create 300 reviews using proper ReviewNew creation + ReviewService
      * All reviews are from registered users:
-     * - 150 registered user overall reviews (is_overall=1)
-     * - 150 registered user survey reviews (is_overall=0)
+     * - 150 registered user overall reviews (is_overall=1) with business services/areas
+     * - 150 registered user survey reviews (is_overall=0) with business services/areas
      */
     private function createReviews(): void
     {
@@ -707,6 +807,11 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 // Determine survey_id
                 $surveyId = $group['survey'] ? $group['survey']->id : $specificSurveys[array_rand($specificSurveys)]->id;
 
+                // Select random business service and area for this review
+                $serviceAreaPair = $this->getRandomServiceAndArea();
+                $businessServiceId = $serviceAreaPair['service_id'];
+                $businessAreaId = $serviceAreaPair['area_id'];
+
                 // Create review using ReviewNew (triggers observers/events)
                 $review = new ReviewNew([
                     'survey_id' => $surveyId,
@@ -719,6 +824,8 @@ class AiReadyDemoBusinessSeeder extends Seeder
                     'is_overall' => $group['is_overall'],
                     'staff_id' => $staffMember['user']->id,
                     'branch_id' => $branch->id,
+                    'business_service_id' => $businessServiceId,
+                    'business_area_id' => $businessAreaId,
                     'is_ai_processed' => 0,
                     'source' => rand(0, 1) ? 'web' : 'app',
                     'is_voice_review' => false,
@@ -737,6 +844,17 @@ class AiReadyDemoBusinessSeeder extends Seeder
 
                 // Create review values (questions + stars) using ReviewService
                 $this->createReviewValues($review, $rating, $group['is_overall']);
+
+                // Also attach business service via pivot table (many-to-many relationship)
+                if ($businessServiceId) {
+                    DB::table('review_business_services')->insert([
+                        'review_id' => $review->id,
+                        'business_service_id' => $businessServiceId,
+                        'business_area_id' => $businessAreaId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
 
                 $reviewsCreated++;
 
@@ -813,6 +931,29 @@ class AiReadyDemoBusinessSeeder extends Seeder
         // ReviewService will create ReviewValueNew (ignoring tag_ids as it's not fillable)
         // Then sync tags via $review_value->tags()->sync($value['tag_ids'])
         $this->reviewService->storeReviewValues($review, $values, $this->business);
+    }
+
+    /**
+     * Get random business service and area pair
+     */
+    private function getRandomServiceAndArea(): array
+    {
+        // Get random service
+        $service = $this->businessServices[array_rand($this->businessServices)];
+
+        // Get areas for this service
+        $serviceAreas = array_filter(
+            $this->businessAreas,
+            fn($area) => $area->business_service_id === $service->id
+        );
+
+        // Get random area from this service
+        $area = $serviceAreas[array_rand($serviceAreas)];
+
+        return [
+            'service_id' => $service->id,
+            'area_id' => $area->id
+        ];
     }
 
     /**

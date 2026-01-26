@@ -16,6 +16,7 @@ class ServicePlan extends Model
         'price',
         'duration_months',
         'openai_token_limit',
+        'free_trial_duration_date',
         'is_active',
         "created_by"
     ];
