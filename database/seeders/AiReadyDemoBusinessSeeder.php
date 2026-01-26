@@ -125,6 +125,11 @@ class AiReadyDemoBusinessSeeder extends Seeder
             $this->loadStarsAndTags();
             echo "✅ Loaded " . count($this->stars) . " stars and " . count($this->tags) . " tags\n";
 
+            // ============ NEW STEP: Create QuestionStar and StarTag relationships ============
+            $this->createQuestionStarAndStarTagRelationships();
+            echo "✅ Created QuestionStar and StarTag relationships\n";
+            // ================================================================================
+
             // Step 9: Prepare review templates
             $this->prepareReviewTexts();
 
@@ -698,6 +703,81 @@ class AiReadyDemoBusinessSeeder extends Seeder
             }
         }
     }
+
+    // ====================== NEW METHOD: Create QuestionStar and StarTag relationships ======================
+    /**
+     * Create QuestionStar and StarTag relationships for all questions
+     * This follows the same pattern as your controller's storeOwnerQuestion method
+     */
+    private function createQuestionStarAndStarTagRelationships(): void
+    {
+        echo "🔗 Creating QuestionStar and StarTag relationships...\n";
+
+        // Define tag mappings for each star value
+        // This matches the logic in your controller where specific tags are associated with specific stars
+        $starTagMappings = [
+            1 => ['Terrible', 'Poor'],      // 1-star: Terrible, Poor
+            2 => ['Poor', 'Average'],       // 2-star: Poor, Average  
+            3 => ['Average', 'Good'],       // 3-star: Average, Good
+            4 => ['Good', 'Excellent'],     // 4-star: Good, Excellent
+            5 => ['Excellent', 'Good'],     // 5-star: Excellent, Good
+        ];
+
+        // Create a map of tag names to tag IDs for quick lookup
+        $tagNameToId = [];
+        foreach ($this->tags as $tag) {
+            $tagNameToId[$tag['tag']] = $tag['id'];
+        }
+
+        // Process each question
+        foreach ($this->questions as $question) {
+            $questionId = $question['id'] ?? $question->id;
+
+            // For each star (1-5), create QuestionStar relationship
+            foreach ($this->stars as $star) {
+                $starId = $star['id'];
+                $starValue = $star['value'];
+
+                // Create QuestionStar relationship (question + star)
+                DB::table('question_stars')->insert([
+                    'question_id' => $questionId,
+                    'star_id' => $starId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Create StarTag relationships for this star value
+                if (isset($starTagMappings[$starValue])) {
+                    foreach ($starTagMappings[$starValue] as $tagName) {
+                        if (isset($tagNameToId[$tagName])) {
+                            DB::table('star_tags')->insert([
+                                'question_id' => $questionId,
+                                'star_id' => $starId,
+                                'tag_id' => $tagNameToId[$tagName],
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+
+        echo "   Created QuestionStar relationships: " . (count($this->questions) * 5) . " records\n";
+
+        // Count total StarTag relationships created
+        $starTagCount = 0;
+        foreach ($this->questions as $question) {
+            foreach ($this->stars as $star) {
+                $starValue = $star['value'];
+                if (isset($starTagMappings[$starValue])) {
+                    $starTagCount += count($starTagMappings[$starValue]);
+                }
+            }
+        }
+        echo "   Created StarTag relationships: " . $starTagCount . " records\n";
+    }
+    // =======================================================================================================
 
     /**
      * Prepare review text templates with sentiment alignment
