@@ -414,7 +414,7 @@ class RuleEngineService
             'evaluation_data' => [
                 'matched_conditions' => $rule->conditions,
                 'review_categories' => $openaiData['category_analysis'] ?? [],
-                'timestamp' => now()->toISOString()
+                'timestamp' => \now()->toISOString()
             ]
         ];
     }
@@ -563,7 +563,7 @@ class RuleEngineService
     {
         // Suggestions are already dynamic AI outputs
         // We just need to ensure they are clean and unique
-        return collect($suggestions)
+        return \collect($suggestions)
             ->map(fn($s) => ucwords((string)$s))
             ->unique()
             ->values()
@@ -661,6 +661,20 @@ class RuleEngineService
             return 'Neutral';
 
         $percentage = ($positiveReviews / $totalReviews) * 100;
+        $sentimentRules = \config('ai.sentiment.sentiment_rules', []);
+
+        foreach ($sentimentRules as $rule) {
+            $conditions = $rule;
+            if ($percentage >= ($conditions['min'] ?? 0) && $percentage <= ($conditions['max'] ?? 100)) {
+                return $rule['label'] ?? 'Neutral';
+            }
+        }
+
+        return 'Neutral';
+    }
+
+    public function getSentimentLabelByPercentage(float $percentage): string
+    {
         $sentimentRules = \config('ai.sentiment.sentiment_rules', []);
 
         foreach ($sentimentRules as $rule) {
@@ -1077,6 +1091,11 @@ class RuleEngineService
     public function getMinimumReviewsForStaffAnalysis(): int
     {
         return (int) \config('ai.sentiment.thresholds.min_reviews_staff_analysis', 3);
+    }
+
+    public function getMinimumReviewsForTopStaff(): int
+    {
+        return (int) \config('ai.sentiment.thresholds.min_reviews_top_staff', 3);
     }
 
     public function generateDashboardInsights($sentimentData, $topTopics, $totalReviews): array
