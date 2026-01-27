@@ -46,7 +46,7 @@ class ReviewService
         ?array $dateRange = null,
         bool $withCalculatedRating = true
     ) {
-        $query = ReviewNew::globalReviewFilters(0)
+        $query = ReviewNew::globalReviewFilters(0, 0, $dateRange !== null)
             ->where('business_id', $businessId);
 
         // Apply branch filter if provided
@@ -89,7 +89,7 @@ class ReviewService
             return collect();
         }
 
-        $query = ReviewNew::globalReviewFilters(0)
+        $query = ReviewNew::globalReviewFilters(0, 0, true)
             ->where('business_id', $businessId);
 
         // Apply branch filter if provided
@@ -128,7 +128,7 @@ class ReviewService
         bool $withCalculatedRating = true,
         array $with = []
     ) {
-        $query = ReviewNew::globalReviewFilters(0)
+        $query = ReviewNew::globalReviewFilters(0, 0, $dateRange !== null)
             ->where('business_id', $businessId);
 
         // Apply additional filters

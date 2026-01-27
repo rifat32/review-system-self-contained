@@ -66,7 +66,7 @@ class DashboardController extends Controller
         $businessId = $request->businessId;
 
         $baseReviewQuery = ReviewNew::where('review_news.business_id', $businessId)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->orderBy('review_news.order_no', 'asc')
 
             ->select('review_news.*')
