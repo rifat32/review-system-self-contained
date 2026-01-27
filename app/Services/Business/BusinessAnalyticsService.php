@@ -176,7 +176,8 @@ class BusinessAnalyticsService
         $reviews = $reviewsQuery->get();
 
         // Get insights from rule engine
-        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10);
+        $reviewIds = $reviews->pluck('id')->toArray();
+        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10, $reviewIds);
 
         $summary = $this->generateAiSummaryFromRuleEngine($businessId, $reviews);
         $issues = $this->extractIssuesFromRuleEngine($businessId, $reviews, $dateRange ?? ['start' => now()->subMonth(), 'end' => now()]);
@@ -198,7 +199,8 @@ class BusinessAnalyticsService
      */
     public function generateAiSummaryFromRuleEngine(int $businessId, $reviews): string
     {
-        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10);
+        $reviewIds = $reviews->pluck('id')->toArray();
+        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10, $reviewIds);
 
         if (empty($insights)) {
             return 'No reviews to analyze.';
@@ -242,7 +244,8 @@ class BusinessAnalyticsService
      */
     public function extractIssuesFromRuleEngine(int $businessId, $reviews, $dateRange): array
     {
-        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10);
+        $reviewIds = $reviews->pluck('id')->toArray();
+        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10, $reviewIds);
 
         if (empty($insights)) {
             return [

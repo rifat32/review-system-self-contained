@@ -31,13 +31,16 @@ class ReviewTopicService
             ];
         }
 
-        // Get date range from reviews
-        $startDate = $reviews->min('created_at');
-        $endDate = $reviews->max('created_at');
+        // Get review IDs
+        $reviewIds = $reviews->pluck('id')->toArray();
 
         // Method 0: Check InsightRecord for AI-driven top topic (Most Accurate)
         $aiTopic = \App\Models\InsightRecord::where('business_id', $businessId)
-            ->whereBetween('time_window_start', [$startDate, $endDate])
+            ->where(function ($query) use ($reviewIds) {
+                foreach ($reviewIds as $id) {
+                    $query->orWhereJsonContains('review_ids', (int) $id);
+                }
+            })
             ->orderByDesc('mentions_count')
             ->first();
 
@@ -50,22 +53,12 @@ class ReviewTopicService
 
         // Method 1: Check tags from review values (Accurate fallback)
         $topTag = Tag::where('business_id', $businessId)
-            ->whereHas('review_values', function ($query) use ($businessId, $startDate, $endDate) {
-                $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
-                    $q->where('business_id', $businessId)
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->globalReviewFilters(0);
-                })
-                    ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
+            ->whereHas('review_values', function ($query) use ($reviewIds) {
+                $query->whereIn('review_id', $reviewIds);
             })
             ->withCount([
-                'review_values' => function ($query) use ($businessId, $startDate, $endDate) {
-                    $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
-                        $q->where('business_id', $businessId)
-                            ->whereBetween('created_at', [$startDate, $endDate])
-                            ->globalReviewFilters(0);
-                    })
-                        ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
+                'review_values' => function ($query) use ($reviewIds) {
+                    $query->whereIn('review_id', $reviewIds);
                 }
             ])
             ->orderByDesc('review_values_count')

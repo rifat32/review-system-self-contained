@@ -184,11 +184,20 @@ class InsightAggregationService
     /**
      * Get aggregated insights for dashboard
      */
-    public function getDashboardInsights(int $businessId, int $limit = 10): array
+    public function getDashboardInsights(int $businessId, int $limit = 10, ?array $reviewIds = null): array
     {
-        $insights = InsightRecord::where('business_id', $businessId)
-            ->where('mentions_count', '>=', 2) // Business rule: show only significant
-            ->orderBy('mentions_count', 'desc')
+        $query = InsightRecord::where('business_id', $businessId)
+            ->where('mentions_count', '>=', 2); // Business rule: show only significant
+
+        if ($reviewIds && !empty($reviewIds)) {
+            $query->where(function ($q) use ($reviewIds) {
+                foreach ($reviewIds as $id) {
+                    $q->orWhereJsonContains('review_ids', (int) $id);
+                }
+            });
+        }
+
+        $insights = $query->orderBy('mentions_count', 'desc')
             ->limit($limit)
             ->get();
 

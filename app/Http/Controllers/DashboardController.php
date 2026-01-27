@@ -68,7 +68,6 @@ class DashboardController extends Controller
         $baseReviewQuery = ReviewNew::where('review_news.business_id', $businessId)
             ->globalReviewFilters(0, 0, true)
             ->orderBy('review_news.order_no', 'asc')
-
             ->select('review_news.*')
             ->withCalculatedRating();
 
@@ -2159,7 +2158,7 @@ class DashboardController extends Controller
                 'data' => null
             ], 400);
         }
-        $period = $request->get('period', 'last_30_days');
+
 
         // Metrics and breakdown now handle date filtering internally via 
         $metrics = $this->reviewService->calculateDashboardMetrics($businessId, null);
