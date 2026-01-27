@@ -52,11 +52,16 @@ class Branch extends Model
             });
         }
 
-        if(request()->filled('is_manager_assigned')) {
-            if(request()->boolean("is_manager_assigned")) {
+        if (request()->filled('is_manager_assigned')) {
+            if (request()->boolean("is_manager_assigned")) {
                 $query->whereNotNull('manager_id');
             } else {
-                $query->whereNull('manager_id');
+                $query->where(function ($q) {
+                    $q->whereNull('manager_id');
+                    if (request()->filled('ignore_id')) {
+                        $q->orWhere('id', request()->ignore_id);
+                    }
+                });
             }
         }
 

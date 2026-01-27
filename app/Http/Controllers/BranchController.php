@@ -207,7 +207,7 @@ class BranchController extends Controller
      *              @OA\Property(property="door_no", type="string", example="123", description="Door number"),
      *              @OA\Property(property="city", type="string", example="New York", description="City"),
      *              @OA\Property(property="country", type="string", example="USA", description="Country"),
-     *              @OA\Property(property="postcode", type="string", example="10001", description="Postcode"),              
+     *              @OA\Property(property="postcode", type="string", example="10001", description="Postcode"),
      *              @OA\Property(property="phone", type="string", example="+1234567890", description="Phone number of the branch"),
      *              @OA\Property(property="email", type="string", example="branch@example.com", description="Email of the branch"),
      *              @OA\Property(property="is_active", type="boolean", example=true, description="Whether the branch is active"),
@@ -765,7 +765,7 @@ class BranchController extends Controller
 
     /**
      * Get branch metrics with comparison
-     * 
+     *
      * @OA\Get(
      *      path="/v1.0/branches/{branchId}/metrics",
      *      operationId="getBranchMetrics",
@@ -849,7 +849,7 @@ class BranchController extends Controller
 
     /**
      * Get AI-generated insights for a branch
-     * 
+     *
      * @OA\Get(
      *      path="/v1.0/branches/{branchId}/ai-insights",
      *      operationId="getBranchAiInsights",
