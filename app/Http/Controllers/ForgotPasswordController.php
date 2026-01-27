@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class ForgotPasswordController extends Controller
 {
@@ -79,15 +80,8 @@ class ForgotPasswordController extends Controller
         ]);
 
         // GET USER BY EMAIL
-        $user = User::where(["email" => $request_payload["email"]])->first();
+        $user = User::where(["email" => $request_payload["email"]])->firstOrFail();
 
-        // IF USER NOT FOUND
-        if (!$user) {
-            return response()->json([
-                "success" => false,
-                "message" => "no user found"
-            ], 404);
-        }
 
         // CREATE TOKEN AND SAVE TO DB
         $token = Str::random(30);
@@ -103,7 +97,10 @@ class ForgotPasswordController extends Controller
         // RETURN RESPONSE
         return response()->json([
             "success" => true,
-            "message" => "please check email"
+            "message" => "please check email",
+            "data" => [
+                "email" => $user->email
+            ]
         ], 200);
     }
 
@@ -198,20 +195,11 @@ class ForgotPasswordController extends Controller
             });
 
         if (!$reset) {
-            return response()->json([
-                "success" => false,
-                "message" => "Invalid Token Or Token Expired"
-            ], 400);
+            throw new BadRequestHttpException('invalid token or token expired');
         }
 
         // Get user by email
-        $user = User::where('email', $reset->email)->first();
-        if (!$user) {
-            return response()->json([
-                "success" => false,
-                "message" => "User not found"
-            ], 404);
-        }
+        $user = User::where('email', $reset->email)->firstOrFail();
 
         $password = Hash::make($request->password);
         $user->password = $password;

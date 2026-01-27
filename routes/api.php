@@ -30,7 +30,6 @@ use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StarController;
 use App\Http\Controllers\StarTagQuestionController;
-use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SurveyController;
@@ -43,7 +42,6 @@ use App\Http\Controllers\RuleReportController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\ServicePlanController;
 use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\OrganizationController;
 use Illuminate\Support\Facades\Route;
 
 /*
