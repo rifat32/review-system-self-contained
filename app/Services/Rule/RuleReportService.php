@@ -40,7 +40,7 @@ class RuleReportService
     {
         $rule = $this->getDefaultRule('SENTIMENT_ANALYSIS', $businessId);
 
-        $query = ReviewNew::where('business_id', $businessId)->globalReviewFilters(0, 0, true);
+        $query = ReviewNew::where('business_id', $businessId)->globalReviewFilters(0, 0, ($startDate || $endDate));
 
         if ($startDate) {
             $query->where('created_at', '>=', $startDate);
@@ -138,7 +138,7 @@ class RuleReportService
     {
         $rule = $this->getDefaultRule('RATING_COMMENT_MISMATCH', $businessId);
 
-        $query = ReviewNew::where('business_id', $businessId)->globalReviewFilters(0, 0, true);
+        $query = ReviewNew::where('business_id', $businessId)->globalReviewFilters(0, 0, ($startDate || $endDate));
 
         if ($startDate) {
             $query->where('created_at', '>=', $startDate);
@@ -199,7 +199,7 @@ class RuleReportService
 
         $query = ReviewNew::where('business_id', $businessId)
             ->where('is_flagged', true)
-            ->globalReviewFilters(0, 0, true);
+            ->globalReviewFilters(0, 0, ($startDate || $endDate));
 
         if ($startDate) {
             $query->where('created_at', '>=', $startDate);
@@ -259,7 +259,7 @@ class RuleReportService
             )
             ->groupBy('date')
             ->orderBy('date', 'desc')
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0, 0, ($startDate || $endDate))
             ->limit(30);
 
         if ($startDate) {

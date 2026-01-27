@@ -101,7 +101,7 @@ class ReviewTopicService
     public function getTopTopic($businessId, $startDate, $endDate)
     {
         $reviews = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
 

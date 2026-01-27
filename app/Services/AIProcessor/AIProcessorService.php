@@ -423,7 +423,7 @@ class AIProcessorService
 
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branch->id)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->withCalculatedRating()
             ->get();
@@ -613,7 +613,7 @@ class AIProcessorService
 
                 $reviews = ReviewNew::where('business_id', $branch->business_id)
                     ->where('branch_id', $branch->id)
-                    ->globalReviewFilters(0)
+                    ->globalReviewFilters(0, 0, true)
                     ->whereBetween('created_at', [$monthStart, $monthEnd])
                     ->withCalculatedRating()
                     ->get();
@@ -981,7 +981,7 @@ class AIProcessorService
             ->whereBetween('created_at', [$startDate, $endDate])
             ->whereNotNull('staff_id')
             ->with(['staff'])
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->withCalculatedRating(); // Ensure metrics use calculated rating
 
         if ($branchId) {
@@ -1520,7 +1520,7 @@ class AIProcessorService
     {
         $reviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->withCalculatedRating()
             ->get();
 
@@ -1584,7 +1584,7 @@ class AIProcessorService
             $reviews = ReviewNew::where('business_id', $businessId)
                 ->where('branch_id', $branch->id)
                 ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-                ->globalReviewFilters(0)
+                ->globalReviewFilters(0, 0, true)
                 ->withCalculatedRating()
                 ->get();
 
@@ -1615,7 +1615,7 @@ class AIProcessorService
     {
         $areasWithReviews = ReviewNew::where('business_id', $businessId)
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->withCalculatedRating()
             ->whereHas('review_business_services', function ($query) {
                 $query->whereNotNull('business_area_id');
@@ -1763,7 +1763,7 @@ class AIProcessorService
     {
         $staffReviews = ReviewNew::with('staff')
             ->where('business_id', $businessId)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->withCalculatedRating()

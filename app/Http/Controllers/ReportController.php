@@ -47,7 +47,7 @@ class ReportController extends Controller
      | BASE REVIEW QUERIES (ONLY ONCE)
      ========================= */
         $baseReviewQuery = ReviewNew::where('review_news.business_id', $businessId)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->orderBy('review_news.order_no', 'asc')
             ->filterByOverall($is_overall)
             ->select('review_news.*')
@@ -140,11 +140,18 @@ class ReportController extends Controller
             (clone $tagQuery)->whereBetween('created_at', $previousMonthRange)->count();
 
         /* =========================
+     | TOTALS (IN SELECTED RANGE)
+     ========================= */
+        $data['total_reviews_in_range'] = (clone $baseReviewQuery)->whereBetween('created_at', [$startDate, $endDate])->count();
+        $data['guest_reviews_in_range'] = (clone $guestReviewQuery)->whereBetween('created_at', [$startDate, $endDate])->count();
+        $data['customer_reviews_in_range'] = (clone $customerReviewQuery)->whereBetween('created_at', [$startDate, $endDate])->count();
+
+        /* =========================
      | TOTALS (ALL TIME)
      ========================= */
-        $data['total_reviews'] = (clone $baseReviewQuery)->count();
-        $data['total_guest_review_count'] = (clone $guestReviewQuery)->count();
-        $data['total_customer_review_count'] = (clone $customerReviewQuery)->count();
+        $data['total_all_time_reviews'] = (clone $baseReviewQuery)->count();
+        $data['total_all_time_guest_reviews'] = (clone $guestReviewQuery)->count();
+        $data['total_all_time_customer_reviews'] = (clone $customerReviewQuery)->count();
         $data['total_question_count'] = (clone $questionQuery)->count();
         $data['total_tag_count'] = (clone $tagQuery)->count();
 

@@ -49,7 +49,7 @@ class BusinessAnalyticsService
         // Get reviews within date range with their associated services
         $reviewQuery = ReviewNew::where('business_id', $businessId)
             ->when($dateRange, fn($q) => $q->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->with(['business_services', 'value']) // Eager load services and values
             ->withCalculatedRating();
 
@@ -164,7 +164,7 @@ class BusinessAnalyticsService
     {
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('ai_suggestions')
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, $dateRange !== null)
             ->withCalculatedRating();
 
         if ($dateRange) {

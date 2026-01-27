@@ -955,7 +955,7 @@ class ReviewNewController extends Controller
         if ($business->enable_ip_check) {
             $existing_review = ReviewNew::where('business_id', $businessId)
                 ->where('ip_address', $ip_address)
-                ->globalReviewFilters(0)
+                ->globalReviewFilters(0, 0, true)
                 ->whereDate('created_at', now()->toDateString())
                 ->orderBy('order_no', 'asc')
                 ->first();
@@ -2342,7 +2342,7 @@ class ReviewNewController extends Controller
                 $primaryIdColumn => $filterValue,
                 $secondaryIdColumn => $secondaryFilterValue,
             ])
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, true)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment")
             ->withCalculatedRating();
