@@ -9,7 +9,6 @@ use App\Models\Notification;
 
 use App\Models\Question;
 use App\Models\Business;
-use App\Models\Review;
 use App\Models\ReviewNew;
 use App\Models\ReviewValue;
 use App\Models\Tag;
@@ -22,7 +21,6 @@ use App\Services\Business\BusinessProfileService;
 use App\Services\Review\ReviewService;
 use App\Traits\AuthorizesRoles;
 use Carbon\Carbon;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,8 +38,6 @@ class BusinessController extends Controller
 
     /**
      * Constructor to inject BusinessService
-     *
-     * @param BusinessService $businessService
      */
     public function __construct(BusinessProfileService $businessProfileService, ReviewService $reviewService)
     {
@@ -1062,7 +1058,7 @@ class BusinessController extends Controller
      *              default="last_30_days"
      *          )
      *      ),
-     * 
+     *
      *      @OA\Parameter(
      *          name="is_active",
      *          in="query",
@@ -1070,7 +1066,7 @@ class BusinessController extends Controller
      *          required=false,
      *          @OA\Schema(type="boolean")
      *      ),
-     * 
+     *
      *      @OA\Parameter(
      *          name="response_type",
      *          in="query",

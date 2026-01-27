@@ -149,44 +149,74 @@ Route::get('/custom-test-api', function () {
 Route::get("/activate/{token}", function (Request $request, $token) {
     $user = User::where([
         "email_verify_token" => $token,
-    ])
-        ->where("email_verify_token_expires", ">", now())
-        ->first();
-    if (!$user) {
-        return redirect((env('FRONT_END_URL') . "/invalid-token"));
-    }
-    $user->email_verified_at = now();
-    $user->save();
-
-
-    $email_content = EmailTemplate::where([
-        "type" => "welcome_message",
-        "is_active" => 1
-
     ])->first();
 
-    $html_content = json_decode($email_content->template);
-    $html_content = str_replace("[FirstName]", $user->first_Name, $html_content);
-    $html_content = str_replace("[LastName]", $user->last_Name, $html_content);
-    $html_content = str_replace("[FullName]", ($user->first_Name . " " . $user->last_Name), $html_content);
-    $html_content = str_replace("[AccountVerificationLink]", (env('APP_URL') . '/activate/' . $user->email_verify_token), $html_content);
-    $html_content = str_replace("[ForgotPasswordLink]", (env('FRONT_END_URL') . '/fotget-password/' . $user->resetPasswordToken), $html_content);
+    if (!$user) {
+        return view('auth.verification_result', [
+            'status' => 'error',
+            'message' => 'Invalid or expired verification link.'
+        ]);
+    }
 
+    // Check expiry
+    if ($user->email_verify_token_expires && \Carbon\Carbon::parse($user->email_verify_token_expires)->isPast()) {
+         return view('auth.verification_result', [
+            'status' => 'error',
+            'message' => 'This verification link has expired.'
+        ]);
+    }
 
-    $email_template_wrapper = EmailTemplateWrapper::where([
-        "id" => 1
-    ])
-        ->first();
+    $user->email_verified_at = now();
+    $user->email_verify_token = null; // Clear token after use
+    $user->email_verify_token_expires = null;
+    $user->save();
 
-    $email_template_wrapper = EmailTemplateWrapper::where([
-        "id" => 1
-    ])
-        ->first();
+    return view('auth.verification_result', [
+        'status' => 'success',
+        'message' => 'Your email has been successfully verified! You can now log in.'
+    ]);
+});
 
+// RESEND VERIFICATION EMAIL
+Route::post('/resend-verification', function (Request $request) {
+    $request->validate(['email' => 'required|email']);
 
-    $html_final = json_decode($email_template_wrapper->template);
-    $html_final = str_replace("[content]", $html_content, $html_final);
-    return view('mail.dynamic_mail', ["html_content" => $html_final]);
+    $user = User::where('email', $request->email)->first();
+
+    if (!$user) {
+        return view('auth.verification_result', [
+            'status' => 'error',
+            'message' => 'We could not find a user with that email address.'
+        ]);
+    }
+
+    if ($user->email_verified_at) {
+        return view('auth.verification_result', [
+            'status' => 'success', // or 'info', but success works to direct them to login
+            'message' => 'Your email is already verified. You can log in.'
+        ]);
+    }
+
+    // Generate new token
+    $user->email_verify_token = Illuminate\Support\Str::random(30);
+    $user->email_verify_token_expires = now()->addDay();
+    $user->save();
+
+    // Send email
+    try {
+        $verificationUrl = env('APP_URL') . '/activate/' . $user->email_verify_token;
+        Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\ResendVerificationMail($user, $verificationUrl));
+    } catch (\Exception $e) {
+        return view('auth.verification_result', [
+            'status' => 'error',
+            'message' => 'Failed to send verification email. Please try again later.'
+        ]);
+    }
+
+    return view('auth.verification_result', [
+        'status' => 'success',
+        'message' => 'A new verification link has been sent to ' . $user->email
+    ]);
 });
 
 Route::get("/test-pdf", [TestController::class, "testReport"]);

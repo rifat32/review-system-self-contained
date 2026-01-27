@@ -6,6 +6,7 @@ use App\Http\Requests\CreateUserWithBusinessRequest;
 use App\Http\Requests\ImageUploadRequest;
 use App\Http\Requests\OwnerRequest;
 
+use App\Mail\AccountCreateMail;
 use App\Mail\NotifyMail;
 use App\Models\Business;
 use App\Models\ReviewNew;
@@ -375,11 +376,11 @@ class OwnerController extends Controller
             $validatedData = $request->validated();
 
             // Default trial_end_date based on ServicePlan free trial duration
-            $plan = ServicePlan::find($validatedData['service_plan_id']);
+            $plan = ServicePlan::findOrFail($validatedData['service_plan_id']);
             $trialDays = $plan ? $plan->free_trial_duration_days : 30;
             $validatedData['trial_end_date'] = Carbon::now()->addDays($trialDays)->toDateTimeString();
 
-            // Create user with verification email
+            // Create user (UserService might skip email if config is missing)
             $user = $this->userService->createBusinessOwner($validatedData);
 
 
@@ -391,17 +392,35 @@ class OwnerController extends Controller
             $user->assignRole(User::USER_ROLE['BUSINESS_OWNER']);
             $user->save();
 
-            // Generate access token
-            $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
+            // Generate access token (STORE IN VARIABLE ONLY INITIALLY)
+            $token = $user->createToken('Laravel Password Grant Client')->accessToken;
 
             // Generate Stripe Link
             $id = bin2hex(random_bytes(5)) . $business->id . bin2hex(random_bytes(5));
             $stripe_url = route('subscription.redirect', ['id' => $id]);
 
+            // Custom Success Message
+            $message = "👋 Thanks for signing up!\nYour account has been created, and we’ve sent a confirmation email to " . $user->email . ".\nJust click the link in the email to get started.\n\nIf you don’t see it, check your spam folder or resend the email.\nStill stuck? Our FAQs\n are here to help.";
+
+            try {
+                if (!$user->email_verify_token) {
+                    $email_token = Str::random(30);
+                    $user->email_verify_token = $email_token;
+                    $user->email_verify_token_expires = Carbon::now()->addDay();
+                    $user->save();
+                }
+                $verificationUrl = env('APP_URL') . '/activate/' . $user->email_verify_token;
+                Mail::to($validatedData["email"])->send(new AccountCreateMail($user, $verificationUrl));
+            } catch (Exception $e) {
+                log_message($e->getMessage(), 'register_mail.log');
+            }
+
+            // ASSIGN TOKEN TO USER OBJECT JUST FOR RESPONSE (AFTER ALL SAVES)
+            $user->token = $token;
 
             return response()->json([
                 'success' => true,
-                'message' => 'You have successfully registered',
+                'message' => $message,
                 'data' => [
                     'user' => $user,
                     'business' => $business,

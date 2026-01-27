@@ -46,7 +46,9 @@ class User extends Authenticatable
         "date_of_birth",
         "image",
         "job_title",
-        "join_date"
+        "join_date",
+        "email_verify_token",
+        "email_verify_token_expires"
     ];
 
     /**
