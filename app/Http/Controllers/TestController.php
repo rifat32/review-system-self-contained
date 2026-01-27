@@ -167,6 +167,7 @@ class TestController extends Controller
             "guest_id" => NULL,
         ])
             ->globalReviewFilters(1)
+            ->filterByDateRange()
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($start_date) && !empty($end_date)) {

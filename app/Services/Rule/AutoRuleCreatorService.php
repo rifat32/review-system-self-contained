@@ -55,7 +55,7 @@ class AutoRuleCreatorService
         $query = ReviewNew::where('business_id', $businessId)
             ->where('is_ai_processed', true)
             ->where('created_at', '>=', $last30Days)
-            ->globalReviewFilters(0, 0, true);
+            ->globalReviewFilters(0);
 
         // Count reviews mentioning this category pattern
         $count = $query->where(function ($q) use ($mainCategory, $subCategory) {

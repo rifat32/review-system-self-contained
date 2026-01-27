@@ -191,6 +191,7 @@ class UserReviewReport extends Command
             "guest_id" => NULL,
         ])
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($start_date) && !empty($end_date)) {

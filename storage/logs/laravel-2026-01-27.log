@@ -1371,3 +1371,11 @@
 #56 /home/rifat/rifat/uk_client/review/backend/review-system/server.php(21): require_once('/home/rifat/rif...')
 #57 {main}
 "} 
+[2026-01-27 19:16:54] local.ERROR: Unclosed '{' on line 204 does not match ')' {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Unclosed '{' on line 204 does not match ')' at /home/rifat/rifat/uk_client/review/backend/review-system/app/Models/ReviewNew.php:301)
+[stacktrace]
+#0 {main}
+"} 
+[2026-01-27 19:17:11] local.ERROR: Unclosed '{' on line 204 does not match ')' {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Unclosed '{' on line 204 does not match ')' at /home/rifat/rifat/uk_client/review/backend/review-system/app/Models/ReviewNew.php:301)
+[stacktrace]
+#0 {main}
+"} 

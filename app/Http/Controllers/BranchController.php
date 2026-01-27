@@ -162,6 +162,7 @@ class BranchController extends Controller
 
         $avgRating = ReviewNew::whereIn('branch_id', $branchIds)
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->withCalculatedRating()
             ->get()
             ->avg('calculated_rating') ?? 0;
@@ -169,6 +170,7 @@ class BranchController extends Controller
 
         $overallSentiment = ReviewNew::whereIn('branch_id', $branchIds)
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->avg('sentiment_score') ?? 0;
 
         // SEND RESPONSE

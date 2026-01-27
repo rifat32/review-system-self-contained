@@ -28,7 +28,7 @@ class StaffService
 
         return ReviewNew::where('review_news.business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->globalReviewFilters(0, 0, $dateRange !== null)
+            ->globalReviewFilters(0)
             ->when($dateRange, function ($query) use ($dateRange) {
                 $start = \Carbon\Carbon::parse($dateRange['start'])->startOfDay();
                 $end = \Carbon\Carbon::parse($dateRange['end'])->endOfDay();
@@ -60,7 +60,7 @@ class StaffService
 
         return ReviewNew::where('review_news.business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->globalReviewFilters(0, 0, true) // Always ignore automatic date range for comparison
+            ->globalReviewFilters(0) // Always ignore automatic date range for comparison
             ->when($dateRange, function ($query) use ($dateRange, $daysOffset) {
                 $start = \Carbon\Carbon::parse($dateRange['start'])->subDays($daysOffset)->startOfDay();
                 $end = \Carbon\Carbon::parse($dateRange['end'])->subDays($daysOffset)->endOfDay();

@@ -479,6 +479,7 @@ class RuleExecutionService
     {
         $query = ReviewNew::where('business_id', $rule->business_id)
             ->globalReviewFilters(0)
+            
             ->orderBy('created_at', 'desc');
 
         if ($rule->run_frequency === 'real_time') {

@@ -24,6 +24,7 @@ class ReviewFeedService
             ->where('business_id', $businessId)
             ->orderBy('created_at', 'desc')
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->limit($limit)
             ->withCalculatedRating();
 

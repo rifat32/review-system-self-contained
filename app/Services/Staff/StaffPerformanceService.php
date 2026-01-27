@@ -31,7 +31,7 @@ class StaffPerformanceService
     {
         $query = ReviewNew::with('staff')
             ->where('review_news.business_id', $businessId)
-            ->globalReviewFilters(0, 0, $dateRange !== null)
+            ->globalReviewFilters(0)
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
                 return $query->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
@@ -152,6 +152,7 @@ class StaffPerformanceService
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->withCalculatedRating();
 
         $reviewsQuery = $this->reviewService->applyFilters($reviewsQuery, $filters);

@@ -46,7 +46,7 @@ class ReviewService
         ?array $dateRange = null,
         bool $withCalculatedRating = true
     ) {
-        $query = ReviewNew::globalReviewFilters(0, 0, $dateRange !== null)
+        $query = ReviewNew::globalReviewFilters(0)
             ->where('business_id', $businessId);
 
         // Apply branch filter if provided
@@ -89,7 +89,7 @@ class ReviewService
             return collect();
         }
 
-        $query = ReviewNew::globalReviewFilters(0, 0, true)
+        $query = ReviewNew::globalReviewFilters(0)
             ->where('business_id', $businessId);
 
         // Apply branch filter if provided
@@ -128,7 +128,7 @@ class ReviewService
         bool $withCalculatedRating = true,
         array $with = []
     ) {
-        $query = ReviewNew::globalReviewFilters(0, 0, $dateRange !== null)
+        $query = ReviewNew::globalReviewFilters(0)
             ->where('business_id', $businessId);
 
         // Apply additional filters
@@ -403,7 +403,7 @@ class ReviewService
     public function calculateDashboardMetrics($businessId, $dateRange = null)
     {
         // Get current period reviews WITH calculated rating
-        $reviewsQuery = ReviewNew::globalReviewFilters(0, 0, $dateRange !== null)
+        $reviewsQuery = ReviewNew::globalReviewFilters(0)
             ->where('review_news.business_id', $businessId)
             ->withCalculatedRating();
 
@@ -421,7 +421,7 @@ class ReviewService
         $previous_sentiment_score = 0;
 
         if ($dateRange !== null) {
-            $previousReviews = ReviewNew::globalReviewFilters(0, 0, true)
+            $previousReviews = ReviewNew::globalReviewFilters(0)
                 ->where('review_news.business_id', $businessId)
                 ->whereBetween('review_news.created_at', [
                     $dateRange['start']->copy()->subDays(30),

@@ -66,7 +66,8 @@ class DashboardController extends Controller
         $businessId = $request->businessId;
 
         $baseReviewQuery = ReviewNew::where('review_news.business_id', $businessId)
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->orderBy('review_news.order_no', 'asc')
             ->select('review_news.*')
             ->withCalculatedRating();
@@ -884,7 +885,7 @@ class DashboardController extends Controller
             ->whereNotNull('staff_id')
 
             ->when($dateRange, fn($query) => $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
             ->withCalculatedRating();
 
         $staffReviews = $staffReviewQuery->get();
@@ -1030,7 +1031,7 @@ class DashboardController extends Controller
 
         // Recent Submissions (reviews in the current period that are from surveys)
         $recentSubmissionsQuery = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters(0, 0, $dateRange !== null)
+            ->globalReviewFilters(0)
             ->whereNotNull('survey_id');
 
         if ($dateRange) {
@@ -1275,7 +1276,7 @@ class DashboardController extends Controller
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->withCalculatedRating()
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
             ->get();
 
         if ($staffReviews->isNotEmpty()) {
@@ -1613,7 +1614,7 @@ class DashboardController extends Controller
         // Get reviews for this branch within date range
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branchId)
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->with(['staff', 'user', 'guest_user', 'survey'])
             ->withCalculatedRating();
@@ -1742,11 +1743,13 @@ class DashboardController extends Controller
             ->where('staff_id', $staffAId)
             ->withCalculatedRating()
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->get();
 
         $staffBReviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffBId)
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->withCalculatedRating()
             ->get();
 
@@ -1856,6 +1859,7 @@ class DashboardController extends Controller
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffId)
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->withCalculatedRating()
             ->get();
 
@@ -1986,6 +1990,7 @@ class DashboardController extends Controller
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->with(['user', 'guest_user', 'survey'])
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->withCalculatedRating();
 
         $reviewsQuery = $this->reviewService->applyFilters($reviewsQuery, $filters);
@@ -2167,6 +2172,7 @@ class DashboardController extends Controller
         $ratingBreakdown = $this->reviewService->extractRatingBreakdown(
             ReviewNew::withCalculatedRating()
                 ->globalReviewFilters(0)
+                ->filterByDateRange()
                 ->get()
         );
 
@@ -2364,6 +2370,7 @@ class DashboardController extends Controller
         $ratingBreakdown = $this->reviewService->extractRatingBreakdown(
             ReviewNew::withCalculatedRating()
                 ->globalReviewFilters(0)
+                ->filterByDateRange()
                 ->where('business_id', $businessId)
                 ->get()
         );
@@ -2785,7 +2792,7 @@ class DashboardController extends Controller
         // Get reviews with their values
         $query = ReviewNew::with(['value'])
             ->where("business_id", $businessId)
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating();

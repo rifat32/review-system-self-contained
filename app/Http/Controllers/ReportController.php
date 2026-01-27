@@ -47,7 +47,7 @@ class ReportController extends Controller
      | BASE REVIEW QUERIES (ONLY ONCE)
      ========================= */
         $baseReviewQuery = ReviewNew::where('review_news.business_id', $businessId)
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
             ->orderBy('review_news.order_no', 'asc')
             ->filterByOverall($is_overall)
             ->select('review_news.*')
@@ -260,6 +260,7 @@ class ReportController extends Controller
                 "user_id" => $request->customer_id
             ])
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->orderBy('order_no', 'asc')
             ->latest()
             ->withCalculatedRating()

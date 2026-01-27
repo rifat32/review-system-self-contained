@@ -21,7 +21,7 @@ class InsightAggregationService
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('is_ai_processed', true)
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
             ->get();
 
         // Group reviews by category patterns

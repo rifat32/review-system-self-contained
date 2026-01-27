@@ -191,6 +191,7 @@ class GuestUserReviewReport extends Command
             "user_id" => NULL,
         ])
             ->globalReviewFilters(0)
+            ->filterByDateRange()
 
             ->whereNotNull("comment")
             ->orderBy('order_no', 'asc');

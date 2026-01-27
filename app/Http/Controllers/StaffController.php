@@ -1108,7 +1108,7 @@ class StaffController extends Controller
 
         // Get reviews with calculated ratings
         $reviews = ReviewNew::withCalculatedRating()
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
             ->where('staff_id', $staffId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
@@ -1144,7 +1144,7 @@ class StaffController extends Controller
         $previousStart = $previousEnd->copy()->subDays($durationDays - 1);
 
         $previousReviews = ReviewNew::withCalculatedRating()
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
             ->where('staff_id', $staffId)
             ->whereBetween('created_at', [$previousStart, $previousEnd])
             ->get();
@@ -1340,6 +1340,7 @@ class StaffController extends Controller
                 }
             })
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->withCalculatedRating();
 
         // Apply filter based on calculated_rating
@@ -1510,6 +1511,7 @@ class StaffController extends Controller
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->globalReviewFilters(0)
+            ->filterByDateRange()
             ->withCalculatedRating()
             ->get();
 
@@ -1607,7 +1609,7 @@ class StaffController extends Controller
 
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->globalReviewFilters(0, 0, true)
+            ->globalReviewFilters(0)
             ->when($dateRange, function ($query) use ($dateRange) {
                 // FILTER BY DATE RANGE
                 return $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
