@@ -92,7 +92,7 @@ class ForgotPasswordController extends Controller
 
 
         // SEND EMAIL
-        Mail::to($request_payload["email"])->send(new ForgetPasswordMail($user));
+        Mail::to($request_payload["email"])->send(new ForgetPasswordMail($user, $token));
 
         // RETURN RESPONSE
         return response()->json([

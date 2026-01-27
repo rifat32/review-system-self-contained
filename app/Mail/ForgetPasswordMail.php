@@ -19,10 +19,12 @@ class ForgetPasswordMail extends Mailable
      * @return void
      */
     private $user;
+    private $token;
 
-    public function __construct($user)
+    public function __construct($user, $token)
     {
         $this->user = $user;
+        $this->token = $token;
     }
 
 
@@ -49,7 +51,7 @@ class ForgetPasswordMail extends Mailable
         $html_content =  str_replace("[AccountVerificationLink]", (env('APP_URL').'/activate/'.$this->user->email_verify_token), $html_content);
 
 
-        $html_content =  str_replace("[ForgotPasswordLink]", (env('FRONT_END_URL').'/forgot-password?token='.$this->user->resetPasswordToken), $html_content );
+        $html_content =  str_replace("[ForgotPasswordLink]", (env('FRONT_END_URL').'/forgot-password?token='.$this->token), $html_content );
 
 
 
@@ -59,7 +61,7 @@ class ForgetPasswordMail extends Mailable
         ->first();
 
 
-        
+
 
         $html_final = json_decode($email_template_wrapper->template);
         $html_final =  str_replace("[content]", $html_content, $html_final);
