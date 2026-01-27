@@ -46,7 +46,7 @@ class ReviewService
         ?array $dateRange = null,
         bool $withCalculatedRating = true
     ) {
-        $query = ReviewNew::globalReviewFilters(0, $businessId)
+        $query = ReviewNew::globalReviewFilters(0)
             ->where('business_id', $businessId);
 
         // Apply branch filter if provided
@@ -89,7 +89,7 @@ class ReviewService
             return collect();
         }
 
-        $query = ReviewNew::globalReviewFilters(0, $businessId)
+        $query = ReviewNew::globalReviewFilters(0)
             ->where('business_id', $businessId);
 
         // Apply branch filter if provided
@@ -128,7 +128,7 @@ class ReviewService
         bool $withCalculatedRating = true,
         array $with = []
     ) {
-        $query = ReviewNew::globalReviewFilters(0, $businessId)
+        $query = ReviewNew::globalReviewFilters(0)
             ->where('business_id', $businessId);
 
         // Apply additional filters
@@ -403,13 +403,13 @@ class ReviewService
     public function calculateDashboardMetrics($businessId, $dateRange = null)
     {
         // Get current period reviews WITH calculated rating
-        $reviewsQuery = ReviewNew::globalReviewFilters(0, $businessId)
-            ->where('business_id', $businessId)
+        $reviewsQuery = ReviewNew::globalReviewFilters(0, 0, $dateRange !== null)
+            ->where('review_news.business_id', $businessId)
             ->withCalculatedRating();
 
-        // Apply date filter only if dateRange is provided
+        // Apply manual date filter only if dateRange is provided (for comparison or specific overrides)
         if ($dateRange !== null) {
-            $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+            $reviewsQuery->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
         }
 
         $reviews = $reviewsQuery->get();
@@ -421,9 +421,9 @@ class ReviewService
         $previous_sentiment_score = 0;
 
         if ($dateRange !== null) {
-            $previousReviews = ReviewNew::globalReviewFilters(0, $businessId)
-                ->where('business_id', $businessId)
-                ->whereBetween('created_at', [
+            $previousReviews = ReviewNew::globalReviewFilters(0, 0, true)
+                ->where('review_news.business_id', $businessId)
+                ->whereBetween('review_news.created_at', [
                     $dateRange['start']->copy()->subDays(30),
                     $dateRange['end']->copy()->subDays(30)
                 ])

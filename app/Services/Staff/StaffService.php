@@ -26,17 +26,17 @@ class StaffService
     ) {
         $userBranchId = $user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')) ? $user->default_branch_id : null;
 
-        return ReviewNew::where('business_id', $businessId)
+        return ReviewNew::where('review_news.business_id', $businessId)
             ->whereNotNull('staff_id')
+            ->globalReviewFilters(0, 0, $dateRange !== null)
             ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = Carbon::parse($dateRange['start']);
-                $endDate = Carbon::parse($dateRange['end']);
-                return $query->whereBetween('created_at', [$startDate, $endDate]);
+                $start = \Carbon\Carbon::parse($dateRange['start'])->startOfDay();
+                $end = \Carbon\Carbon::parse($dateRange['end'])->endOfDay();
+                return $query->whereBetween('review_news.created_at', [$start, $end]);
             })
             ->when($userBranchId, function ($query) use ($userBranchId) {
-                return $query->where('branch_id', $userBranchId);
+                return $query->where('review_news.branch_id', $userBranchId);
             })
-            ->globalReviewFilters(0, $businessId)
             ->withCalculatedRating()
             ->get();
     }
@@ -51,17 +51,24 @@ class StaffService
     ) {
         $userBranchId = $user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')) ? $user->default_branch_id : null;
 
-        return ReviewNew::where('business_id', $businessId)
+        // If no date range, we can't do comparison
+        if (!$dateRange) {
+            return \collect();
+        }
+
+        $daysOffset = $dateRange['daysOffset'] ?? 30;
+
+        return ReviewNew::where('review_news.business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = Carbon::parse($dateRange['start'])->subMonth();
-                $endDate = Carbon::parse($dateRange['end'])->subMonth();
-                return $query->whereBetween('created_at', [$startDate, $endDate]);
+            ->globalReviewFilters(0, 0, true) // Always ignore automatic date range for comparison
+            ->when($dateRange, function ($query) use ($dateRange, $daysOffset) {
+                $start = \Carbon\Carbon::parse($dateRange['start'])->subDays($daysOffset)->startOfDay();
+                $end = \Carbon\Carbon::parse($dateRange['end'])->subDays($daysOffset)->endOfDay();
+                return $query->whereBetween('review_news.created_at', [$start, $end]);
             })
             ->when($userBranchId, function ($query) use ($userBranchId) {
-                return $query->where('branch_id', $userBranchId);
+                return $query->where('review_news.branch_id', $userBranchId);
             })
-            ->globalReviewFilters(0, $businessId)
             ->withCalculatedRating()
             ->get();
     }

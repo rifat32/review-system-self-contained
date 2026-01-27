@@ -28,7 +28,7 @@ class ReviewMetricsService
                 $endDate = Carbon::parse($dateRange['end'])->endOfDay();
                 return $query->whereBetween('created_at', [$startDate, $endDate]);
             })
-            ->globalReviewFilters(0, $businessId);
+            ->globalReviewFilters(0);
 
         $totalCount = (clone $totalQuery)->count();
 
@@ -68,7 +68,7 @@ class ReviewMetricsService
                 $endDate = Carbon::parse($dateRange['end'])->endOfDay();
                 return $query->whereBetween('created_at', [$startDate, $endDate]);
             })
-            ->globalReviewFilters(0, $businessId);
+            ->globalReviewFilters(0);
 
         $totalCount = (clone $baseQuery)->count();
 

@@ -166,7 +166,7 @@ class TestController extends Controller
             "business_id" => $business->id,
             "guest_id" => NULL,
         ])
-            ->globalReviewFilters(1, $business->id)
+            ->globalReviewFilters(1)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($start_date) && !empty($end_date)) {

@@ -190,7 +190,7 @@ class UserReviewReport extends Command
             "business_id" => $business->id,
             "guest_id" => NULL,
         ])
-            ->globalReviewFilters(0, $business->id)
+            ->globalReviewFilters(0)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment");
         if (!empty($start_date) && !empty($end_date)) {

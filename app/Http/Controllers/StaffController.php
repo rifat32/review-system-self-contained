@@ -949,23 +949,7 @@ class StaffController extends Controller
      */
     public function staffPerformanceReport(Request $request, int $staff_id)
     {
-        $allowed_date_ranges = [
-            'last_30_days',
-            'last_7_days',
-            'this_month',
-            'last_month',
-        ];
-
         $business_id = $request->user()->business->id;
-        $date_range  = $request->query('date_range', 'last_30_days');
-
-        // Validate date range
-        if (!in_array($date_range, $allowed_date_ranges, true)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid date range provided. Valid options: ' . implode(', ', $allowed_date_ranges),
-            ], 400);
-        }
 
         // Fetch staff (ensure belongs to business)
         $staff = User::with(['branches', 'roles'])
@@ -979,12 +963,11 @@ class StaffController extends Controller
             ], 404);
         }
 
-        $date_range_data = getDateRangeByPeriod($date_range);
-
+        // Date range is now handled internally if null
         $data = [
             'staff' => $staff,
             'staff_performance' => $this->staffPerformanceService
-                ->getStaffPerformanceSnapshot($business_id, $date_range_data, $staff_id),
+                ->getStaffPerformanceSnapshot($business_id, null, $staff_id),
         ];
 
         return response()->json([
@@ -993,6 +976,13 @@ class StaffController extends Controller
             'data' => $data,
         ]);
     }
+
+
+    /**
+     * @OA\Get(
+     *   path="/v1.0/staffs/{staffId}/rating-trends",
+... (skipping middle part for brevity in replace_file_content, will use multi_replace if needed but I'll try to be specific)
+
 
 
     /**
@@ -1118,7 +1108,7 @@ class StaffController extends Controller
 
         // Get reviews with calculated ratings
         $reviews = ReviewNew::withCalculatedRating()
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->where('staff_id', $staffId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
@@ -1154,7 +1144,7 @@ class StaffController extends Controller
         $previousStart = $previousEnd->copy()->subDays($durationDays - 1);
 
         $previousReviews = ReviewNew::withCalculatedRating()
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->where('staff_id', $staffId)
             ->whereBetween('created_at', [$previousStart, $previousEnd])
             ->get();
@@ -1349,7 +1339,7 @@ class StaffController extends Controller
                     $query->whereNull('comment');
                 }
             })
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->withCalculatedRating();
 
         // Apply filter based on calculated_rating
@@ -1438,19 +1428,15 @@ class StaffController extends Controller
         $user = $request->user();
 
         if (!$user || !$user->business_id) {
-            throw new AuthorizationException('User does not have an associated business');
+            throw new \Illuminate\Auth\Access\AuthorizationException('User does not have an associated business');
         }
 
         $businessId = $user->business_id;
 
-
-        // GET DATE RANGE BASED ON PERIOD
-        $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
-
-        // Use StaffService to get metrics with named arguments (PHP 8.0+)
+        // Metrics now handle date filtering internally via 
         $overallMetrics = $this->staffService->getStaffMetricsWithComparison(
             businessId: $businessId,
-            dateRange: $dateRange,
+            dateRange: null, // Let scope handle it from request
             user: $user
         );
 
@@ -1513,24 +1499,18 @@ class StaffController extends Controller
         $businessId = $user->business_id;
 
         if (!$businessId) {
-            throw new AuthorizationException('User does not have an associated business');
+            throw new \Illuminate\Auth\Access\AuthorizationException('User does not have an associated business');
         }
 
-        // GET DATE RANGE BASED ON PERIOD
-        $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
+        // Metrics now handled via globalReviewFilters scope in services
 
 
 
         // GET CURRENT REVIEWS
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->withCalculatedRating()
-            ->when($dateRange, function ($query) use ($dateRange) {
-                // FILTER BY DATE RANGE
-                return $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-            })
-
             ->get();
 
         $complimentRatio = $this->aiProcessorService->calculateComplimentRatio($currentReviews);
@@ -1627,7 +1607,7 @@ class StaffController extends Controller
 
         $currentReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->when($dateRange, function ($query) use ($dateRange) {
                 // FILTER BY DATE RANGE
                 return $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);

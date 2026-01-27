@@ -163,7 +163,7 @@ class DashboardService
                     $dateRange['end']->copy()->subDays(30)
                 ])
                 ->whereMeetsThreshold()
-                ->globalReviewFilters(0, $businessId)
+                ->globalReviewFilters(0)
                 ->count();
 
             $previousCSATPercentage = $previousTotal > 0

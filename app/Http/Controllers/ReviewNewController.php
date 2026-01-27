@@ -517,7 +517,7 @@ class ReviewNewController extends Controller
             "business_id" => $businessId,
             "rate" => $rate
         ])
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->with("business", "value")
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
@@ -587,7 +587,7 @@ class ReviewNewController extends Controller
         $reviewValue = ReviewNew::with("value")->where([
             "business_id" => $businessId,
         ])
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating()
             ->get();
@@ -670,7 +670,7 @@ class ReviewNewController extends Controller
         // Get reviews with their values
         $reviews = ReviewNew::with(['value'])
             ->where("business_id", $businessId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating()
@@ -955,7 +955,7 @@ class ReviewNewController extends Controller
         if ($business->enable_ip_check) {
             $existing_review = ReviewNew::where('business_id', $businessId)
                 ->where('ip_address', $ip_address)
-                ->globalReviewFilters(0, $businessId)
+                ->globalReviewFilters(0)
                 ->whereDate('created_at', now()->toDateString())
                 ->orderBy('order_no', 'asc')
                 ->first();
@@ -1604,7 +1604,7 @@ class ReviewNewController extends Controller
                 "business_id" => $businessId,
                 $idColumnToFilter => $filterValue,
             ])
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment")
             ->withCalculatedRating();
@@ -2080,7 +2080,7 @@ class ReviewNewController extends Controller
             "OwnerID" => $request->user()->id
         ])->first();
         if (!$business) {
-            return response("No Business Found or you are not the owner of the business", 404);
+            throw new \Illuminate\Auth\Access\AuthorizationException('User does not have an associated business');
         }
 
         // 2. Quantum Calculation (Guest reviews: user_id = NULL)
@@ -2342,7 +2342,7 @@ class ReviewNewController extends Controller
                 $primaryIdColumn => $filterValue,
                 $secondaryIdColumn => $secondaryFilterValue,
             ])
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->orderBy('order_no', 'asc')
             ->whereNotNull("comment")
             ->withCalculatedRating();
@@ -2641,7 +2641,7 @@ class ReviewNewController extends Controller
     public function getAverageRatingClient($businessId, Request $request)
     {
         $query = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating();
 
@@ -2842,7 +2842,7 @@ class ReviewNewController extends Controller
             "survey"
         ])
 
-            ->globalReviewFilters(1, $businessId)
+            ->globalReviewFilters(1)
 
             ->where("business_id", $businessId)
             ->withCalculatedRating();
@@ -3418,7 +3418,7 @@ class ReviewNewController extends Controller
             "guest_user",
             "survey",
         ])->where("business_id", $businessId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->withCalculatedRating();
 
         // Apply review_ids filter (comma-separated IDs)
@@ -3440,34 +3440,6 @@ class ReviewNewController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Apply date range filters
-        if ($request->filled('start_date')) {
-            try {
-                $start = trim($request->start_date);
-                $startDate = Carbon::parse($start);
-                $query->where('created_at', '>=', $startDate);
-            } catch (\Exception $e) {
-                return response([
-                    "success" => false,
-                    "message" => "Invalid start_date format. Expected format: d-m-Y (e.g., 01-12-2025)",
-                    "error" => $e->getMessage()
-                ], 400);
-            }
-        }
-
-        if ($request->filled('end_date')) {
-            try {
-                $end = trim($request->end_date);
-                $endDate = Carbon::parse($end);
-                $query->where('created_at', '<=', $endDate);
-            } catch (\Exception $e) {
-                return response([
-                    "success" => false,
-                    "message" => "Invalid end_date format. Expected format: d-m-Y (e.g., 31-12-2025)",
-                    "error" => $e->getMessage()
-                ], 400);
-            }
-        }
 
         if ($request->has('sentiment_score') && !empty($request->sentiment_score)) {
             $sentiment_score = $request->sentiment_score;
@@ -3637,7 +3609,7 @@ class ReviewNewController extends Controller
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
 
             ->with(['user', 'guest_user', 'survey'])
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->withCalculatedRating();
 
         // GENERATE DATA FOR TRENDS
@@ -3726,23 +3698,16 @@ class ReviewNewController extends Controller
         $businessId = $user->business_id;
 
 
-        // Validate period and get date range using service
-        $dateRange = $this->dashboardService->validateAndGetDateRange(
-            $request->get('period', 'last_30_days')
-        );
-        // BUILD QUERY WITH FILTERS
-        $reviewsQuery = ReviewNew::where('business_id', $businessId)
+        // Date filtering is now handled by globalReviewFilters scope
+        $reviewsQuery = ReviewNew::where('review_news.business_id', $businessId)
             ->with(['user', 'guest_user', 'survey'])
             ->withCalculatedRating()
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->when($request->has('is_overall'), function ($query) {
                 $query->where('is_overall', 1);
             })
             ->when($request->has('survey_id'), function ($query) use ($request) {
                 $query->where('survey_id', $request->input('survey_id'));
-            })
-            ->when($dateRange, function ($query) use ($dateRange) {
-                $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
             });
 
         // GENERATE DATA FOR OVERALL REVIEWS

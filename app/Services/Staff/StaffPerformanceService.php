@@ -30,10 +30,12 @@ class StaffPerformanceService
     public function getStaffPerformanceSnapshot($businessId, $dateRange, ?int $staffId = null)
     {
         $query = ReviewNew::with('staff')
-            ->where('business_id', $businessId)
-            ->globalReviewFilters(0, $businessId)
+            ->where('review_news.business_id', $businessId)
+            ->globalReviewFilters(0, 0, $dateRange !== null)
             ->whereNotNull('staff_id')
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->when($dateRange, function ($query) use ($dateRange) {
+                return $query->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
+            })
             ->withCalculatedRating();
 
         if ($staffId) {
@@ -149,7 +151,7 @@ class StaffPerformanceService
     {
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->withCalculatedRating();
 
         $reviewsQuery = $this->reviewService->applyFilters($reviewsQuery, $filters);

@@ -40,8 +40,7 @@ if (!function_exists('retrieve_data')) {
         // Get order column and sort order
         if (request()->filled('order_by')) {
             $orderBy = request()->input('order_by');
-        }
-        ;
+        };
         // Handle order_by safely (default to id if empty)
         if (request()->filled('order_by') && request()->input('order_by') !== '') {
             $orderBy = request()->input('order_by');
@@ -109,31 +108,32 @@ if (!function_exists('retrieve_data')) {
 if (!function_exists('getDateRangeByPeriod')) {
     function getDateRangeByPeriod($period)
     {
-        $now = Carbon::now();
+        $now = \Carbon\Carbon::now();
 
         return match ($period) {
+            'all_time' => null,
             // Days
+            '1d', 'today' => [
+                'start' => $now->copy()->startOfDay(),
+                'end' => $now->copy()->endOfDay(),
+                'daysOffset' => 1
+            ],
             'yesterday' => [
                 'start' => $now->copy()->subDay()->startOfDay(),
                 'end' => $now->copy()->subDay()->endOfDay(),
                 'daysOffset' => 1
             ],
-            'today' => [
-                'start' => $now->copy()->startOfDay(),
-                'end' => $now->copy()->endOfDay(),
-                'daysOffset' => 0
-            ],
-            'last_7_days' => [
+            '7d', 'last_7_days' => [
                 'start' => $now->copy()->subDays(7)->startOfDay(),
                 'end' => $now->copy()->endOfDay(),
                 'daysOffset' => 7
             ],
-            'last_30_days' => [
+            '30d', 'last_30_days' => [
                 'start' => $now->copy()->subDays(30)->startOfDay(),
                 'end' => $now->copy()->endOfDay(),
                 'daysOffset' => 30
             ],
-            'last_90_days' => [
+            '90d', 'last_90_days' => [
                 'start' => $now->copy()->subDays(90)->startOfDay(),
                 'end' => $now->copy()->endOfDay(),
                 'daysOffset' => 90
@@ -206,7 +206,7 @@ if (!function_exists('getDateRangeByPeriod')) {
             ],
 
             // Years
-            'this_year' => [
+            '1y', 'this_year' => [
                 'start' => $now->copy()->startOfYear(),
                 'end' => $now->copy()->endOfDay(),
                 'daysOffset' => 365
@@ -270,56 +270,3 @@ if (!function_exists('calculateMetricChange')) {
         ];
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

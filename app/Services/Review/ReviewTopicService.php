@@ -54,7 +54,7 @@ class ReviewTopicService
                 $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
                     $q->where('business_id', $businessId)
                         ->whereBetween('created_at', [$startDate, $endDate])
-                        ->globalReviewFilters(0, $businessId);
+                        ->globalReviewFilters(0);
                 })
                     ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
             })
@@ -63,7 +63,7 @@ class ReviewTopicService
                     $query->whereHas('review', function ($q) use ($businessId, $startDate, $endDate) {
                         $q->where('business_id', $businessId)
                             ->whereBetween('created_at', [$startDate, $endDate])
-                            ->globalReviewFilters(0, $businessId);
+                            ->globalReviewFilters(0);
                     })
                         ->whereBetween('review_value_news.created_at', [$startDate, $endDate]);
                 }
@@ -108,7 +108,7 @@ class ReviewTopicService
     public function getTopTopic($businessId, $startDate, $endDate)
     {
         $reviews = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
 

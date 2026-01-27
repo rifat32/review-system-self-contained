@@ -16,7 +16,7 @@ class RulePreviewService
     {
         // Get recent reviews for simulation
         $recentReviews = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->orderBy('created_at', 'desc')
             ->limit(50)
             ->get();

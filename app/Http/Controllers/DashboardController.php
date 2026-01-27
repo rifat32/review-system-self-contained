@@ -66,7 +66,7 @@ class DashboardController extends Controller
         $businessId = $request->businessId;
 
         $baseReviewQuery = ReviewNew::where('review_news.business_id', $businessId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->orderBy('review_news.order_no', 'asc')
 
             ->select('review_news.*')
@@ -885,7 +885,7 @@ class DashboardController extends Controller
             ->whereNotNull('staff_id')
 
             ->when($dateRange, fn($query) => $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->withCalculatedRating();
 
         $staffReviews = $staffReviewQuery->get();
@@ -1031,7 +1031,7 @@ class DashboardController extends Controller
 
         // Recent Submissions (reviews in the current period that are from surveys)
         $recentSubmissionsQuery = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->whereNotNull('survey_id');
 
         if ($dateRange) {
@@ -1276,7 +1276,7 @@ class DashboardController extends Controller
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->withCalculatedRating()
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->get();
 
         if ($staffReviews->isNotEmpty()) {
@@ -1614,7 +1614,7 @@ class DashboardController extends Controller
         // Get reviews for this branch within date range
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branchId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->with(['staff', 'user', 'guest_user', 'survey'])
             ->withCalculatedRating();
@@ -1742,12 +1742,12 @@ class DashboardController extends Controller
         $staffAReviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffAId)
             ->withCalculatedRating()
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->get();
 
         $staffBReviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffBId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->withCalculatedRating()
             ->get();
 
@@ -1856,7 +1856,7 @@ class DashboardController extends Controller
         // Get reviews WITH calculated rating in one query
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('staff_id', $staffId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->withCalculatedRating()
             ->get();
 
@@ -1986,7 +1986,7 @@ class DashboardController extends Controller
 
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->with(['user', 'guest_user', 'survey'])
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->withCalculatedRating();
 
         $reviewsQuery = $this->reviewService->applyFilters($reviewsQuery, $filters);
@@ -2161,19 +2161,18 @@ class DashboardController extends Controller
         }
         $period = $request->get('period', 'last_30_days');
 
-        // Get period dates
-        $dateRange = getDateRangeByPeriod($period);
+        // Metrics and breakdown now handle date filtering internally via 
+        $metrics = $this->reviewService->calculateDashboardMetrics($businessId, null);
 
-        // Calculate metrics using existing methods
-        $metrics = $this->reviewService->calculateDashboardMetrics($businessId, $dateRange);
-
-        // Get rating breakdown using existing getAverage method logic
+        // Get rating breakdown
         $ratingBreakdown = $this->reviewService->extractRatingBreakdown(
             ReviewNew::withCalculatedRating()
-                ->globalReviewFilters(0, $businessId)
-                ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+                ->globalReviewFilters(0)
                 ->get()
         );
+
+        // For other services that might still need explicit dateRange
+        $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
 
         // Get tags breakdown (NEW)
         $tagsBreakdown = $this->reviewService->extractTagsBreakdown($businessId, $dateRange, $user);
@@ -2289,17 +2288,10 @@ class DashboardController extends Controller
             throw new AuthorizationException('User does not have an associated business');
         }
 
-        $businessId = $user->business_id;
-
-        // Validate period and get date range using service
-        $dateRange = $this->dashboardService->validateAndGetDateRange(
-            $request->get('period', 'last_30_days')
-        );
-
-        // Get recent reviews feed
+        // Period validation and date range handling is now internal to the feed service/scope
         $reviewFeed = $this->reviewFeedService->getReviewFeed(
             businessId: $businessId,
-            dateRange: $dateRange,
+            dateRange: null, // Let scope handle it from request
             limit: 10,
             user: $user
         );
@@ -2361,33 +2353,21 @@ class DashboardController extends Controller
      *      )
      * )
      */
-    public function getRatingBreakdown(Request $request)
+    public function getRatingBreakdown(\Illuminate\Http\Request $request)
     {
         $user = $request->user();
         $businessId = $user->business_id;
 
-        // 
         if (!$businessId) {
-            throw new AuthorizationException('User does not have an associated business');
+            throw new \Illuminate\Auth\Access\AuthorizationException('User does not have an associated business');
         }
 
-        // Validate period and get date range using service
-        $dateRange = $this->dashboardService->validateAndGetDateRange(
-            $request->get('period', 'last_30_days')
+        $ratingBreakdown = $this->reviewService->extractRatingBreakdown(
+            ReviewNew::withCalculatedRating()
+                ->globalReviewFilters(0)
+                ->where('business_id', $businessId)
+                ->get()
         );
-
-        // Get rating breakdown
-        $reviewsQuery = ReviewNew::where('business_id', $businessId)
-            ->withCalculatedRating()
-            ->globalReviewFilters(0, $businessId);
-
-        if ($dateRange !== null) {
-            $reviewsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-        }
-
-
-
-        $ratingBreakdown = $this->reviewService->extractRatingBreakdown($reviewsQuery->get());
 
         return response()->json([
             'success' => true,
@@ -2806,7 +2786,7 @@ class DashboardController extends Controller
         // Get reviews with their values
         $query = ReviewNew::with(['value'])
             ->where("business_id", $businessId)
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating();

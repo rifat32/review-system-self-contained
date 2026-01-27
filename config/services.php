@@ -20,8 +20,6 @@ return [
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
-        'temperature' => env('OPENAI_TEMPERATURE', 0.2),
-        'max_tokens' => env('OPENAI_MAX_TOKENS', 1200),
         'timeout' => env('OPENAI_TIMEOUT', 30),
     ],
     'firebase' => [

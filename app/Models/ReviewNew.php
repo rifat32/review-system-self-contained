@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ReviewNew extends Model
 {
@@ -199,7 +200,7 @@ class ReviewNew extends Model
     }
 
 
-    public function scopeGlobalReviewFilters($query, $show_published_only = 0, $businessId = null, $is_staff_review = 0)
+    public function scopeGlobalReviewFilters($query, $show_published_only = 0, $is_staff_review = 0, $ignoreDateRange = false)
     {
         // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
         $userBranchId = request()->user() && (request()->user()->hasRole('branch_manager') || request()->user()->hasRole('business_owner'))
@@ -207,7 +208,7 @@ class ReviewNew extends Model
             : null;
 
 
-        return $query
+        $query
             ->when(request()->filled('is_overall'), function ($q) {
                 $q->when(request()->boolean('is_overall'), function ($q) {
                     $q->where('review_news.is_overall', 1);
@@ -221,7 +222,7 @@ class ReviewNew extends Model
             ->when(request()->has('is_voice_review'), function ($q) {
                 $q->where('review_news.is_voice_review', request()->input('is_voice_review'));
             })
-            ->when($show_published_only, function ($q) use ($businessId, $is_staff_review) {
+            ->when($show_published_only, function ($q) use ($is_staff_review) {
                 $q->whereMeetsThreshold($is_staff_review);
             })
             ->when(request()->filled("question_category_id") || request()->filled("question_sub_category_id"), function ($q) {
@@ -260,27 +261,31 @@ class ReviewNew extends Model
                 $q->where("review_news.branch_id", $userBranchId);
             });
 
+        // Apply Date Filtering
+        if (!$ignoreDateRange) {
+            $query->when(\request()->filled('start_date') && \request()->filled('end_date'), function ($q) {
+                try {
+                    $start = \Carbon\Carbon::parse(\request()->input('start_date'))->startOfDay();
+                    $end = \Carbon\Carbon::parse(\request()->input('end_date'))->endOfDay();
+                    $q->whereBetween('review_news.created_at', [$start, $end]);
+                } catch (\Exception $e) {
+                    // Ignore invalid date formats in scope to prevent crashes
+                }
+            }, function ($q) {
+                // If specific dates aren't provided, check 'period'
+                $period = \request()->input('period', '30d');
+                $dateRange = getDateRangeByPeriod($period);
 
-        //  ->when(request()->filled("business_area_id") || request()->filled("business_service_id"), function ($q) {
-
-        //     $q->whereHas("question", function($q){
-        //         $q->whereHas("question_sub_categories", function($q){
-
-        //             $q
-        //             ->when(request()->filled("question_sub_category_id"), function($q){
-        //                 $q->where("question_categories.id", request()->input("question_sub_category_id"));
-        //             })
-        //             ->when(request()->filled("question_category_id"), function($q){
-        //                 $q->where("question_categories.parent_id", request()->input("question_category_id"));
-        //             });
-
-        //         });
-        //     });
-        // });
+                if ($dateRange) {
+                    $q->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
+                }
+            });
+        }
 
 
 
 
+        return $query;
     }
 
 
@@ -320,32 +325,38 @@ class ReviewNew extends Model
 
     public function scopeWhereMeetsThreshold($query, $is_staff_review = 0)
     {
-        // Get global threshold rating from AI config
-        $thresholdRating = (float) config('ai.sentiment.thresholds.csat', 4.0);
+        // Fallback global threshold if business column is null
+        $globalThreshold = (float) config('ai.sentiment.thresholds.csat', 4.0);
 
-        return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
+        return $query->whereExists(function ($subQuery) use ($globalThreshold, $is_staff_review) {
             $subQuery->select(DB::raw(1))
                 ->from('review_value_news as rvn')
                 ->join('questions as q', 'rvn.question_id', '=', 'q.id')
+                // Join businesses to access the threshold_rating column
+                ->join('businesses as b', 'review_news.business_id', '=', 'b.id')
+
                 ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
-                    $q->whereExists(function ($subQuery) {
-                        $subQuery->select(DB::raw(1))
+                    $q->whereExists(function ($categoryQuery) {
+                        $categoryQuery->select(DB::raw(1))
                             ->from('q_q_sub_categories as qqsc')
                             ->join('question_categories as qc_sub', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
                             ->join('question_categories as qc_parent', 'qc_sub.parent_id', '=', 'qc_parent.id')
                             ->whereColumn('qqsc.question_id', 'q.id')
-                            ->where('qc_parent.title', 'Staff') // Parent category is "Staff"
+                            ->where('qc_parent.title', 'Staff')
                             ->where('qc_parent.is_active', 1)
                             ->where('qc_parent.is_default', 1)
                             ->whereNull('qc_parent.business_id')
-                            // Also check subcategory if needed
                             ->where('qc_sub.is_active', 1);
                     });
                 })
+
                 ->join('stars as s', 'rvn.star_id', '=', 's.id')
                 ->whereColumn('rvn.review_id', 'review_news.id')
-                ->groupBy('rvn.review_id')
-                ->havingRaw('AVG(s.value) >= ?', [$thresholdRating]);
+                ->groupBy('rvn.review_id', 'b.threshold_rating')
+                /* We use COALESCE so if threshold_rating is NULL, 
+               it defaults to your global config value.
+            */
+                ->havingRaw('AVG(s.value) >= COALESCE(b.threshold_rating, ?)', [$globalThreshold]);
         });
     }
 

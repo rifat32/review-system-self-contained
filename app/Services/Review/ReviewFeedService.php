@@ -23,7 +23,7 @@ class ReviewFeedService
         $query = ReviewNew::with(['user', 'guest_user', 'staff', 'value.tags', 'value'])
             ->where('business_id', $businessId)
             ->orderBy('created_at', 'desc')
-            ->globalReviewFilters(0, $businessId)
+            ->globalReviewFilters(0)
             ->limit($limit)
             ->withCalculatedRating();
 

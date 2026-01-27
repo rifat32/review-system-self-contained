@@ -190,7 +190,7 @@ class GuestUserReviewReport extends Command
             "business_id" => $business->id,
             "user_id" => NULL,
         ])
-            ->globalReviewFilters(0, $business->id)
+            ->globalReviewFilters(0)
 
             ->whereNotNull("comment")
             ->orderBy('order_no', 'asc');
