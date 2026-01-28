@@ -236,7 +236,7 @@ if (!function_exists('getDateRangeByPeriod')) {
 
 /**
  * Calculate metric change between current and comparison periods
- * 
+ *
  * @param int $current Current period count
  * @param int $comparison Comparison period count
  * @return array ['change_type' => string, 'value' => float]

@@ -37,6 +37,7 @@ class DashboardService
     // ==================== PERIOD VALIDATION ====================
 
     private const FILTERABLE_FIELDS = [
+        "last_90_days",
         "last_30_days",
         "last_7_days",
         "this_month",

@@ -32,6 +32,7 @@ class BranchService
     }
 
     private const FILTERABLE_FIELDS = [
+        "last_90_days",
         "last_30_days",
         "last_7_days",
         "this_month",
@@ -41,7 +42,7 @@ class BranchService
 
     /**
      * Validate period and return date range
-     * 
+     *
      * @param string|null $period
      * @return array|null Returns date range array or null for 'all_time'
      * @throws \Illuminate\Validation\ValidationException
@@ -61,7 +62,7 @@ class BranchService
 
     /**
      * Get comprehensive branch metrics with comparison
-     * 
+     *
      * @param int $branchId Branch ID (required)
      * @param array|null $dateRange Date range array with 'start' and 'end' keys
      * @param User|null $user User for permission checking
