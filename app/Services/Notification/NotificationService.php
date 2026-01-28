@@ -57,10 +57,10 @@ class NotificationService
 
     /**
      * Send push notification to iOS device via APNs
-     * 
+     *
      * @TODO: iOS push notifications - To be implemented later
      * @TODO: Configure APNs credentials in .env and config/services.php
-     * 
+     *
      * @param string $deviceToken
      * @param string $title
      * @param string $body
@@ -443,6 +443,7 @@ class NotificationService
     {
         return $notification->update([
             'read_at' => now(),
+            'status'=> 'read'
         ]);
     }
 
@@ -458,6 +459,7 @@ class NotificationService
             ->whereNull('read_at')
             ->update([
                 'read_at' => now(),
+                'status' => 'read'
             ]);
     }
 
