@@ -39,8 +39,14 @@ class Notification extends Model
     public function scopeNotificationFilters($query)
     {
         if (request()->filled('status')) {
-            $query->where('status', request()->input('status'));
+            $status = request()->input('status');
+            if ($status === 'read') {
+                $query->whereNotNull('read_at');
+            } elseif ($status === 'unread') {
+            $query->whereNull('read_at');
+            }
         }
+
 
         return $query;
     }

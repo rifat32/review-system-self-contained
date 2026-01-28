@@ -255,7 +255,18 @@ class NotificationController extends Controller
         // GET NOTIFICATIONS FOR CURRENT USER
         $query = Notification::where(["receiver_id" => $request->user()->id])
             ->notificationFilters();
+
         $notification = retrieve_data($query);
+
+        // TOTAL UNREAD COUNT
+        $totalNotification = Notification::where(["receiver_id" => $request->user()->id])
+            ->count();
+        $totalUnreadNotification = Notification::where(["receiver_id" => $request->user()->id])
+            ->whereNull("read_at")
+            ->count();
+
+        $notification["meta"]["total_notification"] = $totalNotification;
+        $notification["meta"]["total_unread"] = $totalUnreadNotification;
 
         // SEND RESPONSE
         return response()->json([

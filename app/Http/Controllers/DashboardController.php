@@ -564,11 +564,6 @@ class DashboardController extends Controller
      */
     public function getTopWorstServices(Request $request)
     {
-        $request->validate([
-            'period' => 'nullable|in:last_30_days,last_7_days,this_month,last_month',
-            'min_reviews' => 'nullable|integer|min:1',
-            'is_overall' => 'nullable|in:0,1'
-        ]);
 
         $businessId = auth()->user()->business_id;
 
@@ -2165,7 +2160,7 @@ class DashboardController extends Controller
         }
 
 
-        // Metrics and breakdown now handle date filtering internally via 
+        // Metrics and breakdown now handle date filtering internally via
         $metrics = $this->reviewService->calculateDashboardMetrics($businessId, null);
 
         // Get rating breakdown

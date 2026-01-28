@@ -265,7 +265,7 @@ class ReviewNew extends Model
     }
 
     public function scopeFilterByDateRange($query)
-    { 
+    {
         $query->when(request()->filled('start_date') , function ($q) {
                 $q->whereDate('review_news.created_at', '>=', Carbon::parse(request()->input('start_date'))->startOfDay());
             })
@@ -273,9 +273,10 @@ class ReviewNew extends Model
                 $q->whereDate('review_news.created_at', '<=', Carbon::parse(request()->input('end_date'))->endOfDay());
             })
             ->when(request()->filled('period') , function ($q) {
-                $q->whereBetween('review_news.created_at', getDateRangeByPeriod(request()->input('period')));
+                $dateRange=getDateRangeByPeriod(request()->input('period'));
+                $q->whereBetween('review_news.created_at', [$dateRange['start'],$dateRange['end']]);
             });
-      
+
 
         return $query;
     }
@@ -345,7 +346,7 @@ class ReviewNew extends Model
                 ->join('stars as s', 'rvn.star_id', '=', 's.id')
                 ->whereColumn('rvn.review_id', 'review_news.id')
                 ->groupBy('rvn.review_id', 'b.threshold_rating')
-                /* We use COALESCE so if threshold_rating is NULL, 
+                /* We use COALESCE so if threshold_rating is NULL,
                it defaults to your global config value.
             */
                 ->havingRaw('AVG(s.value) >= COALESCE(b.threshold_rating, ?)', [$globalThreshold]);
