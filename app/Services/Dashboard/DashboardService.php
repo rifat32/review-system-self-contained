@@ -46,7 +46,7 @@ class DashboardService
 
     /**
      * Validate period and return date range
-     * 
+     *
      * @param string|null $period
      * @return array|null Returns date range array or null for 'all_time'
      * @throws \Illuminate\Validation\ValidationException
@@ -68,7 +68,7 @@ class DashboardService
 
     /**
      * Calculate comprehensive dashboard metrics for a business
-     * 
+     *
      * @param int $businessId
      * @param array|null $dateRange Array with 'start' and 'end' Carbon instances
      * @return array
@@ -101,7 +101,7 @@ class DashboardService
         $total = $reviewCounts['current'];
         $previousTotal = $reviewCounts['previous'];
 
-        // Get rating with comparison  
+        // Get rating with comparison
         $ratingMetrics = $this->reviewMetricsService->getRatingWithComparison($reviews, $previousReviews);
         $currentAvgRating = $ratingMetrics['current'];
         $previousAvgRating = $ratingMetrics['previous'];
@@ -177,6 +177,9 @@ class DashboardService
             $csatChangeType = $csatPercentageChange >= 0 ? 'increase' : 'decrease';
         }
 
+        $allReviews = ReviewNew::globalReviewFilters(0, 0, true)
+            ->where('review_news.business_id', $businessId)
+            ->count();
         return [
             'avg_overall_rating' => [
                 'value' => $currentAvgRating,
@@ -196,6 +199,9 @@ class DashboardService
                 'change_type' => $sentimentChangeType,
                 'previous_value' => round($previous_sentiment_score * 10, 1),
                 'review_count' => $total
+            ],
+            'all_reviews' => [
+                'value' => $allReviews,
             ],
             'total_reviews' => [
                 'value' => $total,

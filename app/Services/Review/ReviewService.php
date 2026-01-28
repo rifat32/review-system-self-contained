@@ -33,7 +33,7 @@ class ReviewService
     }
     /**
      * Get current period reviews
-     * 
+     *
      * @param int $businessId
      * @param int|null $branchId Optional branch filter
      * @param array|null $dateRange Optional date range with 'start' and 'end'
@@ -71,7 +71,7 @@ class ReviewService
 
     /**
      * Get comparison (previous) period reviews
-     * 
+     *
      * @param int $businessId
      * @param int|null $branchId Optional branch filter
      * @param array|null $dateRange Optional date range with 'start' and 'end', 'daysOffset'
@@ -113,7 +113,7 @@ class ReviewService
 
     /**
      * Get reviews for a specific time period with flexible filtering
-     * 
+     *
      * @param int $businessId
      * @param array $filters Additional filters ['branch_id' => int, 'staff_id' => int, etc.]
      * @param array|null $dateRange Optional date range with 'start' and 'end'
@@ -160,7 +160,7 @@ class ReviewService
 
     /**
      * Get both current and comparison period reviews
-     * 
+     *
      * @param int $businessId
      * @param int|null $branchId Optional branch filter
      * @param array|null $dateRange Optional date range with 'start' and 'end'
@@ -290,7 +290,7 @@ class ReviewService
 
         // OPTIMIZED: Single query with JOIN and GROUP BY
         $tagsData = DB::select("
-            SELECT 
+            SELECT
                 t.id,
                 t.tag,
                 COUNT(DISTINCT rvt.review_value_id) as mention_count
@@ -474,6 +474,8 @@ class ReviewService
 
         $totalIssues = $isDefaultMessage ? 0 : count($issueAnalysis);
         $topIssue = $isDefaultMessage ? null : ($issueAnalysis[0]['issue'] ?? null);
+
+
 
         return [
             'avg_overall_rating' => [
