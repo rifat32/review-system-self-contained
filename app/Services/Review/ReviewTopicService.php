@@ -35,19 +35,32 @@ class ReviewTopicService
         $reviewIds = $reviews->pluck('id')->toArray();
 
         // Method 0: Check InsightRecord for AI-driven top topic (Most Accurate)
+        $reviewIds = array_unique(array_map('intval', $reviewIds));
+        $idsList = implode(',', $reviewIds);
+
+        // Dynamic count calculation in SQL to ensure we order by "contextual" records
+        $dynamicMentionsSql = "(SELECT COUNT(*) FROM JSON_TABLE(insight_records.review_ids, '$[*]' COLUMNS (val INT PATH '$')) as jt WHERE jt.val IN ({$idsList}))";
+
         $aiTopic = \App\Models\InsightRecord::where('business_id', $businessId)
+            ->select('*')
+            ->selectRaw("{$dynamicMentionsSql} as dynamic_mentions")
             ->where(function ($query) use ($reviewIds) {
-                foreach ($reviewIds as $id) {
-                    $query->orWhereJsonContains('review_ids', (int) $id);
+                // Optimization: narrowing down candidates
+                foreach (array_chunk($reviewIds, 50) as $chunk) {
+                    $query->orWhere(function ($sub) use ($chunk) {
+                        foreach ($chunk as $id) {
+                            $sub->orWhereJsonContains('review_ids', (int) $id);
+                        }
+                    });
                 }
             })
-            ->orderByDesc('mentions_count')
+            ->orderByDesc('dynamic_mentions')
             ->first();
 
-        if ($aiTopic) {
+        if ($aiTopic && $aiTopic->dynamic_mentions > 0) {
             return [
                 'name' => $aiTopic->main_category,
-                'count' => $aiTopic->mentions_count
+                'count' => (int) $aiTopic->dynamic_mentions
             ];
         }
 

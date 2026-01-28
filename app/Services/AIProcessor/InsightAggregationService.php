@@ -186,18 +186,54 @@ class InsightAggregationService
      */
     public function getDashboardInsights(int $businessId, int $limit = 10, ?array $reviewIds = null): array
     {
-        $query = InsightRecord::where('business_id', $businessId)
-            ->where('mentions_count', '>=', 2); // Business rule: show only significant
+        $query = InsightRecord::where('business_id', $businessId);
 
         if ($reviewIds && !empty($reviewIds)) {
-            $query->where(function ($q) use ($reviewIds) {
-                foreach ($reviewIds as $id) {
-                    $q->orWhereJsonContains('review_ids', (int) $id);
-                }
-            });
+            $reviewIds = array_unique(array_map('intval', $reviewIds));
+            $idsList = implode(',', $reviewIds);
+
+            // Raw SQL subquery to calculate count of intersection between insight.review_ids and current filters
+            // This allows ordering by the "contextual" mentions count directly in SQL
+            $dynamicMentionsSql = "(SELECT COUNT(*) FROM JSON_TABLE(insight_records.review_ids, '$[*]' COLUMNS (val INT PATH '$')) as jt WHERE jt.val IN ({$idsList}))";
+
+            $insights = $query->select('*')
+                ->selectRaw("{$dynamicMentionsSql} as mentions")
+                ->where(function ($q) use ($reviewIds) {
+                    // Optimization: narrowing down candidates to those that have at least one matching ID
+                    foreach (array_chunk($reviewIds, 50) as $chunk) {
+                        $q->orWhere(function ($sub) use ($chunk) {
+                            foreach ($chunk as $id) {
+                                $sub->orWhereJsonContains('review_ids', (int) $id);
+                            }
+                        });
+                    }
+                })
+                ->having('mentions', '>=', 2)
+                ->orderBy('mentions', 'desc')
+                ->limit($limit)
+                ->get();
+
+            return $insights->map(function ($insight) {
+                return [
+                    'id' => $insight->id,
+                    'category' => $insight->main_category,
+                    'sub_category' => $insight->sub_category,
+                    'mentions' => (int) $insight->mentions,
+                    'severity' => $insight->severity,
+                    'confidence' => $insight->confidence_level,
+                    'trend' => $insight->trend,
+                    'is_staff_issue' => $insight->staff_blame_detected,
+                    'period' => [
+                        'start' => $insight->time_window_start?->format('M d'),
+                        'end' => $insight->time_window_end?->format('M d')
+                    ]
+                ];
+            })->toArray();
         }
 
-        $insights = $query->orderBy('mentions_count', 'desc')
+        // Standard logic when no specific review filters are applied
+        $insights = $query->where('mentions_count', '>=', 2)
+            ->orderBy('mentions_count', 'desc')
             ->limit($limit)
             ->get();
 
@@ -212,8 +248,8 @@ class InsightAggregationService
                 'trend' => $insight->trend,
                 'is_staff_issue' => $insight->staff_blame_detected,
                 'period' => [
-                    'start' => $insight->time_window_start->format('M d'),
-                    'end' => $insight->time_window_end->format('M d')
+                    'start' => $insight->time_window_start?->format('M d'),
+                    'end' => $insight->time_window_end?->format('M d')
                 ]
             ];
         })->toArray();

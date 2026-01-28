@@ -1,0 +1,4 @@
+[2026-01-28 06:33:20] local.ERROR: syntax error, unexpected token "[", expecting variable {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): syntax error, unexpected token \"[\", expecting variable at /home/rifat/rifat/uk_client/review/backend/review-system/app/Models/ReviewNew.php:267)
+[stacktrace]
+#0 {main}
+"} 
