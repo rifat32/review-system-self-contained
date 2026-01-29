@@ -33,6 +33,8 @@ return [
             'neutral_lower' => 2.1,
             'neutral_upper' => 3.9,
             'csat' => 4.0,
+            'high_rating' => 4.0,
+            'low_rating' => 2.0,
             'default_label' => 'neutral',
             'min_praise_recommendation' => 2,
             'min_mentions_issue' => 2,

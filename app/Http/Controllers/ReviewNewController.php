@@ -3372,11 +3372,11 @@ class ReviewNewController extends Controller
      *          name="topics",
      *          in="query",
      *          required=false,
-     *          description="Filter reviews by topic",
+     *          description="Filter reviews by topic main_category name (case-sensitive exact match)",
      *          @OA\Schema(
      *              type="string"
      *          ),
-     *          example="food quality"
+     *          example="Food Quality"
      *      ),
      *      @OA\Response(
      *          response=200,
@@ -3501,10 +3501,11 @@ class ReviewNewController extends Controller
             // If not 0 or 1, or not specified, show all (no filter applied)
         }
 
-        // Apply topics filter
+        // Apply topics filter by main_category
         if ($request->has('topics') && !empty($request->topics)) {
             $topic = $request->input('topics');
-            $query->whereJsonContains('topics', $topic);
+            // Use whereRaw with JSON_CONTAINS to search within the main_category field
+            $query->whereRaw("JSON_SEARCH(topics, 'one', ?, null, '$[*].main_category') IS NOT NULL", [$topic]);
         }
 
         // Sorting logic
@@ -3610,7 +3611,7 @@ class ReviewNewController extends Controller
         // CHECK BUSINESS
         Business::findOrFail($businessId);
 
-        // 
+        //
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
 
             ->with(['user', 'guest_user', 'survey'])

@@ -955,9 +955,34 @@ class AIProcessorService
         $neutralCount = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
         $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
-        $positivePercentage = round(($positiveCount / $totalReviews) * 100);
-        $neutralPercentage = round(($neutralCount / $totalReviews) * 100);
-        $negativePercentage = round(($negativeCount / $totalReviews) * 100);
+        // Calculate percentages ensuring they sum to 100
+        $positivePercentage = ($positiveCount / $totalReviews) * 100;
+        $neutralPercentage = ($neutralCount / $totalReviews) * 100;
+        $negativePercentage = ($negativeCount / $totalReviews) * 100;
+
+        // Round percentages
+        $positivePercentageRounded = round($positivePercentage);
+        $neutralPercentageRounded = round($neutralPercentage);
+        $negativePercentageRounded = round($negativePercentage);
+
+        // Adjust for rounding errors to ensure total = 100
+        $total = $positivePercentageRounded + $neutralPercentageRounded + $negativePercentageRounded;
+        $difference = 100 - $total;
+
+        if ($difference != 0) {
+            // Find which percentage has the largest decimal part and adjust it
+            $positiveDecimal = $positivePercentage - floor($positivePercentage);
+            $neutralDecimal = $neutralPercentage - floor($neutralPercentage);
+            $negativeDecimal = $negativePercentage - floor($negativePercentage);
+
+            if ($positiveDecimal >= $neutralDecimal && $positiveDecimal >= $negativeDecimal) {
+                $positivePercentageRounded += $difference;
+            } elseif ($neutralDecimal >= $negativeDecimal) {
+                $neutralPercentageRounded += $difference;
+            } else {
+                $negativePercentageRounded += $difference;
+            }
+        }
 
         $topics = $this->extractTopicsFromReviews($reviews);
         $performanceByCategory = $this->calculatePerformanceByCategory($reviews);
@@ -971,11 +996,21 @@ class AIProcessorService
             'total_reviews' => $totalReviews,
             'avg_rating' => round($avgRating, 1),
             'sentiment_breakdown' => [
-                'positive' => $positivePercentage,
-                'neutral' => $neutralPercentage,
-                'negative' => $negativePercentage
+                'positive' => [
+                    'count' => $positiveCount,
+                    'percentage' => $positivePercentageRounded
+                ],
+                'neutral' => [
+                    'count' => $neutralCount,
+                    'percentage' => $neutralPercentageRounded
+                ],
+                'negative' => [
+                    'count' => $negativeCount,
+                    'percentage' => $negativePercentageRounded
+                ]
             ],
             'performance_by_category' => $performanceByCategory,
+            'performance_by_topic_info' => 'Sentiment scores averaged from review sentiments (positive=100, neutral=50, negative=0). Percentages show topic distribution and sum to 100%.',
             'top_topics' => array_slice($topics, 0, 5),
             'notable_reviews' => $notableReviews
         ];
@@ -1035,15 +1070,45 @@ class AIProcessorService
 
     /**
      * Calculate performance by category dynamically
+     *
+     * Returns topic performance with sentiment analysis.
+     *
+     * Calculation Logic:
+     * 1. For each review, get its overall sentiment_score (0.0-1.0)
+     * 2. Convert to label: positive (≥0.7), neutral (0.4-0.69), negative (<0.4)
+     * 3. Map to points: positive=100, neutral=50, negative=0
+     * 4. Sum points for each topic across all reviews
+     * 5. Average: sentiment_score = total_points / mention_count
+     * 6. Map score to label using ai.php rules (80+=Exceptionally Positive, etc.)
+     * 7. Calculate percentage: topic_mentions / total_topic_mentions * 100
+     * 8. Adjust percentages to ensure they sum to exactly 100%
+     *
+     * @param Collection $reviews Collection of reviews with topics
+     * @return array Format: [
+     *   'info' => string (calculation explanation),
+     *   'topics' => [
+     *     [
+     *       'topic_name' => string,
+     *       'sentiment_score' => int (0-100),
+     *       'sentiment_label' => string (from ai.php),
+     *       'review_count' => int,
+     *       'percentage' => int (sum to 100%)
+     *     ]
+     *   ]
+     * ]
      */
     public function calculatePerformanceByCategory($reviews)
     {
         $aggregates = [];
 
         foreach ($reviews as $review) {
+            // Get sentiment label from review's sentiment_score
+            $sentimentScore = $review->sentiment_score ?? 0.5;
+            $sentimentLabel = self::getSentimentLabel($sentimentScore);
+            $sentiment = strtolower($sentimentLabel);
+
             foreach ($review->topics ?? [] as $cat) {
                 $name = $cat['main_category'] ?? 'General';
-                $sentiment = strtolower($cat['sentiment'] ?? 'neutral');
 
                 // Map sentiment label to a score (0-100)
                 $score = match ($sentiment) {
@@ -1062,17 +1127,66 @@ class AIProcessorService
             }
         }
 
+        // Calculate total review count across all topics for percentage calculation
+        $totalTopicMentions = array_sum(array_column($aggregates, 'count'));
+
         $performance = [];
+        $percentageData = [];
 
         foreach ($aggregates as $name => $data) {
+            $sentimentScore = (int) round($data['total_score'] / $data['count']);
+
+            // Determine sentiment label based on score using ai.php configuration
+            $sentimentLabel = match (true) {
+                $sentimentScore >= 80 => 'Exceptionally Positive',
+                $sentimentScore >= 60 => 'Generally Positive',
+                $sentimentScore >= 40 => 'Mixed',
+                $sentimentScore >= 20 => 'Mostly Negative',
+                default => 'Critical'
+            };
+
+            $exactPercentage = $totalTopicMentions > 0
+                ? ($data['count'] / $totalTopicMentions) * 100
+                : 0;
+
+            $roundedPercentage = round($exactPercentage);
+
+            $percentageData[$name] = [
+                'exact' => $exactPercentage,
+                'rounded' => $roundedPercentage,
+                'decimal' => $exactPercentage - floor($exactPercentage)
+            ];
+
             $performance[] = [
-                'category' => $name,
-                'score' => (int) round($data['total_score'] / $data['count']),
-                'review_count' => $data['count']
+                'topic_name' => $name,
+                'sentiment_score' => $sentimentScore,
+                'sentiment_label' => $sentimentLabel,
+                'review_count' => $data['count'],
+                'percentage' => $roundedPercentage
             ];
         }
 
-        // Sort by review count descending to show most relevant categories first
+        // Adjust for rounding errors to ensure total = 100
+        $totalPercentage = array_sum(array_column($performance, 'percentage'));
+        $difference = 100 - $totalPercentage;
+
+        if ($difference != 0 && count($performance) > 0) {
+            // Find the topic with the largest decimal remainder and adjust it
+            $maxDecimal = 0;
+            $maxIndex = 0;
+
+            foreach ($performance as $index => $item) {
+                $topicName = $item['topic_name'];
+                if (isset($percentageData[$topicName]) && $percentageData[$topicName]['decimal'] > $maxDecimal) {
+                    $maxDecimal = $percentageData[$topicName]['decimal'];
+                    $maxIndex = $index;
+                }
+            }
+
+            $performance[$maxIndex]['percentage'] += $difference;
+        }
+
+        // Sort by review count descending to show most relevant topics first
         usort($performance, function ($a, $b) {
             return $b['review_count'] <=> $a['review_count'];
         });
@@ -1082,20 +1196,76 @@ class AIProcessorService
 
     /**
      * Get notable reviews dynamically
+     *
+     * Returns a mix of the most impactful positive and negative reviews
+     * based on rating extremes and sentiment scores.
      */
     public function getNotableReviews($reviews, $limit = 2)
     {
-        return $reviews->whereNotNull('comment')
-            ->where('comment', '!=', '')
-            ->sortByDesc('created_at')
-            ->take($limit)
-            ->map(function ($review) {
-                return [
-                    'comment' => $review->comment,
-                    'sentiment_score' => $review->sentiment_score,
-                    'date' => $review->created_at->diffForHumans()
-                ];
-            })
+        $reviewsWithComments = $reviews->whereNotNull('comment')
+            ->where('comment', '!=', '');
+
+        if ($reviewsWithComments->isEmpty()) {
+            return [];
+        }
+
+        // Get thresholds from configuration
+        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+        $highRatingThreshold = RuleEngineService::getHighRatingThreshold();
+        $lowRatingThreshold = RuleEngineService::getLowRatingThreshold();
+
+        // Get highly positive reviews (high rating + positive sentiment)
+        $positiveNotable = $reviewsWithComments
+            ->where('calculated_rating', '>=', $highRatingThreshold)
+            ->where('sentiment_score', '>=', $positiveThreshold)
+            ->sortByDesc('calculated_rating')
+            ->take(ceil($limit / 2));
+
+        // Get highly negative reviews (low rating + negative sentiment)
+        $negativeNotable = $reviewsWithComments
+            ->where('calculated_rating', '<=', $lowRatingThreshold)
+            ->where('sentiment_score', '<', $negativeThreshold)
+            ->sortBy('calculated_rating')
+            ->take(floor($limit / 2));
+
+        // If we don't have enough from extremes, fill with most recent
+        $notable = $positiveNotable->merge($negativeNotable);
+
+        if ($notable->count() < $limit) {
+            $remaining = $reviewsWithComments
+                ->whereNotIn('id', $notable->pluck('id'))
+                ->sortByDesc('created_at')
+                ->take($limit - $notable->count());
+
+            $notable = $notable->merge($remaining);
+        }
+
+        return $notable->map(function ($review) {
+            // Determine customer name
+            $customerName = 'Anonymous';
+            if ($review->user) {
+                $customerName = $review->user->first_Name . ' ' . $review->user->last_Name;
+            } elseif ($review->guest_user) {
+                $customerName = $review->guest_user->name ?? 'Guest';
+            }
+
+            // Get sentiment label
+            $sentimentScore = $review->sentiment_score ?? 0.5;
+            $sentimentLabel = self::getSentimentLabel($sentimentScore);
+
+            return [
+                'id' => $review->id,
+                'customer_name' => trim($customerName),
+                'comment' => $review->comment,
+                'rating' => round($review->calculated_rating ?? 0, 1),
+                'sentiment_score' => round($sentimentScore, 2),
+                'sentiment_label' => $sentimentLabel,
+                'topics' => collect($review->topics ?? [])->pluck('main_category')->take(3)->toArray(),
+                'date' => $review->created_at->diffForHumans(),
+                'created_at' => $review->created_at->format('Y-m-d H:i:s')
+            ];
+        })
             ->values()
             ->toArray();
     }
@@ -1103,9 +1273,9 @@ class AIProcessorService
     /**
      * Get sentiment gap message dynamically
      */
-    public function getSentimentGapMessage($gap)
+    public function getSentimentGapMessage($gap, $staffAName = null, $staffBName = null)
     {
-        return $this->ruleEngineService->getSentimentGapMessage($gap);
+        return $this->ruleEngineService->getSentimentGapMessage($gap, $staffAName, $staffBName);
     }
 
 
@@ -1235,9 +1405,9 @@ class AIProcessorService
     /**
      * Get rating gap message dynamically
      */
-    public function getRatingGapMessage($gap)
+    public function getRatingGapMessage($gap, $staffAName = null, $staffBName = null)
     {
-        return $this->ruleEngineService->getRatingGapMessage($gap);
+        return $this->ruleEngineService->getRatingGapMessage($gap, $staffAName, $staffBName);
     }
 
     /**

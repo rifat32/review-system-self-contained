@@ -507,6 +507,16 @@ class RuleEngineService
         return (float) \config('ai.sentiment.thresholds.csat', 4.0);
     }
 
+    public static function getHighRatingThreshold(): float
+    {
+        return (float) \config('ai.sentiment.thresholds.high_rating', 4.0);
+    }
+
+    public static function getLowRatingThreshold(): float
+    {
+        return (float) \config('ai.sentiment.thresholds.low_rating', 2.0);
+    }
+
     public static function getDefaultSentimentLabel(): string
     {
         return (string) \config('ai.sentiment.thresholds.default_label', 'neutral');
@@ -974,25 +984,31 @@ class RuleEngineService
         return $tones;
     }
 
-    public function getSentimentGapMessage($gap): string
+    public function getSentimentGapMessage($gap, $staffAName = null, $staffBName = null): string
     {
+        $staffALabel = $staffAName ?? 'Staff A';
+        $staffBLabel = $staffBName ?? 'Staff B';
+
         if ($gap > 0) {
-            return "Staff A has more positive reviews";
+            return "{$staffALabel} has " . abs(round($gap, 1)) . "% more positive reviews than {$staffBLabel}";
         } elseif ($gap < 0) {
-            return "Staff B has more positive reviews";
+            return "{$staffBLabel} has " . abs(round($gap, 1)) . "% more positive reviews than {$staffALabel}";
         } else {
-            return "Both have similar positive sentiment";
+            return "{$staffALabel} and {$staffBLabel} have similar positive sentiment";
         }
     }
 
-    public function getRatingGapMessage($gap): string
+    public function getRatingGapMessage($gap, $staffAName = null, $staffBName = null): string
     {
+        $staffALabel = $staffAName ?? 'Staff A';
+        $staffBLabel = $staffBName ?? 'Staff B';
+
         if ($gap > 0) {
-            return "Staff A is performing better";
+            return "{$staffALabel} is performing better with a " . abs(round($gap, 1)) . " star advantage over {$staffBLabel}";
         } elseif ($gap < 0) {
-            return "Staff B is performing better";
+            return "{$staffBLabel} is performing better with a " . abs(round($gap, 1)) . " star advantage over {$staffALabel}";
         } else {
-            return "Both staff are performing equally";
+            return "{$staffALabel} and {$staffBLabel} are performing equally";
         }
     }
 

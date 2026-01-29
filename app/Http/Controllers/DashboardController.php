@@ -1748,19 +1748,19 @@ class DashboardController extends Controller
 
         // Calculate gaps
         $ratingGap = round($staffAMetrics['avg_rating'] - $staffBMetrics['avg_rating'], 1);
-        $sentimentGap = $staffAMetrics['sentiment_breakdown']['positive'] - $staffBMetrics['sentiment_breakdown']['positive'];
+        $sentimentGap = $staffAMetrics['sentiment_breakdown']['positive']['percentage'] - $staffBMetrics['sentiment_breakdown']['positive']['percentage'];
 
         return response()->json([
             "success" => true,
             "message" => "Staff comparison data retrieved successfully",
             "data" => [
                 'business_id' => (int) $businessId,
-                'business_name' => $business->name,
+                'business_name' => $business->Name,
                 'comparison' => [
                     'rating_gap' => $ratingGap,
-                    'rating_gap_message' => $this->aiProcessorService->getRatingGapMessage($ratingGap),
+                    'rating_gap_message' => $this->aiProcessorService->getRatingGapMessage($ratingGap, $staffA->first_Name . ' ' . $staffA->last_Name, $staffB->first_Name . ' ' . $staffB->last_Name),
                     'sentiment_gap' => $sentimentGap,
-                    'sentiment_gap_message' => $this->aiProcessorService->getSentimentGapMessage($sentimentGap),
+                    'sentiment_gap_message' => $this->aiProcessorService->getSentimentGapMessage($sentimentGap, $staffA->first_Name . ' ' . $staffA->last_Name, $staffB->first_Name . ' ' . $staffB->last_Name),
                     'better_performer' => $ratingGap >= 0 ? $staffA->name : $staffB->name
                 ],
                 'staff_a' => $staffAMetrics,
