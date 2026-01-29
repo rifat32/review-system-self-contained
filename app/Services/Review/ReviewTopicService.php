@@ -4,6 +4,7 @@ namespace App\Services\Review;
 
 use App\Models\ReviewNew;
 use App\Models\Tag;
+use Illuminate\Support\Collection;
 
 class ReviewTopicService
 {
@@ -11,8 +12,10 @@ class ReviewTopicService
 
     /**
      * Get top topic summary from reviews collection
+     * 
+     * @param Collection $reviews
      */
-    public function getTopTopicSummary($reviews)
+    public function getTopTopicSummary(Collection $reviews)
     {
         if ($reviews->isEmpty()) {
             return [
@@ -108,18 +111,5 @@ class ReviewTopicService
             'name' => 'Service',
             'count' => 0
         ];
-    }
-
-    /**
-     * Get top topic using business ID and date range (for backward compatibility)
-     */
-    public function getTopTopic($businessId, $startDate, $endDate)
-    {
-        $reviews = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters(0)
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->get();
-
-        return $this->getTopTopicSummary($reviews);
     }
 }

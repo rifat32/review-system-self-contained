@@ -200,7 +200,7 @@ class ReviewNew extends Model
     }
 
 
-    public function scopeGlobalReviewFilters($query, $show_published_only = 0, $is_staff_review = 0)
+    public function scopeGlobalReviewFilters($query, $show_published_only = 0, $is_staff_review = 0, $turn_off_branch_filter = 0)
     {
         // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
         $userBranchId = request()->user() && (request()->user()->hasRole('branch_manager') || request()->user()->hasRole('business_owner'))
@@ -257,7 +257,7 @@ class ReviewNew extends Model
                                 $q->where("review_business_services.business_service_id", request()->input("question_category_id"));
                             });
                     });
-            })->when($userBranchId, function ($q) use ($userBranchId) {
+            })->when($userBranchId && $turn_off_branch_filter == 0, function ($q) use ($userBranchId) {
                 $q->where("review_news.branch_id", $userBranchId);
             });
 
@@ -266,15 +266,15 @@ class ReviewNew extends Model
 
     public function scopeFilterByDateRange($query)
     {
-        $query->when(request()->filled('start_date') , function ($q) {
-                $q->whereDate('review_news.created_at', '>=', Carbon::parse(request()->input('start_date'))->startOfDay());
-            })
-            ->when(request()->filled('end_date') , function ($q) {
+        $query->when(request()->filled('start_date'), function ($q) {
+            $q->whereDate('review_news.created_at', '>=', Carbon::parse(request()->input('start_date'))->startOfDay());
+        })
+            ->when(request()->filled('end_date'), function ($q) {
                 $q->whereDate('review_news.created_at', '<=', Carbon::parse(request()->input('end_date'))->endOfDay());
             })
-            ->when(request()->filled('period') , function ($q) {
-                $dateRange=getDateRangeByPeriod(request()->input('period'));
-                $q->whereBetween('review_news.created_at', [$dateRange['start'],$dateRange['end']]);
+            ->when(request()->filled('period'), function ($q) {
+                $dateRange = getDateRangeByPeriod(request()->input('period'));
+                $q->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
             });
 
 

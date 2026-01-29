@@ -99,10 +99,10 @@ class BranchService
         $sentimentMetrics = $this->reviewMetricsService->getSentimentWithComparison($currentReviews, $previousReviews);
 
         // ==================== CSAT SCORE ====================
-        $csatMetrics = $this->reviewMetricsService->calculateCSATScore($businessId, $branchId, $dateRange);
+        $csatMetrics = $this->reviewMetricsService->calculateCSATScore($businessId, $currentReviews);
 
         // ==================== FLAGGED REVIEWS ====================
-        $flaggedMetrics = $this->reviewMetricsService->getFlaggedReviews($businessId, $branchId, $dateRange);
+        $flaggedMetrics = $this->reviewMetricsService->getFlaggedReviews($businessId, $currentReviews);
 
         // ==================== TOP TOPICS ====================
         $topTopicSummary = $this->reviewTopicService->getTopTopicSummary($currentReviews);

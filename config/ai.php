@@ -48,7 +48,7 @@ return [
             'insufficient_trend_data' => 'insufficient_data',
             'stable_trend_message' => 'stable',
             'summary_template' => "Customers are {{positive}}% positive and {{negative}}% negative.",
-            'default_summary_phrase' => "Common themes include staff friendliness, service speed, and occasional cleanliness concerns.",
+            'default_summary_phrase' => "Common themes from recent feedback are analyzed in the insights section.",
             'high_issue_threshold' => 3,
             'min_mentions_recommendation' => 2,
             'min_reviews_staff_analysis' => 3,

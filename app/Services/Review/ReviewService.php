@@ -46,7 +46,7 @@ class ReviewService
         ?array $dateRange = null,
         bool $withCalculatedRating = true
     ) {
-        $query = ReviewNew::globalReviewFilters(0)
+        $query = ReviewNew::globalReviewFilters(0, 0, 1)
             ->where('business_id', $businessId);
 
         // Apply branch filter if provided
@@ -462,7 +462,11 @@ class ReviewService
         $businessId = $reviews->first()->business_id ?? 0;
         $issueAnalysis = $this->businessAnalyticsService->extractIssuesFromRuleEngine(
             $businessId,
-            $reviews
+            $reviews,
+            [
+                'start' => $reviews->min('created_at') ?? now()->subMonth(),
+                'end' => $reviews->max('created_at') ?? now()
+            ]
         );
 
         // Calculate issue count and top issue correctly

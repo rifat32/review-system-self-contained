@@ -3,7 +3,10 @@
 namespace App\Services\Review;
 
 use App\Models\ReviewNew;
+use App\Models\Business;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
+use App\Services\Rule\RuleEngineService;
 
 class ReviewMetricsService
 {
@@ -17,25 +20,14 @@ class ReviewMetricsService
      */
     public function calculateCSATScore(
         int $businessId,
-        ?int $branchId = null,
-        ?array $dateRange = null
+        Collection $reviews
     ): array {
-        // Base query for total reviews
-        $totalQuery = ReviewNew::where('business_id', $businessId)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = Carbon::parse($dateRange['start'])->startOfDay();
-                $endDate = Carbon::parse($dateRange['end'])->endOfDay();
-                return $query->whereBetween('created_at', [$startDate, $endDate]);
-            })
-            ->globalReviewFilters(0);
+        $totalCount = $reviews->count();
 
-        $totalCount = (clone $totalQuery)->count();
+        // Get unified threshold from RuleEngineService
+        $threshold = RuleEngineService::getCsatThreshold();
 
-        // Query for reviews meeting threshold
-        $qualifyingCount = (clone $totalQuery)
-            ->whereMeetsThreshold()
-            ->count();
+        $qualifyingCount = $reviews->where('calculated_rating', '>=', $threshold)->count();
 
         $score = $totalCount > 0 ? round(($qualifyingCount / $totalCount) * 100, 1) : 0;
 
@@ -53,29 +45,19 @@ class ReviewMetricsService
      * @param int $businessId
      * @param int|null $branchId Optional branch filter
      * @param array|null $dateRange Optional date range with 'start' and 'end'
+     * @param Collection|null $reviews Optional pre-fetched reviews
      * @return array ['count' => int, 'percentage' => float]
      */
     public function getFlaggedReviews(
         int $businessId,
-        ?int $branchId = null,
-        ?array $dateRange = null
+        Collection $reviews
     ): array {
-        // Base query
-        $baseQuery = ReviewNew::where('business_id', $businessId)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($dateRange, function ($query) use ($dateRange) {
-                $startDate = Carbon::parse($dateRange['start'])->startOfDay();
-                $endDate = Carbon::parse($dateRange['end'])->endOfDay();
-                return $query->whereBetween('created_at', [$startDate, $endDate]);
-            })
-            ->globalReviewFilters(0);
+        $totalCount = $reviews->count();
 
-        $totalCount = (clone $baseQuery)->count();
+        // Get unified threshold from RuleEngineService
+        $threshold = RuleEngineService::getCsatThreshold();
 
-        // Count flagged reviews using scope
-        $flaggedCount = (clone $baseQuery)
-            ->whereDoesNotMeetsThreshold()
-            ->count();
+        $flaggedCount = $reviews->where('calculated_rating', '<', $threshold)->count();
 
         $percentage = $totalCount > 0 ? round(($flaggedCount / $totalCount) * 100, 1) : 0;
 
@@ -89,36 +71,19 @@ class ReviewMetricsService
     /**
      * Calculate sentiment breakdown
      * 
-     * @param \Illuminate\Support\Collection $reviews
+     * @param Collection $reviews
      * @return array
      */
     public function calculateSentimentBreakdown($reviews): array
     {
-        // Use a more robust counting method that handles missing labels
-        $counts = [
-            'positive' => 0,
-            'negative' => 0,
-            'neutral' => 0
-        ];
+        // Use dynamic thresholds
+        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
-        foreach ($reviews as $review) {
-            $label = $review->sentiment_label;
-
-            // Fallback to score if label is missing
-            if (!$label && isset($review->sentiment_score)) {
-                $label = \App\Services\Rule\RuleEngineService::getSentimentLabelFromScore($review->sentiment_score);
-            }
-
-            $label = $label ?: 'neutral';
-            if (isset($counts[$label])) {
-                $counts[$label]++;
-            }
-        }
-
-        $positiveCount = $counts['positive'];
-        $negativeCount = $counts['negative'];
-        $neutralCount = $counts['neutral'];
+        $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+        $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
         $totalCount = $reviews->count();
+        $neutralCount = max(0, $totalCount - $positiveCount - $negativeCount);
 
         $currentSentimentScore = $reviews->avg('sentiment_score') ?? 0;
 
@@ -139,7 +104,7 @@ class ReviewMetricsService
     /**
      * Calculate average rating
      * 
-     * @param \Illuminate\Support\Collection $reviews
+     * @param Collection $reviews
      * @return float
      */
     public function calculateAverageRating($reviews): float
@@ -152,8 +117,8 @@ class ReviewMetricsService
     /**
      * Get review count with change comparison
      * 
-     * @param \Illuminate\Support\Collection $currentReviews
-     * @param \Illuminate\Support\Collection $previousReviews
+     * @param Collection $currentReviews
+     * @param Collection $previousReviews
      * @return array
      */
     public function getReviewCountWithComparison($currentReviews, $previousReviews): array
@@ -176,8 +141,8 @@ class ReviewMetricsService
     /**
      * Get rating with change comparison
      * 
-     * @param \Illuminate\Support\Collection $currentReviews
-     * @param \Illuminate\Support\Collection $previousReviews
+     * @param Collection $currentReviews
+     * @param Collection $previousReviews
      * @return array
      */
     public function getRatingWithComparison($currentReviews, $previousReviews): array
@@ -197,8 +162,8 @@ class ReviewMetricsService
     /**
      * Get sentiment with change comparison
      * 
-     * @param \Illuminate\Support\Collection $currentReviews
-     * @param \Illuminate\Support\Collection $previousReviews
+     * @param Collection $currentReviews
+     * @param Collection $previousReviews
      * @return array
      */
     public function getSentimentWithComparison($currentReviews, $previousReviews): array
@@ -218,8 +183,8 @@ class ReviewMetricsService
     /**
      * Get staff count with comparison
      * 
-     * @param \Illuminate\Support\Collection $currentReviews
-     * @param \Illuminate\Support\Collection $previousReviews
+     * @param Collection $currentReviews
+     * @param Collection $previousReviews
      * @return array
      */
     public function getStaffCountWithComparison($currentReviews, $previousReviews): array

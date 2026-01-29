@@ -215,6 +215,7 @@ class BusinessAnalyticsService
         $total = $reviews->count();
 
         $positivePercent = $total > 0 ? round(($positiveCount / $total) * 100) : 0;
+
         $negativePercent = $total > 0 ? round(($negativeCount / $total) * 100) : 0;
 
         // Get top issue from insights
@@ -231,7 +232,21 @@ class BusinessAnalyticsService
         if ($topIssue) {
             $summary .= " A recurring concern mentioned is {$topIssue}.";
         } else {
-            $summary .= " " . $this->ruleEngineService->getDefaultSummaryPhrase();
+            // Take top 3 unique categories from insights to make summary dynamic
+            $themes = \collect($insights)
+                ->take(3)
+                ->pluck('category')
+                ->unique()
+                ->map(fn($t) => strtolower($t))
+                ->toArray();
+
+            if (!empty($themes)) {
+                $lastTheme = array_pop($themes);
+                $themesStr = count($themes) > 0 ? implode(', ', $themes) . ' and ' . $lastTheme : $lastTheme;
+                $summary .= " Common themes include " . $themesStr . ".";
+            } else {
+                $summary .= " " . $this->ruleEngineService->getDefaultSummaryPhrase();
+            }
         }
 
         return $summary;
@@ -244,8 +259,8 @@ class BusinessAnalyticsService
      */
     public function extractIssuesFromRuleEngine(int $businessId, $reviews): array
     {
-        $ratingThreshold = \config('ai.sentiment.thresholds.neutral_upper', 3.9);
-        $sentimentThreshold = \config('ai.sentiment.thresholds.negative_score', 0.4);
+        $ratingThreshold = RuleEngineService::getNeutralUpperThreshold();
+        $sentimentThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
         // Filter for suboptimal reviews: rating below neutral_upper OR score below negative_score
         $suboptimalReviews = $reviews->filter(function ($r) use ($ratingThreshold, $sentimentThreshold) {

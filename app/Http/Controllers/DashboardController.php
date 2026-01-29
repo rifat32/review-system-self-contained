@@ -1205,7 +1205,7 @@ class DashboardController extends Controller
             : 0;
 
         // 3. Top Topic from tags in current period
-        $topTopic = $this->reviewTopicService->getTopTopic($businessId, $startDate, $endDate);
+        $topTopic = $this->reviewTopicService->getTopTopicSummary($currentPeriodReviewsWithRating);
 
         // 4. New Reviews this week (always calculated for current week, regardless of selected period)
         $weekStart = Carbon::now()->startOfWeek();

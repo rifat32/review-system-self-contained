@@ -491,18 +491,19 @@ class RuleEngineService
         return (float) \config('ai.sentiment.thresholds.negative_score', 0.4);
     }
 
-    public function getNeutralLowerThreshold(): float
+    public static function getNeutralLowerThreshold(): float
     {
         return (float) \config('ai.sentiment.thresholds.neutral_lower', 2.1);
     }
 
-    public function getNeutralUpperThreshold(): float
+    public static function getNeutralUpperThreshold(): float
     {
         return (float) \config('ai.sentiment.thresholds.neutral_upper', 3.9);
     }
 
-    public function getCsatThreshold(): float
+    public static function getCsatThreshold(): float
     {
+
         return (float) \config('ai.sentiment.thresholds.csat', 4.0);
     }
 
@@ -676,7 +677,7 @@ class RuleEngineService
                     'message' => "{$bestRated['branch']['name']} leads with a {$bestRated['metrics']['average_rating']} rating ({$bestLabel})."
                 ];
             } else {
-                 $highlights[] = [
+                $highlights[] = [
                     'type' => 'info',
                     'category' => 'Top Performance',
                     'message' => "All branches are performing equally with a {$bestRated['metrics']['average_rating']} rating."
@@ -685,7 +686,7 @@ class RuleEngineService
 
             // Highlight significant lag
             if ($ratingGap >= 0.5) {
-                 $highlights[] = [
+                $highlights[] = [
                     'type' => 'warning',
                     'category' => 'Performance Gap',
                     'message' => "{$worstRated['branch']['name']} is lagging behind by " . round($ratingGap, 1) . " points."
@@ -701,8 +702,8 @@ class RuleEngineService
         $sentimentGap = $bestSentiment['metrics']['ai_sentiment_score'] - $worstSentiment['metrics']['ai_sentiment_score'];
 
         if ($sentimentGap >= 5) {
-             $sentimentLabel = $this->getSentimentLabelByPercentage($bestSentiment['metrics']['ai_sentiment_score']);
-             $highlights[] = [
+            $sentimentLabel = $this->getSentimentLabelByPercentage($bestSentiment['metrics']['ai_sentiment_score']);
+            $highlights[] = [
                 'type' => 'positive',
                 'category' => 'Customer Sentiment',
                 'message' => "{$bestSentiment['branch']['name']} leads in sentiment with {$bestSentiment['metrics']['ai_sentiment_score']}% positive feedback ({$sentimentLabel})."
@@ -716,7 +717,7 @@ class RuleEngineService
         $responseGap = $bestResponse['metrics']['response_rate'] - $worstResponse['metrics']['response_rate'];
 
         if ($bestResponse['metrics']['response_rate'] > 0 && $responseGap >= 5) {
-             $highlights[] = [
+            $highlights[] = [
                 'type' => 'info',
                 'category' => 'Engagement',
                 'message' => "{$bestResponse['branch']['name']} is the most responsive ({$bestResponse['metrics']['response_rate']}% response rate)."
@@ -730,9 +731,9 @@ class RuleEngineService
         $csatGap = $bestCSAT['metrics']['csat_score'] - $worstCSAT['metrics']['csat_score'];
 
         if ($csatGap >= 5) {
-             # Use same label helper since CSAT is also a percentage
-             $csatLabel = $this->getSentimentLabelByPercentage($bestCSAT['metrics']['csat_score']);
-             $highlights[] = [
+            # Use same label helper since CSAT is also a percentage
+            $csatLabel = $this->getSentimentLabelByPercentage($bestCSAT['metrics']['csat_score']);
+            $highlights[] = [
                 'type' => 'positive',
                 'category' => 'Satisfaction',
                 'message' => "{$bestCSAT['branch']['name']} has the highest Customer Satisfaction score ({$bestCSAT['metrics']['csat_score']}%) which is '{$csatLabel}'."
@@ -1008,7 +1009,7 @@ class RuleEngineService
 
     public function getDefaultSummaryPhrase(): string
     {
-        return (string) \config('ai.sentiment.thresholds.default_summary_phrase', "Common themes include staff friendliness, service speed, and occasional cleanliness concerns.");
+        return (string) \config('ai.sentiment.thresholds.default_summary_phrase', "Common themes from recent feedback are analyzed in the insights section.");
     }
 
     public function getHighIssueThreshold(): int

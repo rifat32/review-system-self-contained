@@ -134,8 +134,7 @@ class DashboardService
         // Calculate CSAT Score using ReviewMetricsService
         $csatMetrics = $this->reviewMetricsService->calculateCSATScore(
             businessId: $businessId,
-            branchId: $userBranchId,
-            dateRange: $dateRange
+            reviews: $reviews
         );
         $csatPercentage = $csatMetrics['percentage'];
         $csatReviewsCount = $csatMetrics['qualifying_count'];
@@ -143,8 +142,7 @@ class DashboardService
         // Calculate Flagged Reviews using ReviewMetricsService
         $flaggedMetrics = $this->reviewMetricsService->getFlaggedReviews(
             businessId: $businessId,
-            branchId: $userBranchId,
-            dateRange: $dateRange
+            reviews: $reviews
         );
         $flaggedReviewsCount = $flaggedMetrics['count'];
 
@@ -154,24 +152,17 @@ class DashboardService
         $csatChangeType = null;
 
         if ($dateRange !== null) {
-            $previousPeriodCSATCount = ReviewNew::where('business_id', $businessId)
-                ->whereBetween('created_at', [
-                    $dateRange['start']->copy()->subDays(30),
-                    $dateRange['end']->copy()->subDays(30)
-                ])
-                ->whereMeetsThreshold()
-                ->globalReviewFilters(0)
-                ->count();
-
-            $previousCSATPercentage = $previousTotal > 0
-                ? round(($previousPeriodCSATCount / $previousTotal) * 100)
-                : 0;
+            $previousCSATMetrics = $this->reviewMetricsService->calculateCSATScore(
+                businessId: $businessId,
+                reviews: $previousReviews
+            );
+            $previousCSATPercentage = $previousCSATMetrics['percentage'];
 
             $csatPercentageChange = $previousCSATPercentage > 0
                 ? round($csatPercentage - $previousCSATPercentage, 1)
                 : ($csatPercentage > 0 ? $csatPercentage : 0);
 
-            $csatChangeType = $csatPercentageChange >= 0 ? 'increase' : 'decrease';
+            $csatChangeType = $csatPercentageChange >= 0 ? 'positive' : 'negative';
         }
 
         $allReviews = ReviewNew::globalReviewFilters(0, 0, true)
