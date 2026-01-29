@@ -1448,8 +1448,8 @@ class DashboardController extends Controller
     {
         $request->validate([
             'branch_ids' => 'required|string',
-            'start_date' => 'sometimes|date_format:Y-m-d',
-            'end_date' => 'sometimes|date_format:Y-m-d',
+            'start_date' => 'required|date_format:Y-m-d',
+            'end_date' => 'required|date_format:Y-m-d',
         ]);
 
         // Parse branch IDs
@@ -1458,16 +1458,13 @@ class DashboardController extends Controller
         $branchIds = array_slice($branchIds, 0, 5); // Limit to max 5 branches
 
         if (count($branchIds) === 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'At least one branch ID is required'
-            ], 422);
+            throw new AuthorizationException('At least one branch ID is required');
         }
 
-        // Get date range (default: last 90 days)
+        // Get date range (default: last 30 days)
         $startDate = $request->start_date
             ? Carbon::parse($request->start_date)->startOfDay()
-            : Carbon::now()->subDays(90)->startOfDay();
+            : Carbon::now()->subDays(30)->startOfDay();
 
         $endDate = $request->end_date
             ? Carbon::parse($request->end_date)->endOfDay()
@@ -1479,10 +1476,7 @@ class DashboardController extends Controller
             ->get();
 
         if ($branches->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No branches found'
-            ], 404);
+            throw new NotFoundHttpException('No branches found');
         }
 
 

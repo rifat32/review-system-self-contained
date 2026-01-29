@@ -299,8 +299,8 @@ class AIProcessorService
         $recommendations = [];
 
         // Get aggregated insights for this branch
-        // Get aggregated insights for this business (filtering by specific branch reviews in JSON is complex, 
-        // so we retrieve recent business insights and can optionally filter in memory if strictly needed, 
+        // Get aggregated insights for this business (filtering by specific branch reviews in JSON is complex,
+        // so we retrieve recent business insights and can optionally filter in memory if strictly needed,
         // but for recommendations, business-level insights are often relevant enough or the best we can do without a direct relationship)
         $branchInsights = InsightRecord::where('business_id', $businessId)
             ->orderBy('created_at', 'desc')
@@ -462,10 +462,10 @@ class AIProcessorService
             'branch' => [
                 'id' => $branch->id,
                 'name' => $branch->name,
-                'code' => $branch->code ?? 'BRN-' . str_pad($branch->id, 5, '0', STR_PAD_LEFT),
+                'code' => $branch->code ?? "",
                 'location' => $branch->location,
                 'manager_name' => $branch->manager ? $branch->manager->name : 'Not assigned',
-                'business_name' => $branch->business ? $branch->business->name : 'Unknown'
+                'business_name' => $branch->business ? $branch->business->Name : 'Unknown'
             ],
             'metrics' => [
                 'total_reviews' => $totalReviews,
