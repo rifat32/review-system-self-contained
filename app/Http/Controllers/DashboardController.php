@@ -2513,7 +2513,7 @@ class DashboardController extends Controller
         );
 
         // Get AI insights
-        $aiInsights = $this->businessAnalyticsService->getAiInsightsPanel($businessId, $dateRange, $user);
+        $aiInsights = $this->businessAnalyticsService->getAiInsightsPanel($businessId, $dateRange);
 
         return response()->json([
             'success' => true,

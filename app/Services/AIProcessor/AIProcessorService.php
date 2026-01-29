@@ -261,13 +261,7 @@ class AIProcessorService
         }
     }
 
-    /**
-     * Get recommendations from rule engine
-     */
-    public function getRecommendationsFromRuleEngine(int $businessId, $reviews, $dateRange): array
-    {
-        return $this->recommendationGeneratorService->generateFromInsights($businessId, 30);
-    }
+
 
     /**
      * Generate branch recommendations dynamically

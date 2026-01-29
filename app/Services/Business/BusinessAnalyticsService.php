@@ -160,7 +160,7 @@ class BusinessAnalyticsService
     /**
      * Get AI insights panel dynamically
      */
-    public function getAiInsightsPanel($businessId, $dateRange = null, $user = null): array
+    public function getAiInsightsPanel($businessId, $dateRange = null): array
     {
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('ai_suggestions')
@@ -244,7 +244,26 @@ class BusinessAnalyticsService
      */
     public function extractIssuesFromRuleEngine(int $businessId, $reviews): array
     {
-        $reviewIds = $reviews->pluck('id')->toArray();
+        $ratingThreshold = \config('ai.sentiment.thresholds.neutral_upper', 3.9);
+        $sentimentThreshold = \config('ai.sentiment.thresholds.negative_score', 0.4);
+
+        // Filter for suboptimal reviews: rating below neutral_upper OR score below negative_score
+        $suboptimalReviews = $reviews->filter(function ($r) use ($ratingThreshold, $sentimentThreshold) {
+            $isLowRating = isset($r->calculated_rating) && $r->calculated_rating <= $ratingThreshold && $r->calculated_rating > 0;
+            $isNegativeSentiment = $r->sentiment_score !== null && $r->sentiment_score < $sentimentThreshold;
+            return ($isLowRating || $isNegativeSentiment);
+        });
+
+        if ($suboptimalReviews->isEmpty()) {
+            return [
+                [
+                    'issue' => ' No major issues detected.',
+                    'mention_count' => 0
+                ]
+            ];
+        }
+
+        $reviewIds = $suboptimalReviews->pluck('id')->toArray();
         $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10, $reviewIds, true);
 
         if (empty($insights)) {
@@ -267,13 +286,5 @@ class BusinessAnalyticsService
         }
 
         return $issues;
-    }
-
-    /**
-     * Get recommendations from rule engine
-     */
-    public function getRecommendationsFromRuleEngine(int $businessId, $reviews, $dateRange): array
-    {
-        return $this->recommendationGeneratorService->generateFromInsights($businessId, 30);
     }
 }
