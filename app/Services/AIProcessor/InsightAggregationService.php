@@ -184,7 +184,7 @@ class InsightAggregationService
     /**
      * Get aggregated insights for dashboard
      */
-    public function getDashboardInsights(int $businessId, int $limit = 10, ?array $reviewIds = null): array
+    public function getDashboardInsights(int $businessId, int $limit = 10, ?array $reviewIds = null, bool $onlyHighMedium = false): array
     {
         $query = InsightRecord::where('business_id', $businessId);
 
@@ -192,12 +192,26 @@ class InsightAggregationService
             $reviewIds = array_unique(array_map('intval', $reviewIds));
             $idsList = implode(',', $reviewIds);
 
-            // Raw SQL subquery to calculate count of intersection between insight.review_ids and current filters
-            // This allows ordering by the "contextual" mentions count directly in SQL
-            $dynamicMentionsSql = "(SELECT COUNT(*) FROM JSON_TABLE(insight_records.review_ids, '$[*]' COLUMNS (val INT PATH '$')) as jt WHERE jt.val IN ({$idsList}))";
+            // Compatibility: MariaDB doesn't always support JSON_TABLE. 
+            // We use a summation of JSON_CONTAINS for each ID to calculate intersection count.
+            $mentionsParts = [];
+            foreach ($reviewIds as $id) {
+                $mentionsParts[] = "JSON_CONTAINS(insight_records.review_ids, '" . (int)$id . "')";
+            }
+            $dynamicMentionsSql = "(" . implode(' + ', $mentionsParts) . ")";
+
+            $severityWeightSql = "CASE 
+                WHEN insight_records.severity = 'high' THEN 3 
+                WHEN insight_records.severity = 'medium' THEN 2 
+                ELSE 1 
+            END";
 
             $insights = $query->select('*')
                 ->selectRaw("{$dynamicMentionsSql} as mentions")
+                ->when($onlyHighMedium, function ($q) use ($severityWeightSql) {
+                    return $q->selectRaw("({$severityWeightSql}) as severity_weight")
+                        ->whereIn('severity', ['high', 'medium']);
+                })
                 ->where(function ($q) use ($reviewIds) {
                     // Optimization: narrowing down candidates to those that have at least one matching ID
                     foreach (array_chunk($reviewIds, 50) as $chunk) {
@@ -209,6 +223,9 @@ class InsightAggregationService
                     }
                 })
                 ->having('mentions', '>=', 2)
+                ->when($onlyHighMedium, function ($q) {
+                    return $q->orderBy('severity_weight', 'desc');
+                })
                 ->orderBy('mentions', 'desc')
                 ->limit($limit)
                 ->get();
@@ -232,7 +249,19 @@ class InsightAggregationService
         }
 
         // Standard logic when no specific review filters are applied
+        $severityWeightSql = "CASE 
+            WHEN severity = 'high' THEN 3 
+            WHEN severity = 'medium' THEN 2 
+            ELSE 1 
+        END";
+
         $insights = $query->where('mentions_count', '>=', 2)
+            ->when($onlyHighMedium, function ($q) use ($severityWeightSql) {
+                return $q->whereIn('severity', ['high', 'medium'])
+                    ->select('*')
+                    ->selectRaw("({$severityWeightSql}) as severity_weight")
+                    ->orderBy('severity_weight', 'desc');
+            })
             ->orderBy('mentions_count', 'desc')
             ->limit($limit)
             ->get();

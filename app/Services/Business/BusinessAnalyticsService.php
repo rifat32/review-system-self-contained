@@ -180,7 +180,7 @@ class BusinessAnalyticsService
         $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10, $reviewIds);
 
         $summary = $this->generateAiSummaryFromRuleEngine($businessId, $reviews);
-        $issues = $this->extractIssuesFromRuleEngine($businessId, $reviews, $dateRange ?? ['start' => now()->subMonth(), 'end' => now()]);
+        $issues = $this->extractIssuesFromRuleEngine($businessId, $reviews);
         $opportunities = $this->aiProcessorService->extractOpportunitiesFromSuggestions($reviews->pluck('ai_suggestions')->flatten());
         $predictions = $this->aiProcessorService->generatePredictions($reviews);
 
@@ -242,10 +242,10 @@ class BusinessAnalyticsService
     /**
      * Extract issues from rule engine insights
      */
-    public function extractIssuesFromRuleEngine(int $businessId, $reviews, $dateRange): array
+    public function extractIssuesFromRuleEngine(int $businessId, $reviews): array
     {
         $reviewIds = $reviews->pluck('id')->toArray();
-        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10, $reviewIds);
+        $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10, $reviewIds, true);
 
         if (empty($insights)) {
             return [
@@ -258,17 +258,15 @@ class BusinessAnalyticsService
 
         $issues = [];
         foreach ($insights as $insight) {
-            if ($insight['severity'] === 'high' || $insight['severity'] === 'medium') {
-                $issues[] = [
-                    'issue' => "{$insight['category']} - {$insight['sub_category']}",
-                    'mention_count' => $insight['mentions'],
-                    'severity' => $insight['severity'],
-                    'confidence' => $insight['confidence']
-                ];
-            }
+            $issues[] = [
+                'issue' => "{$insight['category']} - {$insight['sub_category']}",
+                'mention_count' => $insight['mentions'],
+                'severity' => $insight['severity'],
+                'confidence' => $insight['confidence']
+            ];
         }
 
-        return array_slice($issues, 0, 3);
+        return $issues;
     }
 
     /**

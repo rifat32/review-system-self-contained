@@ -11,6 +11,7 @@ use App\Services\Review\ReviewService;
 use App\Services\Staff\StaffPerformanceService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use getID3;
 use Carbon\Carbon;
 use App\Services\AIProcessor\InsightAggregationService;
@@ -194,46 +195,63 @@ class AIProcessorService
     public function transcribeAudio($filePath)
     {
         try {
-            $api_key = env('HF_API_KEY');
-            $audio = file_get_contents($filePath);
+            $apiKey = \config('services.openai.api_key');
 
-            Log::info("HF Transcription Started", [
+            Log::info("OpenAI Transcription Started", [
                 'file_path' => $filePath,
-                'file_size' => strlen($audio),
-                'mime' => mime_content_type($filePath)
+                'file_size' => file_exists($filePath) ? filesize($filePath) : 0,
+                'mime' => file_exists($filePath) ? mime_content_type($filePath) : 'unknown'
             ]);
 
-            $ch = curl_init("https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3");
-            curl_setopt_array($ch, [
-                CURLOPT_HTTPHEADER => [
-                    "Authorization: Bearer $api_key",
-                    "Content-Type: audio/mpeg"
-                ],
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => $audio,
-                CURLOPT_RETURNTRANSFER => true,
-            ]);
-
-            $result = curl_exec($ch);
-            $error = curl_error($ch);
-            $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            Log::info("HF Whisper API Response", [
-                'http_status' => $status,
-                'curl_error' => $error,
-                'raw_result' => $result
-            ]);
-
-            if ($error) {
-                Log::error("HF Whisper CURL Error: $error");
+            if (!$apiKey) {
+                Log::error("OpenAI API Key not configured for transcription");
                 return '';
             }
 
-            $data = json_decode($result, true);
+            $mimeType = file_exists($filePath) ? mime_content_type($filePath) : 'audio/mpeg';
 
-            Log::info("HF Whisper Decoded Response", [
-                'decoded' => $data
+            // Map MIME to extension for OpenAI (Whisper is extension-sensitive)
+            $extensionMap = [
+                'audio/mpeg' => 'mp3',
+                'audio/mp3' => 'mp3',
+                'audio/wav' => 'wav',
+                'audio/x-wav' => 'wav',
+                'audio/m4a' => 'm4a',
+                'audio/x-m4a' => 'm4a',
+                'audio/mp4' => 'mp4',
+                'video/mp4' => 'mp4',
+                'audio/ogg' => 'ogg',
+                'audio/webm' => 'webm',
+                'audio/flac' => 'flac',
+                'audio/aac' => 'aac',
+                'audio/mpeg3' => 'mp3',
+            ];
+
+            $ext = $extensionMap[$mimeType] ?? 'mp3';
+            $fileName = basename($filePath);
+            if (!str_contains($fileName, '.')) {
+                $fileName .= '.' . $ext;
+            }
+
+            $response = Http::withToken($apiKey)
+                ->timeout(60)
+                ->attach('file', fopen($filePath, 'r'), $fileName)
+                ->post('https://api.openai.com/v1/audio/transcriptions', [
+                    'model' => 'whisper-1',
+                ]);
+
+            if ($response->failed()) {
+                Log::error("OpenAI Whisper API Error", [
+                    'status' => $response->status(),
+                    'error' => $response->body()
+                ]);
+                return '';
+            }
+
+            $data = $response->json();
+
+            Log::info("OpenAI Whisper Response Received", [
+                'text_length' => strlen($data['text'] ?? '')
             ]);
 
             return $data['text'] ?? '';

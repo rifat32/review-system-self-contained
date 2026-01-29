@@ -124,11 +124,7 @@ class DashboardService
         // Detect repeated issues (minimal data only)
         $issuesArray = $this->businessAnalyticsService->extractIssuesFromRuleEngine(
             $businessId,
-            $reviews,
-            [
-                'start' => $reviews->min('created_at'),
-                'end' => $reviews->max('created_at')
-            ]
+            $reviews
         );
 
         $topIssue = !empty($issuesArray)

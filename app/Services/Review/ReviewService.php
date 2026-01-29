@@ -462,11 +462,7 @@ class ReviewService
         $businessId = $reviews->first()->business_id ?? 0;
         $issueAnalysis = $this->businessAnalyticsService->extractIssuesFromRuleEngine(
             $businessId,
-            $reviews,
-            [
-                'start' => $reviews->min('created_at') ?? now()->subMonth(),
-                'end' => $reviews->max('created_at') ?? now()
-            ]
+            $reviews
         );
 
         // Calculate issue count and top issue correctly

@@ -110,11 +110,7 @@ class BranchService
         // ==================== REPEATED ISSUES ====================
         $issueAnalysis = $this->businessAnalyticsService->extractIssuesFromRuleEngine(
             $businessId,
-            $currentReviews,
-            [
-                'start' => $currentReviews->min('created_at') ?? \now()->subMonth(),
-                'end' => $currentReviews->max('created_at') ?? \now()
-            ]
+            $currentReviews
         );
 
         $topIssue = !empty($issueAnalysis['repeated_issues'])

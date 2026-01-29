@@ -38,8 +38,13 @@ class ReviewTopicService
         $reviewIds = array_unique(array_map('intval', $reviewIds));
         $idsList = implode(',', $reviewIds);
 
-        // Dynamic count calculation in SQL to ensure we order by "contextual" records
-        $dynamicMentionsSql = "(SELECT COUNT(*) FROM JSON_TABLE(insight_records.review_ids, '$[*]' COLUMNS (val INT PATH '$')) as jt WHERE jt.val IN ({$idsList}))";
+        // Compatibility: MariaDB doesn't always support JSON_TABLE. 
+        // We use a summation of JSON_CONTAINS for each ID to calculate intersection count.
+        $mentionsParts = [];
+        foreach ($reviewIds as $id) {
+            $mentionsParts[] = "JSON_CONTAINS(insight_records.review_ids, '" . (int)$id . "')";
+        }
+        $dynamicMentionsSql = "(" . implode(' + ', $mentionsParts) . ")";
 
         $aiTopic = \App\Models\InsightRecord::where('business_id', $businessId)
             ->select('*')
@@ -99,14 +104,11 @@ class ReviewTopicService
                 'count' => $topicCounts->first()
             ];
         }
-
         return [
             'name' => 'Service',
             'count' => 0
         ];
     }
-
-
 
     /**
      * Get top topic using business ID and date range (for backward compatibility)
