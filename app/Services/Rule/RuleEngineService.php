@@ -49,7 +49,7 @@ class RuleEngineService
         // if (!isset($actions['suggest_action']))
         //     return [];
 
-        // instead of suggest_action use existing action and proceed. 
+        // instead of suggest_action use existing action and proceed.
         $text = $rule->short_explanation ?? $rule->rule_name;
         $filledTemplate = $this->fillTemplate($text, $insight->business_id, $rule, $insight);
 
@@ -74,7 +74,7 @@ class RuleEngineService
         $results = [];
 
         foreach ($rules as $rule) {
-            // Apply branch filtering (done again in executionService but kept here for early exit if needed, 
+            // Apply branch filtering (done again in executionService but kept here for early exit if needed,
             // though executionService handles it more robustly now)
             if (!empty($rule->branch_ids)) {
                 if (!$review->branch_id || !in_array($review->branch_id, $rule->branch_ids)) {
@@ -652,7 +652,94 @@ class RuleEngineService
 
     public function generateComparisonHighlights($branchesData): array
     {
-        return []; // Return empty for now, implement dynamic logic as needed
+        if (empty($branchesData) || count($branchesData) < 2) {
+            return [];
+        }
+
+        $highlights = [];
+
+        // 1. Overall Rating Comparison
+        usort($branchesData, fn($a, $b) => $b['metrics']['average_rating'] <=> $a['metrics']['average_rating']);
+        $bestRated = $branchesData[0];
+        $worstRated = $branchesData[count($branchesData) - 1];
+
+        $ratingGap = $bestRated['metrics']['average_rating'] - $worstRated['metrics']['average_rating'];
+
+        if ($ratingGap >= 0) {
+            $bestLabel = $this->getPerformanceLabelFromRating($bestRated['metrics']['average_rating']);
+
+            // Highlight the winner if the gap is noticeable OR if the winner is 'Excellent'/'Very Good'
+            if ($ratingGap >= 0.1 || $bestRated['metrics']['average_rating'] >= 4.0) {
+                $highlights[] = [
+                    'type' => 'positive',
+                    'category' => 'Top Performance',
+                    'message' => "{$bestRated['branch']['name']} leads with a {$bestRated['metrics']['average_rating']} rating ({$bestLabel})."
+                ];
+            } else {
+                 $highlights[] = [
+                    'type' => 'info',
+                    'category' => 'Top Performance',
+                    'message' => "All branches are performing equally with a {$bestRated['metrics']['average_rating']} rating."
+                ];
+            }
+
+            // Highlight significant lag
+            if ($ratingGap >= 0.5) {
+                 $highlights[] = [
+                    'type' => 'warning',
+                    'category' => 'Performance Gap',
+                    'message' => "{$worstRated['branch']['name']} is lagging behind by " . round($ratingGap, 1) . " points."
+                ];
+            }
+        }
+
+        // 2. Sentiment Analysis
+        usort($branchesData, fn($a, $b) => $b['metrics']['ai_sentiment_score'] <=> $a['metrics']['ai_sentiment_score']);
+        $bestSentiment = $branchesData[0];
+        $worstSentiment = $branchesData[count($branchesData) - 1];
+
+        $sentimentGap = $bestSentiment['metrics']['ai_sentiment_score'] - $worstSentiment['metrics']['ai_sentiment_score'];
+
+        if ($sentimentGap >= 5) {
+             $sentimentLabel = $this->getSentimentLabelByPercentage($bestSentiment['metrics']['ai_sentiment_score']);
+             $highlights[] = [
+                'type' => 'positive',
+                'category' => 'Customer Sentiment',
+                'message' => "{$bestSentiment['branch']['name']} leads in sentiment with {$bestSentiment['metrics']['ai_sentiment_score']}% positive feedback ({$sentimentLabel})."
+            ];
+        }
+
+        // 3. Response Rate
+        usort($branchesData, fn($a, $b) => $b['metrics']['response_rate'] <=> $a['metrics']['response_rate']);
+        $bestResponse = $branchesData[0];
+        $worstResponse = $branchesData[count($branchesData) - 1];
+        $responseGap = $bestResponse['metrics']['response_rate'] - $worstResponse['metrics']['response_rate'];
+
+        if ($bestResponse['metrics']['response_rate'] > 0 && $responseGap >= 5) {
+             $highlights[] = [
+                'type' => 'info',
+                'category' => 'Engagement',
+                'message' => "{$bestResponse['branch']['name']} is the most responsive ({$bestResponse['metrics']['response_rate']}% response rate)."
+            ];
+        }
+
+        // 4. CSAT Score
+        usort($branchesData, fn($a, $b) => $b['metrics']['csat_score'] <=> $a['metrics']['csat_score']);
+        $bestCSAT = $branchesData[0];
+        $worstCSAT = $branchesData[count($branchesData) - 1];
+        $csatGap = $bestCSAT['metrics']['csat_score'] - $worstCSAT['metrics']['csat_score'];
+
+        if ($csatGap >= 5) {
+             # Use same label helper since CSAT is also a percentage
+             $csatLabel = $this->getSentimentLabelByPercentage($bestCSAT['metrics']['csat_score']);
+             $highlights[] = [
+                'type' => 'positive',
+                'category' => 'Satisfaction',
+                'message' => "{$bestCSAT['branch']['name']} has the highest Customer Satisfaction score ({$bestCSAT['metrics']['csat_score']}%) which is '{$csatLabel}'."
+            ];
+        }
+
+        return array_slice($highlights, 0, 5);
     }
 
     public function determineOverallSentiment(int $positiveReviews, int $totalReviews): string
