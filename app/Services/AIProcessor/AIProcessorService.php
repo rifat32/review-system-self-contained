@@ -435,7 +435,7 @@ class AIProcessorService
 
         $reviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branch->id)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, 1)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->withCalculatedRating()
             ->get();
@@ -486,7 +486,7 @@ class AIProcessorService
     {
         $staffReviews = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branchId)
-            ->globalReviewFilters(0, 1)
+            ->globalReviewFilters(0, 0, 1)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->withCalculatedRating()
@@ -625,7 +625,7 @@ class AIProcessorService
 
                 $reviews = ReviewNew::where('business_id', $branch->business_id)
                     ->where('branch_id', $branch->id)
-                    ->globalReviewFilters(0)
+                    ->globalReviewFilters(0, 0, 1)
                     ->whereBetween('created_at', [$monthStart, $monthEnd])
                     ->withCalculatedRating()
                     ->get();
@@ -661,7 +661,7 @@ class AIProcessorService
         foreach ($branches as $branch) {
             $reviews = ReviewNew::where('business_id', $branch->business_id)
                 ->where('branch_id', $branch->id)
-                ->globalReviewFilters(0, 1)
+                ->globalReviewFilters(0, 0, 1)
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->withCalculatedRating()
                 ->get();
@@ -1596,7 +1596,7 @@ class AIProcessorService
             $reviews = ReviewNew::where('business_id', $businessId)
                 ->where('branch_id', $branch->id)
                 ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-                ->globalReviewFilters(0)
+                ->globalReviewFilters(0, 0, 1)
                 ->withCalculatedRating()
                 ->get();
 

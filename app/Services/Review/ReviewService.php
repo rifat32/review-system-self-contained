@@ -89,7 +89,7 @@ class ReviewService
             return collect();
         }
 
-        $query = ReviewNew::globalReviewFilters(0)
+        $query = ReviewNew::globalReviewFilters(0,0,1)
             ->where('business_id', $businessId);
 
         // Apply branch filter if provided

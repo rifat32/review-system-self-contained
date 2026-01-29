@@ -168,6 +168,7 @@ class DashboardService
         $allReviews = ReviewNew::globalReviewFilters(0, 0, true)
             ->where('review_news.business_id', $businessId)
             ->count();
+
         return [
             'avg_overall_rating' => [
                 'value' => $currentAvgRating,

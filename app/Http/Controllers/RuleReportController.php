@@ -61,7 +61,7 @@ class RuleReportController extends Controller
         $validated = $request->validate([
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'branch_id' => 'nullable|exists:branches,id'
+
         ]);
 
         $businessId = $request->user()->business_id;

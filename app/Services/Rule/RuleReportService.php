@@ -36,7 +36,7 @@ class RuleReportService
     /**
      * Get sentiment analysis report
      */
-    public function getSentimentAnalysisReport(int $businessId, ?string $startDate = null, ?string $endDate = null, ?int $branchId = null): array
+    public function getSentimentAnalysisReport(int $businessId, ?string $startDate = null, ?string $endDate = null): array
     {
         $rule = $this->getDefaultRule('SENTIMENT_ANALYSIS', $businessId);
 
@@ -47,9 +47,6 @@ class RuleReportService
         }
         if ($endDate) {
             $query->where('created_at', '<=', $endDate);
-        }
-        if ($branchId) {
-            $query->where('branch_id', $branchId);
         }
 
         $reviews = $query->get();

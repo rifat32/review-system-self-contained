@@ -1603,7 +1603,7 @@ class DashboardController extends Controller
         // Get reviews for this branch within date range
         $reviewsQuery = ReviewNew::where('business_id', $businessId)
             ->where('branch_id', $branchId)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(0, 0, 1)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->with(['staff', 'user', 'guest_user', 'survey'])
             ->withCalculatedRating();
