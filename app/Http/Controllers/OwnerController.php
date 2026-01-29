@@ -409,7 +409,7 @@ class OwnerController extends Controller
                     $user->email_verify_token_expires = Carbon::now()->addDay();
                     $user->save();
                 }
-                $verificationUrl = env('APP_URL') . '/activate/' . $user->email_verify_token;
+                $verificationUrl = env('APP_URL') . '/activate/' . $user->email_verify_token . '?email=' . urlencode($user->email);
                 Mail::to($validatedData["email"])->send(new AccountCreateMail($user, $verificationUrl));
             } catch (Exception $e) {
                 log_message($e->getMessage(), 'register_mail.log');
@@ -1140,7 +1140,7 @@ class OwnerController extends Controller
      *      ),
      *        @OA\Response(
      *          response=422,
-     *          description="Unprocesseble Content",
+     *          description="Unprocessable Content",
      *    @OA\JsonContent(),
      *      ),
      *      @OA\Response(

@@ -49,6 +49,7 @@ class ReviewFeedService
                 'author' => $review->user?->name ?? $review->guest_user?->full_name ?? 'Anonymous',
                 'author_image' => $review->user?->image ?? null,
                 'time_ago' => $review->created_at->diffForHumans(),
+                'created_at' => $review->created_at,
                 'comment' => $review->comment,
                 'staff_name' => $review->staff?->name,
                 'tags' => $review->value->flatMap(function ($value) {

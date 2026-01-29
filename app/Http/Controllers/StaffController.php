@@ -981,13 +981,6 @@ class StaffController extends Controller
     /**
      * @OA\Get(
      *   path="/v1.0/staffs/{staffId}/rating-trends",
-... (skipping middle part for brevity in replace_file_content, will use multi_replace if needed but I'll try to be specific)
-
-
-
-    /**
-     * @OA\Get(
-     *   path="/v1.0/staffs/{staffId}/rating-trends",
      *   operationId="staffRatingTrends",
      *   tags={"staff_management"},
      *   summary="Get staff rating trends",
@@ -1429,12 +1422,12 @@ class StaffController extends Controller
         $user = $request->user();
 
         if (!$user || !$user->business_id) {
-            throw new \Illuminate\Auth\Access\AuthorizationException('User does not have an associated business');
+            throw new AuthorizationException('User does not have an associated business');
         }
 
         $businessId = $user->business_id;
 
-        // Metrics now handle date filtering internally via 
+        // Metrics now handle date filtering internally via
         $overallMetrics = $this->staffService->getStaffMetricsWithComparison(
             businessId: $businessId,
             dateRange: null, // Let scope handle it from request
@@ -1500,7 +1493,7 @@ class StaffController extends Controller
         $businessId = $user->business_id;
 
         if (!$businessId) {
-            throw new \Illuminate\Auth\Access\AuthorizationException('User does not have an associated business');
+            throw new AuthorizationException('User does not have an associated business');
         }
 
         // Metrics now handled via globalReviewFilters scope in services

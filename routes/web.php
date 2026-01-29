@@ -7,6 +7,7 @@ use App\Http\Controllers\SwaggerLoginController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\SeederController;
 
+use App\Mail\ResendVerificationMail;
 use App\Models\EmailTemplate;
 use App\Models\EmailTemplateWrapper;
 use App\Models\Review;
@@ -154,6 +155,7 @@ Route::get("/activate/{token}", function (Request $request, $token) {
     if (!$user) {
         return view('auth.verification_result', [
             'status' => 'error',
+            'page_title' => 'Verification Failed',
             'message' => 'Invalid or expired verification link.'
         ]);
     }
@@ -162,6 +164,7 @@ Route::get("/activate/{token}", function (Request $request, $token) {
     if ($user->email_verify_token_expires && \Carbon\Carbon::parse($user->email_verify_token_expires)->isPast()) {
          return view('auth.verification_result', [
             'status' => 'error',
+            'page_title' => 'Verification Failed',
             'message' => 'This verification link has expired.'
         ]);
     }
@@ -173,6 +176,7 @@ Route::get("/activate/{token}", function (Request $request, $token) {
 
     return view('auth.verification_result', [
         'status' => 'success',
+        'page_title' => 'Email Verified Successfully!',
         'message' => 'Your email has been successfully verified! You can now log in.'
     ]);
 });
@@ -186,6 +190,7 @@ Route::post('/resend-verification', function (Request $request) {
     if (!$user) {
         return view('auth.verification_result', [
             'status' => 'error',
+            'page_title' => 'Verification Failed',
             'message' => 'We could not find a user with that email address.'
         ]);
     }
@@ -193,6 +198,7 @@ Route::post('/resend-verification', function (Request $request) {
     if ($user->email_verified_at) {
         return view('auth.verification_result', [
             'status' => 'success', // or 'info', but success works to direct them to login
+            'page_title' => 'Email Verified Successfully!',
             'message' => 'Your email is already verified. You can log in.'
         ]);
     }
@@ -204,17 +210,19 @@ Route::post('/resend-verification', function (Request $request) {
 
     // Send email
     try {
-        $verificationUrl = env('APP_URL') . '/activate/' . $user->email_verify_token;
-        Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\ResendVerificationMail($user, $verificationUrl));
+        $verificationUrl = env('APP_URL') . '/activate/' . $user->email_verify_token . '?email=' . urlencode($user->email);
+        Mail::to($user->email)->send(new ResendVerificationMail($user, $verificationUrl));
     } catch (\Exception $e) {
         return view('auth.verification_result', [
             'status' => 'error',
+            'page_title' => 'Failed to Send Email',
             'message' => 'Failed to send verification email. Please try again later.'
         ]);
     }
 
     return view('auth.verification_result', [
         'status' => 'success',
+        'page_title' => 'Verification Email Sent',
         'message' => 'A new verification link has been sent to ' . $user->email
     ]);
 });
