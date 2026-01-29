@@ -70,8 +70,7 @@ class RuleReportController extends Controller
             $report = $this->reportService->getSentimentAnalysisReport(
                 $businessId,
                 $validated['start_date'] ?? null,
-                $validated['end_date'] ?? null,
-                $validated['branch_id'] ?? null
+                $validated['end_date'] ?? null
             );
 
             return response()->json([
