@@ -154,7 +154,10 @@ class AIProcessorService
 
         // 1. Dynamic Insight-Based Opportunities
         if (!empty($insights)) {
-            foreach ($insights as $insight) { // Data now comes directly as array from caller
+            foreach ($insights as $insight) {
+                // Skip if already good (positive sentiment)
+                if (($insight['sentiment'] ?? '') === 'positive') continue;
+
                 $dynamicConfig = config('ai.insights.opportunities.dynamic_thresholds', []);
                 $mentions = $insight['mentions'] ?? 0;
                 $severity = $insight['severity'] ?? 'low';
@@ -196,15 +199,18 @@ class AIProcessorService
         }
 
         // 3. AI Suggestions (Weighted by source sentiment)
-        // Expected format for suggestions: [['text' => '...', 'sentiment' => 0.2], ...]
+        $positiveThreshold = config('ai.sentiment.thresholds.positive') ?? 0.7;
+
         foreach (\collect($suggestions)->filter() as $suggestion) {
             $text = is_array($suggestion) ? ($suggestion['text'] ?? '') : (string)$suggestion;
             if (empty($text)) continue;
 
             $sentiment = is_array($suggestion) ? ($suggestion['sentiment'] ?? 0.5) : 0.5;
 
-            // Weight calculation: (1 - sentiment) * 10 
-            // Negative reviews (low sentiment) get higher weight for suggestions
+            // Skip if source review is already good
+            if ($sentiment >= $positiveThreshold) continue;
+
+            // Weight calculation: (1 - sentiment) * 10
             $weight = (1 - (float)$sentiment) * 10;
 
             $allOpportunities->push([
