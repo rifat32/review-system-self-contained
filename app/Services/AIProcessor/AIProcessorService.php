@@ -853,8 +853,8 @@ class AIProcessorService
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
         $positive = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $neutral = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
-            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
+        $neutral = $reviews->where('sentiment_score', '>=', $negativeThreshold)
+            ->where('sentiment_score', '<', $positiveThreshold)->count();
         $negative = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
         $sentimentBreakdown = [
@@ -1390,8 +1390,8 @@ class AIProcessorService
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $neutralCount = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
-            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
+        $neutralCount = $reviews->where('sentiment_score', '>=', $negativeThreshold)
+            ->where('sentiment_score', '<', $positiveThreshold)->count();
         $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
         $today = Carbon::today();
@@ -1435,8 +1435,8 @@ class AIProcessorService
             ->sortByDesc('created_at')
             ->take($limit);
 
-        $constructiveReviews = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
-            ->where('review_news.sentiment_score', '<', $positiveThreshold)
+        $constructiveReviews = $reviews->where('sentiment_score', '>=', $negativeThreshold)
+            ->where('sentiment_score', '<', $positiveThreshold)
             ->sortByDesc('created_at')
             ->take($limit);
 
@@ -1524,10 +1524,10 @@ class AIProcessorService
         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
-        $positive = $reviews->where('review_news.sentiment_score', '>=', $positiveThreshold)->count();
-        $neutral = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
-            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
-        $negative = $reviews->where('review_news.sentiment_score', '<', $negativeThreshold)->count();
+        $positive = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+        $neutral = $reviews->where('sentiment_score', '>=', $negativeThreshold)
+            ->where('sentiment_score', '<', $positiveThreshold)->count();
+        $negative = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
         return [
             'positive' => round(($positive / $total) * 100),
@@ -1563,8 +1563,8 @@ class AIProcessorService
         $complaints = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
         // NEUTRAL
-        $neutral = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
-            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
+        $neutral = $reviews->where('sentiment_score', '>=', $negativeThreshold)
+            ->where('sentiment_score', '<', $positiveThreshold)->count();
 
         return [
             'compliments_percentage' => round(($compliments / $totalReviews) * 100),
