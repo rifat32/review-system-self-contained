@@ -269,14 +269,14 @@ class AIProcessorService
         try {
             $apiKey = \config('services.openai.api_key');
 
-            Log::info("OpenAI Transcription Started", [
+            \Log::info("OpenAI Transcription Started", [
                 'file_path' => $filePath,
                 'file_size' => file_exists($filePath) ? filesize($filePath) : 0,
                 'mime' => file_exists($filePath) ? mime_content_type($filePath) : 'unknown'
             ]);
 
             if (!$apiKey) {
-                Log::error("OpenAI API Key not configured for transcription");
+                \Log::error("OpenAI API Key not configured for transcription");
                 return '';
             }
 
@@ -313,7 +313,7 @@ class AIProcessorService
                 ]);
 
             if ($response->failed()) {
-                Log::error("OpenAI Whisper API Error", [
+                \Log::error("OpenAI Whisper API Error", [
                     'status' => $response->status(),
                     'error' => $response->body()
                 ]);
@@ -322,13 +322,13 @@ class AIProcessorService
 
             $data = $response->json();
 
-            Log::info("OpenAI Whisper Response Received", [
+            \Log::info("OpenAI Whisper Response Received", [
                 'text_length' => strlen($data['text'] ?? '')
             ]);
 
             return $data['text'] ?? '';
         } catch (\Exception $e) {
-            Log::error("transcribeAudio() exception: " . $e->getMessage());
+            \Log::error("transcribeAudio() exception: " . $e->getMessage());
             return '';
         }
     }
@@ -857,10 +857,14 @@ class AIProcessorService
             ->where('sentiment_score', '<', $positiveThreshold)->count();
         $negative = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
+        $posPct = (int)round(($positive / $totalReviews) * 100);
+        $neuPct = (int)round(($neutral / $totalReviews) * 100);
+        $negPct = (int)round(($negative / $totalReviews) * 100);
+
         $sentimentBreakdown = [
-            'positive' => round(($positive / $totalReviews) * 100),
-            'neutral' => round(($neutral / $totalReviews) * 100),
-            'negative' => round(($negative / $totalReviews) * 100)
+            'positive' => $posPct,
+            'neutral' => $neuPct,
+            'negative' => $negPct
         ];
 
         $summary = self::generateAiSummaryReport($reviews, $sentimentBreakdown);
@@ -1025,38 +1029,14 @@ class AIProcessorService
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $neutralCount = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
-            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
+        $neutralCount = $reviews->where('sentiment_score', '>=', $negativeThreshold)
+            ->where('sentiment_score', '<', $positiveThreshold)->count();
         $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
-        // Calculate percentages ensuring they sum to 100
-        $positivePercentage = ($positiveCount / $totalReviews) * 100;
-        $neutralPercentage = ($neutralCount / $totalReviews) * 100;
-        $negativePercentage = ($negativeCount / $totalReviews) * 100;
-
-        // Round percentages
-        $positivePercentageRounded = round($positivePercentage);
-        $neutralPercentageRounded = round($neutralPercentage);
-        $negativePercentageRounded = round($negativePercentage);
-
-        // Adjust for rounding errors to ensure total = 100
-        $total = $positivePercentageRounded + $neutralPercentageRounded + $negativePercentageRounded;
-        $difference = 100 - $total;
-
-        if ($difference != 0) {
-            // Find which percentage has the largest decimal part and adjust it
-            $positiveDecimal = $positivePercentage - floor($positivePercentage);
-            $neutralDecimal = $neutralPercentage - floor($neutralPercentage);
-            $negativeDecimal = $negativePercentage - floor($negativePercentage);
-
-            if ($positiveDecimal >= $neutralDecimal && $positiveDecimal >= $negativeDecimal) {
-                $positivePercentageRounded += $difference;
-            } elseif ($neutralDecimal >= $negativeDecimal) {
-                $neutralPercentageRounded += $difference;
-            } else {
-                $negativePercentageRounded += $difference;
-            }
-        }
+        // Calculate and round percentages separately
+        $positivePercentageRounded = (int)round(($positiveCount / $totalReviews) * 100);
+        $neutralPercentageRounded = (int)round(($neutralCount / $totalReviews) * 100);
+        $negativePercentageRounded = (int)round(($negativeCount / $totalReviews) * 100);
 
         $topics = $this->extractTopicsFromReviews($reviews);
         $performanceByCategory = $this->calculatePerformanceByCategory($reviews);
@@ -1529,10 +1509,14 @@ class AIProcessorService
             ->where('sentiment_score', '<', $positiveThreshold)->count();
         $negative = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
+        $posPct = (int)round(($positive / $total) * 100);
+        $neuPct = (int)round(($neutral / $total) * 100);
+        $negPct = (int)round(($negative / $total) * 100);
+
         return [
-            'positive' => round(($positive / $total) * 100),
-            'neutral' => round(($neutral / $total) * 100),
-            'negative' => round(($negative / $total) * 100)
+            'positive' => $posPct,
+            'neutral' => $neuPct,
+            'negative' => $negPct
         ];
     }
 
@@ -1566,10 +1550,14 @@ class AIProcessorService
         $neutral = $reviews->where('sentiment_score', '>=', $negativeThreshold)
             ->where('sentiment_score', '<', $positiveThreshold)->count();
 
+        $posPct = (int)round(($compliments / $totalReviews) * 100);
+        $neuPct = (int)round(($neutral / $totalReviews) * 100);
+        $negPct = (int)round(($complaints / $totalReviews) * 100);
+
         return [
-            'compliments_percentage' => round(($compliments / $totalReviews) * 100),
-            'complaints_percentage' => round(($complaints / $totalReviews) * 100),
-            'neutral_percentage' => round(($neutral / $totalReviews) * 100),
+            'compliments_percentage' => $posPct,
+            'complaints_percentage' => $negPct,
+            'neutral_percentage' => $neuPct,
             'compliments_count' => $compliments,
             'complaints_count' => $complaints,
             'neutral_count' => $neutral

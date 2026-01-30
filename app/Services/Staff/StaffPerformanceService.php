@@ -72,9 +72,18 @@ class StaffPerformanceService
             $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
             $negativeReviews = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
-            $neutralLower = $this->ruleEngineService->getNeutralLowerThreshold();
-            $neutralUpper = $this->ruleEngineService->getNeutralUpperThreshold();
-            $neutralReviews = $reviews->whereBetween('calculated_rating', [$neutralLower, $neutralUpper])->count();
+            // Align neutral logic with AIProcessorService: score >= negative AND score < positive
+            $neutralReviews = $reviews->where('sentiment_score', '>=', $negativeThreshold)
+                ->where('sentiment_score', '<', $positiveThreshold)->count();
+
+            $totalCount = $reviews->count();
+            if ($totalCount > 0) {
+                $posPct = (int)round(($positiveReviews / $totalCount) * 100);
+                $neuPct = (int)round(($neutralReviews / $totalCount) * 100);
+                $negPct = (int)round(($negativeReviews / $totalCount) * 100);
+            } else {
+                $posPct = $neuPct = $negPct = 0;
+            }
 
             $staff_suggestions = $reviews->pluck('staff_suggestions')->flatten()->unique();
 
@@ -90,17 +99,11 @@ class StaffPerformanceService
                 ] : null,
                 'rating' => $avgRating,
                 'image' => $staff->image ?? null,
-                'review_count' => $reviews->count(),
+                'review_count' => $totalCount,
                 'sentiment_breakdown' => [
-                    'positive' => $reviews->count() > 0
-                        ? round(($positiveReviews / $reviews->count()) * 100)
-                        : 0,
-                    'neutral' => $reviews->count() > 0
-                        ? round(($neutralReviews / $reviews->count()) * 100)
-                        : 0,
-                    'negative' => $reviews->count() > 0
-                        ? round(($negativeReviews / $reviews->count()) * 100)
-                        : 0
+                    'positive' => $posPct,
+                    'neutral' => $neuPct,
+                    'negative' => $negPct
                 ],
                 'positive_count' => $positiveReviews,
                 'negative_count' => $negativeReviews,
