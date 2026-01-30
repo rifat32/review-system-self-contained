@@ -577,6 +577,10 @@ class ReviewNew extends Model
             ? request()->user()->default_branch_id
             : null;
 
+        if (request()->filled('branch_id')) {
+            $userBranchId = request()->input('branch_id');
+        }
+
 
         $query
             // Apply is_overall filter using dedicated scope
@@ -624,10 +628,6 @@ class ReviewNew extends Model
             })
             ->when($userBranchId && $turn_off_branch_filter == 0 && !request()->has('branch_id'), function ($q) use ($userBranchId) {
                 $q->where("review_news.branch_id", $userBranchId);
-            })
-            ->when(request()->has('branch_id'), function ($q) {
-                $branchId = request()->input('branch_id');
-                $q->where("review_news.branch_id", $branchId);
             });
 
         return $query;

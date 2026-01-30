@@ -318,18 +318,22 @@ class StaffPerformanceService
             $avgRating = $totalReviews > 0 ? $totalRating / $totalReviews : 0;
             $avgSentiment = $totalReviews > 0 ? $totalSentiment / $totalReviews : 0;
 
-            $staffMetrics[] = [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'position' => $staff->job_title ?? 'Staff',
-                'avg_rating' => round($avgRating, 1),
-                'sentiment_score' => RuleEngineService::getSentimentLabelFromScore($avgSentiment),
-                'compliments_count' => $compliments,
-                'complaints_count' => $complaints,
-                'neutral_count' => $neutral,
-                'total_reviews' => $totalReviews,
-                'sentiment_numeric' => round($avgSentiment * 100)
-            ];
+            $staff_data = $staff->toArray();
+
+
+            $staff_data['staff_id'] = $staffId;
+            $staff_data['staff_name'] = $staff["name"];
+            $staff_data['position'] = $staff["job_title"] ?? 'Staff';
+            $staff_data['avg_rating'] = round($avgRating, 1);
+            $staff_data['sentiment_score'] = RuleEngineService::getSentimentLabelFromScore($avgSentiment);
+            $staff_data['compliments_count'] = $compliments;
+            $staff_data['complaints_count'] = $complaints;
+            $staff_data['neutral_count'] = $neutral;
+            $staff_data['total_reviews'] = $totalReviews;
+            $staff_data['sentiment_numeric'] = round($avgSentiment * 100);
+
+
+            $staffMetrics[] = $staff_data;
         }
 
         usort($staffMetrics, function ($a, $b) {
