@@ -328,7 +328,7 @@ class UserController extends Controller
             }
 
             // business owner cannot delete 
-            if ($user->id === $id) {
+            if ($authUser->id === $user->id) {
                 throw new AccessDeniedHttpException('Access denied : You can not delete yourself');
             }
         }

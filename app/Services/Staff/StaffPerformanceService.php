@@ -285,7 +285,15 @@ class StaffPerformanceService
         $staffMetrics = [];
 
         foreach ($staffGroups as $staffId => $reviewsArray) {
-            $staff = User::find($staffId);
+            $staff = User::with([
+                'roles:id,name',
+                'branches',
+                'branch',
+                'branch.branch:id,name',
+                'branch.branch.manager:id,first_Name,last_Name,email'
+            ])->where(
+                ['id' => $staffId]
+            )->first();
             if (!$staff) {
                 continue;
             }
@@ -319,7 +327,6 @@ class StaffPerformanceService
             $avgSentiment = $totalReviews > 0 ? $totalSentiment / $totalReviews : 0;
 
             $staff_data = $staff->toArray();
-
 
             $staff_data['staff_id'] = $staffId;
             $staff_data['staff_name'] = $staff["name"];

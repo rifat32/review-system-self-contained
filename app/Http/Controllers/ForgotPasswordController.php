@@ -74,34 +74,75 @@ class ForgotPasswordController extends Controller
 
     public function storeForgetPassword(Request $request)
     {
-        // VALIDATE REQUEST
-        $request_payload = $request->validate([
-            "email" => "required|email"
-        ]);
+        try {
+            // VALIDATE REQUEST
+            $request_payload = $request->validate([
+                "email" => "required|email"
+            ]);
 
-        // GET USER BY EMAIL
-        $user = User::where(["email" => $request_payload["email"]])->firstOrFail();
+            // GET USER BY EMAIL
+            $user = User::where("email", $request_payload["email"])->first();
 
+            if (!$user) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "No account found with this email address",
+                    "errors" => [
+                        "email" => ["The provided email is not registered in our system"]
+                    ]
+                ], 404);
+            }
 
-        // CREATE TOKEN AND SAVE TO DB
-        $token = Str::random(30);
-        DB::table('password_resets')->updateOrInsert(
-            ['email' => $user->email],
-            ['token' => Hash::make($token), 'created_at' => now()]
-        );
+            // CREATE TOKEN AND SAVE TO DB
+            $token = Str::random(30);
+            DB::table('password_resets')->updateOrInsert(
+                ['email' => $user->email],
+                ['token' => Hash::make($token), 'created_at' => now()]
+            );
 
+            // SEND EMAIL
+            try {
+                Mail::to($user->email)->send(new ForgetPasswordMail($user, $token));
+            } catch (\Exception $mailException) {
+                // Log the error but don't expose mail server details to user
+                \Log::error('Password reset email failed: ' . $mailException->getMessage());
 
-        // SEND EMAIL
-        Mail::to($request_payload["email"])->send(new ForgetPasswordMail($user, $token));
+                return response()->json([
+                    "success" => false,
+                    "message" => "Failed to send password reset email. Please try again later",
+                    "errors" => [
+                        "email" => ["Unable to send email at this time"]
+                    ]
+                ], 500);
+            }
 
-        // RETURN RESPONSE
-        return response()->json([
-            "success" => true,
-            "message" => "please check email",
-            "data" => [
-                "email" => $user->email
-            ]
-        ], 200);
+            // RETURN SUCCESS RESPONSE
+            return response()->json([
+                "success" => true,
+                "message" => "Password reset link has been sent to your email",
+                "data" => [
+                    "email" => $user->email
+                ]
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Laravel handles this automatically, but you can customize if needed
+            return response()->json([
+                "success" => false,
+                "message" => "Validation failed",
+                "errors" => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            // Log unexpected errors
+            \Log::error('Forget password error: ' . $e->getMessage());
+
+            return response()->json([
+                "success" => false,
+                "message" => "An unexpected error occurred. Please try again later",
+                "errors" => [
+                    "system" => ["Internal server error"]
+                ]
+            ], 500);
+        }
     }
 
 
