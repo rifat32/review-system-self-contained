@@ -498,12 +498,12 @@ class RuleEngineService
 
     public static function getNeutralLowerThreshold(): float
     {
-        return (float) \config('ai.sentiment.thresholds.neutral_lower', 2.1);
+        return (float) \config('ai.sentiment.thresholds.negative_score', 0.4);
     }
 
     public static function getNeutralUpperThreshold(): float
     {
-        return (float) \config('ai.sentiment.thresholds.neutral_upper', 3.9);
+        return (float) \config('ai.sentiment.thresholds.positive_score', 0.7) - 0.01;
     }
 
     public static function getCsatThreshold(): float

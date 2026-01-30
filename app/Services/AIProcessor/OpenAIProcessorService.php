@@ -257,8 +257,8 @@ class OpenAIProcessorService
 
                 $anomalies = config('ai.openai.anomalies', []);
 
-                // Flag severe mismatches
-                if ($rating >= ($anomalies['mismatch_high_rating'] ?? 4) && $sentimentScore <= ($anomalies['mismatch_negative_sentiment'] ?? -0.5)) {
+                // Flag severe mismatches (high rating but negative sentiment)
+                if ($rating >= ($anomalies['mismatch_high_rating'] ?? 4) && $sentimentScore <= ($anomalies['mismatch_negative_sentiment'] ?? 0.3)) {
                     Log::warning('SEVERE RATING-SENTIMENT MISMATCH', [
                         'review_id' => $payload['review_id'] ?? 'unknown',
                         'rating' => $rating,
@@ -269,8 +269,8 @@ class OpenAIProcessorService
                     ]);
                 }
 
-                // Also check for other anomalies
-                if ($rating <= ($anomalies['mismatch_low_rating'] ?? 2) && $sentimentScore >= ($anomalies['mismatch_positive_sentiment'] ?? 0.5)) {
+                // Also check for other anomalies (low rating but positive sentiment)
+                if ($rating <= ($anomalies['mismatch_low_rating'] ?? 2) && $sentimentScore >= ($anomalies['mismatch_positive_sentiment'] ?? 0.7)) {
                     Log::warning('LOW RATING WITH POSITIVE SENTIMENT', [
                         'review_id' => $payload['review_id'] ?? 'unknown',
                         'rating' => $rating,
@@ -727,7 +727,7 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
   },
   "sentiment": {
     "label": "very_negative|negative|neutral|positive|very_positive",
-    "score": -1.0 to 1.0  
+    "score": -1.0 to 1.0
 },
   "emotion": {
     "primary": "joy|sadness|anger|fear|surprise|disgust|neutral",

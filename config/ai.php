@@ -12,11 +12,11 @@ return [
     */
 
     'sentiment' => [
-        // Mapping of AI sentiment scores (-1.0 to 1.0) to labels
+        // Mapping of AI sentiment scores (0.0 to 1.0) to labels
         'score_labels' => [
-            ['min' => 0.5, 'max' => 1.0, 'label' => 'positive'],
-            ['min' => -0.5, 'max' => 0.49, 'label' => 'neutral'],
-            ['min' => -1.0, 'max' => -0.51, 'label' => 'negative'],
+            ['min' => 0.7, 'max' => 1.0, 'label' => 'positive'],
+            ['min' => 0.4, 'max' => 0.69, 'label' => 'neutral'],
+            ['min' => 0.0, 'max' => 0.39, 'label' => 'negative'],
         ],
 
         // Mapping of satisfaction percentages (0 to 100) to labels
@@ -30,8 +30,6 @@ return [
         'thresholds' => [
             'positive_score' => 0.7,
             'negative_score' => 0.4,
-            'neutral_lower' => 2.1,
-            'neutral_upper' => 3.9,
             'csat' => 4.0,
             'high_rating' => 4.0,
             'low_rating' => 2.0,
@@ -203,9 +201,9 @@ return [
 
         'anomalies' => [
             'mismatch_high_rating' => 4,
-            'mismatch_negative_sentiment' => -0.5,
+            'mismatch_negative_sentiment' => 0.3,
             'mismatch_low_rating' => 2,
-            'mismatch_positive_sentiment' => 0.5,
+            'mismatch_positive_sentiment' => 0.7,
         ],
     ],
 

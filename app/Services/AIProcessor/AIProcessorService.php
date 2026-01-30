@@ -1685,33 +1685,63 @@ class AIProcessorService
     }
 
     /**
-     * Calculate aggregated sentiment dynamically
+     * Calculate aggregated sentiment dynamically using raw SQL for optimal performance
+     *
+     * Accepts either a query builder or collection. If query builder is provided,
+     * uses a single database query with conditional aggregation for maximum efficiency.
+     * If collection is provided, calculates from the in-memory data.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Support\Collection $reviews
+     * @return array
      */
     public function calculateAggregatedSentiment($reviews)
     {
-        $total = count($reviews);
-        $positive = 0;
-        $neutral = 0;
-        $negative = 0;
-        $totalScore = 0;
-
         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
-        foreach ($reviews as $review) {
-            $score = $review->sentiment_score ?? 0;
-            $totalScore += $score;
+        // If it's a query builder, use raw SQL for one database round trip
+        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            $result = $reviews->selectRaw("
+                COUNT(*) as total_reviews,
+                COALESCE(AVG(sentiment_score), 0) as avg_score,
+                SUM(CASE WHEN sentiment_score >= ? THEN 1 ELSE 0 END) as positive_count,
+                SUM(CASE WHEN sentiment_score >= ? AND sentiment_score < ? THEN 1 ELSE 0 END) as neutral_count,
+                SUM(CASE WHEN sentiment_score < ? THEN 1 ELSE 0 END) as negative_count
+            ", [
+                $positiveThreshold,
+                $negativeThreshold,
+                $positiveThreshold,
+                $negativeThreshold
+            ])->first();
 
-            if ($score >= $positiveThreshold) {
-                $positive++;
-            } elseif ($score >= $negativeThreshold) {
-                $neutral++;
-            } else {
-                $negative++;
+            $total = (int) $result->total_reviews;
+            $avgScore = $total > 0 ? round((float) $result->avg_score, 2) : 0;
+            $positive = (int) $result->positive_count;
+            $neutral = (int) $result->neutral_count;
+            $negative = (int) $result->negative_count;
+        } else {
+            // Collection - calculate in memory
+            $total = count($reviews);
+            $positive = 0;
+            $neutral = 0;
+            $negative = 0;
+            $totalScore = 0;
+
+            foreach ($reviews as $review) {
+                $score = $review->sentiment_score ?? 0;
+                $totalScore += $score;
+
+                if ($score >= $positiveThreshold) {
+                    $positive++;
+                } elseif ($score >= $negativeThreshold) {
+                    $neutral++;
+                } else {
+                    $negative++;
+                }
             }
-        }
 
-        $avgScore = $total > 0 ? round($totalScore / $total, 2) : 0;
+            $avgScore = $total > 0 ? round($totalScore / $total, 2) : 0;
+        }
 
         return [
             'total_reviews' => $total,
