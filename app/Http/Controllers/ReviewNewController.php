@@ -3273,16 +3273,6 @@ class ReviewNewController extends Controller
      *          description="Items per page"
      *      ),
      *      @OA\Parameter(
-     *          name="status",
-     *          in="query",
-     *          required=false,
-     *          description="Filter by review status",
-     *          @OA\Schema(
-     *              type="string",
-     *              enum={"pending", "published", "rejected"}
-     *          )
-     *      ),
-     *      @OA\Parameter(
      *          name="sort_by",
      *          in="query",
      *          required=false,
@@ -3305,13 +3295,23 @@ class ReviewNewController extends Controller
      *          description="Filter reviews until this date"
      *      ),
      *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Time period filter (e.g., last_7_days, last_30_days, last_90_days, this_month, last_month, this_year)",
+     *          @OA\Schema(
+     *              type="string"
+     *          ),
+     *          example="last_30_days"
+     *      ),
+     *      @OA\Parameter(
      *          name="sentiment_score",
      *          in="query",
      *          required=false,
      *          description="Filter reviews by sentiment score",
      *          @OA\Schema(
      *              type="string",
-     *              enum={"very_positive", "positive", "neutral", "negative", "very_negative"}
+     *              enum={ "positive", "neutral", "negative"}
      *          ),
      *          example="positive"
      *      ),
@@ -3319,7 +3319,7 @@ class ReviewNewController extends Controller
      *          name="meets_threshold",
      *          in="query",
      *          required=false,
-     *          description="Filter reviews by threshold status (1 for reviews that meet threshold, 0 for reviews that don't meet threshold)",
+     *          description="Filter reviews by threshold status (1 for csat score reviews that meet threshold, 0 for flagged reviews that don't meet threshold)",
      *          @OA\Schema(
      *              type="integer",
      *              enum={0, 1}
@@ -3335,6 +3335,16 @@ class ReviewNewController extends Controller
      *              type="integer"
      *          ),
      *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="staff_ids",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by multiple staff IDs (comma-separated, e.g., 1,2,3)",
+     *          @OA\Schema(
+     *              type="string"
+     *          ),
+     *          example="1,2,3"
      *      ),
      *      @OA\Parameter(
      *          name="branch_id",
@@ -3377,6 +3387,67 @@ class ReviewNewController extends Controller
      *              type="string"
      *          ),
      *          example="Food Quality"
+     *      ),
+     *      @OA\Parameter(
+     *          name="review_ids",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by specific review IDs (comma-separated, e.g., 1,2,3)",
+     *          @OA\Schema(
+     *              type="string"
+     *          ),
+     *          example="1,2,3"
+     *      ),
+     *      @OA\Parameter(
+     *          name="is_voice_review",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by voice review status (1 = voice reviews, 0 = text reviews)",
+     *          @OA\Schema(
+     *              type="integer",
+     *              enum={0,1}
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="question_category_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by parent question category ID",
+     *          @OA\Schema(
+     *              type="integer"
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="question_sub_category_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by question sub-category ID",
+     *          @OA\Schema(
+     *              type="integer"
+     *          ),
+     *          example=5
+     *      ),
+     *      @OA\Parameter(
+     *          name="business_area_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by business area ID",
+     *          @OA\Schema(
+     *              type="integer"
+     *          ),
+     *          example=1
+     *      ),
+     *      @OA\Parameter(
+     *          name="business_service_id",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by business service ID",
+     *          @OA\Schema(
+     *              type="integer"
+     *          ),
+     *          example=3
      *      ),
      *      @OA\Response(
      *          response=200,
@@ -3423,90 +3494,9 @@ class ReviewNewController extends Controller
             "survey",
         ])->where("business_id", $businessId)
             ->globalReviewFilters(0)
+            ->reviewFilters()
             ->filterByDateRange()
             ->withCalculatedRating();
-
-        // Apply review_ids filter (comma-separated IDs)
-        if ($request->has('review_ids') && !empty($request->review_ids)) {
-            $reviewIds = $request->input('review_ids');
-
-            // Handle both array and comma-separated string
-            if (is_string($reviewIds)) {
-                $reviewIds = array_filter(array_map('trim', explode(',', $reviewIds)));
-            }
-
-            if (!empty($reviewIds)) {
-                $query->whereIn('id', $reviewIds);
-            }
-        }
-
-        // Apply status filter
-        if ($request->has('status') && !empty($request->status)) {
-            $query->where('status', $request->status);
-        }
-
-
-        if ($request->has('sentiment_score') && !empty($request->sentiment_score)) {
-            $sentiment_score = $request->sentiment_score;
-
-            if ($sentiment_score === 'very_positive') {
-                $query->where('sentiment_score', '>=', 0.8);
-            } elseif ($sentiment_score === 'positive') {
-                $query->where('sentiment_score', '>=', 0.6)->where('sentiment_score', '<', 0.8);
-            } elseif ($sentiment_score === 'neutral') {
-                $query->where('sentiment_score', '>=', 0.4)->where('sentiment_score', '<', 0.6);
-            } elseif ($sentiment_score === 'negative') {
-                $query->where('sentiment_score', '>=', 0.2)->where('sentiment_score', '<', 0.4);
-            } elseif ($sentiment_score === 'very_negative') {
-                $query->where('sentiment_score', '<', 0.2);
-            }
-        }
-
-        // Apply threshold filter
-        if ($request->has('meets_threshold')) {
-            $meetsThreshold = $request->input('meets_threshold');
-            if ($meetsThreshold == 1) {
-                $query->whereMeetsThreshold();
-            } elseif ($meetsThreshold == 0) {
-                $query->whereDoesNotMeetsThreshold();
-            }
-        }
-
-        // Apply staff presence filter (has_staff=1 => has staff, 0 => no staff)
-        if ($request->has('has_staff')) {
-            $hasStaff = (int) $request->input('has_staff');
-            if ($hasStaff === 1) {
-                $query->whereNotNull('staff_id');
-            } elseif ($hasStaff === 0) {
-                $query->whereNull('staff_id');
-            }
-        }
-
-        // Apply specific staff filter
-        if ($request->has('staff_id') && !empty($request->staff_id)) {
-            $staffId = (int) $request->input('staff_id');
-            $query->where('staff_id', $staffId);
-        }
-
-
-
-        // Apply is_overall filter
-        if ($request->has('is_overall')) {
-            $isOverall = (int) $request->input('is_overall');
-            if ($isOverall === 1) {
-                $query->where('is_overall', 1);
-            } elseif ($isOverall === 0) {
-                $query->where('is_overall', 0);
-            }
-            // If not 0 or 1, or not specified, show all (no filter applied)
-        }
-
-        // Apply topics filter by main_category
-        if ($request->has('topics') && !empty($request->topics)) {
-            $topic = $request->input('topics');
-            // Use whereRaw with JSON_CONTAINS to search within the main_category field
-            $query->whereRaw("JSON_SEARCH(topics, 'one', ?, null, '$[*].main_category') IS NOT NULL", [$topic]);
-        }
 
         // Sorting logic
         $sortBy = $request->get('sort_by', 'newest');

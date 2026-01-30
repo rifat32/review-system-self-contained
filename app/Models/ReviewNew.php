@@ -193,93 +193,9 @@ class ReviewNew extends Model
         return $this->hasMany(ReviewValueNew::class, 'review_id');
     }
 
-    // In your QuestionValue model (or the model that has 'value' relation)
-    public function scopeFilterByOverall($query, $is_overall)
-    {
-        return $query->where('is_overall', $is_overall ? 1 : 0);
-    }
 
 
-    public function scopeGlobalReviewFilters($query, $show_published_only = 0, $is_staff_review = 0, $turn_off_branch_filter = 0)
-    {
-        // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
-        $userBranchId = request()->user() && (request()->user()->hasRole('branch_manager') || request()->user()->hasRole('business_owner'))
-            ? request()->user()->default_branch_id
-            : null;
 
-
-        $query
-            ->when(request()->filled('is_overall'), function ($q) {
-                $q->when(request()->boolean('is_overall'), function ($q) {
-                    $q->where('review_news.is_overall', 1);
-                }, function ($q) {
-                    $q->where('review_news.is_overall', 0);
-                });
-            })
-            ->when(request()->has('staff_id'), function ($q) {
-                $q->where('review_news.staff_id', request()->input('staff_id'));
-            })
-            ->when(request()->has('is_voice_review'), function ($q) {
-                $q->where('review_news.is_voice_review', request()->input('is_voice_review'));
-            })
-            ->when($show_published_only, function ($q) use ($is_staff_review) {
-                $q->whereMeetsThreshold($is_staff_review);
-            })
-            ->when(request()->filled("question_category_id") || request()->filled("question_sub_category_id"), function ($q) {
-
-                $q
-                    ->whereHas("value", function ($q) {
-                        $q->whereHas("question", function ($q) {
-                            $q->whereHas("question_sub_categories", function ($q) {
-
-                                $q
-                                    ->when(request()->filled("question_sub_category_id"), function ($q) {
-                                        $q->where("question_categories.id", request()->input("question_sub_category_id"));
-                                    })
-                                    ->when(request()->filled("question_category_id"), function ($q) {
-                                        $q->where("question_categories.parent_id", request()->input("question_category_id"));
-                                    });
-                            });
-                        });
-                    });
-            })
-
-            ->when(request()->filled("business_area_id") || request()->filled("business_service_id"), function ($q) {
-
-                $q
-                    ->whereHas("review_business_services", function ($q) {
-
-                        $q
-                            ->when(request()->filled("business_area_id"), function ($q) {
-                                $q->where("review_business_services.id", request()->input("business_area_id"));
-                            })
-                            ->when(request()->filled("business_service_id"), function ($q) {
-                                $q->where("review_business_services.business_service_id", request()->input("question_category_id"));
-                            });
-                    });
-            })->when($userBranchId && $turn_off_branch_filter == 0, function ($q) use ($userBranchId) {
-                $q->where("review_news.branch_id", $userBranchId);
-            });
-
-        return $query;
-    }
-
-    public function scopeFilterByDateRange($query)
-    {
-        $query->when(request()->filled('start_date'), function ($q) {
-            $q->whereDate('review_news.created_at', '>=', Carbon::parse(request()->input('start_date'))->startOfDay());
-        })
-            ->when(request()->filled('end_date'), function ($q) {
-                $q->whereDate('review_news.created_at', '<=', Carbon::parse(request()->input('end_date'))->endOfDay());
-            })
-            ->when(request()->filled('period'), function ($q) {
-                $dateRange = getDateRangeByPeriod(request()->input('period'));
-                $q->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
-            });
-
-
-        return $query;
-    }
 
 
     /**
@@ -383,5 +299,238 @@ class ReviewNew extends Model
                 ->groupBy('rvn.review_id')
                 ->havingRaw('AVG(s.value) < ?', [$thresholdRating]);
         });
+    }
+
+
+    // In your QuestionValue model (or the model that has 'value' relation)
+    public function scopeFilterByOverall($query, $is_overall)
+    {
+        return $query->where('is_overall', $is_overall ? 1 : 0);
+    }
+
+
+
+
+
+    public function scopeFilterByDateRange($query)
+    {
+        $query->when(request()->filled('start_date'), function ($q) {
+            $q->whereDate('review_news.created_at', '>=', Carbon::parse(request()->input('start_date'))->startOfDay());
+        })
+            ->when(request()->filled('end_date'), function ($q) {
+                $q->whereDate('review_news.created_at', '<=', Carbon::parse(request()->input('end_date'))->endOfDay());
+            })
+            ->when(request()->filled('period'), function ($q) {
+                $dateRange = getDateRangeByPeriod(request()->input('period'));
+                $q->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
+            });
+
+
+        return $query;
+    }
+
+    public function scopeFilterBySentimentScore($query)
+    {
+        $positiveThreshold = (float) config('ai.sentiment.thresholds.positive_score', 0.7);
+        $negativeThreshold = (float) config('ai.sentiment.thresholds.negative_score', 0.4);
+
+        $query->when(request()->has('sentiment_score') && !empty(request()->input('sentiment_score')), function ($q) use ($positiveThreshold, $negativeThreshold) {
+            $sentimentScore = request()->input('sentiment_score');
+
+            if ($sentimentScore === 'positive') {
+                $q->where('review_news.sentiment_score', '>=', $positiveThreshold);
+            } elseif ($sentimentScore === 'negative') {
+                $q->where('review_news.sentiment_score', '<', $negativeThreshold);
+            } elseif ($sentimentScore === 'neutral') {
+                $q->where('review_news.sentiment_score', '>=', $negativeThreshold)
+                    ->where('review_news.sentiment_score', '<', $positiveThreshold);
+            }
+        });
+
+        return $query;
+    }
+
+    public function scopeFilterByQuestionCategory($query)
+    {
+        $query->when(request()->filled("question_category_id") || request()->filled("question_sub_category_id"), function ($q) {
+            $q->whereHas("value", function ($q) {
+                $q->whereHas("question", function ($q) {
+                    $q->whereHas("question_sub_categories", function ($q) {
+                        $q
+                            ->when(request()->filled("question_sub_category_id"), function ($q) {
+                                $q->where("question_categories.id", request()->input("question_sub_category_id"));
+                            })
+                            ->when(request()->filled("question_category_id"), function ($q) {
+                                $q->where("question_categories.parent_id", request()->input("question_category_id"));
+                            });
+                    });
+                });
+            });
+        });
+
+        return $query;
+    }
+
+    public function scopeFilterByBusinessArea($query)
+    {
+        $query->when(request()->filled("business_area_id"), function ($q) {
+            $q->whereHas("review_business_services", function ($q) {
+                $q->where("review_business_services.business_area_id", request()->input("business_area_id"));
+            });
+        });
+
+        return $query;
+    }
+
+    public function scopeFilterByBusinessService($query)
+    {
+        $query->when(request()->filled("business_service_id"), function ($q) {
+            $q->whereHas("review_business_services", function ($q) {
+                $q->where("review_business_services.business_service_id", request()->input("business_service_id"));
+            });
+        });
+
+        return $query;
+    }
+
+    public function scopeFilterByStaff($query)
+    {
+        $query
+            // Apply single staff_id filter
+            ->when(request()->has('staff_id'), function ($q) {
+                $q->where('review_news.staff_id', request()->input('staff_id'));
+            })
+            // Apply multiple staff_ids filter (comma-separated)
+            ->when(request()->has('staff_ids') && !empty(request()->input('staff_ids')), function ($q) {
+                $staffIds = request()->input('staff_ids');
+
+                // Handle both array and comma-separated string
+                if (is_string($staffIds)) {
+                    $staffIds = array_map('trim', explode(',', $staffIds));
+                }
+
+                // Filter out non-numeric values and convert to integers
+                $staffIds = array_filter(array_map('intval', $staffIds), function ($id) {
+                    return $id > 0;
+                });
+
+                if (!empty($staffIds)) {
+                    $q->whereIn('review_news.staff_id', $staffIds);
+                }
+            });
+
+        return $query;
+    }
+
+    public function scopeFilterByIsOverall($query)
+    {
+        $query->when(request()->filled('is_overall'), function ($q) {
+            $q->when(request()->boolean('is_overall'), function ($q) {
+                $q->where('review_news.is_overall', 1);
+            }, function ($q) {
+                $q->where('review_news.is_overall', 0);
+            });
+        });
+
+        return $query;
+    }
+
+    public function scopeFilterByIsVoiceReview($query)
+    {
+        $query->when(request()->has('is_voice_review'), function ($q) {
+            $q->where('review_news.is_voice_review', request()->input('is_voice_review'));
+        });
+
+        return $query;
+    }
+
+    public function scopeFilterByReviewIds($query)
+    {
+        $query->when(request()->has('review_ids') && !empty(request()->input('review_ids')), function ($q) {
+            $reviewIds = request()->input('review_ids');
+
+            // Handle both array and comma-separated string
+            if (is_string($reviewIds)) {
+                $reviewIds = array_filter(array_map('trim', explode(',', $reviewIds)));
+            }
+
+            if (!empty($reviewIds)) {
+                $q->whereIn('review_news.id', $reviewIds);
+            }
+        });
+
+        return $query;
+    }
+
+    public function scopeFilterByTopics($query)
+    {
+        $query->when(request()->has('topics') && !empty(request()->input('topics')), function ($q) {
+            $topic = request()->input('topics');
+            // Use whereRaw with JSON_SEARCH to search within the main_category field
+            $q->whereRaw("JSON_SEARCH(review_news.topics, 'one', ?, null, '$[*].main_category') IS NOT NULL", [$topic]);
+        });
+
+        return $query;
+    }
+
+    public function scopeGlobalReviewFilters($query, $show_published_only = 0, $is_staff_review = 0, $turn_off_branch_filter = 0)
+    {
+        // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
+        $userBranchId = request()->user() && (request()->user()->hasRole('branch_manager') || request()->user()->hasRole('business_owner'))
+            ? request()->user()->default_branch_id
+            : null;
+
+
+        $query
+            // Apply is_overall filter using dedicated scope
+            ->filterByIsOverall()
+            // Apply staff filter using dedicated scope
+            ->filterByStaff()
+            // Apply is_voice_review filter using dedicated scope
+            ->filterByIsVoiceReview()
+            // Apply question category filter using dedicated scope
+            ->filterByQuestionCategory()
+            // Apply business area filter using dedicated scope
+            ->filterByBusinessArea()
+            // Apply business service filter using dedicated scope
+            ->filterByBusinessService()
+            ->when($show_published_only, function ($q) use ($is_staff_review) {
+                $q->whereMeetsThreshold($is_staff_review);
+            })
+            ->when(request()->has('meets_threshold'), function ($q) use ($is_staff_review) {
+                $meetsThreshold = request()->input('meets_threshold');
+                if ($meetsThreshold == 1) {
+                    $q->whereMeetsThreshold($is_staff_review);
+                } elseif ($meetsThreshold == 0) {
+                    $q->whereDoesNotMeetsThreshold($is_staff_review);
+                }
+            })
+            ->when(request()->has('has_staff'), function ($q) {
+                $hasStaff = (int) request()->input('has_staff');
+                if ($hasStaff === 1) {
+                    $q->whereNotNull('review_news.staff_id');
+                } elseif ($hasStaff === 0) {
+                    $q->whereNull('review_news.staff_id');
+                }
+            })
+            ->when($userBranchId && $turn_off_branch_filter == 0, function ($q) use ($userBranchId) {
+                $q->where("review_news.branch_id", $userBranchId);
+            });
+
+        return $query;
+    }
+
+
+
+    public function scopeReviewFilters($query)
+    {
+        $query // Apply sentiment score filter using dedicated scope
+            ->filterBySentimentScore()
+            // Apply review_ids filter using dedicated scope
+            ->filterByReviewIds()
+            // Apply topics filter using dedicated scope
+            ->filterByTopics();
+
+        return $query;
     }
 }
