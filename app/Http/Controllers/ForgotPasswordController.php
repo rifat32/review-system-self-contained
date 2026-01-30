@@ -230,12 +230,14 @@ class ForgotPasswordController extends Controller
         // Find the reset record
         $reset = DB::table('password_resets')
             ->where('created_at', '>', now()->subHours(1))
-            ->get()
-            ->first(function ($record) use ($token) {
-                return Hash::check($token, $record->token);
-            });
+            ->orderBy('created_at', 'desc')
+            ->first();
 
-        if (!$reset) {
+
+        $hash_check = Hash::check($token, $reset->token);
+
+
+        if (!$hash_check) {
             throw new BadRequestHttpException('invalid token or token expired');
         }
 
