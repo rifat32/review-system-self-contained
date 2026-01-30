@@ -364,7 +364,8 @@ class ReviewNew extends Model
             } elseif ($sentimentScore === 'negative') {
                 $q->where('review_news.sentiment_score', '<', $negativeThreshold);
             } elseif ($sentimentScore === 'neutral') {
-                $q->whereBetween('review_news.sentiment_score', [$negativeThreshold, $positiveThreshold]);
+                $q->where('review_news.sentiment_score', '>=', $negativeThreshold)
+                    ->where('review_news.sentiment_score', '<', $positiveThreshold);
             }
         });
 

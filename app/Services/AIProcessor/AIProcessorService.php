@@ -853,7 +853,8 @@ class AIProcessorService
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
         $positive = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $neutral = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
+        $neutral = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
+            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
         $negative = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
         $sentimentBreakdown = [
@@ -1024,7 +1025,8 @@ class AIProcessorService
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $neutralCount = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
+        $neutralCount = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
+            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
         $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
         // Calculate percentages ensuring they sum to 100
@@ -1388,7 +1390,8 @@ class AIProcessorService
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
         $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $neutralCount = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
+        $neutralCount = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
+            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
         $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
         $today = Carbon::today();
@@ -1432,7 +1435,8 @@ class AIProcessorService
             ->sortByDesc('created_at')
             ->take($limit);
 
-        $constructiveReviews = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])
+        $constructiveReviews = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
+            ->where('review_news.sentiment_score', '<', $positiveThreshold)
             ->sortByDesc('created_at')
             ->take($limit);
 
@@ -1520,9 +1524,10 @@ class AIProcessorService
         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
-        $positive = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $neutral = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
-        $negative = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
+        $positive = $reviews->where('review_news.sentiment_score', '>=', $positiveThreshold)->count();
+        $neutral = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
+            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
+        $negative = $reviews->where('review_news.sentiment_score', '<', $negativeThreshold)->count();
 
         return [
             'positive' => round(($positive / $total) * 100),
@@ -1558,7 +1563,8 @@ class AIProcessorService
         $complaints = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
         // NEUTRAL
-        $neutral = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
+        $neutral = $reviews->where('review_news.sentiment_score', '>=', $negativeThreshold)
+            ->where('review_news.sentiment_score', '<', $positiveThreshold)->count();
 
         return [
             'compliments_percentage' => round(($compliments / $totalReviews) * 100),
@@ -1716,14 +1722,24 @@ class AIProcessorService
             $result = $reviews->selectRaw("
                 COUNT(*) as total_reviews,
                 COALESCE(AVG(sentiment_score), 0) as avg_score,
+                SUM(sentiment_score) as total_score_sum,
                 SUM(CASE WHEN sentiment_score >= ? THEN 1 ELSE 0 END) as positive_count,
                 SUM(CASE WHEN sentiment_score >= ? AND sentiment_score < ? THEN 1 ELSE 0 END) as neutral_count,
-                SUM(CASE WHEN sentiment_score < ? THEN 1 ELSE 0 END) as negative_count
+                SUM(CASE WHEN sentiment_score < ? THEN 1 ELSE 0 END) as negative_count,
+                SUM(CASE WHEN sentiment_score IS NULL THEN 1 ELSE 0 END) as null_count,
+                SUM(CASE WHEN sentiment_score = 0 THEN 1 ELSE 0 END) as zero_count,
+                SUM(CASE WHEN sentiment_score > 0 AND sentiment_score < ? THEN 1 ELSE 0 END) as low_count,
+                SUM(CASE WHEN sentiment_score >= ? AND sentiment_score < ? THEN 1 ELSE 0 END) as mid_count,
+                SUM(CASE WHEN sentiment_score >= ? THEN 1 ELSE 0 END) as high_count
             ", [
                 $positiveThreshold,
                 $negativeThreshold,
                 $positiveThreshold,
-                $negativeThreshold
+                $negativeThreshold,
+                $negativeThreshold,
+                $negativeThreshold,
+                $positiveThreshold,
+                $positiveThreshold
             ])->first();
 
             $total = (int) $result->total_reviews;
@@ -1731,6 +1747,37 @@ class AIProcessorService
             $positive = (int) $result->positive_count;
             $neutral = (int) $result->neutral_count;
             $negative = (int) $result->negative_count;
+
+            // Debug logging with detailed distribution
+            \Log::info('calculateAggregatedSentiment (SQL Query Builder) - DETAILED', [
+                'total' => $total,
+                'avg_score' => $avgScore,
+                'total_score_sum' => $result->total_score_sum,
+                'counts' => [
+                    'positive' => $positive,
+                    'neutral' => $neutral,
+                    'negative' => $negative,
+                ],
+                'thresholds' => [
+                    'positive' => $positiveThreshold,
+                    'negative' => $negativeThreshold,
+                ],
+                'score_distribution' => [
+                    'null_scores' => (int) $result->null_count,
+                    'zero_scores' => (int) $result->zero_count,
+                    'low_scores' => (int) $result->low_count,
+                    'mid_scores' => (int) $result->mid_count,
+                    'high_scores' => (int) $result->high_count,
+                ],
+                'math_check' => [
+                    'counts_sum' => $positive + $neutral + $negative,
+                    'min_possible_avg' => $total > 0 ? round(($positive * $positiveThreshold + $neutral * $negativeThreshold) / $total, 3) : 0,
+                    'data_quality' => [
+                        'null_or_zero_pct' => $total > 0 ? round(((int)$result->null_count + (int)$result->zero_count) / $total * 100, 1) : 0,
+                        'unprocessed_reviews' => (int)$result->null_count + (int)$result->zero_count,
+                    ]
+                ]
+            ]);
         } else {
             // Collection - calculate in memory
             $total = count($reviews);
@@ -1739,9 +1786,34 @@ class AIProcessorService
             $negative = 0;
             $totalScore = 0;
 
+            // Debug: Track score distribution
+            $scoreDistribution = [
+                'null_scores' => 0,
+                'zero_scores' => 0,
+                'low_scores' => 0,     // 0 < score < 0.4
+                'mid_scores' => 0,      // 0.4 <= score < 0.7
+                'high_scores' => 0      // score >= 0.7
+            ];
+            $allScores = [];
+
             foreach ($reviews as $review) {
-                $score = $review->sentiment_score ?? 0;
+                $originalScore = $review->sentiment_score;
+                $score = $originalScore ?? 0;
                 $totalScore += $score;
+                $allScores[] = $score;
+
+                // Track distribution
+                if ($originalScore === null) {
+                    $scoreDistribution['null_scores']++;
+                } elseif ($score == 0) {
+                    $scoreDistribution['zero_scores']++;
+                } elseif ($score < $negativeThreshold) {
+                    $scoreDistribution['low_scores']++;
+                } elseif ($score < $positiveThreshold) {
+                    $scoreDistribution['mid_scores']++;
+                } else {
+                    $scoreDistribution['high_scores']++;
+                }
 
                 if ($score >= $positiveThreshold) {
                     $positive++;
@@ -1753,6 +1825,32 @@ class AIProcessorService
             }
 
             $avgScore = $total > 0 ? round($totalScore / $total, 2) : 0;
+
+            // Debug logging with detailed distribution
+            \Log::info('calculateAggregatedSentiment (Collection) - DETAILED', [
+                'total' => $total,
+                'avg_score' => $avgScore,
+                'total_score_sum' => $totalScore,
+                'counts' => [
+                    'positive' => $positive,
+                    'neutral' => $neutral,
+                    'negative' => $negative,
+                ],
+                'thresholds' => [
+                    'positive' => $positiveThreshold,
+                    'negative' => $negativeThreshold,
+                ],
+                'score_distribution' => $scoreDistribution,
+                'sample_scores' => array_slice($allScores, 0, 15),
+                'math_check' => [
+                    'counts_sum' => $positive + $neutral + $negative,
+                    'min_possible_avg' => $total > 0 ? round(($positive * $positiveThreshold + $neutral * $negativeThreshold) / $total, 3) : 0,
+                    'data_quality' => [
+                        'null_or_zero_pct' => $total > 0 ? round((($scoreDistribution['null_scores'] + $scoreDistribution['zero_scores']) / $total) * 100, 1) : 0,
+                        'unprocessed_reviews' => $scoreDistribution['null_scores'] + $scoreDistribution['zero_scores'],
+                    ]
+                ]
+            ]);
         };
 
         $sentimentLabel = self::getSentimentLabel($avgScore);
