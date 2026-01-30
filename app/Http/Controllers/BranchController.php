@@ -11,6 +11,7 @@ use App\Services\AIProcessor\AIProcessorService;
 use App\Services\Branch\BranchService;
 use App\Services\Review\ReviewService;
 use App\Services\Review\RecentReviewService;
+use App\Services\Rule\RuleEngineService;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -115,7 +116,8 @@ class BranchController extends Controller
      *                  type="object",
      *                  @OA\Property(property="total_branches", type="integer", example=5),
      *                  @OA\Property(property="avg_rating", type="number", format="float", example=4.2),
-     *                  @OA\Property(property="overall_sentiment", type="number", format="float", example=0.75)
+     *                  @OA\Property(property="overall_sentiment_score", type="number", format="float", example=0.75, description="Average sentiment score (0.0-1.0)"),
+     *                  @OA\Property(property="overall_sentiment_label", type="string", example="positive", description="Sentiment label: positive (>=0.7), neutral (0.4-0.69), or negative (<0.4)")
      *              )
      *          )
      *      ),
@@ -168,10 +170,14 @@ class BranchController extends Controller
             ->avg('calculated_rating') ?? 0;
 
 
-        $overallSentiment = ReviewNew::whereIn('branch_id', $branchIds)
+        $overallSentimentScore = ReviewNew::whereIn('branch_id', $branchIds)
             ->globalReviewFilters(0)
             ->filterByDateRange()
             ->avg('sentiment_score') ?? 0;
+
+        // Get sentiment label from score
+        $sentimentLabel = RuleEngineService::getSentimentLabelFromScore($overallSentimentScore);
+
 
         // SEND RESPONSE
         return response()->json([
@@ -182,7 +188,7 @@ class BranchController extends Controller
             'summary' => [
                 'total_branches' => $totalBranches,
                 'avg_rating' => round($avgRating, 2),
-                'overall_sentiment' => round($overallSentiment, 2),
+                'overall_sentiment' => $sentimentLabel,
             ],
         ]);
     }
