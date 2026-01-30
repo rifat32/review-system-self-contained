@@ -1535,12 +1535,18 @@ class AIProcessorService
             ];
         }
 
+        // Calculate compliments and complaints
         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
+        // POSITIVE = compliment
         $compliments = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+
+        // NEGATIVE = complaint
         $complaints = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
-        $neutral = $totalReviews - $compliments - $complaints;
+
+        // NEUTRAL
+        $neutral = $reviews->whereBetween('sentiment_score', [$negativeThreshold, $positiveThreshold])->count();
 
         return [
             'compliments_percentage' => round(($compliments / $totalReviews) * 100),

@@ -3308,7 +3308,7 @@ class ReviewNewController extends Controller
      *          name="sentiment_score",
      *          in="query",
      *          required=false,
-     *          description="Filter reviews by sentiment score",
+     *          description="Filter reviews by sentiment score. ref : compliment=positive, complaint=negative",
      *          @OA\Schema(
      *              type="string",
      *              enum={ "positive", "neutral", "negative"}
