@@ -5,15 +5,20 @@ namespace App\Services\Staff;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Services\Rule\RuleEngineService;
+use App\Services\AIProcessor\AIProcessorService;
 use Carbon\Carbon;
 
 class StaffService
 {
     private RuleEngineService $ruleEngineService;
+    private AIProcessorService $aiProcessorService;
 
-    public function __construct(RuleEngineService $ruleEngineService)
-    {
+    public function __construct(
+        RuleEngineService $ruleEngineService,
+        AIProcessorService $aiProcessorService
+    ) {
         $this->ruleEngineService = $ruleEngineService;
+        $this->aiProcessorService = $aiProcessorService;
     }
 
     /**
@@ -76,7 +81,7 @@ class StaffService
 
     /**
      * Get staff metrics with period comparison
-     * 
+     *
      * @param int $businessId Business ID
      * @param array|null $dateRange Date range array with 'start' and 'end' keys
      * @param User|null $user User for branch filtering
@@ -149,10 +154,6 @@ class StaffService
             ]
         ];
 
-        // DEBUG: Log final result
-        \Log::info('getStaffMetricsWithComparison result', [
-            'metrics' => $overallMetrics
-        ]);
 
         return $overallMetrics;
     }
@@ -167,17 +168,28 @@ class StaffService
             ? round($previousReviews->avg('calculated_rating'), 1)
             : 0;
 
-        $currentSentiment = $this->calculateAverageSentiment($currentReviews);
-        $currentTotalReviews = $currentReviews->count();
+        // Use AIProcessorService for sentiment label (same as DashboardService all_sentiment)
+        $currentSentimentLabel = $currentReviews->isNotEmpty()
+            ? $this->aiProcessorService->calculateAggregatedSentiment($currentReviews)['sentiment_label']
+            : 'neutral';
 
-        $previousSentiment = $this->calculateAverageSentiment($previousReviews);
+        $previousSentimentLabel = $previousReviews->isNotEmpty()
+            ? $this->aiProcessorService->calculateAggregatedSentiment($previousReviews)['sentiment_label']
+            : 'neutral';
+
+        // Calculate sentiment percentage using RuleEngineService thresholds
+        $currentSentimentPercentage = $this->calculateSentimentPercentage($currentReviews);
+        $previousSentimentPercentage = $this->calculateSentimentPercentage($previousReviews);
+
+        $currentTotalReviews = $currentReviews->count();
         $previousTotalReviews = $previousReviews->count();
 
         $ratingChange = $previousAvgRating > 0 ?
             round((($currentAvgRating - $previousAvgRating) / $previousAvgRating) * 100, 1) : 0;
 
-        $sentimentChange = $previousSentiment > 0 ?
-            round($currentSentiment - $previousSentiment, 1) : 0;
+        // Sentiment change based on percentage
+        $sentimentChange = $previousSentimentPercentage > 0 ?
+            round($currentSentimentPercentage - $previousSentimentPercentage, 1) : 0;
 
         $reviewsChange = $previousTotalReviews > 0 ?
             $currentTotalReviews - $previousTotalReviews : $currentTotalReviews;
@@ -185,28 +197,39 @@ class StaffService
         return [
             'overall_rating' => [
                 'value' => $currentAvgRating,
+                'previous_value' => $previousAvgRating,
                 'change' => $ratingChange,
                 'change_type' => $this->ruleEngineService->getChangeType($ratingChange)
             ],
             'overall_sentiment' => [
-                'value' => $currentSentiment,
+                'status' => $currentSentimentLabel,
+                'value' => $currentSentimentPercentage,
+                'previous_status' => $previousSentimentLabel,
+                'previous_value' => $previousSentimentPercentage,
                 'change' => $sentimentChange,
                 'change_type' => $this->ruleEngineService->getChangeType($sentimentChange)
             ],
             'total_reviews' => [
                 'value' => $currentTotalReviews,
+                'previous_value' => $previousTotalReviews,
                 'change' => $reviewsChange,
                 'change_type' => $this->ruleEngineService->getChangeType($reviewsChange)
             ]
         ];
     }
-    public function calculateAverageSentiment($reviews)
+
+    /**
+     * Calculate sentiment percentage using RuleEngineService thresholds
+     */
+    private function calculateSentimentPercentage($reviews)
     {
         if ($reviews->isEmpty()) {
             return 0;
         }
 
-        $positiveReviews = $reviews->where('sentiment_score', '>=', 0.7)->count();
-        return round(($positiveReviews / $reviews->count()) * 100);
+        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+
+        return round(($positiveReviews / $reviews->count()) * 100, 1);
     }
 }
