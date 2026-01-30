@@ -881,6 +881,7 @@ class DashboardController extends Controller
 
             ->when($dateRange, fn($query) => $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
             ->globalReviewFilters(0)
+            ->with('staff')
             ->withCalculatedRating();
 
         $staffReviews = $staffReviewQuery->get();
@@ -902,7 +903,7 @@ class DashboardController extends Controller
             $staffPerformance = [];
 
             foreach ($staffGroups as $staffId => $reviewsArray) {
-                $staff = User::find($staffId);
+                $staff = $reviewsArray[0]->staff ?? null;
                 if (!$staff || count($reviewsArray) < 3)
                     continue; // Skip staff with less than 3 reviews
 
@@ -1268,6 +1269,7 @@ class DashboardController extends Controller
         $staffReviews = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->with('staff')
             ->withCalculatedRating()
             ->globalReviewFilters(0)
             ->get();
@@ -1284,7 +1286,7 @@ class DashboardController extends Controller
             $staffPerformance = [];
 
             foreach ($staffGroups as $staffId => $reviewsArray) {
-                $staff = User::find($staffId);
+                $staff = $reviewsArray[0]->staff ?? null;
                 if (!$staff || count($reviewsArray) < 3)
                     continue; // Skip staff with less than 3 reviews
 
