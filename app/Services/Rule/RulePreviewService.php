@@ -19,7 +19,7 @@ class RulePreviewService
             ->globalReviewFilters(0)
             ->filterByDateRange()
             ->orderBy('created_at', 'desc')
-            ->limit(50)
+            ->limit(config('ai.insights.opportunities.preview.sample_limit') ?? 50)
             ->get();
 
         $previewResults = [];
@@ -33,7 +33,7 @@ class RulePreviewService
 
             if ($isMatch) {
                 $totalMatches++;
-                if (count($previewResults) < 5) {
+                if (count($previewResults) < (config('ai.insights.opportunities.preview.match_display_limit') ?? 5)) {
                     $previewResults[] = [
                         'review_id' => $review->id,
                         'text' => $review->comment,
@@ -115,19 +115,19 @@ class RulePreviewService
 
     private function calculatePrecision(int $matches, int $conditionCount): float
     {
-        $base = 85.0;
+        $base = config('ai.insights.opportunities.preview.base_precision') ?? 85.0;
         if ($conditionCount > 3)
             $base += 5.0;
         if ($matches < 2)
             $base -= 10.0;
-        return min(98.0, $base);
+        return min(config('ai.insights.opportunities.preview.high_precision_cap') ?? 98.0, $base);
     }
 
     private function getConfidenceLevel(int $matches): string
     {
-        if ($matches > 10)
+        if ($matches > (config('ai.insights.opportunities.preview.high_confidence_matches') ?? 10))
             return 'High';
-        if ($matches > 3)
+        if ($matches > (config('ai.insights.opportunities.preview.medium_confidence_matches') ?? 3))
             return 'Medium';
         return 'Low';
     }

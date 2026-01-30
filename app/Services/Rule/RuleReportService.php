@@ -151,7 +151,7 @@ class RuleReportService
             if (!$label && isset($review->sentiment_score)) {
                 $label = RuleEngineService::getSentimentLabelFromScore($review->sentiment_score, $businessId);
             }
-            return ($review->calculated_rating ?? 0) >= 4 && $label === 'negative';
+            return ($review->calculated_rating ?? 0) >= (config('ai.insights.opportunities.reporting.mismatch_high_rating') ?? 4) && $label === 'negative';
         });
 
         $lowRatingPositiveComment = $reviews->filter(function ($review) use ($businessId) {
@@ -159,7 +159,7 @@ class RuleReportService
             if (!$label && isset($review->sentiment_score)) {
                 $label = RuleEngineService::getSentimentLabelFromScore($review->sentiment_score, $businessId);
             }
-            return ($review->calculated_rating ?? 0) <= 2 && $label === 'positive';
+            return ($review->calculated_rating ?? 0) <= (config('ai.insights.opportunities.reporting.mismatch_low_rating') ?? 2) && $label === 'positive';
         });
 
         $totalMismatches = $highRatingNegativeComment->count() + $lowRatingPositiveComment->count();
@@ -208,7 +208,7 @@ class RuleReportService
         $flaggedReviews = $query->get();
 
         $criticalFlags = $flaggedReviews->filter(function ($review) {
-            return ($review->calculated_rating ?? 0) < 2;
+            return ($review->calculated_rating ?? 0) < (config('ai.insights.opportunities.reporting.mismatch_low_rating') ?? 2);
         });
 
         return [
@@ -230,7 +230,7 @@ class RuleReportService
                     'flag_reason' => 'Very low rating',
                     'flagged_at' => $review->created_at,
                     'status' => $review->responded_at ? 'resolved' : 'pending',
-                    'priority' => ($review->calculated_rating ?? 0) < 2 ? 'critical' : 'high'
+                    'priority' => ($review->calculated_rating ?? 0) < (config('ai.insights.opportunities.reporting.mismatch_low_rating') ?? 2) ? 'critical' : 'high'
                 ];
             })->values(),
             'trends' => [],
@@ -257,7 +257,7 @@ class RuleReportService
             ->groupBy('date')
             ->orderBy('date', 'desc')
             ->globalReviewFilters(0)
-            ->limit(30);
+            ->limit(config('ai.insights.opportunities.reporting.trend_limit_days') ?? 30);
 
         if ($startDate) {
             $query->where('created_at', '>=', $startDate);

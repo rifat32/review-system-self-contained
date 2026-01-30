@@ -50,7 +50,8 @@ class AutoRuleCreatorService
      */
     private static function checkPatternFrequency(int $businessId, string $mainCategory, ?string $subCategory): int
     {
-        $last30Days = Carbon::now()->subDays(30);
+        $lookbackDays = config('ai.insights.opportunities.auto_creator.lookback_days') ?? 30;
+        $last30Days = Carbon::now()->subDays($lookbackDays);
 
         $query = ReviewNew::where('business_id', $businessId)
             ->where('is_ai_processed', true)
@@ -75,11 +76,13 @@ class AutoRuleCreatorService
      */
     private static function getThresholdForSeverity(string $severity): int
     {
+        $thresholds = config('ai.insights.opportunities.auto_creator.severity_thresholds', []);
+
         return match ($severity) {
-            'high' => 2,    // High severity issues: 2 mentions
-            'medium' => 3,  // Medium severity: 3 mentions
-            'low' => 4,     // Low severity: 4 mentions
-            default => 3
+            'high' => $thresholds['high'] ?? 2,
+            'medium' => $thresholds['medium'] ?? 3,
+            'low' => $thresholds['low'] ?? 4,
+            default => $thresholds['default'] ?? 3
         };
     }
 
@@ -211,7 +214,8 @@ class AutoRuleCreatorService
      */
     private static function generateRuleConfig(string $mainCategory, ?string $subCategory, string $severity, int $frequency): array
     {
-        $minMentions = max(2, ceil($frequency * 0.7)); // 70% of observed frequency
+        $relativeFreq = config('ai.insights.opportunities.auto_creator.relative_frequency') ?? 0.7;
+        $minMentions = max(2, ceil($frequency * $relativeFreq)); // observed frequency factor
 
         $conditions = [
             'category_match' => [
@@ -220,7 +224,7 @@ class AutoRuleCreatorService
             ],
             'repeat_occurrence' => [
                 'count' => $minMentions,
-                'within_days' => 30
+                'within_days' => config('ai.insights.opportunities.auto_creator.lookback_days') ?? 30
             ]
         ];
 
@@ -341,15 +345,19 @@ class AutoRuleCreatorService
      */
     private static function determinePriority(string $severity, int $frequency): string
     {
-        if ($severity === 'high' && $frequency >= 3) {
+        $thresholds = config('ai.insights.opportunities.auto_creator.severity_thresholds', []);
+        $criticalFreq = $thresholds['high'] ?? 2;
+        $highFreq = $thresholds['medium'] ?? 3;
+
+        if ($severity === 'high' && $frequency >= ($criticalFreq + 1)) {
             return 'critical';
         }
 
-        if ($severity === 'high' || ($severity === 'medium' && $frequency >= 4)) {
+        if ($severity === 'high' || ($severity === 'medium' && $frequency >= ($highFreq + 1))) {
             return 'high';
         }
 
-        if ($severity === 'medium' || $frequency >= 3) {
+        if ($severity === 'medium' || $frequency >= $highFreq) {
             return 'medium';
         }
 
@@ -397,15 +405,17 @@ class AutoRuleCreatorService
     /**
      * Clean up old auto-created rules that haven't triggered
      */
-    public static function cleanupInactiveRules(int $daysInactive = 90): int
+    public static function cleanupInactiveRules(?int $daysInactive = null): int
     {
+        $daysInactive = $daysInactive ?? (config('ai.insights.opportunities.auto_creator.inactive_grace_days') ?? 90);
         $cutoffDate = Carbon::now()->subDays($daysInactive);
 
         $deleted = AiRule::where('created_by', 'auto_creator')
             ->where('created_at', '<', $cutoffDate)
             ->whereDoesntHave('evaluations', function ($query) use ($cutoffDate) {
+                $lookback = config('ai.insights.opportunities.auto_creator.inactive_trigger_lookback') ?? 30;
                 $query->where('triggered', true)
-                    ->where('created_at', '>=', $cutoffDate->subDays(30));
+                    ->where('created_at', '>=', $cutoffDate->subDays($lookback));
             })
             ->delete();
 
@@ -415,11 +425,14 @@ class AutoRuleCreatorService
     /**
      * Generate rules from existing insights (for migration or bulk creation)
      */
-    public static function createRulesFromExistingInsights(int $businessId, int $minMentions = 3): array
+    public static function createRulesFromExistingInsights(int $businessId, ?int $minMentions = null): array
     {
+        $minMentions = $minMentions ?? (config('ai.insights.opportunities.auto_creator.bulk_min_mentions') ?? 3);
+        $lookback = config('ai.insights.opportunities.auto_creator.bulk_lookback') ?? 60;
+
         $insights = InsightRecord::where('business_id', $businessId)
             ->where('mentions_count', '>=', $minMentions)
-            ->where('time_window_end', '>=', Carbon::now()->subDays(60))
+            ->where('time_window_end', '>=', Carbon::now()->subDays($lookback))
             ->get();
 
         $createdRules = [];

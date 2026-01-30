@@ -448,7 +448,7 @@ class RuleExecutionService
             'areas' => $review->key_phrases['areas_mentioned'] ?? [],
             'key_phrases' => $review->key_phrases ?? [],
             'topics' => $review->topics ?? [],
-            'confidence' => $review->ai_confidence ?? 85.0,
+            'confidence' => $review->ai_confidence ?? (config('ai.insights.opportunities.execution.default_confidence') ?? 85.0),
             'matched_conditions' => []
         ];
     }
@@ -475,11 +475,12 @@ class RuleExecutionService
     /**
      * Get reviews for rule execution based on frequency
      */
-    public function getReviewsForRule(AiRule $rule, ?int $limit = 100)
+    public function getReviewsForRule(AiRule $rule, ?int $limit = null)
     {
+        $limit = $limit ?? (config('ai.insights.opportunities.execution.bulk_limit') ?? 100);
         $query = ReviewNew::where('business_id', $rule->business_id)
             ->globalReviewFilters(0)
-            
+
             ->orderBy('created_at', 'desc');
 
         if ($rule->run_frequency === 'real_time') {

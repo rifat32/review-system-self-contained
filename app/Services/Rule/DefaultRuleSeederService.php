@@ -162,7 +162,7 @@ class DefaultRuleSeederService
                 'conditions' => [
                     'logic' => 'AND',
                     'conditions' => [
-                        ['source' => 'Emotion', 'type' => 'emotion_intensity', 'operator' => 'greater_than', 'value' => 0.7]
+                        ['source' => 'Emotion', 'type' => 'emotion_intensity', 'operator' => 'greater_than', 'value' => config('ai.insights.opportunities.seeding.emotion_intensity') ?? 0.7]
                     ]
                 ],
                 'actions' => ['tag' => 'high_emotion'],
@@ -185,7 +185,7 @@ class DefaultRuleSeederService
                 'conditions' => [
                     'logic' => 'AND',
                     'conditions' => [
-                        ['source' => 'Rating', 'type' => 'rating', 'operator' => 'greater_than', 'value' => 3],
+                        ['source' => 'Rating', 'type' => 'rating', 'operator' => 'greater_than', 'value' => config('ai.insights.opportunities.seeding.mismatch_rating_high') ?? 3],
                         ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
@@ -344,7 +344,7 @@ class DefaultRuleSeederService
                 'conditions' => [
                     'logic' => 'AND',
                     'conditions' => [
-                        ['source' => 'Rating', 'type' => 'rating', 'operator' => 'less_than', 'value' => 2]
+                        ['source' => 'Rating', 'type' => 'rating', 'operator' => 'less_than', 'value' => config('ai.insights.opportunities.seeding.mismatch_rating_low') ?? 2]
                     ]
                 ],
                 'actions' => ['alert' => true, 'notification' => 'emergency'],

@@ -71,7 +71,7 @@ class RuleExplanationService
                     'content' => self::buildUserPrompt($ruleData)
                 ]
             ],
-            'temperature' => 0.2,
+            'temperature' => config('ai.openai.explanations.temperature') ?? 0.2,
             'response_format' => ['type' => 'json_object']
         ];
     }
@@ -95,7 +95,7 @@ class RuleExplanationService
             'rule_type' => $ruleData['rule_type'] ?? (isset($ruleData['conditions']['category_match']) ? 'comment_based' : 'rating_based'),
             'conditions' => $ruleData['conditions'] ?? [],
             'actions' => $ruleData['actions'] ?? [],
-            'confidence_threshold' => $ruleData['confidence_threshold'] ?? 0.7
+            'confidence_threshold' => $ruleData['confidence_threshold'] ?? (config('ai.openai.explanations.default_confidence_threshold') ?? 0.7)
         ];
 
         return json_encode($payload, JSON_PRETTY_PRINT);

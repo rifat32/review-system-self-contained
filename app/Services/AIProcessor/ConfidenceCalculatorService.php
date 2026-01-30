@@ -28,32 +28,32 @@ class ConfidenceCalculatorService
     {
         $score = 0;
 
-        // 1. Mentions factor (max 40 points)
-        if ($insight->mentions_count >= 10) {
-            $score += 40;
-        } elseif ($insight->mentions_count >= 5) {
-            $score += 30;
-        } elseif ($insight->mentions_count >= 3) {
-            $score += 20;
-        } elseif ($insight->mentions_count >= 2) {
-            $score += 10;
+        // 1. Mentions factor
+        $mentionsScores = config('ai.insights.confidence.mentions_scores', []);
+        foreach ($mentionsScores as $config) {
+            if ($insight->mentions_count >= ($config['min'] ?? 0)) {
+                $score += ($config['score'] ?? 0);
+                break;
+            }
         }
 
-        // 2. Severity factor (max 30 points)
-        $severityScores = ['low' => 10, 'medium' => 20, 'high' => 30];
+        // 2. Severity factor
+        $severityScores = config('ai.insights.confidence.severity_scores', []);
         $score += $severityScores[$insight->severity] ?? 0;
 
-        // 3. Trend factor (max 20 points)
-        $trendScores = ['stable' => 5, 'emerging' => 15, 'increasing' => 20];
+        // 3. Trend factor
+        $trendScores = config('ai.insights.confidence.trend_scores', []);
         $score += $trendScores[$insight->trend] ?? 0;
 
-        // 4. Time factor (max 10 points)
+        // 4. Time factor
         // Recent insights get higher score
         $daysOld = $insight->time_window_end->diffInDays(now());
-        if ($daysOld <= 7) {
-            $score += 10;
-        } elseif ($daysOld <= 14) {
-            $score += 5;
+        $timeFactors = config('ai.insights.confidence.time_factors', []);
+        foreach ($timeFactors as $factor) {
+            if ($daysOld <= ($factor['max_days'] ?? 0)) {
+                $score += ($factor['score'] ?? 0);
+                break;
+            }
         }
 
         return min(100, $score);
@@ -64,9 +64,10 @@ class ConfidenceCalculatorService
      */
     private function getConfidenceLevel(int $score): string
     {
-        if ($score >= 80)
+        $thresholds = config('ai.insights.confidence.thresholds', []);
+        if ($score >= ($thresholds['high'] ?? 80))
             return 'high';
-        if ($score >= 60)
+        if ($score >= ($thresholds['medium'] ?? 60))
             return 'medium';
         return 'low';
     }
@@ -78,7 +79,7 @@ class ConfidenceCalculatorService
     {
         $factors = [];
 
-        if ($insight->mentions_count >= 5) {
+        if ($insight->mentions_count >= (config('ai.insights.trends.increasing.mentions') ?? 5)) {
             $factors[] = "High mention count ({$insight->mentions_count} reviews)";
         }
 
@@ -95,7 +96,7 @@ class ConfidenceCalculatorService
         }
 
         $daysOld = $insight->time_window_end->diffInDays(now());
-        if ($daysOld <= 7) {
+        if ($daysOld <= (config('ai.insights.trends.emerging.days') ?? 7)) {
             $factors[] = "Recent feedback (last {$daysOld} days)";
         }
 
@@ -111,11 +112,11 @@ class ConfidenceCalculatorService
         $mentions = $recommendationData['evidence']['mentions'] ?? 0;
         $severity = $recommendationData['evidence']['severity'] ?? 'low';
 
-        if ($mentions >= 5 && $severity === 'high') {
+        if ($mentions >= (config('ai.insights.trends.increasing.mentions') ?? 5) && $severity === 'high') {
             return 'high';
         }
 
-        if ($mentions >= 3 || $severity === 'medium') {
+        if ($mentions >= (config('ai.insights.trends.emerging.mentions') ?? 3) || $severity === 'medium') {
             return 'medium';
         }
 

@@ -179,12 +179,8 @@ class ConditionBuilderService
             if ($type === 'emotion' || $type === 'intensity') {
                 // Handle complex emotion intensity matching
                 $intensityStr = $aiData['emotion']['intensity'] ?? 'low';
-                $intensityVal = match (strtolower((string)$intensityStr)) {
-                    'high' => 0.9,
-                    'medium' => 0.6,
-                    'low' => 0.3,
-                    default => 0.5
-                };
+                $intensityMapping = config('ai.topics.intensity_mapping', []);
+                $intensityVal = $intensityMapping[strtolower((string)$intensityStr)] ?? ($intensityMapping['default'] ?? 0.5);
 
                 // If it's a numeric comparison for intensity
                 if ($type === 'intensity' || is_numeric($value)) {
@@ -291,13 +287,15 @@ class ConditionBuilderService
         $actual = (float)$actual;
         $value = is_array($value) ? array_map('floatval', $value) : (float)$value;
 
+        $epsilon = config('ai.topics.numeric_epsilon') ?? 0.01;
+
         switch ($operator) {
             case 'equals':
             case 'eq':
-                return abs($actual - $value) < 0.01;
+                return abs($actual - $value) < $epsilon;
             case 'not_equals':
             case 'neq':
-                return abs($actual - $value) >= 0.01;
+                return abs($actual - $value) >= $epsilon;
             case 'greater_than':
             case 'gt':
                 return $actual > $value;

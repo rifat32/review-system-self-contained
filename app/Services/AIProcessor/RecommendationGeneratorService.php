@@ -20,12 +20,13 @@ class RecommendationGeneratorService
     /**
      * Generate recommendations from insights
      */
-    public function generateFromInsights(int $businessId, int $days = 30): array
+    public function generateFromInsights(int $businessId, ?int $days = null): array
     {
+        $days = $days ?? config('ai.insights.opportunities.generation.default_days') ?? 30;
         // Get recent insights
         $insights = InsightRecord::where('business_id', $businessId)
             ->where('time_window_end', '>=', Carbon::now()->subDays($days))
-            ->where('mentions_count', '>=', 2) // Business rule
+            ->where('mentions_count', '>=', config('ai.insights.opportunities.generation.min_mentions') ?? 2)
             ->get();
 
         $recommendations = [];
@@ -56,13 +57,18 @@ class RecommendationGeneratorService
             }
         }
 
-        // Limit to top 5 recommendations by priority
+        // Limit to top N recommendations by priority
         usort($recommendations, function ($a, $b) {
-            $priorityOrder = ['critical' => 4, 'high' => 3, 'medium' => 2, 'low' => 1];
+            $priorityOrder = config('ai.insights.opportunities.priority_weights', [
+                'critical' => 4,
+                'high' => 3,
+                'medium' => 2,
+                'low' => 1
+            ]);
             return ($priorityOrder[$b['priority']] ?? 0) <=> ($priorityOrder[$a['priority']] ?? 0);
         });
 
-        return array_slice($recommendations, 0, 5);
+        return array_slice($recommendations, 0, config('ai.insights.opportunities.generation.limit') ?? 5);
     }
 
     /**
@@ -108,10 +114,11 @@ class RecommendationGeneratorService
     /**
      * Get actionable recommendations for dashboard
      */
-    public function getDashboardRecommendations(int $businessId, int $limit = 3): array
+    public function getDashboardRecommendations(int $businessId, ?int $limit = null): array
     {
+        $limit = $limit ?? config('ai.insights.opportunities.dashboard.limit') ?? 3;
         $recommendations = Recommendation::where('business_id', $businessId)
-            ->where('created_at', '>=', Carbon::now()->subDays(7))
+            ->where('created_at', '>=', Carbon::now()->subDays(config('ai.insights.opportunities.dashboard.days') ?? 7))
             ->orderBy('priority', 'desc')
             ->orderBy('created_at', 'desc')
             ->limit($limit)

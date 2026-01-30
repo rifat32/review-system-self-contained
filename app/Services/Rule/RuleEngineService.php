@@ -231,17 +231,16 @@ class RuleEngineService
         $confidenceData = $this->confidenceCalculatorService->calculateInsightConfidence($insight);
 
         // Rule-specific confidence adjustment
-        $adjustment = match ($rule->priority) {
-            'critical' => 20,
-            'high' => 10,
-            default => 0
-        };
+        $adjustments = config('ai.insights.confidence.adjustments', []);
+        $adjustment = $adjustments[$rule->priority] ?? 0;
 
         $adjustedScore = min(100, $confidenceData['score'] + $adjustment);
 
+        $thresholds = config('ai.insights.confidence.thresholds', []);
+
         return match (true) {
-            $adjustedScore >= 80 => 'high',
-            $adjustedScore >= 60 => 'medium',
+            $adjustedScore >= ($thresholds['high'] ?? 80) => 'high',
+            $adjustedScore >= ($thresholds['medium'] ?? 60) => 'medium',
             default => 'low'
         };
     }
@@ -269,8 +268,9 @@ class RuleEngineService
 
         // Adjust based on mentions count
         $mentionsCount = $insight->mentions_count ?? 0;
+        $escalationConfig = config('ai.insights.severity_escalation', []);
 
-        if ($mentionsCount >= 10) {
+        if ($mentionsCount >= ($escalationConfig['very_high_frequency'] ?? 10)) {
             // High frequency issues should be escalated
             return match ($baseSeverity) {
                 'low' => 'medium',
@@ -281,7 +281,7 @@ class RuleEngineService
             };
         }
 
-        if ($mentionsCount >= 5) {
+        if ($mentionsCount >= ($escalationConfig['high_frequency'] ?? 5)) {
             // Moderate frequency issues
             return match ($baseSeverity) {
                 'low' => 'medium',

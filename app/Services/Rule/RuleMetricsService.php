@@ -136,7 +136,7 @@ class RuleMetricsService
 
         $total = $metrics->true_positives + $metrics->false_positives;
 
-        if ($total < 5) {
+        if ($total < (config('ai.insights.opportunities.performance.min_total_for_precision') ?? 5)) {
             // Insufficient data for reliable precision rate
             return null;
         }
@@ -167,12 +167,12 @@ class RuleMetricsService
         // Get recent triggers
         $recentTriggers = AiRuleTrigger::where('rule_id', $ruleId)
             ->orderBy('created_at', 'desc')
-            ->limit($options['limit'] ?? 20)
+            ->limit($options['limit'] ?? (config('ai.insights.opportunities.performance.report_limit') ?? 20))
             ->with(['review:id,rating,comment,created_at'])
             ->get();
 
         // Get trigger trends
-        $trendDays = $options['trend_days'] ?? 30;
+        $trendDays = $options['trend_days'] ?? (config('ai.insights.opportunities.performance.trend_days') ?? 30);
         $triggerTrends = AiRuleTrigger::where('rule_id', $ruleId)
             ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->where('created_at', '>=', now()->subDays($trendDays))
@@ -201,9 +201,9 @@ class RuleMetricsService
             'trigger_trends' => $triggerTrends,
             'outcome_distribution' => $outcomeDistribution,
             'performance_indicators' => [
-                'needs_attention' => $metrics->precision_rate < 70 && $metrics->lifetime_triggers > 10,
-                'performing_well' => $metrics->precision_rate >= 85,
-                'insufficient_data' => $metrics->lifetime_triggers < 10
+                'needs_attention' => $metrics->precision_rate < (config('ai.insights.opportunities.performance.precision_threshold') ?? 70) && $metrics->lifetime_triggers > (config('ai.insights.opportunities.performance.min_triggers_for_metrics') ?? 10),
+                'performing_well' => $metrics->precision_rate >= (config('ai.insights.opportunities.performance.well_performing_threshold') ?? 85),
+                'insufficient_data' => $metrics->lifetime_triggers < (config('ai.insights.opportunities.performance.min_triggers_for_metrics') ?? 10)
             ]
         ];
     }
@@ -241,8 +241,9 @@ class RuleMetricsService
      * @param int $limit Number of rules to return
      * @return array Top performing rules
      */
-    public function getTopPerformingRules(int $businessId, int $limit = 5): array
+    public function getTopPerformingRules(int $businessId, ?int $limit = null): array
     {
+        $limit = $limit ?? (config('ai.insights.opportunities.top_count') ?? 5);
         $rules = AiRule::where('business_id', $businessId)
             ->orWhere('scope', 'system')
             ->with('metrics')
@@ -275,18 +276,20 @@ class RuleMetricsService
      * @param float $precisionThreshold Minimum precision rate threshold
      * @return array Rules with low precision rates
      */
-    public function getRulesNeedingAttention(int $businessId, float $precisionThreshold = 70.0): array
+    public function getRulesNeedingAttention(int $businessId, ?float $precisionThreshold = null): array
     {
+        $precisionThreshold = $precisionThreshold ?? (config('ai.insights.opportunities.performance.precision_threshold') ?? 70.0);
         $rules = AiRule::where('business_id', $businessId)
             ->where('enabled', true)
             ->with('metrics')
             ->get();
 
         return $rules->filter(function ($rule) use ($precisionThreshold) {
+            $minTriggers = config('ai.insights.opportunities.performance.min_triggers_for_metrics') ?? 10;
             return $rule->metrics
                 && $rule->metrics->precision_rate !== null
                 && $rule->metrics->precision_rate < $precisionThreshold
-                && $rule->metrics->lifetime_triggers >= 10;
+                && $rule->metrics->lifetime_triggers >= $minTriggers;
         })
             ->map(function ($rule) {
                 return [

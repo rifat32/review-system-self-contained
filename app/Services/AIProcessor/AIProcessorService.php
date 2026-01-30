@@ -63,9 +63,9 @@ class AIProcessorService
         // Method 1: Check InsightRecord (Pre-aggregated by Cron)
         if ($businessId) {
             $insights = InsightRecord::where('business_id', $businessId)
-                ->where('mentions_count', '>=', 2)
+                ->where('mentions_count', '>=', config('ai.insights.aggregation.min_mentions') ?? 2)
                 ->orderByDesc('mentions_count')
-                ->limit(5)
+                ->limit(config('ai.insights.opportunities.top_count') ?? 5)
                 ->get();
 
             if ($insights->isNotEmpty()) {
@@ -175,13 +175,14 @@ class AIProcessorService
                         }
 
                         $recData = $this->ruleEngineService->generateRecommendation($rule, $insight);
-                        if (!empty($recData) && isset($recData['text']) && strlen($recData['text']) > 5) {
+                        if (!empty($recData) && isset($recData['text']) && strlen($recData['text']) > (config('ai.insights.opportunities.min_rec_length') ?? 5)) {
                             $opportunities[] = $recData['text'];
                         }
                     }
 
                     // 2. Dynamic Insight-Based Opportunities
-                    if ($insight->mentions_count >= 3 || $insight->severity === 'high') {
+                    $dynamicConfig = config('ai.insights.opportunities.dynamic_thresholds', []);
+                    if ($insight->mentions_count >= ($dynamicConfig['mentions'] ?? 3) || $insight->severity === ($dynamicConfig['severity'] ?? 'high')) {
                         $opportunities[] = "Prioritize improving " . strtolower($insight->main_category) .
                             " (" . strtolower($insight->sub_category) . ") following recurring negative feedback.";
                     }
@@ -193,7 +194,9 @@ class AIProcessorService
         if (!empty($issues)) {
             foreach ($issues as $issueData) {
                 if (isset($issueData['issue']) && $issueData['mention_count'] > 0) {
-                    $opportunities[] = "Address issues with " . $issueData['issue'] . " identified by business rules.";
+                    $opportunities[] = "Address issues with " . $issueData['issue']
+                        // . " identified by business rules."
+                    ;
                 }
             }
         }
@@ -206,11 +209,11 @@ class AIProcessorService
             ->keys()
             ->toArray();
 
-        // Merge sources, ensure uniqueness, and return top 3
+        // Merge sources, ensure uniqueness, and return top N
         return collect($opportunities)
             ->concat($suggestionRecs)
             ->unique()
-            ->take(3)
+            ->take(config('ai.insights.opportunities.top_count') ?? 3)
             ->values()
             ->toArray();
     }
@@ -234,12 +237,14 @@ class AIProcessorService
         // Use rule engine for prediction calculation
         $predictionData = $this->ruleEngineService->generateRatingPrediction($avgRating);
 
+        $precision = config('ai.performance.rounding_precision') ?? 1;
+
         return [
             [
                 'prediction' => $predictionData['prediction'],
                 'estimated_impact' => $predictionData['estimated_impact'],
-                'current_avg_rating' => round($avgRating, 1),
-                'potential_new_rating' => round($predictionData['potential_rating'], 1)
+                'current_avg_rating' => round($avgRating, $precision),
+                'potential_new_rating' => round($predictionData['potential_rating'], $precision)
             ]
         ];
     }
@@ -444,7 +449,7 @@ class AIProcessorService
             }
         }
 
-        if (count($staffPerformance) >= 3) {
+        if (count($staffPerformance) >= (config('ai.insights.opportunities.min_staff_mentions') ?? 3)) {
             $recommendations[] = [
                 'type' => 'Strength',
                 'title' => 'Positive Staff Mentions',
@@ -458,7 +463,7 @@ class AIProcessorService
         $issues = self::findCommonIssues($reviews);
 
         foreach ($issues as $issue) {
-            if ($issue['count'] >= 2 && count($recommendations) < 3) {
+            if ($issue['count'] >= (config('ai.insights.opportunities.common_issue_min') ?? 2) && count($recommendations) < (config('ai.insights.opportunities.top_count') ?? 3)) {
                 $recommendations[] = [
                     'type' => 'Weak Area',
                     'title' => $issue['topic'],

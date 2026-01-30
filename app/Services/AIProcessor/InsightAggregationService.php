@@ -12,8 +12,9 @@ class InsightAggregationService
     /**
      * Main aggregation business logic
      */
-    public function aggregateReviewsForBusiness(int $businessId, int $days = 30): array
+    public function aggregateReviewsForBusiness(int $businessId, ?int $days = null): array
     {
+        $days = $days ?? config('ai.insights.aggregation.default_days', 30);
         $startDate = Carbon::now()->subDays($days);
         $endDate = Carbon::now();
 
@@ -110,8 +111,8 @@ class InsightAggregationService
     {
         $mentions = count($pattern['review_ids']);
 
-        // Business rule: Minimum 2 mentions to create insight
-        if ($mentions < 2) {
+        // Business rule: Minimum mentions to create insight
+        if ($mentions < (config('ai.insights.aggregation.min_mentions') ?? 2)) {
             return null;
         }
 
@@ -147,7 +148,7 @@ class InsightAggregationService
                 'confidence_level' => $confidence,
                 'trend' => $trend,
                 'staff_blame_detected' => $pattern['staff_blame'],
-                'review_ids' => array_slice($pattern['review_ids'], 0, 100) // Cap at 100 IDs
+                'review_ids' => array_slice($pattern['review_ids'], 0, config('ai.insights.aggregation.review_id_cap') ?? 100) // Cap IDs
             ]
         );
     }
@@ -160,10 +161,13 @@ class InsightAggregationService
      */
     private function calculateConfidence(int $mentions, string $severity): string
     {
-        if ($mentions >= 5 && $severity === 'high') {
+        $increasingConfig = config('ai.insights.trends.increasing', []);
+        $emergingConfig = config('ai.insights.trends.emerging', []);
+
+        if ($mentions >= ($increasingConfig['mentions'] ?? 5) && $severity === 'high') {
             return 'high';
         }
-        if ($mentions >= 3 || $severity === 'medium') {
+        if ($mentions >= ($emergingConfig['mentions'] ?? 3) || $severity === 'medium') {
             return 'medium';
         }
         return 'low';
@@ -175,12 +179,14 @@ class InsightAggregationService
     private function calculateTrend(Carbon $firstSeen, Carbon $lastSeen, int $mentions): string
     {
         $daysDiff = $firstSeen->diffInDays($lastSeen);
+        $emergingConfig = config('ai.insights.trends.emerging', []);
+        $increasingConfig = config('ai.insights.trends.increasing', []);
 
-        if ($daysDiff <= 7 && $mentions >= 3) {
+        if ($daysDiff <= ($emergingConfig['days'] ?? 7) && $mentions >= ($emergingConfig['mentions'] ?? 3)) {
             return 'emerging'; // Rapid appearance
         }
 
-        if ($mentions >= 5 && $daysDiff <= 14) {
+        if ($mentions >= ($increasingConfig['mentions'] ?? 5) && $daysDiff <= ($increasingConfig['days'] ?? 14)) {
             return 'increasing'; // Frequent in short period
         }
 
@@ -190,8 +196,9 @@ class InsightAggregationService
     /**
      * Get aggregated insights for dashboard
      */
-    public function getDashboardInsights(int $businessId, int $limit = 10, ?array $reviewIds = null, bool $onlyHighMedium = false): array
+    public function getDashboardInsights(int $businessId, ?int $limit = null, ?array $reviewIds = null, bool $onlyHighMedium = false): array
     {
+        $limit = $limit ?? config('ai.insights.aggregation.dashboard_limit', 10);
         $query = InsightRecord::where('business_id', $businessId);
 
         if ($reviewIds && !empty($reviewIds)) {
@@ -220,7 +227,7 @@ class InsightAggregationService
                 })
                 ->where(function ($q) use ($reviewIds) {
                     // Optimization: narrowing down candidates to those that have at least one matching ID
-                    foreach (array_chunk($reviewIds, 50) as $chunk) {
+                    foreach (array_chunk($reviewIds, config('ai.insights.aggregation.query_batch_size') ?? 50) as $chunk) {
                         $q->orWhere(function ($sub) use ($chunk) {
                             foreach ($chunk as $id) {
                                 $sub->orWhereJsonContains('review_ids', (int) $id);
@@ -228,7 +235,7 @@ class InsightAggregationService
                         });
                     }
                 })
-                ->having('mentions', '>=', 2)
+                ->having('mentions', '>=', config('ai.insights.aggregation.min_mentions') ?? 2)
                 ->when($onlyHighMedium, function ($q) {
                     return $q->orderBy('severity_weight', 'desc');
                 })
@@ -261,7 +268,7 @@ class InsightAggregationService
             ELSE 1 
         END";
 
-        $insights = $query->where('mentions_count', '>=', 2)
+        $insights = $query->where('mentions_count', '>=', config('ai.insights.aggregation.min_mentions') ?? 2)
             ->when($onlyHighMedium, function ($q) use ($severityWeightSql) {
                 return $q->whereIn('severity', ['high', 'medium'])
                     ->select('*')

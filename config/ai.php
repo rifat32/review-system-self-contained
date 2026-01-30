@@ -139,7 +139,14 @@ return [
             'lack'
         ],
 
+        'intensity_mapping' => [
+            'high' => 0.9,
+            'medium' => 0.6,
+            'low' => 0.3,
+            'default' => 0.5,
+        ],
 
+        'numeric_epsilon' => 0.01,
     ],
 
     /*
@@ -175,6 +182,132 @@ return [
         ],
 
         'performance_categories' => ['Service Speed', 'Product Knowledge', 'Customer Empathy', 'Attention to Detail'],
+        'rounding_precision' => 1,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI Processor Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'openai' => [
+        'request' => [
+            'debug_timeout' => 10,
+            'process_timeout' => 60,
+            'temperature' => 0.1,
+            'max_tokens' => 2500,
+            'debug_max_tokens' => 10,
+            'cache_ttl' => 3600,
+        ],
+
+        'anomalies' => [
+            'mismatch_high_rating' => 4,
+            'mismatch_negative_sentiment' => -0.5,
+            'mismatch_low_rating' => 2,
+            'mismatch_positive_sentiment' => 0.5,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rule Engine & Insights Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'insights' => [
+        'aggregation' => [
+            'default_days' => 30,
+            'min_mentions' => 2,
+            'review_id_cap' => 100,
+            'dashboard_limit' => 10,
+            'query_batch_size' => 50,
+        ],
+
+        'confidence' => [
+            'thresholds' => [
+                'high' => 80,
+                'medium' => 60,
+            ],
+            'mentions_scores' => [
+                ['min' => 10, 'score' => 40],
+                ['min' => 5, 'score' => 30],
+                ['min' => 3, 'score' => 20],
+                ['min' => 2, 'score' => 10],
+            ],
+            'severity_scores' => [
+                'low' => 10,
+                'medium' => 20,
+                'high' => 30,
+            ],
+            'trend_scores' => [
+                'stable' => 5,
+                'emerging' => 15,
+                'increasing' => 20,
+            ],
+            'time_factors' => [
+                ['max_days' => 7, 'score' => 10],
+                ['max_days' => 14, 'score' => 5],
+            ],
+            'adjustments' => [
+                'critical' => 20,
+                'high' => 10,
+            ],
+        ],
+
+        'trends' => [
+            'emerging' => ['days' => 7, 'mentions' => 3],
+            'increasing' => ['days' => 14, 'mentions' => 5],
+        ],
+
+        'opportunities' => [
+            'min_rec_length' => 5,
+            'dynamic_thresholds' => [
+                'mentions' => 3,
+                'severity' => 'high',
+            ],
+            'top_count' => 3,
+            'min_staff_mentions' => 3,
+            'common_issue_min' => 2,
+            'preview' => [
+                'sample_limit' => 50,
+                'match_display_limit' => 5,
+                'base_precision' => 85.0,
+                'high_precision_cap' => 98.0,
+                'high_confidence_matches' => 10,
+                'medium_confidence_matches' => 3,
+            ],
+            'seeding' => [
+                'emotion_intensity' => 0.7,
+                'mismatch_rating_high' => 3,
+                'mismatch_rating_low' => 2,
+            ],
+            'reporting' => [
+                'mismatch_high_rating' => 4,
+                'mismatch_low_rating' => 2,
+                'trend_limit_days' => 30,
+            ],
+            'generation' => [
+                'default_days' => 30,
+                'min_mentions' => 2,
+                'limit' => 5,
+            ],
+            'dashboard' => [
+                'days' => 7,
+                'limit' => 3,
+            ],
+            'priority_weights' => [
+                'critical' => 4,
+                'high' => 3,
+                'medium' => 2,
+                'low' => 1,
+            ],
+        ],
+
+        'severity_escalation' => [
+            'very_high_frequency' => 10,
+            'high_frequency' => 5,
+        ],
     ],
 
     /*
@@ -184,8 +317,6 @@ return [
     */
 
     'training' => [
-
-
         // Staff evaluations
         'staff_evaluations' => [
             ['min' => 4.0, 'max' => 5.0, 'label' => 'Exceeding Expectations'],

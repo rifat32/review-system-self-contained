@@ -40,13 +40,13 @@ class OpenAIProcessorService
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
             ])
-                ->timeout(10)
+                ->timeout(config('ai.openai.request.debug_timeout') ?? 10)
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => 'gpt-4o-mini',
                     'messages' => [
                         ['role' => 'user', 'content' => 'Say "Test successful"']
                     ],
-                    'max_tokens' => 10
+                    'max_tokens' => config('ai.openai.request.debug_max_tokens') ?? 10
                 ]);
 
             if ($response->successful()) {
@@ -152,7 +152,7 @@ class OpenAIProcessorService
             // Calculate dynamic max_tokens based on enabled modules
             // $dynamicMaxTokens = $this->calculateDynamicMaxTokens($enabledModules, strlen($payload['review_text'] ?? ''));
 
-            $dynamicMaxTokens = 2500;
+            $dynamicMaxTokens = config('ai.openai.request.max_tokens') ?? 2500;
 
             Log::debug('Sending to OpenAI with modules', [
                 'enabled_modules' => $enabledModules,
@@ -167,10 +167,10 @@ class OpenAIProcessorService
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
             ])
-                ->timeout(60)
+                ->timeout(config('ai.openai.request.process_timeout') ?? 60)
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => $model,
-                    'temperature' => 0.1,
+                    'temperature' => config('ai.openai.request.temperature') ?? 0.1,
                     'max_tokens' => $dynamicMaxTokens, // Dynamic based on modules
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
@@ -255,8 +255,10 @@ class OpenAIProcessorService
                 $sentimentScore = $result['sentiment']['score'];
                 $sentimentLabel = $result['sentiment']['label'] ?? 'unknown';
 
+                $anomalies = config('ai.openai.anomalies', []);
+
                 // Flag severe mismatches
-                if ($rating >= 4 && $sentimentScore <= -0.5) {
+                if ($rating >= ($anomalies['mismatch_high_rating'] ?? 4) && $sentimentScore <= ($anomalies['mismatch_negative_sentiment'] ?? -0.5)) {
                     Log::warning('SEVERE RATING-SENTIMENT MISMATCH', [
                         'review_id' => $payload['review_id'] ?? 'unknown',
                         'rating' => $rating,
@@ -268,7 +270,7 @@ class OpenAIProcessorService
                 }
 
                 // Also check for other anomalies
-                if ($rating <= 2 && $sentimentScore >= 0.5) {
+                if ($rating <= ($anomalies['mismatch_low_rating'] ?? 2) && $sentimentScore >= ($anomalies['mismatch_positive_sentiment'] ?? 0.5)) {
                     Log::warning('LOW RATING WITH POSITIVE SENTIMENT', [
                         'review_id' => $payload['review_id'] ?? 'unknown',
                         'rating' => $rating,
@@ -371,7 +373,7 @@ class OpenAIProcessorService
 
             // Only cache successful (non-fallback) results
             if (!isset($result['_fallback'])) {
-                Cache::put($cacheKey, $result, 3600);
+                Cache::put($cacheKey, $result, config('ai.openai.request.cache_ttl') ?? 3600);
             }
 
             return $result;
