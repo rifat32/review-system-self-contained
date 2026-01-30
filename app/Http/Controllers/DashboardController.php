@@ -936,8 +936,10 @@ class DashboardController extends Controller
             if (!empty($staffPerformance)) {
                 $topStaff = $staffPerformance[0];
                 $topPerformer = [
+                    'id' => $topStaff['staff_id'],
                     'name' => $topStaff['staff_name'],
                     'rating' => $topStaff['avg_rating'],
+                    'staff_image' => $topStaff['staff_image'],
                     'review_count' => $topStaff['review_count']
                 ];
             }
