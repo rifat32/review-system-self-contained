@@ -51,7 +51,7 @@ class ForgetPasswordMail extends Mailable
         $html_content =  str_replace("[AccountVerificationLink]", (env('APP_URL').'/activate/'.$this->user->email_verify_token), $html_content);
 
 
-        $html_content =  str_replace("[ForgotPasswordLink]", (env('FRONT_END_URL').'/forgot-password?token='.$this->token), $html_content );
+        $html_content =  str_replace("[ForgotPasswordLink]", (env('FRONT_END_URL').'/auth/change-password?token='.$this->token), $html_content );
 
 
 

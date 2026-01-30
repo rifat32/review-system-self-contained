@@ -149,7 +149,17 @@ class BranchController extends Controller
 
 
         // BRANCH QUERY
-        $query = Branch::where('business_id', $businessId)
+        $query = Branch::
+         withCount([
+             'reviews as overall_review_count' => function ($query) {
+                 $query->where('is_overall', 1);
+             },
+            'reviews as survey_review_count' => function ($query) {
+                 $query->where('is_overall', 0)
+                 ->whereNotNull("survey_id");
+             },
+         ])
+        ->where('business_id', $businessId)
             ->when($userBranchId, function ($query) use ($userBranchId) {
                 $query->where('id', $userBranchId);
             })

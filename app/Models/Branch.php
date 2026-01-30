@@ -107,4 +107,11 @@ class Branch extends Model
 
         return $query;
     }
+
+    public function reviews()
+    {
+        return $this->hasMany(ReviewNew::class, 'branch_id', 'id');
+    }
+
+    
 }
