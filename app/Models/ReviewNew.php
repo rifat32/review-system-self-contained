@@ -334,18 +334,28 @@ class ReviewNew extends Model
 
 
 
-    public function scopeFilterByDateRange($query)
+    public function scopeFilterByDateRange($query, bool $isComparisonDateRange = false)
     {
-        $query->when(request()->filled('start_date'), function ($q) {
-            $q->whereDate('review_news.created_at', '>=', Carbon::parse(request()->input('start_date'))->startOfDay());
-        })
-            ->when(request()->filled('end_date'), function ($q) {
-                $q->whereDate('review_news.created_at', '<=', Carbon::parse(request()->input('end_date'))->endOfDay());
-            })
-            ->when(request()->filled('period'), function ($q) {
+        if ($isComparisonDateRange) {
+            $query->when(request()->filled('period'), function ($query) {
                 $dateRange = getDateRangeByPeriod(request()->input('period'));
-                $q->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
+                $startDate = $dateRange['start']->subDays($dateRange['daysOffset'])->startOfDay();
+                $endDate = $dateRange['end']->subDays($dateRange['daysOffset'])->endOfDay();
+                $query->whereBetween('created_at', [$startDate, $endDate]);
             });
+        } else {
+            $query->when(request()->filled('start_date'), function ($q) {
+                $q->whereDate('review_news.created_at', '>=', Carbon::parse(request()->input('start_date'))->startOfDay());
+            })
+                ->when(request()->filled('end_date'), function ($q) {
+                    $q->whereDate('review_news.created_at', '<=', Carbon::parse(request()->input('end_date'))->endOfDay());
+                })
+                ->when(request()->filled('period'), function ($q) {
+                    $dateRange = getDateRangeByPeriod(request()->input('period'));
+                    $q->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
+                });
+        }
+
 
 
         return $query;

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -40,6 +41,45 @@ class Branch extends Model
     {
         return $this->belongsTo(User::class, 'manager_id');
     }
+
+    public function scopeFilterByDateRange($query, bool $isComparisonDateRange = false)
+    {
+        if ($isComparisonDateRange) {
+            $query->when(request()->filled('period'), function ($query) {
+                $dateRange = getDateRangeByPeriod(request()->input('period'));
+                $startDate = $dateRange['start']->subDays($dateRange['daysOffset'])->startOfDay();
+                $endDate = $dateRange['end']->subDays($dateRange['daysOffset'])->endOfDay();
+                $query->whereBetween('created_at', [$startDate, $endDate]);
+            });
+        } else {
+            $query->when(request()->filled('start_date'), function ($q) {
+                $q->whereDate('branches.created_at', '>=', Carbon::parse(request()->input('start_date'))->startOfDay());
+            })
+                ->when(request()->filled('end_date'), function ($q) {
+                    $q->whereDate('branches.created_at', '<=', Carbon::parse(request()->input('end_date'))->endOfDay());
+                })
+                ->when(request()->filled('period'), function ($q) {
+                    $dateRange = getDateRangeByPeriod(request()->input('period'));
+                    $q->whereBetween('branches.created_at', [$dateRange['start'], $dateRange['end']]);
+                });
+        }
+
+
+
+        return $query;
+    }
+
+    public function scopeBranchGlobalFilters($query)
+    {
+        $authUser = auth()->user();
+
+        if ($authUser->default_branch_id) {
+            $query->where('id', $authUser->default_branch_id);
+        }
+
+        return $this->filters($query);
+    }
+
 
     public function scopeFilters($query)
     {

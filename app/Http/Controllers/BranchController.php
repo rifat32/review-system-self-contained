@@ -160,23 +160,7 @@ class BranchController extends Controller
 
         // GET SUMMARY DATA
         $branchIds = Branch::where('business_id', $businessId)->pluck('id');
-        $totalBranches = $branchIds->count();
 
-        $avgRating = ReviewNew::whereIn('branch_id', $branchIds)
-            ->globalReviewFilters(0)
-            ->filterByDateRange()
-            ->withCalculatedRating()
-            ->get()
-            ->avg('calculated_rating') ?? 0;
-
-
-        $overallSentimentScore = ReviewNew::whereIn('branch_id', $branchIds)
-            ->globalReviewFilters(0)
-            ->filterByDateRange()
-            ->avg('sentiment_score') ?? 0;
-
-        // Get sentiment label from score
-        $sentimentLabel = RuleEngineService::getSentimentLabelFromScore($overallSentimentScore);
 
 
         // SEND RESPONSE
@@ -185,14 +169,204 @@ class BranchController extends Controller
             'message' => 'Branches retrieved successfully',
             'meta' => $branches['meta'],
             'data' => $branches['data'],
-            'summary' => [
-                'total_branches' => $totalBranches,
-                'avg_rating' => round($avgRating, 2),
-                'overall_sentiment' => $sentimentLabel,
-            ],
         ]);
     }
 
+    /**
+     * @OA\Get(
+     *      path="/v1.0/branches/overview",
+     *      operationId="getBranchOverview",
+     *      tags={"branches"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Get branch overview with comparison data",
+     *      description="Retrieve aggregated metrics for all branches including total branches, average rating, and overall sentiment with period-over-period comparison.",
+     *
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          description="Time period for metrics calculation",
+     *          required=false,
+     *          @OA\Schema(
+     *              type="string",
+     *              example="last_30_days",
+     *              enum={"last_7_days", "last_30_days", "last_90_days", "this_month", "last_month"}
+     *          )
+     *      ),
+     *      @OA\Parameter(
+     *          name="start_date",
+     *          in="query",
+     *          description="Start date for custom date range (DD-MM-YYYY)",
+     *          required=false,
+     *          @OA\Schema(type="string", format="date")
+     *      ),
+     *      @OA\Parameter(
+     *          name="end_date",
+     *          in="query",
+     *          description="End date for custom date range (DD-MM-YYYY)",
+     *          required=false,
+     *          @OA\Schema(type="string", format="date")
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=200,
+     *          description="Branch overview retrieved successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Branch overview retrieved successfully"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(
+     *                      property="total_branches",
+     *                      type="object",
+     *                      @OA\Property(property="value", type="integer", example=10, description="Current period total branches"),
+     *                      @OA\Property(property="previous_value", type="integer", example=8, description="Previous period total branches"),
+     *                      @OA\Property(property="change_value", type="integer", example=2, description="Difference between current and previous"),
+     *                      @OA\Property(property="change_type", type="string", example="increase", enum={"increase", "decrease", "no_change"}, description="Type of change")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="avg_rating",
+     *                      type="object",
+     *                      @OA\Property(property="value", type="number", format="float", example=4.5, description="Current period average rating"),
+     *                      @OA\Property(property="previous_value", type="number", format="float", example=4.2, description="Previous period average rating"),
+     *                      @OA\Property(property="change_value", type="number", format="float", example=0.3, description="Difference between current and previous"),
+     *                      @OA\Property(property="change_type", type="string", example="increase", enum={"increase", "decrease", "no_change"}, description="Type of change")
+     *                  ),
+     *                  @OA\Property(
+     *                      property="overall_sentiment",
+     *                      type="object",
+     *                      @OA\Property(property="value", type="number", format="float", example=0.75, description="Current period sentiment score (0.0-1.0)"),
+     *                      @OA\Property(property="previous_value", type="number", format="float", example=0.68, description="Previous period sentiment score (0.0-1.0)"),
+     *                      @OA\Property(property="change_value", type="number", format="float", example=0.07, description="Difference between current and previous"),
+     *                      @OA\Property(property="change_type", type="string", example="increase", enum={"increase", "decrease", "no_change"}, description="Type of change"),
+     *                      @OA\Property(property="label", type="string", example="positive", enum={"positive", "neutral", "negative"}, description="Current period sentiment label"),
+     *                      @OA\Property(property="previous_label", type="string", example="neutral", enum={"positive", "neutral", "negative"}, description="Previous period sentiment label")
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - No business found for authenticated user",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="No business found for the authenticated user")
+     *          )
+     *      ),
+     *
+     *      @OA\Response(
+     *          response=422,
+     *          description="Validation failed - Invalid period",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Invalid period parameter")
+     *          )
+     *      )
+     * )
+     */
+    public function getBranchOverview(Request $request)
+    {
+        $user = $request->user();
+        $businessId = $user->business_id;
+
+        if (!$businessId) {
+            throw new AuthorizationException('No business found for the authenticated user');
+        }
+
+
+        // Get branch IDs
+        $branchIds = Branch::where('business_id', $businessId)
+            ->branchGlobalFilters()
+            ->pluck('id');
+
+        // ==================== TOTAL BRANCHES ====================
+        $currentBranchCount = Branch::where('business_id', $businessId)
+            ->branchGlobalFilters()
+            ->filterByDateRange()
+            ->count();
+
+        $previousBranchCount = Branch::where('business_id', $businessId)
+            ->branchGlobalFilters()
+            ->filterByDateRange(true)
+            ->count();
+
+        $branchCountChange = $currentBranchCount - $previousBranchCount;
+        $branchCountChangeType = $branchCountChange > 0 ? 'increase' : ($branchCountChange < 0 ? 'decrease' : 'no_change');
+
+        // ==================== AVERAGE RATING ====================
+        $currentAvgRating = ReviewNew::whereIn('branch_id', $branchIds)
+            ->globalReviewFilters(0)
+            ->filterByDateRange()
+            ->withCalculatedRating()
+            ->get()
+            ->avg('calculated_rating') ?? 0;
+
+        $previousAvgRating = ReviewNew::whereIn('branch_id', $branchIds)
+            ->globalReviewFilters(0)
+            ->filterByDateRange(true)
+            ->withCalculatedRating()
+            ->get()
+            ->avg('calculated_rating') ?? 0;
+
+        $avgRatingChange = round($currentAvgRating - $previousAvgRating, 2);
+        $avgRatingChangeType = $avgRatingChange > 0 ? 'increase' : ($avgRatingChange < 0 ? 'decrease' : 'no_change');
+
+        // ==================== SENTIMENT SCORE ====================
+        $currentSentimentScore = ReviewNew::whereIn('branch_id', $branchIds)
+            ->globalReviewFilters(0)
+            ->filterByDateRange()
+            ->avg('sentiment_score') ?? 0;
+
+        $previousSentimentScore = ReviewNew::whereIn('branch_id', $branchIds)
+            ->globalReviewFilters(0)
+            ->filterByDateRange(true)
+            ->avg('sentiment_score') ?? 0;
+
+        $sentimentScoreChange = round($currentSentimentScore - $previousSentimentScore, 2);
+        $sentimentScoreChangeType = $sentimentScoreChange > 0 ? 'increase' : ($sentimentScoreChange < 0 ? 'decrease' : 'no_change');
+
+        // Get sentiment labels
+        $currentSentimentLabel = RuleEngineService::getSentimentLabelFromScore($currentSentimentScore);
+        $previousSentimentLabel = RuleEngineService::getSentimentLabelFromScore($previousSentimentScore);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Branch overview retrieved successfully',
+            'data' => [
+                'total_branches' => [
+                    'value' => $currentBranchCount,
+                    'previous_value' => $previousBranchCount,
+                    'change_value' => $branchCountChange,
+                    'change_type' => $branchCountChangeType,
+                ],
+                'avg_rating' => [
+                    'value' => round($currentAvgRating, 2),
+                    'previous_value' => round($previousAvgRating, 2),
+                    'change_value' => $avgRatingChange,
+                    'change_type' => $avgRatingChangeType,
+                ],
+                'overall_sentiment' => [
+                    'value' => round($currentSentimentScore, 2),
+                    'previous_value' => round($previousSentimentScore, 2),
+                    'change_value' => $sentimentScoreChange,
+                    'change_type' => $sentimentScoreChangeType,
+                    'label' => $currentSentimentLabel,
+                    'previous_label' => $previousSentimentLabel,
+                ],
+            ],
+        ]);
+    }
     /**
      * @OA\Post(
      *      path="/v1.0/branches",
@@ -321,6 +495,8 @@ class BranchController extends Controller
             throw $e;
         }
     }
+
+
 
     /**
      * @OA\Get(

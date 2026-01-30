@@ -386,6 +386,9 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/', [BranchController::class, 'getBranches']);
         Route::post('/', [BranchController::class, 'createBranch']);
 
+        // Branch overview with comparison metrics
+        Route::get('/overview', [BranchController::class, 'getBranchOverview']);
+
         // Specific routes before parameterized routes
         Route::get('/{branchId}/metrics', [BranchController::class, 'branchMetric']);
         Route::get('/{branchId}/ai-insights', [BranchController::class, 'branchAiInsights']);
