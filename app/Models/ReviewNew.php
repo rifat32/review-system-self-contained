@@ -85,6 +85,36 @@ class ReviewNew extends Model
         'mismatch_insights' => 'array',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($reviewNew) {
+            if (!$reviewNew->order_no) {
+                $reviewNew->order_no = static::max('order_no') + 1;
+            }
+        });
+    }
+
+    public function getSentimentLabelAttribute($value)
+    {
+        $sentimentScore = $this->attributes['sentiment_score'] ?? null;
+
+        if ($sentimentScore === null) {
+            return 'neutral';
+        }
+
+        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+
+        if ($sentimentScore >= $positiveThreshold) {
+            return 'positive';
+        } elseif ($sentimentScore < $negativeThreshold) {
+            return 'negative';
+        } else {
+            return 'neutral';
+        }
+    }
 
     public function getAiMetadataAttribute()
     {
@@ -102,18 +132,22 @@ class ReviewNew extends Model
         $this->attributes['source'] = $value;
     }
 
-    protected static function boot()
-    {
-        parent::boot();
 
-        static::creating(function ($reviewNew) {
-            if (!$reviewNew->order_no) {
-                $reviewNew->order_no = static::max('order_no') + 1;
-            }
-        });
+
+    public function getVoiceUrlAttribute($value)
+    {
+        if (!$value)
+            return null;
+        return str_starts_with($value, 'http') ? $value : asset('storage/' . $value);
     }
 
-
+    public function getAudioAttribute($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+        return asset("storage-proxy/business_{$this->business->OwnerID}/business_{$this->business_id}/voice-reviews/{$value}");
+    }
 
     /**
      * Relationship with business_services (many-to-many through pivot)
@@ -138,25 +172,7 @@ class ReviewNew extends Model
     }
 
 
-    public function isVoiceReview()
-    {
-        return $this->is_voice_review;
-    }
 
-    public function getVoiceUrlAttribute($value)
-    {
-        if (!$value)
-            return null;
-        return str_starts_with($value, 'http') ? $value : asset('storage/' . $value);
-    }
-
-    public function getAudioAttribute($value)
-    {
-        if (empty($value)) {
-            return null;
-        }
-        return asset("storage-proxy/business_{$this->business->OwnerID}/business_{$this->business_id}/voice-reviews/{$value}");
-    }
 
     public function value()
     {
@@ -309,6 +325,11 @@ class ReviewNew extends Model
         return $query->where('is_overall', $is_overall ? 1 : 0);
     }
 
+
+    public function isVoiceReview()
+    {
+        return $this->is_voice_review;
+    }
 
 
 
