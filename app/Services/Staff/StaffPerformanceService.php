@@ -395,40 +395,16 @@ class StaffPerformanceService
             return [];
         }
 
-        $suggestions = \collect($suggestions)
-            ->filter(function ($suggestion) {
-                if (is_string($suggestion)) {
-                    $clean = trim($suggestion);
-                    if ($clean === '[]' || $clean === '' || $clean === '""') {
-                        return false;
-                    }
-
-                    if (str_starts_with($clean, '[') && str_ends_with($clean, ']')) {
-                        $decoded = json_decode($clean, true);
-                        return !empty($decoded) && is_array($decoded);
-                    }
-                }
-                return !empty($suggestion);
-            })
-            ->flatMap(function ($suggestion) {
-                if (is_string($suggestion) && str_starts_with($suggestion, '[')) {
-                    $decoded = json_decode($suggestion, true);
-                    return $decoded ?: [];
-                }
-                return [$suggestion];
-            })
+        $cleanSuggestions = \collect($suggestions)
             ->filter()
-            ->map(fn($s) => trim($s))
+            ->map(fn($s) => trim((string)$s))
             ->unique();
 
-        if ($suggestions->isEmpty()) {
+        if ($cleanSuggestions->isEmpty()) {
             return [];
         }
 
-        // Use rule engine to map suggestions to skill gaps
-        $skillGaps = $this->ruleEngineService->mapSuggestionsToSkillGaps($suggestions);
-
-        return $skillGaps;
+        return $this->ruleEngineService->mapSuggestionsToSkillGaps($cleanSuggestions);
     }
 
     /**

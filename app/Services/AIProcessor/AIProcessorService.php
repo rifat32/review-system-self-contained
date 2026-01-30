@@ -158,7 +158,7 @@ class AIProcessorService
                 // Skip if already good (positive sentiment)
                 if (($insight['sentiment'] ?? '') === 'positive') continue;
 
-                $dynamicConfig = config('ai.insights.opportunities.dynamic_thresholds', []);
+                $dynamicConfig = \config('ai.insights.opportunities.dynamic_thresholds', []);
                 $mentions = $insight['mentions'] ?? 0;
                 $severity = $insight['severity'] ?? 'low';
 
@@ -199,7 +199,7 @@ class AIProcessorService
         }
 
         // 3. AI Suggestions (Weighted by source sentiment)
-        $positiveThreshold = config('ai.sentiment.thresholds.positive') ?? 0.7;
+        $positiveThreshold = \config('ai.sentiment.thresholds.positive') ?? 0.7;
 
         foreach (\collect($suggestions)->filter() as $suggestion) {
             $text = is_array($suggestion) ? ($suggestion['text'] ?? '') : (string)$suggestion;
@@ -225,7 +225,7 @@ class AIProcessorService
             ->map(fn($group) => $group->sum('weight'))
             ->sortDesc()
             ->keys()
-            ->take(config('ai.insights.opportunities.top_count') ?? 3)
+            ->take(\config('ai.insights.opportunities.top_count') ?? 3)
             ->values()
             ->toArray();
     }
