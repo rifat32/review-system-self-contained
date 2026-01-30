@@ -1016,32 +1016,28 @@ class DashboardController extends Controller
 
         // Active Surveys (surveys that are active/published)
         $activeSurveysQuery = Survey::where('business_id', $businessId)
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->when($dateRange, function ($query) use ($dateRange) {
+                $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+            });
 
 
 
-        if ($dateRange) {
-            $activeSurveysQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-        }
-
-        $activeSurveys = $activeSurveysQuery->count();
+        $activeSurveyCount = $activeSurveysQuery->count();
 
         // Recent Submissions (reviews in the current period that are from surveys)
         $recentSubmissionsQuery = ReviewNew::where('business_id', $businessId)
             ->globalReviewFilters(0)
-            ->whereNotNull('survey_id');
-
-        if ($dateRange) {
-            $recentSubmissionsQuery->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
-        }
+            ->when($dateRange, function ($query) use ($dateRange) {
+                $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+            });
 
 
-
-        $recentSubmissions = $recentSubmissionsQuery->count();
+        $recentSubmissionCount = $recentSubmissionsQuery->count();
 
         $data = [
-            'active_surveys' => $activeSurveys,
-            'recent_submissions' => $recentSubmissions,
+            'active_surveys' => $activeSurveyCount,
+            'recent_submissions' => $recentSubmissionCount,
             'action_text' => 'Manage'
         ];
 
