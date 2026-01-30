@@ -1741,7 +1741,10 @@ class AIProcessorService
             }
 
             $avgScore = $total > 0 ? round($totalScore / $total, 2) : 0;
-        }
+        };
+
+        $sentimentLabel = self::getSentimentLabel($avgScore);
+
 
         return [
             'total_reviews' => $total,
@@ -1753,7 +1756,7 @@ class AIProcessorService
             'negative_percentage' => $total > 0 ? round(($negative / $total) * 100) : 0,
             'average_score' => $avgScore,
             'average_percentage' => round($avgScore * 100),
-            'sentiment_label' => self::getSentimentLabel($avgScore)
+            'sentiment_label' => $sentimentLabel
         ];
     }
 

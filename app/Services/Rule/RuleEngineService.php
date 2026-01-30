@@ -529,15 +529,17 @@ class RuleEngineService
 
     public static function getSentimentLabelFromScore(float $score): string
     {
-        $labels = \config('ai.sentiment.score_labels', []);
+        // Use threshold-based logic (consistent with entire system)
+        $positiveThreshold = self::getPositiveSentimentThreshold();
+        $negativeThreshold = self::getNegativeSentimentThreshold();
 
-        foreach ($labels as $label) {
-            if ($score >= ($label['min'] ?? 0) && $score <= ($label['max'] ?? 1)) {
-                return $label['label'] ?? 'neutral';
-            }
+        if ($score >= $positiveThreshold) {
+            return 'positive';
+        } elseif ($score >= $negativeThreshold) {
+            return 'neutral';
+        } else {
+            return 'negative';
         }
-
-        return 'neutral';
     }
 
     public static function getTrendThreshold(): float
