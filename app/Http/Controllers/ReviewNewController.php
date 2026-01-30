@@ -3449,6 +3449,36 @@ class ReviewNewController extends Controller
      *          ),
      *          example=3
      *      ),
+     *      @OA\Parameter(
+     *          name="survey_ids",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by specific survey IDs (comma-separated, e.g., 1,2,3)",
+     *          @OA\Schema(
+     *              type="string"
+     *          ),
+     *          example="1,2,3"
+     *      ),
+     *      @OA\Parameter(
+     *          name="tag_ids",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by specific tag IDs associated with review values (comma-separated, e.g., 1,2,3)",
+     *          @OA\Schema(
+     *              type="string"
+     *          ),
+     *          example="1,2,3"
+     *      ),
+     *      @OA\Parameter(
+     *          name="star_ids",
+     *          in="query",
+     *          required=false,
+     *          description="Filter reviews by specific star rating IDs associated with review values (comma-separated, e.g., 1,2,3)",
+     *          @OA\Schema(
+     *              type="string"
+     *          ),
+     *          example="1,2,3"
+     *      ),
      *      @OA\Response(
      *          response=200,
      *          description="Successful operation",

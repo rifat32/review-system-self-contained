@@ -473,6 +473,81 @@ class ReviewNew extends Model
         return $query;
     }
 
+    public function scopeFilterBySurveyIds($query)
+    {
+        $query->when(request()->has('survey_ids') && !empty(request()->input('survey_ids')), function ($q) {
+            $surveyIds = request()->input('survey_ids');
+
+            // Handle both array and comma-separated string
+            if (is_string($surveyIds)) {
+                $surveyIds = array_map('trim', explode(',', $surveyIds));
+            }
+
+            // Filter out non-numeric values and convert to integers
+            $surveyIds = array_filter(array_map('intval', $surveyIds), function ($id) {
+                return $id > 0;
+            });
+
+            if (!empty($surveyIds)) {
+                $q->whereIn('review_news.survey_id', $surveyIds);
+            }
+        });
+
+        return $query;
+    }
+
+    public function scopeFilterByTagIds($query)
+    {
+        $query->when(request()->has('tag_ids') && !empty(request()->input('tag_ids')), function ($q) {
+            $tagIds = request()->input('tag_ids');
+
+            // Handle both array and comma-separated string
+            if (is_string($tagIds)) {
+                $tagIds = array_map('trim', explode(',', $tagIds));
+            }
+
+            // Filter out non-numeric values and convert to integers
+            $tagIds = array_filter(array_map('intval', $tagIds), function ($id) {
+                return $id > 0;
+            });
+
+            if (!empty($tagIds)) {
+                $q->whereHas('value', function ($valueQuery) use ($tagIds) {
+                    $valueQuery->whereHas('tags', function ($tagQuery) use ($tagIds) {
+                        $tagQuery->whereIn('tags.id', $tagIds);
+                    });
+                });
+            }
+        });
+
+        return $query;
+    }
+
+    public function scopeFilterByStarIds($query)
+    {
+        $query->when(request()->has('star_ids') && !empty(request()->input('star_ids')), function ($q) {
+            $starIds = request()->input('star_ids');
+
+            // Handle both array and comma-separated string
+            if (is_string($starIds)) {
+                $starIds = array_map('trim', explode(',', $starIds));
+            }
+
+            // Filter out non-numeric values and convert to integers
+            $starIds = array_filter(array_map('intval', $starIds), function ($id) {
+                return $id > 0;
+            });
+
+            if (!empty($starIds)) {
+                $q->whereHas('value', function ($valueQuery) use ($starIds) {
+                    $valueQuery->whereIn('review_value_news.star_id', $starIds);
+                });
+            }
+        });
+
+        return $query;
+    }
+
     public function scopeGlobalReviewFilters($query, $show_published_only = 0, $is_staff_review = 0, $turn_off_branch_filter = 0)
     {
         // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
@@ -529,7 +604,13 @@ class ReviewNew extends Model
             // Apply review_ids filter using dedicated scope
             ->filterByReviewIds()
             // Apply topics filter using dedicated scope
-            ->filterByTopics();
+            ->filterByTopics()
+            // Apply survey_ids filter using dedicated scope
+            ->filterBySurveyIds()
+            // Apply tag_ids filter using dedicated scope
+            ->filterByTagIds()
+            // Apply star_ids filter using dedicated scope
+            ->filterByStarIds();
 
         return $query;
     }
