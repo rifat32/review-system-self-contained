@@ -323,6 +323,7 @@ class StaffPerformanceService
 
             $staff_data['staff_id'] = $staffId;
             $staff_data['staff_name'] = $staff["name"];
+            $staff_data['staff_number'] = $staff["phone"] ?? '';
             $staff_data['position'] = $staff["job_title"] ?? 'Staff';
             $staff_data['avg_rating'] = round($avgRating, 1);
             $staff_data['sentiment_score'] = RuleEngineService::getSentimentLabelFromScore($avgSentiment);
