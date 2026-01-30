@@ -120,6 +120,11 @@ class InsightAggregationService
         arsort($severityCounts);
         $severity = key($severityCounts) ?: 'medium';
 
+        // Calculate sentiment (most frequent)
+        $sentimentCounts = array_count_values($pattern['sentiments']);
+        arsort($sentimentCounts);
+        $sentiment = key($sentimentCounts) ?: 'neutral';
+
         // Calculate confidence (business rule)
         $confidence = $this->calculateConfidence($mentions, $severity);
 
@@ -138,6 +143,7 @@ class InsightAggregationService
             [
                 'mentions_count' => $mentions,
                 'severity' => $severity,
+                'sentiment' => $sentiment,
                 'confidence_level' => $confidence,
                 'trend' => $trend,
                 'staff_blame_detected' => $pattern['staff_blame'],
@@ -190,7 +196,7 @@ class InsightAggregationService
 
         if ($reviewIds && !empty($reviewIds)) {
             $reviewIds = array_unique(array_map('intval', $reviewIds));
-            $idsList = implode(',', $reviewIds);
+
 
             // Compatibility: MariaDB doesn't always support JSON_TABLE. 
             // We use a summation of JSON_CONTAINS for each ID to calculate intersection count.

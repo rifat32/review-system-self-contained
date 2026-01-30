@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class InsightRecord extends Model
 {
-    
-     /**
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -21,7 +21,7 @@ class InsightRecord extends Model
         'confidence_level',
         'trend',
         'staff_blame_detected',
-        'review_ids',
+        'sentiment',
         'time_window_start',
         'time_window_end',
     ];
@@ -34,12 +34,12 @@ class InsightRecord extends Model
     protected $casts = [
         'staff_blame_detected' => 'boolean',
         'review_ids' => 'array',
+        'sentiment' => 'string',
         'time_window_start' => 'date',
         'time_window_end' => 'date',
     ];
     public function recommendations()
-{
-    return $this->hasMany(Recommendation::class, 'insight_id');
-}
-
+    {
+        return $this->hasMany(Recommendation::class, 'insight_id');
+    }
 }

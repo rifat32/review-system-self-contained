@@ -181,7 +181,7 @@ class BusinessAnalyticsService
 
         $summary = $this->generateAiSummaryFromRuleEngine($businessId, $reviews);
         $issues = $this->extractIssuesFromRuleEngine($businessId, $reviews);
-        $opportunities = $this->aiProcessorService->extractOpportunitiesFromSuggestions($reviews->pluck('ai_suggestions')->flatten());
+        $opportunities = $this->aiProcessorService->extractOpportunities($businessId, $insights, $reviews->pluck('ai_suggestions')->flatten(), $issues);
         $predictions = $this->aiProcessorService->generatePredictions($reviews);
 
         return [

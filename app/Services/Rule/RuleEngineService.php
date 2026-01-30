@@ -25,7 +25,7 @@ class RuleEngineService
 
     public function matchRulesToInsight(InsightRecord $insight): array
     {
-        $rules = $this->getApplicableRules($insight);
+        $rules = $this->getApplicableRules($insight->business_id);
         $matchedRules = [];
 
         foreach ($rules as $rule) {
@@ -103,23 +103,25 @@ class RuleEngineService
 
     // PRIVATE METHODS
 
-    private function getApplicableRules(InsightRecord $insight)
+    private function getApplicableRules(int $businessId)
     {
-        $business = Business::find($insight->business_id);
+        $business = Business::find($businessId);
 
-        return AiRule::where(function ($query) use ($insight, $business) {
-            $query->where('scope', 'system')
-                ->orWhere(function ($q) use ($business) {
-                    if ($business?->type) {
-                        $q->where('scope', 'business_type')
-                            ->where('business_type', $business->type);
-                    }
-                })
-                ->orWhere(function ($q) use ($insight) {
-                    $q->where('scope', 'business')
-                        ->where('business_id', $insight->business_id);
-                });
-        })->where('enabled', true)->get();
+        return AiRule::where('enabled', true)
+            ->where(function ($query) use ($businessId, $business) {
+                $query->where('scope', 'system')
+                    ->orWhere(function ($q) use ($business) {
+                        if ($business?->type) {
+                            $q->where('scope', 'business_type')
+                                ->where('business_type', $business->type);
+                        }
+                    })
+                    ->orWhere(function ($q) use ($businessId) {
+                        $q->where('scope', 'business')
+                            ->where('business_id', $businessId);
+                    });
+            })
+            ->get();
     }
 
     private function ruleMatchesInsight(AiRule $rule, InsightRecord $insight): bool
@@ -352,21 +354,24 @@ class RuleEngineService
 
     private function getApplicableRulesForReview(int $businessId)
     {
-        $business = Business::find($businessId);
+        $businessType = Business::where('id', $businessId)->value('type');
 
-        return AiRule::where(function ($query) use ($businessId, $business) {
-            $query->where('scope', 'system')
-                ->orWhere(function ($q) use ($business) {
-                    if ($business?->type) {
-                        $q->where('scope', 'business_type')
-                            ->where('business_type', $business->type);
-                    }
-                })
-                ->orWhere(function ($q) use ($businessId) {
-                    $q->where('scope', 'business')
-                        ->where('business_id', $businessId);
-                });
-        })->where('enabled', true)->where('category', '!=', 'trend')->get(); // Exclude trend rules for single reviews
+        return AiRule::where('enabled', true)
+            ->where('category', '!=', 'trend')
+            ->where(function ($query) use ($businessId, $businessType) {
+                $query->where('scope', 'system')
+                    ->orWhere(function ($q) use ($businessType) {
+                        if ($businessType) {
+                            $q->where('scope', 'business_type')
+                                ->where('business_type', $businessType);
+                        }
+                    })
+                    ->orWhere(function ($q) use ($businessId) {
+                        $q->where('scope', 'business')
+                            ->where('business_id', $businessId);
+                    });
+            })
+            ->get();
     }
 
     private function ruleMatchesReview(AiRule $rule, ReviewNew $review, array $openaiData): bool
