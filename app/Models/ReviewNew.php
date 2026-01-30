@@ -602,6 +602,18 @@ class ReviewNew extends Model
                     $q->whereDoesNotMeetsThreshold($is_staff_review);
                 }
             })
+            ->when(request()->has('csat_score'), function ($q) {
+                $csatScore = request()->input('csat_score');
+                if ($csatScore == 1) {
+                    $q->where('review_news.sentiment_score', '>=', RuleEngineService::getPositiveSentimentThreshold());
+                }
+            })
+            ->when(request()->has('flagged_reviews'), function ($q) {
+                $flaggedReviews = request()->input('flagged_reviews');
+                if ($flaggedReviews == 1) {
+                    $q->where('review_news.sentiment_score', '<', RuleEngineService::getNegativeSentimentThreshold());
+                }
+            })
             ->when(request()->has('has_staff'), function ($q) {
                 $hasStaff = (int) request()->input('has_staff');
                 if ($hasStaff === 1) {
