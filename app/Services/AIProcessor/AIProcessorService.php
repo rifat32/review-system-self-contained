@@ -150,69 +150,75 @@ class AIProcessorService
      */
     public function extractOpportunities(int $businessId, array $insights, $suggestions = [], $issues = [])
     {
-        $opportunities = [];
+        $allOpportunities = \collect();
 
-        // 1. Rule-Based Opportunities (Only use actual recommendation rules)
+        // 1. Dynamic Insight-Based Opportunities
         if (!empty($insights)) {
-            foreach ($insights as $insightData) {
-                // Only consider insights with negative or mixed sentiment
-                $sentiment = $insightData['sentiment'] ?? 'neutral';
-                if (!in_array($sentiment, ['negative', 'mixed'])) {
-                    continue;
-                }
+            foreach ($insights as $insight) { // Data now comes directly as array from caller
+                $dynamicConfig = config('ai.insights.opportunities.dynamic_thresholds', []);
+                $mentions = $insight['mentions'] ?? 0;
+                $severity = $insight['severity'] ?? 'low';
 
-                $insight = isset($insightData['id']) ? InsightRecord::find($insightData['id']) : null;
+                if ($mentions >= ($dynamicConfig['mentions'] ?? 3) || $severity === ($dynamicConfig['severity'] ?? 'high')) {
+                    $severityMultiplier = match ($severity) {
+                        'critical', 'high' => 10,
+                        'medium' => 5,
+                        'low' => 2,
+                        default => 1
+                    };
 
-                if ($insight) {
-                    $matchedRules = $this->ruleEngineService->matchRulesToInsight($insight);
-
-                    foreach ($matchedRules as $matched) {
-                        $rule = $matched['rule'];
-
-                        // Filter: Skip technical analysis rules
-                        if (empty($rule->short_explanation) && in_array($rule->category, ['quality', 'trend', 'area', 'staff'])) {
-                            continue;
-                        }
-
-                        $recData = $this->ruleEngineService->generateRecommendation($rule, $insight);
-                        if (!empty($recData) && isset($recData['text']) && strlen($recData['text']) > (config('ai.insights.opportunities.min_rec_length') ?? 5)) {
-                            $opportunities[] = $recData['text'];
-                        }
-                    }
-
-                    // 2. Dynamic Insight-Based Opportunities
-                    $dynamicConfig = config('ai.insights.opportunities.dynamic_thresholds', []);
-                    if ($insight->mentions_count >= ($dynamicConfig['mentions'] ?? 3) || $insight->severity === ($dynamicConfig['severity'] ?? 'high')) {
-                        $opportunities[] = "Prioritize improving " . strtolower($insight->main_category) .
-                            " (" . strtolower($insight->sub_category) . ") following recurring negative feedback.";
-                    }
+                    $allOpportunities->push([
+                        'text' => "Prioritize improving " . strtolower($insight['category'] ?? 'general') .
+                            " (" . strtolower($insight['sub_category'] ?? 'general') . ") based on recurring feedback.",
+                        'weight' => $mentions * $severityMultiplier
+                    ]);
                 }
             }
         }
 
-        // 3. Project-wide Issues (Consistency with BusinessAnalyticsService)
+        // 2. Project-wide Issues (Consistency with Insights)
         if (!empty($issues)) {
             foreach ($issues as $issueData) {
                 if (isset($issueData['issue']) && $issueData['mention_count'] > 0) {
-                    $opportunities[] = "Address issues with " . $issueData['issue']
-                        // . " identified by business rules."
-                    ;
+                    $severityMultiplier = match ($issueData['severity'] ?? 'low') {
+                        'critical', 'high' => 10,
+                        'medium' => 5,
+                        'low' => 2,
+                        default => 1
+                    };
+
+                    $allOpportunities->push([
+                        'text' => "Address issues with " . $issueData['issue'],
+                        'weight' => ($issueData['mention_count'] ?? 1) * $severityMultiplier
+                    ]);
                 }
             }
         }
 
-        // 3. AI Suggestions (Directly from OpenAI payloads)
-        $suggestionRecs = collect($suggestions)
-            ->filter()
-            ->countBy()
+        // 3. AI Suggestions (Weighted by source sentiment)
+        // Expected format for suggestions: [['text' => '...', 'sentiment' => 0.2], ...]
+        foreach (\collect($suggestions)->filter() as $suggestion) {
+            $text = is_array($suggestion) ? ($suggestion['text'] ?? '') : (string)$suggestion;
+            if (empty($text)) continue;
+
+            $sentiment = is_array($suggestion) ? ($suggestion['sentiment'] ?? 0.5) : 0.5;
+
+            // Weight calculation: (1 - sentiment) * 10 
+            // Negative reviews (low sentiment) get higher weight for suggestions
+            $weight = (1 - (float)$sentiment) * 10;
+
+            $allOpportunities->push([
+                'text' => $text,
+                'weight' => $weight
+            ]);
+        }
+
+        // Rank and Return: Group by text, sum weights, sort by weight descending
+        return $allOpportunities
+            ->groupBy('text')
+            ->map(fn($group) => $group->sum('weight'))
             ->sortDesc()
             ->keys()
-            ->toArray();
-
-        // Merge sources, ensure uniqueness, and return top N
-        return collect($opportunities)
-            ->concat($suggestionRecs)
-            ->unique()
             ->take(config('ai.insights.opportunities.top_count') ?? 3)
             ->values()
             ->toArray();

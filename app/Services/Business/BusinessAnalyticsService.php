@@ -179,9 +179,18 @@ class BusinessAnalyticsService
         $reviewIds = $reviews->pluck('id')->toArray();
         $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10, $reviewIds);
 
+        // Map suggestions with their source review sentiment for proper weighting
+        $suggestions = $reviews->flatMap(function ($review) {
+            $suggestions = (array) ($review->ai_suggestions ?? []);
+            return \collect($suggestions)->filter()->map(fn($text) => [
+                'text' => $text,
+                'sentiment' => $review->sentiment_score ?? 0.5
+            ]);
+        })->toArray();
+
         $summary = $this->generateAiSummaryFromRuleEngine($businessId, $reviews);
         $issues = $this->extractIssuesFromRuleEngine($businessId, $reviews);
-        $opportunities = $this->aiProcessorService->extractOpportunities($businessId, $insights, $reviews->pluck('ai_suggestions')->flatten(), $issues);
+        $opportunities = $this->aiProcessorService->extractOpportunities($businessId, $insights, $suggestions, $issues);
         $predictions = $this->aiProcessorService->generatePredictions($reviews);
 
         return [
