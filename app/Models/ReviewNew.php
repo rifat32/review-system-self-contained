@@ -622,8 +622,12 @@ class ReviewNew extends Model
                     $q->whereNull('review_news.staff_id');
                 }
             })
-            ->when($userBranchId && $turn_off_branch_filter == 0, function ($q) use ($userBranchId) {
+            ->when($userBranchId && $turn_off_branch_filter == 0 && !request()->has('branch_id'), function ($q) use ($userBranchId) {
                 $q->where("review_news.branch_id", $userBranchId);
+            })
+            ->when(request()->has('branch_id'), function ($q) {
+                $branchId = request()->input('branch_id');
+                $q->where("review_news.branch_id", $branchId);
             });
 
         return $query;
