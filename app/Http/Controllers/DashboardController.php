@@ -1683,7 +1683,7 @@ class DashboardController extends Controller
      *          required=true,
      *          example="2"
      *      ),
-     * *       security={
+     *       security={
      *           {"bearerAuth": {}}
      *       },
      *      @OA\Response(

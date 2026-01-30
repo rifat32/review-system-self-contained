@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Rule\RuleEngineService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -331,8 +332,8 @@ class ReviewNew extends Model
 
     public function scopeFilterBySentimentScore($query)
     {
-        $positiveThreshold = (float) config('ai.sentiment.thresholds.positive_score', 0.7);
-        $negativeThreshold = (float) config('ai.sentiment.thresholds.negative_score', 0.4);
+        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
         $query->when(request()->has('sentiment_score') && !empty(request()->input('sentiment_score')), function ($q) use ($positiveThreshold, $negativeThreshold) {
             $sentimentScore = request()->input('sentiment_score');
@@ -342,8 +343,7 @@ class ReviewNew extends Model
             } elseif ($sentimentScore === 'negative') {
                 $q->where('review_news.sentiment_score', '<', $negativeThreshold);
             } elseif ($sentimentScore === 'neutral') {
-                $q->where('review_news.sentiment_score', '>=', $negativeThreshold)
-                    ->where('review_news.sentiment_score', '<', $positiveThreshold);
+                $q->whereBetween('review_news.sentiment_score', [$negativeThreshold, $positiveThreshold]);
             }
         });
 
