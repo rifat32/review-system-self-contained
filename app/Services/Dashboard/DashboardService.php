@@ -225,9 +225,11 @@ class DashboardService
             'top_topic' => $topTopicSummary,
             'repeated_issues' => [
                 'review_count' => $total,
+
                 'issue_count' => count($issuesArray),
                 'top_issue' => $topIssue,
                 'top_issue_details' => !empty($issuesArray) ? [
+                    'insight_id' => $issuesArray[0]['insight_id'],
                     'issue_name' => $issuesArray[0]['issue'],
                     'occurrence_count' => $issuesArray[0]['mention_count'] ?? 0,
                     'severity' => $issuesArray[0]['severity'] ?? 'medium',
@@ -277,6 +279,81 @@ class DashboardService
         return [
             'first_time_customers' => $first_time_customers,
             'returning_customers' => $returning_customers,
+        ];
+    }
+
+    /**
+     * Calculate overall reviews metrics with comparison
+     *
+     * @param int $businessId
+     * @param array|null $dateRange Array with 'start' and 'end' Carbon instances
+     * @param mixed $user
+     * @param int|null $surveyId
+     * @return array
+     */
+    public function calculateOverallMetrics($businessId, $dateRange = null, $user, $surveyId = null)
+    {
+        // Apply branch filter for branch managers or owner branch switch
+        $userBranchId = $user->hasRole('branch_manager') || $user->hasRole('business_owner')
+            ? $user->default_branch_id
+            : null;
+
+        // Get current and previous period reviews using ReviewService
+        $reviewsData = $this->reviewService->getCurrentAndComparisonReviews(
+            businessId: $businessId,
+            branchId: $userBranchId,
+            dateRange: $dateRange
+        );
+
+        $reviews = $reviewsData['current'];
+        $previousReviews = $reviewsData['previous'];
+
+        // Filter by survey if provided
+        if ($surveyId) {
+            $reviews = $reviews->where('survey_id', $surveyId);
+            $previousReviews = $previousReviews->where('survey_id', $surveyId);
+        }
+
+        // ==================== USE REVIEW METRICS SERVICE ====================
+
+        // Get review counts with comparison
+        $reviewCounts = $this->reviewMetricsService->getReviewCountWithComparison($reviews, $previousReviews);
+        $total = $reviewCounts['current'];
+        $previousTotal = $reviewCounts['previous'];
+
+        // Get rating with comparison
+        $ratingMetrics = $this->reviewMetricsService->getRatingWithComparison($reviews, $previousReviews);
+        $currentAvgRating = $ratingMetrics['current'];
+        $previousAvgRating = $ratingMetrics['previous'];
+        $ratingChangeType = $ratingMetrics['change_type'];
+
+        // Staff link reviews count
+        $currentStaffLink = $reviews->whereNotNull('staff_id')->count();
+        $previousStaffLink = $previousReviews->whereNotNull('staff_id')->count();
+
+        return [
+            'total_submissions' => [
+                'value' => $total,
+                'change' => $dateRange !== null ? $this->reviewService->calculatePercentageChange($total, $previousTotal) : null,
+                'change_type' => $total >= $previousTotal ? 'positive' : 'negative',
+                'previous_value' => $previousTotal,
+                'review_count' => $total
+            ],
+            'avg_overall_rating' => [
+                'value' => $currentAvgRating,
+                'change' => $dateRange !== null ? $this->reviewService->calculatePercentageChange($currentAvgRating, $previousAvgRating) : null,
+                'change_type' => $ratingChangeType,
+                'previous_value' => $previousAvgRating,
+                'calculated_from' => 'review_value_news (via calculated_rating)',
+                'review_count' => $total
+            ],
+            'staff_link_reviews' => [
+                'value' => $currentStaffLink,
+                'change' => $dateRange !== null ? $this->reviewService->calculatePercentageChange($currentStaffLink, $previousStaffLink) : null,
+                'change_type' => $currentStaffLink >= $previousStaffLink ? 'positive' : 'negative',
+                'previous_value' => $previousStaffLink,
+                'review_count' => $total
+            ]
         ];
     }
 }

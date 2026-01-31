@@ -3724,39 +3724,30 @@ class ReviewNewController extends Controller
         $user = $request->user();
         $businessId = $user->business_id;
 
+        // Get period from request, default to last_30_days if not provided
+        $period = $request->get('period', 'last_30_days');
 
-        // Date filtering is now handled by globalReviewFilters scope
-        $reviewsQuery = ReviewNew::where('review_news.business_id', $businessId)
-            ->with(['user', 'guest_user', 'survey'])
-            ->withCalculatedRating()
-            ->globalReviewFilters(0)
-            ->filterByDateRange()
-            ->when($request->has('is_overall'), function ($query) {
-                $query->where('is_overall', 1);
-            })
-            ->when($request->has('survey_id'), function ($query) use ($request) {
-                $query->where('survey_id', $request->input('survey_id'));
-            });
+        try {
+            // validateAndGetDateRange will throw ValidationException if period is invalid
+            $dateRange = $this->dashboardService->validateAndGetDateRange($period);
+        } catch (ValidationException $e) {
+            // If validation fails (e.g. custom range or other period), we can default or handle it
+            // For this API, let's allow it to fail with 422 if period is invalid as per service logic
+            throw $e;
+        }
 
         // GENERATE DATA FOR OVERALL REVIEWS
-        $overallReviews = $reviewsQuery->get();
-
-        $totalSubmissions = $overallReviews->count();
-
-        $averageScore = $totalSubmissions > 0
-            ? round($overallReviews->avg('calculated_rating'), 1)
-            : 0;
-
-        $staff_link_reviews = $overallReviews->whereNotNull('staff_id')->count();
+        $metrics = $this->dashboardService->calculateOverallMetrics(
+            $businessId,
+            $dateRange,
+            $user,
+            $request->input('survey_id')
+        );
 
         return response()->json([
             'success' => true,
             'message' => 'Overall reviews metrics retrieved successfully',
-            'data' => [
-                'total_submissions' => $totalSubmissions,
-                'average_score' => $averageScore,
-                'staff_link_reviews' => $staff_link_reviews,
-            ]
+            'data' => $metrics
         ], 200);
     }
 }

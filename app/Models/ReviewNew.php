@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\DB;
+use App\Models\InsightRecord;
 use Carbon\Carbon;
 
 class ReviewNew extends Model
@@ -580,6 +581,22 @@ class ReviewNew extends Model
         return $query;
     }
 
+    public function scopeFilterByInsight($query)
+    {
+        $query->when(request()->filled('insight_id'), function ($q) {
+            $insightId = request()->input('insight_id');
+            $insight = InsightRecord::find($insightId);
+
+            if ($insight && !empty($insight->review_ids)) {
+                $q->whereIn('review_news.id', (array) $insight->review_ids);
+            } else {
+                $q->whereRaw('1 = 0');
+            }
+        });
+
+        return $query;
+    }
+
     public function scopeGlobalReviewFilters($query, $show_published_only = 0, $is_staff_review = 0, $turn_off_branch_filter = 0)
     {
         // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
@@ -605,6 +622,8 @@ class ReviewNew extends Model
             ->filterByBusinessArea()
             // Apply business service filter using dedicated scope
             ->filterByBusinessService()
+            // Apply insight filter using dedicated scope
+            ->filterByInsight()
             ->when($show_published_only, function ($q) use ($is_staff_review) {
                 $q->whereMeetsThreshold($is_staff_review);
             })

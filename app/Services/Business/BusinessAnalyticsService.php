@@ -281,6 +281,7 @@ class BusinessAnalyticsService
         if ($suboptimalReviews->isEmpty()) {
             return [
                 [
+                    'insight_id' => null,
                     'issue' => ' No major issues detected.',
                     'mention_count' => 0
                 ]
@@ -293,6 +294,7 @@ class BusinessAnalyticsService
         if (empty($insights)) {
             return [
                 [
+                    'insight_id' => null,
                     'issue' => ' No major issues detected.',
                     'mention_count' => 0
                 ]
@@ -302,6 +304,7 @@ class BusinessAnalyticsService
         $issues = [];
         foreach ($insights as $insight) {
             $issues[] = [
+                'insight_id' => $insight['id'],
                 'issue' => "{$insight['category']} - {$insight['sub_category']}",
                 'mention_count' => $insight['mentions'],
                 'severity' => $insight['severity'],
