@@ -5,12 +5,14 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Branch extends Model
 {
     use HasFactory;
 
     protected $hidden = ['pivot'];
+    protected $appends = ['avg_rating'];
 
     protected $fillable = [
         'business_id',
@@ -32,6 +34,16 @@ class Branch extends Model
         'manager_id',
     ];
 
+    public function getAvgRatingAttribute()
+    {
+        return $this->reviews()
+            ->join('review_value_news as rvn', 'rvn.review_id', '=', 'review_news.id')
+            ->join('stars as s', 's.id', '=', 'rvn.star_id')
+            ->selectRaw('ROUND(AVG(s.value), 1) as avg_rating')
+            ->value('avg_rating') ?? 0;
+    }
+
+
     public function business()
     {
         return $this->belongsTo(Business::class);
@@ -40,6 +52,11 @@ class Branch extends Model
     public function manager()
     {
         return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ReviewNew::class, 'branch_id', 'id');
     }
 
     public function scopeFilterByDateRange($query, bool $isComparisonDateRange = false)
@@ -108,10 +125,4 @@ class Branch extends Model
         return $query;
     }
 
-    public function reviews()
-    {
-        return $this->hasMany(ReviewNew::class, 'branch_id', 'id');
-    }
-
-    
 }
