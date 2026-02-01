@@ -217,7 +217,7 @@ class GenerateRecommendations extends Command
         // Skip if processed in last 6 hours
         if (
             $business->last_recommendation_at &&
-            $business->last_recommendation_at->gt(Carbon::now()->subHours(6))
+            Carbon::parse($business->last_recommendation_at)->gt(Carbon::now()->subHours(6))
         ) {
             return false;
         }

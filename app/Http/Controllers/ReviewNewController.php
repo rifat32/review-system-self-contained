@@ -988,7 +988,7 @@ class ReviewNewController extends Controller
         }
 
         $guest = GuestUser::create([
-            'full_name' => $request->guest_full_name ?? 'anonymous',
+            'full_name' => $request->guest_full_name ?? 'Anonymous',
             'phone' => $request->guest_phone,
         ]);
 

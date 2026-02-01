@@ -95,6 +95,7 @@ class Business extends Model
         'review_labels' => 'array',
         'default_color_threshold' => 'array',
         'is_treat_manager_as_staff' => 'boolean',
+        'last_recommendation_at' => 'datetime',
     ];
 
     protected $hidden = [
