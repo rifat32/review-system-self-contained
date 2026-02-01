@@ -711,7 +711,7 @@ class ReviewNew extends Model
                     $q->whereNull('review_news.staff_id');
                 }
             })
-            ->when($userBranchId && !request()->filled('branch_id') && !request()->filled('branch_ids'), function ($q) use ($userBranchId) {
+            ->when($userBranchId && !request()->filled('branch_id') && !request()->filled('branch_ids') && $turn_off_branch_filter == 0, function ($q) use ($userBranchId) {
                 $q->where("review_news.branch_id", $userBranchId);
             });
 
