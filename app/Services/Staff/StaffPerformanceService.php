@@ -191,11 +191,20 @@ class StaffPerformanceService
 
             $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
 
+            $negativeCount = 0;
+            $neutralCount = 0;
+            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+
             foreach ($reviewsArray as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
 
-                if (isset($review->sentiment_score) && $review->sentiment_score >= $positiveThreshold) {
+                $sentimentScore = $review->sentiment_score ?? 0;
+                if ($sentimentScore >= $positiveThreshold) {
                     $positiveCount++;
+                } elseif ($sentimentScore < $negativeThreshold) {
+                    $negativeCount++;
+                } else {
+                    $neutralCount++;
                 }
 
                 if (!$latestReviewDate || $review->created_at > $latestReviewDate) {
@@ -225,7 +234,7 @@ class StaffPerformanceService
                 'avg_rating' => round($avgRating, 1),
                 'review_count' => $totalReviews,
                 'sentiment_score' => $sentimentPercentage,
-                'sentiment_label' => $this->getSentimentLabelByPercentage($sentimentPercentage),
+                'sentiment_label' => RuleEngineService::determineAggregatedLabel($positiveCount, $neutralCount, $negativeCount),
                 'top_topics' => array_slice($topTopics, 0, 3),
                 'recent_activity' => $latestReviewDate
                     ? $latestReviewDate->diffForHumans()
@@ -333,7 +342,7 @@ class StaffPerformanceService
             $staff_data['staff_number'] = $staff["phone"] ?? '';
             $staff_data['position'] = $staff["job_title"] ?? 'Staff';
             $staff_data['avg_rating'] = round($avgRating, 1);
-            $staff_data['sentiment_score'] = RuleEngineService::getSentimentLabelFromScore($avgSentiment);
+            $staff_data['sentiment_score'] = RuleEngineService::determineAggregatedLabel($compliments, $neutral, $complaints);
             $staff_data['compliments_count'] = $compliments;
             $staff_data['complaints_count'] = $complaints;
             $staff_data['neutral_count'] = $neutral;

@@ -93,6 +93,7 @@ class ReviewMetricsService
             'neutral' => $neutralCount,
             'total' => $totalCount,
             'score' => round($currentSentimentScore, 2),
+            'sentiment_label' => RuleEngineService::determineAggregatedLabel($positiveCount, $neutralCount, $negativeCount),
             'percentages' => [
                 'positive' => $totalCount > 0 ? round(($positiveCount / $totalCount) * 100, 1) : 0,
                 'negative' => $totalCount > 0 ? round(($negativeCount / $totalCount) * 100, 1) : 0,

@@ -542,6 +542,35 @@ class RuleEngineService
         }
     }
 
+    /**
+     * Determine an aggregated sentiment label based on counts (Plurality-based)
+     *
+     * @param int $positive
+     * @param int $neutral
+     * @param int $negative
+     * @return string
+     */
+    public static function determineAggregatedLabel(int $positive, int $neutral, int $negative): string
+    {
+        $total = $positive + $neutral + $negative;
+        if ($total === 0) {
+            return self::getDefaultSentimentLabel();
+        }
+
+        $maxCount = max($positive, $neutral, $negative);
+
+        if ($negative === $maxCount && $negative > 0) {
+            // Prioritize negative if it's the highest (or tied for highest)
+            return 'negative';
+        } elseif ($positive === $maxCount && $positive > 0) {
+            // Then positive
+            return 'positive';
+        } else {
+            // Otherwise neutral
+            return 'neutral';
+        }
+    }
+
     public static function getTrendThreshold(): float
     {
         return (float) \config('ai.sentiment.thresholds.trend_threshold', 0.1);

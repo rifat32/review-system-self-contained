@@ -1485,7 +1485,7 @@ class DashboardController extends Controller
         $allBranchMetrics = [];
 
         foreach ($branches as $branch) {
-            $branchData = $this->aiProcessorService->getBranchComparisonData($branch, $startDate, $endDate);
+            $branchData = $this->dashboardService->getBranchComparisonData($branch, $startDate, $endDate);
             $comparisonData[] = $branchData;
             $allBranchMetrics[$branch->id] = $branchData['metrics'];
         }

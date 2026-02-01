@@ -20,7 +20,8 @@ class ReviewTopicService
         if ($reviews->isEmpty()) {
             return [
                 'name' => 'No Data',
-                'count' => 0
+                'count' => 0,
+                'insight_id' => null,
             ];
         }
 
@@ -30,7 +31,8 @@ class ReviewTopicService
         if (!$businessId) {
             return [
                 'name' => 'Unknown',
-                'count' => 0
+                'count' => 0,
+                'insight_id' => null,
             ];
         }
 
@@ -68,48 +70,14 @@ class ReviewTopicService
         if ($aiTopic && $aiTopic->dynamic_mentions > 0) {
             return [
                 'name' => $aiTopic->main_category,
-                'count' => (int) $aiTopic->dynamic_mentions
-            ];
-        }
-
-        // Method 1: Check tags from review values (Accurate fallback)
-        $topTag = Tag::where('business_id', $businessId)
-            ->whereHas('review_values', function ($query) use ($reviewIds) {
-                $query->whereIn('review_id', $reviewIds);
-            })
-            ->withCount([
-                'review_values' => function ($query) use ($reviewIds) {
-                    $query->whereIn('review_id', $reviewIds);
-                }
-            ])
-            ->orderByDesc('review_values_count')
-            ->first();
-
-        if ($topTag && $topTag->review_values_count > 0) {
-            return [
-                'name' => $topTag->name ?? $topTag->tag,
-                'count' => $topTag->review_values_count
-            ];
-        }
-
-        // Method 2: Fallback to AI-generated topics from reviews
-        $topicCounts = $reviews
-            ->whereNotNull('topics')
-            ->pluck('topics')
-            ->flatten()
-            ->filter()
-            ->countBy()
-            ->sortDesc();
-
-        if ($topicCounts->isNotEmpty()) {
-            return [
-                'name' => $topicCounts->keys()->first() ?? 'Service',
-                'count' => $topicCounts->first()
+                'count' => (int) $aiTopic->dynamic_mentions,
+                'insight_id' => $aiTopic->id,
             ];
         }
         return [
-            'name' => 'Service',
-            'count' => 0
+            'name' => 'No Data',
+            'count' => 0,
+            'insight_id' => null,
         ];
     }
 }

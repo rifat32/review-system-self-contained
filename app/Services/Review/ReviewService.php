@@ -89,7 +89,7 @@ class ReviewService
             return collect();
         }
 
-        $query = ReviewNew::globalReviewFilters(0,0,1)
+        $query = ReviewNew::globalReviewFilters(0, 0, 1)
             ->where('business_id', $businessId);
 
         // Apply branch filter if provided
@@ -921,15 +921,21 @@ class ReviewService
             // Use calculated_rating field directly
             $avgRating = $staffReviews->avg('calculated_rating') ?? 0;
 
+            // Count-based sentiment aggregation
+            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+
+            $positiveCount = $staffReviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+            $negativeCount = $staffReviews->where('sentiment_score', '<', $negativeThreshold)->count();
+            $neutralCount = $staffReviews->count() - $positiveCount - $negativeCount;
+
             return [
                 'staff_id' => $staffId,
                 'staff_name' => $staff->name,
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
                 'total_reviews' => $staffReviews->count(),
-                'sentiment_score' => RuleEngineService::getSentimentLabelFromScore(
-                    score: $staffReviews->avg('sentiment_score') ?? 0.0
-                ),
+                'sentiment_score' => RuleEngineService::determineAggregatedLabel($positiveCount, $neutralCount, $negativeCount),
                 'image' => $staff->image ?? null
             ];
         })

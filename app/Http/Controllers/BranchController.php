@@ -149,17 +149,16 @@ class BranchController extends Controller
 
 
         // BRANCH QUERY
-        $query = Branch::
-         withCount([
-             'reviews as overall_review_count' => function ($query) {
-                 $query->where('is_overall', 1);
-             },
-            'reviews as survey_review_count' => function ($query) {
-                 $query->where('is_overall', 0)
-                 ->whereNotNull("survey_id");
-             },
-         ])
-        ->where('business_id', $businessId)
+        $query = Branch::withCount([
+                'reviews as overall_review_count' => function ($query) {
+                    $query->where('is_overall', 1);
+                },
+                'reviews as survey_review_count' => function ($query) {
+                    $query->where('is_overall', 0)
+                        ->whereNotNull("survey_id");
+                },
+            ])
+            ->where('business_id', $businessId)
             ->when($userBranchId, function ($query) use ($userBranchId) {
                 $query->where('id', $userBranchId);
             })
@@ -314,41 +313,48 @@ class BranchController extends Controller
         $branchCountChange = $currentBranchCount - $previousBranchCount;
         $branchCountChangeType = $branchCountChange > 0 ? 'increase' : ($branchCountChange < 0 ? 'decrease' : 'no_change');
 
-        // ==================== AVERAGE RATING ====================
-        $currentAvgRating = ReviewNew::whereIn('branch_id', $branchIds)
+        // ==================== REVIEWS COLLECTIONS ====================
+        $currentReviews = ReviewNew::whereIn('branch_id', $branchIds)
             ->globalReviewFilters(0)
             ->filterByDateRange()
             ->withCalculatedRating()
-            ->get()
-            ->avg('calculated_rating') ?? 0;
+            ->get();
 
-        $previousAvgRating = ReviewNew::whereIn('branch_id', $branchIds)
+        $previousReviews = ReviewNew::whereIn('branch_id', $branchIds)
             ->globalReviewFilters(0)
             ->filterByDateRange(true)
             ->withCalculatedRating()
-            ->get()
-            ->avg('calculated_rating') ?? 0;
+            ->get();
+
+        // ==================== AVERAGE RATING ====================
+        $currentAvgRating = $currentReviews->avg('calculated_rating') ?? 0;
+        $previousAvgRating = $previousReviews->avg('calculated_rating') ?? 0;
 
         $avgRatingChange = round($currentAvgRating - $previousAvgRating, 2);
         $avgRatingChangeType = $avgRatingChange > 0 ? 'increase' : ($avgRatingChange < 0 ? 'decrease' : 'no_change');
 
         // ==================== SENTIMENT SCORE ====================
-        $currentSentimentScore = ReviewNew::whereIn('branch_id', $branchIds)
-            ->globalReviewFilters(0)
-            ->filterByDateRange()
-            ->avg('sentiment_score') ?? 0;
-
-        $previousSentimentScore = ReviewNew::whereIn('branch_id', $branchIds)
-            ->globalReviewFilters(0)
-            ->filterByDateRange(true)
-            ->avg('sentiment_score') ?? 0;
+        $currentSentimentScore = $currentReviews->avg('sentiment_score') ?? 0;
+        $previousSentimentScore = $previousReviews->avg('sentiment_score') ?? 0;
 
         $sentimentScoreChange = round($currentSentimentScore - $previousSentimentScore, 2);
         $sentimentScoreChangeType = $sentimentScoreChange > 0 ? 'increase' : ($sentimentScoreChange < 0 ? 'decrease' : 'no_change');
 
-        // Get sentiment labels
-        $currentSentimentLabel = RuleEngineService::getSentimentLabelFromScore($currentSentimentScore);
-        $previousSentimentLabel = RuleEngineService::getSentimentLabelFromScore($previousSentimentScore);
+        // ==================== SENTIMENT LABELS (Count-based) ====================
+        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+
+        // Current labels
+        $posCount = $currentReviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+        $negCount = $currentReviews->where('sentiment_score', '<', $negativeThreshold)->count();
+        $neuCount = $currentReviews->count() - $posCount - $negCount;
+        $currentSentimentLabel = RuleEngineService::determineAggregatedLabel($posCount, $neuCount, $negCount);
+
+        // Previous labels
+        $prevPosCount = $previousReviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+        $prevNegCount = $previousReviews->where('sentiment_score', '<', $negativeThreshold)->count();
+        $prevNeuCount = $previousReviews->count() - $prevPosCount - $prevNegCount;
+        $previousSentimentLabel = RuleEngineService::determineAggregatedLabel($prevPosCount, $prevNeuCount, $prevNegCount);
 
         return response()->json([
             'success' => true,

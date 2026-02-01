@@ -111,6 +111,7 @@ class DashboardService
 
         // Get sentiment with comparison
         $sentimentMetrics = $this->reviewMetricsService->getSentimentWithComparison($reviews, $previousReviews);
+
         $current_sentiment_score = $sentimentMetrics['score'];
         $previous_sentiment_score = $sentimentMetrics['previous_score'];
         $positiveReviewsCount = $sentimentMetrics['positive'];
@@ -169,6 +170,8 @@ class DashboardService
             ->where('review_news.business_id', $businessId)
             ->count();
 
+        $aggregatedSentimentMetrics = $this->aiProcessorService->calculateAggregatedSentiment($reviews);
+
         return [
             'avg_overall_rating' => [
                 'value' => $currentAvgRating,
@@ -225,7 +228,6 @@ class DashboardService
             'top_topic' => $topTopicSummary,
             'repeated_issues' => [
                 'review_count' => $total,
-
                 'issue_count' => count($issuesArray),
                 'top_issue' => $topIssue,
                 'top_issue_details' => !empty($issuesArray) ? [
@@ -253,13 +255,85 @@ class DashboardService
             ],
             'all_sentiment' => [
                 'status' => $reviews->isNotEmpty()
-                    ? $this->aiProcessorService->calculateAggregatedSentiment($reviews)['sentiment_label']
+                    ? $aggregatedSentimentMetrics['sentiment_label']
                     : 'neutral',
                 'based_on' => $dateRange !== null
                     ? 'Based on selected period'
                     : 'Based on all time data',
-                'review_count' => $total
+                'review_count' => $total,
+                "data" => $aggregatedSentimentMetrics
             ]
+        ];
+    }
+
+    /**
+     * Get branch comparison data aligned with dashboard metrics logic
+     *
+     * @param mixed $branch
+     * @param \Carbon\Carbon $startDate
+     * @param \Carbon\Carbon $endDate
+     * @return array
+     */
+    public function getBranchComparisonData($branch, $startDate, $endDate)
+    {
+        $businessId = $branch->business_id;
+        $dateRange = ['start' => $startDate, 'end' => $endDate];
+
+        // ==================== GET REVIEWS USING REVIEW SERVICE ====================
+        $reviews = $this->reviewService->getCurrentPeriodReviews(
+            businessId: $businessId,
+            branchId: $branch->id,
+            dateRange: $dateRange
+        );
+
+        $total = $reviews->count();
+
+        // ==================== USE REVIEW METRICS SERVICE ====================
+        // Get rating
+        $currentAvgRating = $this->reviewMetricsService->calculateAverageRating($reviews);
+
+        // Get sentiment
+        $sentimentMetrics = $this->reviewMetricsService->calculateSentimentBreakdown($reviews);
+        // Aligned with calculateMetrics: round($score * 10, 1)
+        $aiSentimentScore = round($sentimentMetrics['score'] * 10, 1);
+
+        // Calculate CSAT Score
+        $csatMetrics = $this->reviewMetricsService->calculateCSATScore(
+            businessId: $businessId,
+            reviews: $reviews
+        );
+        $csatScore = $csatMetrics['percentage'];
+
+        // ==================== STAFF PERFORMANCE & TOPICS ====================
+        // Keep using AIProcessorService for specialized branch analysis
+        $staffPerformance = $this->aiProcessorService->getBranchStaffPerformance(
+            $branch->id,
+            $businessId,
+            $startDate,
+            $endDate
+        );
+
+        // extractBranchTopics is more detailed for comparison views than getTopTopicSummary
+        $topTopics = $this->aiProcessorService->extractBranchTopics($reviews);
+
+        return [
+            'branch' => [
+                'id' => $branch->id,
+                'name' => $branch->name,
+                'code' => $branch->code ?? "",
+                'location' => $branch->location,
+                'manager_name' => $branch->manager ? $branch->manager->name : 'Not assigned',
+                'business_name' => $branch->business ? $branch->business->Name : 'Unknown'
+            ],
+            'metrics' => [
+                'total_reviews' => $total,
+                'average_rating' => $currentAvgRating,
+                'ai_sentiment_score' => $aiSentimentScore,
+                'csat_score' => $csatScore,
+                'response_rate' => ReviewService::calculateResponseRate($reviews)
+            ],
+            'staff_performance' => $staffPerformance,
+            'top_topics' => array_slice($topTopics, 0, 5)
         ];
     }
 

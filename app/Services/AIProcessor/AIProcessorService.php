@@ -498,58 +498,6 @@ class AIProcessorService
     }
 
 
-    /**
-     * Get branch comparison data dynamically
-     */
-    public function getBranchComparisonData($branch, $startDate, $endDate)
-    {
-        $businessId = $branch->business_id;
-
-        $reviews = ReviewNew::where('business_id', $businessId)
-            ->where('branch_id', $branch->id)
-            ->globalReviewFilters(0, 0, 1)
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->withCalculatedRating()
-            ->get();
-
-        $totalReviews = $reviews->count();
-        $averageRating = $reviews->avg('calculated_rating') ?? 0;
-
-        // Use dynamic thresholds
-        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $aiSentimentScore = $totalReviews > 0 ? round(($positiveReviews / $totalReviews) * 100) : 0;
-
-        $csatThreshold = $this->ruleEngineService->getCsatThreshold();
-        $csatCount = $reviews->filter(function ($review) use ($csatThreshold) {
-            return ($review->calculated_rating ?? 0) >= $csatThreshold;
-        })->count();
-
-        $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
-
-        $staffPerformance = $this->getBranchStaffPerformance($branch->id, $businessId, $startDate, $endDate);
-        $topTopics = $this->extractBranchTopics($reviews);
-
-        return [
-            'branch' => [
-                'id' => $branch->id,
-                'name' => $branch->name,
-                'code' => $branch->code ?? "",
-                'location' => $branch->location,
-                'manager_name' => $branch->manager ? $branch->manager->name : 'Not assigned',
-                'business_name' => $branch->business ? $branch->business->Name : 'Unknown'
-            ],
-            'metrics' => [
-                'total_reviews' => $totalReviews,
-                'average_rating' => round($averageRating, 1),
-                'ai_sentiment_score' => $aiSentimentScore,
-                'csat_score' => $csatScore,
-                'response_rate' => ReviewService::calculateResponseRate($reviews)
-            ],
-            'staff_performance' => $staffPerformance,
-            'top_topics' => array_slice($topTopics, 0, 5)
-        ];
-    }
 
     /**
      * Get branch staff performance dynamically
@@ -1617,7 +1565,7 @@ class AIProcessorService
                 'staff_name' => $staff->name,
                 'position' => $staff->job_title ?? 'Staff',
                 'avg_rating' => round($avgRating, 1),
-                'sentiment_score' => self::getSentimentLabel($avgSentiment),
+                'sentiment_score' => RuleEngineService::determineAggregatedLabel($compliments, $neutral, $complaints),
                 'compliments_count' => $compliments,
                 'complaints_count' => $complaints,
                 'neutral_count' => $neutral,
@@ -1709,11 +1657,16 @@ class AIProcessorService
         if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
             $result = $reviews->selectRaw("
                 COUNT(*) as total_reviews,
+
                 COALESCE(AVG(sentiment_score), 0) as avg_score,
+
                 SUM(sentiment_score) as total_score_sum,
                 SUM(CASE WHEN sentiment_score >= ? THEN 1 ELSE 0 END) as positive_count,
+
                 SUM(CASE WHEN sentiment_score >= ? AND sentiment_score < ? THEN 1 ELSE 0 END) as neutral_count,
+
                 SUM(CASE WHEN sentiment_score < ? THEN 1 ELSE 0 END) as negative_count,
+
                 SUM(CASE WHEN sentiment_score IS NULL THEN 1 ELSE 0 END) as null_count,
                 SUM(CASE WHEN sentiment_score = 0 THEN 1 ELSE 0 END) as zero_count,
                 SUM(CASE WHEN sentiment_score > 0 AND sentiment_score < ? THEN 1 ELSE 0 END) as low_count,
@@ -1732,6 +1685,7 @@ class AIProcessorService
 
             $total = (int) $result->total_reviews;
             $avgScore = $total > 0 ? round((float) $result->avg_score, 2) : 0;
+
             $positive = (int) $result->positive_count;
             $neutral = (int) $result->neutral_count;
             $negative = (int) $result->negative_count;
@@ -1841,7 +1795,8 @@ class AIProcessorService
             ]);
         };
 
-        $sentimentLabel = self::getSentimentLabel($avgScore);
+        // Count-based sentiment label (Plurality/Majority) using standardized rule engine logic
+        $sentimentLabel = RuleEngineService::determineAggregatedLabel($positive, $neutral, $negative);
 
 
         return [
@@ -2227,7 +2182,7 @@ class AIProcessorService
                 'image' => $staff->image,
                 'avg_rating' => round($avgRating, 2),
                 'avg_sentiment' => round($avgSentiment, 3),
-                'sentiment_label' => self::getSentimentLabel($avgSentiment),
+                'sentiment_label' => RuleEngineService::determineAggregatedLabel($positiveCount, $reviewCount - $positiveCount - $negativeCount, $negativeCount),
                 'sentiment_percentage' => $sentimentPercentage,
                 'negative_percentage' => $negativePercentage,
                 'review_count' => $reviewCount,

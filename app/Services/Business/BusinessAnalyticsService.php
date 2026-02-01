@@ -78,8 +78,11 @@ class BusinessAnalyticsService
                 $totalReviews = $serviceReviews->count();
 
                 // Calculate sentiment for this service
-                $positiveCount = $serviceReviews->where('sentiment_score', '>=', 0.7)->count();
-                $negativeCount = $serviceReviews->where('sentiment_score', '<', 0.4)->count();
+                $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+                $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+
+                $positiveCount = $serviceReviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+                $negativeCount = $serviceReviews->where('sentiment_score', '<', $negativeThreshold)->count();
                 $sentimentPercentage = $totalReviews > 0 ? round(($positiveCount / $totalReviews) * 100) : 0;
 
                 // Get common tags for this service - one-liner approach
