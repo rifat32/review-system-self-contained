@@ -329,6 +329,7 @@ class DashboardService
                 'total_reviews' => $total,
                 'average_rating' => $currentAvgRating,
                 'ai_sentiment_score' => $aiSentimentScore,
+                'sentiment_breakdown' => $sentimentMetrics,
                 'csat_score' => $csatScore,
                 'response_rate' => ReviewService::calculateResponseRate($reviews)
             ],

@@ -12,7 +12,7 @@ class ReviewMetricsService
 {
     /**
      * Calculate CSAT score for given criteria
-     * 
+     *
      * @param int $businessId
      * @param int|null $branchId Optional branch filter
      * @param array|null $dateRange Optional date range with 'start' and 'end'
@@ -25,9 +25,9 @@ class ReviewMetricsService
         $totalCount = $reviews->count();
 
         // Get unified threshold from RuleEngineService
-        $threshold = RuleEngineService::getCsatThreshold();
+        $positiveSentimentThreshold = RuleEngineService::getPositiveSentimentThreshold();
 
-        $qualifyingCount = $reviews->where('calculated_rating', '>=', $threshold)->count();
+        $qualifyingCount = $reviews->where('sentiment_score', '>=', $positiveSentimentThreshold)->count();
 
         $score = $totalCount > 0 ? round(($qualifyingCount / $totalCount) * 100, 1) : 0;
 
@@ -41,7 +41,7 @@ class ReviewMetricsService
 
     /**
      * Get flagged reviews count and percentage
-     * 
+     *
      * @param int $businessId
      * @param int|null $branchId Optional branch filter
      * @param array|null $dateRange Optional date range with 'start' and 'end'
@@ -70,7 +70,7 @@ class ReviewMetricsService
 
     /**
      * Calculate sentiment breakdown
-     * 
+     *
      * @param Collection $reviews
      * @return array
      */
@@ -93,6 +93,7 @@ class ReviewMetricsService
             'neutral' => $neutralCount,
             'total' => $totalCount,
             'score' => round($currentSentimentScore, 2),
+            'avg_score' => round($currentSentimentScore, 2),
             'sentiment_label' => RuleEngineService::determineAggregatedLabel($positiveCount, $neutralCount, $negativeCount),
             'percentages' => [
                 'positive' => $totalCount > 0 ? round(($positiveCount / $totalCount) * 100, 1) : 0,
@@ -104,7 +105,7 @@ class ReviewMetricsService
 
     /**
      * Calculate average rating
-     * 
+     *
      * @param Collection $reviews
      * @return float
      */
@@ -117,7 +118,7 @@ class ReviewMetricsService
 
     /**
      * Get review count with change comparison
-     * 
+     *
      * @param Collection $currentReviews
      * @param Collection $previousReviews
      * @return array
@@ -141,7 +142,7 @@ class ReviewMetricsService
 
     /**
      * Get rating with change comparison
-     * 
+     *
      * @param Collection $currentReviews
      * @param Collection $previousReviews
      * @return array
@@ -162,7 +163,7 @@ class ReviewMetricsService
 
     /**
      * Get sentiment with change comparison
-     * 
+     *
      * @param Collection $currentReviews
      * @param Collection $previousReviews
      * @return array
@@ -183,7 +184,7 @@ class ReviewMetricsService
 
     /**
      * Get staff count with comparison
-     * 
+     *
      * @param Collection $currentReviews
      * @param Collection $previousReviews
      * @return array
@@ -204,7 +205,7 @@ class ReviewMetricsService
 
     /**
      * Get submissions over time
-     * 
+     *
      * @param mixed $reviews Reviews collection or query builder
      * @param string $period Period (7d, 30d, 90d, 1y)
      * @return array Time-series data with ratings and sentiment
