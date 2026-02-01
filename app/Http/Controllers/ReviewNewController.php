@@ -3347,14 +3347,14 @@ class ReviewNewController extends Controller
      *          example="1,2,3"
      *      ),
      *      @OA\Parameter(
-     *          name="branch_id",
+     *          name="branch_ids",
      *          in="query",
      *          required=false,
-     *          description="Filter reviews by branch ID",
+     *          description="Filter reviews by multiple branch IDs (comma-separated, e.g., 1,2,3)",
      *          @OA\Schema(
-     *              type="integer"
+     *              type="string"
      *          ),
-     *          example=1
+     *          example="1,2,3"
      *      ),
      *      @OA\Parameter(
      *          name="has_staff",

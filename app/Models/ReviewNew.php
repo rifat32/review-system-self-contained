@@ -605,16 +605,37 @@ class ReviewNew extends Model
         return $query;
     }
 
+    public function scopeFilterByBranchIds($query)
+    {
+        $query->when(request()->has('branch_ids') && !empty(request()->input('branch_ids')), function ($q) {
+            $branchIds = request()->input('branch_ids');
+
+            // Handle both array and comma-separated string
+            if (is_string($branchIds)) {
+                $branchIds = array_map('trim', explode(',', $branchIds));
+            }
+
+            // Filter out non-numeric values and convert to integers
+            $branchIds = array_filter(array_map('intval', $branchIds), function ($id) {
+                return $id > 0;
+            });
+
+            if (!empty($branchIds)) {
+                $q->whereIn('review_news.branch_id', $branchIds);
+            }
+        });
+
+        return $query;
+    }
+
+
+
     public function scopeGlobalReviewFilters($query, $show_published_only = 0, $is_staff_review = 0, $turn_off_branch_filter = 0)
     {
         // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
         $userBranchId = request()->user() && (request()->user()->hasRole('branch_manager') || request()->user()->hasRole('business_owner'))
             ? request()->user()->default_branch_id
             : null;
-
-        if (request()->filled('branch_id')) {
-            $userBranchId = request()->input('branch_id');
-        }
 
 
         $query
@@ -632,6 +653,8 @@ class ReviewNew extends Model
             ->filterByBusinessService()
             // Apply insight filter using dedicated scope
             ->filterByInsight()
+            // Apply branch filter using dedicated scope
+            ->filterByBranchIds()
             ->when($show_published_only, function ($q) use ($is_staff_review) {
                 $q->whereMeetsThreshold($is_staff_review);
             })
@@ -665,7 +688,7 @@ class ReviewNew extends Model
                     $q->whereNull('review_news.staff_id');
                 }
             })
-            ->when($userBranchId && $turn_off_branch_filter == 0 && !request()->has('branch_id'), function ($q) use ($userBranchId) {
+            ->when($userBranchId && $turn_off_branch_filter == 0, function ($q) use ($userBranchId) {
                 $q->where("review_news.branch_id", $userBranchId);
             });
 
