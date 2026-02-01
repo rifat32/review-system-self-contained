@@ -282,11 +282,11 @@ class StaffPerformanceService
     /**
      * Get all staff metrics from review value dynamically
      */
-    public function getAllStaffMetricsFromReviewValue($reviews)
+    public function getAllStaffMetricsFromSentimentScore($reviews)
     {
         $staffGroups = [];
         foreach ($reviews as $review) {
-            if ($review->staff_id) {
+            if ($review->staff_id && $review->is_ai_processed == 1) {
                 $staffGroups[$review->staff_id][] = $review;
             }
         }

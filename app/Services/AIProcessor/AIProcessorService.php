@@ -1043,7 +1043,7 @@ class AIProcessorService
         $reviews = $query->get();
 
         // Calculate metrics using StaffPerformanceService logic
-        $metrics = $staffPerformanceService->getAllStaffMetricsFromReviewValue($reviews);
+        $metrics = $staffPerformanceService->getAllStaffMetricsFromSentimentScore($reviews);
 
         // Sort by average rating descending (default from service) but ensure consistency
         // limit logic
@@ -1435,6 +1435,15 @@ class AIProcessorService
      */
     public function calculateCustomerTone($reviews)
     {
+        // Ensure we only process AI-analyzed reviews
+        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            $reviews = $reviews->where('is_ai_processed', 1);
+        } else {
+            $reviews = $reviews->filter(function ($review) {
+                return $review->is_ai_processed == 1;
+            });
+        }
+
         return $this->ruleEngineService->calculateCustomerTone($reviews);
     }
 
@@ -1443,6 +1452,15 @@ class AIProcessorService
      */
     public function calculateSentimentDistribution($reviews)
     {
+        // Ensure we only process AI-analyzed reviews
+        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            $reviews = $reviews->where('is_ai_processed', 1);
+        } else {
+            $reviews = $reviews->filter(function ($review) {
+                return $review->is_ai_processed == 1;
+            });
+        }
+
         $total = $reviews->count();
 
         if ($total === 0) {
@@ -1473,6 +1491,15 @@ class AIProcessorService
      */
     public function calculateComplimentRatio($reviews)
     {
+        // Ensure we only process AI-analyzed reviews
+        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            $reviews = $reviews->where('is_ai_processed', 1);
+        } else {
+            $reviews = $reviews->filter(function ($review) {
+                return $review->is_ai_processed == 1;
+            });
+        }
+
         $totalReviews = $reviews->count();
 
         if ($totalReviews === 0) {
@@ -1512,74 +1539,6 @@ class AIProcessorService
         ];
     }
 
-    /**
-     * Get all staff metrics from review value dynamically
-     */
-    public function getAllStaffMetricsFromReviewValue($reviews)
-    {
-        $staffGroups = [];
-        foreach ($reviews as $review) {
-            if ($review->staff_id) {
-                $staffGroups[$review->staff_id][] = $review;
-            }
-        }
-
-        $staffMetrics = [];
-
-        foreach ($staffGroups as $staffId => $reviewsArray) {
-            $staff = User::find($staffId);
-            if (!$staff) {
-                continue;
-            }
-
-            $totalRating = 0;
-            $totalSentiment = 0;
-            $totalReviews = count($reviewsArray);
-            $compliments = 0;
-            $complaints = 0;
-            $neutral = 0;
-
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
-
-            foreach ($reviewsArray as $review) {
-                $totalRating += $review->calculated_rating ?? 0;
-
-                $sentimentScore = $review->sentiment_score ?? 0;
-                $totalSentiment += $sentimentScore;
-
-                if ($sentimentScore >= $positiveThreshold) {
-                    $compliments++;
-                } elseif ($sentimentScore < $negativeThreshold) {
-                    $complaints++;
-                } else {
-                    $neutral++;
-                }
-            }
-
-            $avgRating = $totalReviews > 0 ? $totalRating / $totalReviews : 0;
-            $avgSentiment = $totalReviews > 0 ? $totalSentiment / $totalReviews : 0;
-
-            $staffMetrics[] = [
-                'staff_id' => $staffId,
-                'staff_name' => $staff->name,
-                'position' => $staff->job_title ?? 'Staff',
-                'avg_rating' => round($avgRating, 1),
-                'sentiment_score' => RuleEngineService::determineAggregatedLabel($compliments, $neutral, $complaints),
-                'compliments_count' => $compliments,
-                'complaints_count' => $complaints,
-                'neutral_count' => $neutral,
-                'total_reviews' => $totalReviews,
-                'sentiment_numeric' => round($avgSentiment * 100)
-            ];
-        }
-
-        usort($staffMetrics, function ($a, $b) {
-            return $b['avg_rating'] <=> $a['avg_rating'];
-        });
-
-        return $staffMetrics;
-    }
 
     /**
      * Generate AI summary dynamically
@@ -1655,6 +1614,9 @@ class AIProcessorService
 
         // If it's a query builder, use raw SQL for one database round trip
         if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            // Apply filter for AI processed reviews only
+            $reviews->where('is_ai_processed', 1);
+
             $result = $reviews->selectRaw("
                 COUNT(*) as total_reviews,
 
@@ -1722,6 +1684,11 @@ class AIProcessorService
             ]);
         } else {
             // Collection - calculate in memory
+            // Filter for AI processed reviews only
+            $reviews = $reviews->filter(function ($review) {
+                return $review->is_ai_processed == 1;
+            });
+
             $total = count($reviews);
             $positive = 0;
             $neutral = 0;
