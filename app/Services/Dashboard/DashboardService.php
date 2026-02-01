@@ -257,9 +257,9 @@ class DashboardService
                 'status' => $reviews->isNotEmpty()
                     ? $aggregatedSentimentMetrics['sentiment_label']
                     : 'neutral',
-                'based_on' => $dateRange !== null
-                    ? 'Based on selected period'
-                    : 'Based on all time data',
+                'based_on' => $reviews->isNotEmpty()
+                    ? "Based on " . ($aggregatedSentimentMetrics[$aggregatedSentimentMetrics['sentiment_label'] . '_count'] ?? 0) . " " . $aggregatedSentimentMetrics['sentiment_label'] . " reviews"
+                    : 'Based on 0 reviews',
                 'review_count' => $total,
                 "data" => $aggregatedSentimentMetrics
             ]

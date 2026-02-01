@@ -1359,7 +1359,9 @@ class DashboardController extends Controller
             ],
             'all_sentiment' => [
                 'status' => $sentiment_status,
-                'based_on' => 'Based on selected period'
+                'based_on' => $currentPeriodReviewsWithRating->isNotEmpty()
+                    ? "Based on " . ($sentiment_data[$sentiment_data['sentiment_label'] . '_count'] ?? 0) . " " . $sentiment_data['sentiment_label'] . " reviews"
+                    : 'Based on 0 reviews',
             ],
             'flagged_reviews' => [
                 'count' => $flagged_reviews,
