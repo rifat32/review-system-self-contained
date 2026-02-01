@@ -353,7 +353,9 @@ class ReviewNew extends Model
                 })
                 ->when(request()->filled('period'), function ($q) {
                     $dateRange = getDateRangeByPeriod(request()->input('period'));
-                    $q->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
+                    if ($dateRange) {
+                        $q->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
+                    }
                 });
         }
 
