@@ -94,8 +94,7 @@ class ReviewService
 
         $query = ReviewNew::where('business_id', $businessId)
             ->globalReviewFilters(0)
-            ->reviewFilters()
-            ->filterByDateRange();
+            ->reviewFilters();
 
         // Apply branch filter if provided
         if ($branchId) {
