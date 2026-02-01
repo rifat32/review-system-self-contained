@@ -625,16 +625,20 @@ class ReviewNew extends Model
 
     public function scopeFilterByBranchIds($query)
     {
-        $query->when(request()->has('branch_ids') && !empty(request()->input('branch_ids')), function ($q) {
-            $branchIds = request()->input('branch_ids');
+        $query->when(request()->filled('branch_id') || request()->filled('branch_ids'), function ($q) {
+            $branchIds = request()->input('branch_ids') ?: request()->input('branch_id');
 
             // Handle both array and comma-separated string
             if (is_string($branchIds)) {
-                $branchIds = array_map('trim', explode(',', $branchIds));
+                $branchIds = array_filter(array_map('trim', explode(',', $branchIds)));
+            }
+
+            if (empty($branchIds)) {
+                return;
             }
 
             // Filter out non-numeric values and convert to integers
-            $branchIds = array_filter(array_map('intval', $branchIds), function ($id) {
+            $branchIds = array_filter(array_map('intval', (array) $branchIds), function ($id) {
                 return $id > 0;
             });
 
@@ -652,24 +656,8 @@ class ReviewNew extends Model
     {
         // Apply branch filter - GET AUTHENTICATED USER FROM REQUEST (NOT QUERY)
         $userBranchId = request()->user() && (request()->user()->hasRole('branch_manager') || request()->user()->hasRole('business_owner'))
-            ? [request()->user()->default_branch_id]
-            : [];
-
-        if (request()->has('branch_ids') || request()->has('branch_id')) {
-
-            $branch_ids = request()->input('branch_ids') ?: request()->input('branch_id');
-
-            // Handle both array and comma-separated string
-            if (is_string($branch_ids)) {
-                $branch_ids = array_filter(array_map('trim', explode(',', $branch_ids)));
-            }
-
-            if (!empty($branch_ids)) {
-                $userBranchId = $branch_ids;
-            }
-        }
-
-
+            ? request()->user()->default_branch_id
+            : null;
 
 
 
@@ -723,8 +711,8 @@ class ReviewNew extends Model
                     $q->whereNull('review_news.staff_id');
                 }
             })
-            ->when(count($userBranchId) > 0 && $turn_off_branch_filter == 0, function ($q) use ($userBranchId) {
-                $q->whereIn("review_news.branch_id", $userBranchId);
+            ->when($userBranchId && !request()->filled('branch_id') && !request()->filled('branch_ids'), function ($q) use ($userBranchId) {
+                $q->where("review_news.branch_id", $userBranchId);
             });
 
         return $query;
