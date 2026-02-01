@@ -706,6 +706,100 @@ class AIProcessorService
     }
 
     /**
+     * Get sentiment metrics by category across branches for comparison
+     */
+    public function getBranchCategorySentiment($branches, $startDate, $endDate): array
+    {
+        $branchIds = $branches->pluck('id')->toArray();
+        $businessId = $branches->first()->business_id ?? 0;
+
+        // 1. Get all relevant InsightRecords for these branches
+        // We filter by date range overlap
+        $insights = InsightRecord::where('business_id', $businessId)
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('time_window_start', [$startDate, $endDate])
+                    ->orWhereBetween('time_window_end', [$startDate, $endDate]);
+            })
+            ->get();
+
+        $mainCategories = $insights->pluck('main_category')->unique()->values();
+
+        // 2. Fetch all reviews once to map sentiment and branch
+        $relevantReviews = ReviewNew::whereIn('branch_id', $branchIds)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->select('id', 'branch_id', 'sentiment_score')
+            ->get();
+
+        $sentimentScoreMap = $relevantReviews->pluck('sentiment_score', 'id')->toArray();
+        $reviewsByBranch = $relevantReviews->groupBy('branch_id');
+
+        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+
+        $result = [];
+
+        foreach ($mainCategories as $category) {
+            // Skip 'General' if it's too generic
+            if (strtolower($category) === 'general' && $mainCategories->count() > 3) continue;
+
+            $categoryData = [
+                'category' => $category,
+                'branches' => []
+            ];
+
+            foreach ($branches as $branch) {
+                $branchId = $branch->id;
+
+                // Find all review_ids for this category (from all relevant InsightRecords)
+                $categoryReviewIds = [];
+                foreach ($insights as $insight) {
+                    if ($insight->main_category === $category) {
+                        $records = is_array($insight->review_ids) ? $insight->review_ids : json_decode($insight->review_ids ?? '[]', true);
+                        $categoryReviewIds = array_merge($categoryReviewIds, $records);
+                    }
+                }
+                $categoryReviewIds = array_unique($categoryReviewIds);
+
+                // Filter these review_ids to only those belonging to the current branch
+                $branchReviewIds = $reviewsByBranch->get($branchId)?->pluck('id')->toArray() ?? [];
+                $branchReviewsInThisCategory = array_intersect($categoryReviewIds, $branchReviewIds);
+
+                $totalCount = count($branchReviewsInThisCategory);
+                $positiveCount = 0;
+                $neutralCount = 0;
+                $negativeCount = 0;
+
+                foreach ($branchReviewsInThisCategory as $rid) {
+                    $score = $sentimentScoreMap[$rid] ?? 0.5;
+                    if ($score >= $positiveThreshold) {
+                        $positiveCount++;
+                    } elseif ($score >= $negativeThreshold) {
+                        $neutralCount++;
+                    } else {
+                        $negativeCount++;
+                    }
+                }
+
+                $categoryData['branches'][] = [
+                    'branch_id' => $branchId,
+                    'branch_name' => $branch->name,
+                    'positive_percentage' => $totalCount > 0 ? round(($positiveCount / $totalCount) * 100) : 0,
+                    'sentiment_label' => RuleEngineService::determineAggregatedLabel($positiveCount, $neutralCount, $negativeCount),
+                    'review_count' => $totalCount,
+                    'breakdown' => [
+                        'positive' => $positiveCount,
+                        'neutral' => $neutralCount,
+                        'negative' => $negativeCount
+                    ]
+                ];
+            }
+            $result[] = $categoryData;
+        }
+
+        return $result;
+    }
+
+    /**
      * Calculate branch summary dynamically
      */
     public function calculateBranchSummary($reviews)

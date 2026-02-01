@@ -1504,6 +1504,9 @@ class DashboardController extends Controller
         // Get staff performance complaints
         $staffComplaints = $this->aiProcessorService->getStaffComplaintsByBranch($branches, $startDate, $endDate);
 
+        // Get category-level sentiment comparison
+        $categorySentiment = $this->aiProcessorService->getBranchCategorySentiment($branches, $startDate, $endDate);
+
         $data = [
             'selected_branches' => $branches->pluck('name'),
             'date_range' => [
@@ -1512,6 +1515,7 @@ class DashboardController extends Controller
                 'period_days' => $startDate->diffInDays($endDate)
             ],
             'branches' => $comparisonData,
+            'category_sentiment' => $categorySentiment,
             'ai_insights' => $aiInsights,
             'comparison_highlights' => $comparisonHighlights,
             'sentiment_trend' => $sentimentTrend,
