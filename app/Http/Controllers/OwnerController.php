@@ -411,6 +411,12 @@ class OwnerController extends Controller
                 }
                 $verificationUrl = env('APP_URL') . '/activate/' . $user->email_verify_token . '?email=' . urlencode($user->email);
                 Mail::to($validatedData["email"])->send(new AccountCreateMail($user, $verificationUrl));
+
+                // Notify website owners
+                $adminEmails = ['info@feedgenius.ai', 'rifatbilalphilips@gmail.com'];
+                Mail::to($adminEmails)->send(new \App\Mail\NewBusinessAdminNotification($user, $business, $plan->name ?? 'N/A'));
+
+                
             } catch (Exception $e) {
                 log_message($e->getMessage(), 'register_mail.log');
             }

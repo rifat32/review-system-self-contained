@@ -226,7 +226,7 @@ class SubscriptionController extends Controller
 
         if ($user && env("SEND_EMAIL") == true) {
             try {
-                Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com'])->send(new UserPaymentFailed($user));
+                Mail::to(['ralashwad@gmail.com'])->send(new UserPaymentFailed($user));
             } catch (\Exception $e) {
                 Log::error("Failed to send payment failed email: " . $e->getMessage());
             }
