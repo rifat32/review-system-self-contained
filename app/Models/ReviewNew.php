@@ -368,6 +368,9 @@ class ReviewNew extends Model
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
         $query->when(request()->has('sentiment_score') && !empty(request()->input('sentiment_score')), function ($q) use ($positiveThreshold, $negativeThreshold) {
+            // Apply AI Processed check (Review must be processed to have sentiment)
+            $q->where('review_news.is_ai_processed', 1);
+
             $sentimentScore = request()->input('sentiment_score');
 
             if ($sentimentScore === 'positive') {
@@ -498,6 +501,9 @@ class ReviewNew extends Model
     public function scopeFilterByTopics($query)
     {
         $query->when(request()->has('topics') && !empty(request()->input('topics')), function ($q) {
+            // Apply AI Processed check (Review must be processed to have topics)
+            $q->where('review_news.is_ai_processed', 1);
+
             $topic = request()->input('topics');
             // Use whereRaw with JSON_SEARCH to search within the main_category field
             $q->whereRaw("JSON_SEARCH(review_news.topics, 'one', ?, null, '$[*].main_category') IS NOT NULL", [$topic]);
@@ -638,13 +644,15 @@ class ReviewNew extends Model
             ->when(request()->has('csat_score'), function ($q) {
                 $csatScore = request()->input('csat_score');
                 if ($csatScore == 1) {
-                    $q->where('review_news.sentiment_score', '>=', RuleEngineService::getPositiveSentimentThreshold());
+                    $q->where('review_news.is_ai_processed', 1)
+                        ->where('review_news.sentiment_score', '>=', RuleEngineService::getPositiveSentimentThreshold());
                 }
             })
             ->when(request()->has('flagged_reviews'), function ($q) {
                 $flaggedReviews = request()->input('flagged_reviews');
                 if ($flaggedReviews == 1) {
-                    $q->where('review_news.sentiment_score', '<', RuleEngineService::getNegativeSentimentThreshold());
+                    $q->where('review_news.is_ai_processed', 1)
+                        ->where('review_news.sentiment_score', '<', RuleEngineService::getNegativeSentimentThreshold());
                 }
             })
             ->when(request()->has('has_staff'), function ($q) {
