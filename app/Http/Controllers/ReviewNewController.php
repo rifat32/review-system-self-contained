@@ -2643,7 +2643,7 @@ class ReviewNewController extends Controller
     public function getAverageRatingClient($businessId, Request $request)
     {
         $query = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(1)
             ->filterByDateRange()
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating();
