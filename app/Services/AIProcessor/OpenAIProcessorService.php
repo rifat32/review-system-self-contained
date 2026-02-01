@@ -387,17 +387,8 @@ class OpenAIProcessorService
                 'enabled_modules' => $enabledModules
             ]);
 
-            $fallback = $this->getFallbackAnalysis($payload, $enabledModules);
-
-            $fallback['_error'] = $e->getMessage();
-            $fallback['_error_type'] = 'openai_json_parse';
-            $fallback['_metadata'] = [
-                'error' => $e->getMessage(),
-                'processing_time' => \now()->toISOString(),
-                'enabled_modules' => $enabledModules
-            ];
-
-            return $fallback;
+            // Re-throw exception to allow caller to handle failure (retry or mark as failed)
+            throw $e;
         }
     }
 
@@ -1341,29 +1332,14 @@ PROMPT;
                 'enabled_modules' => $enabledModules
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to analyze review', [
+            Log::error('Review analysis failed', [
                 'review_id' => $review->id,
                 'error' => $e->getMessage(),
-                'error_trace' => $e->getTraceAsString(), // Add trace for debugging
-                'review_text_sample' => substr($review->raw_text ?? '', 0, 200)
+                'trace' => $e->getTraceAsString()
             ]);
 
-
-            // Get enabled modules for fallback
-            $enabledModules = $this->getBusinessAiModules($review->business_id);
-            $payload = $this->createPayloadFromReview($review);
-            $fallback = $this->getFallbackAnalysis($payload, $enabledModules);
-            $dbData = $this->convertForDatabase($fallback, $review, $enabledModules);
-
-            // Update the review
-            $review->fill($dbData);
-            $review->save();
-
-            return array_merge($dbData, [
-                'status' => 'fallback',
-                'error' => $e->getMessage(),
-                'message' => 'Used fallback analysis due to OpenAI error'
-            ]);
+            // Re-throw exception to allow caller to handle failure
+            throw $e;
         }
     }
 
@@ -1741,37 +1717,7 @@ PROMPT;
     }
 
 
-    /**
-     * Fallback analysis if OpenAI fails
-     */
-    public function getFallbackAnalysis(array $payload, array $enabledModules): array
-    {
-        $rating = $payload['rating'] ?? 3;
 
-        // Simple sentiment mapping based on rating
-        $sentimentLabel = 'neutral';
-        $sentimentScore = 0;
-
-        if ($rating >= 4) {
-            $sentimentLabel = 'positive';
-            $sentimentScore = 0.8;
-        } elseif ($rating <= 2) {
-            $sentimentLabel = 'negative';
-            $sentimentScore = -0.8;
-        }
-
-        return [
-            'sentiment' => [
-                'score' => $sentimentScore,
-                'label' => $sentimentLabel,
-                'details' => 'Analyzed using rule-based fallback'
-            ],
-            'emotion' => 'neutral',
-            'flagging' => ['is_abusive' => false],
-            'confidence_score' => 0.5,
-            '_fallback' => true
-        ];
-    }
 
     public function trackTokenUsage(
         ?int $businessId,

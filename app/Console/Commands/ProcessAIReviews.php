@@ -216,8 +216,6 @@ class ProcessAIReviews extends Command
                     'path' => __FILE__,
                     'other information' => 'AI Process Logging'
                 ], 'ai_process.log');
-
-                $review->update(['is_ai_processed' => 1]);
             }
 
             // Rate limiting delay

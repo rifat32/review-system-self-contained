@@ -52,12 +52,17 @@ class ReviewMetricsService
         int $businessId,
         Collection $reviews
     ): array {
-        $totalCount = $reviews->count();
+        // Enforce AI processed check
+        $processedReviews = $reviews->filter(function ($review) {
+            return $review->is_ai_processed == 1;
+        });
+
+        $totalCount = $processedReviews->count();
 
         // Get unified threshold from RuleEngineService
-        $threshold = RuleEngineService::getCsatThreshold();
+        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
-        $flaggedCount = $reviews->where('calculated_rating', '<', $threshold)->count();
+        $flaggedCount = $processedReviews->where('sentiment_score', '<', $negativeThreshold)->count();
 
         $percentage = $totalCount > 0 ? round(($flaggedCount / $totalCount) * 100, 1) : 0;
 
