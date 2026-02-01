@@ -739,6 +739,7 @@ class AIProcessorService
         $relevantReviews = ReviewNew::whereIn('branch_id', $branchIds)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->select('id', 'branch_id', 'sentiment_score')
+            ->globalReviewFilters(0, 0, 1)
             ->get();
 
         $sentimentScoreMap = $relevantReviews->pluck('sentiment_score', 'id')->toArray();
