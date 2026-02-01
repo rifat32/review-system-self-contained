@@ -354,7 +354,8 @@ class RuleEngineService
 
     private function getApplicableRulesForReview(int $businessId)
     {
-        $businessType = Business::where('id', $businessId)->value('type');
+        // $businessType = Business::where('id', $businessId)->value('type');
+        $businessType = null;
 
         return AiRule::where('enabled', true)
             ->where('category', '!=', 'trend')
