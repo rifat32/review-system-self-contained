@@ -591,12 +591,30 @@ class ReviewNew extends Model
 
     public function scopeFilterByInsight($query)
     {
-        $query->when(request()->filled('insight_id'), function ($q) {
-            $insightId = request()->input('insight_id');
-            $insight = InsightRecord::find($insightId);
+        $query->when(request()->filled('insight_id') || request()->filled('insight_ids'), function ($q) {
+            $insightIds = request()->input('insight_ids') ?: request()->input('insight_id');
 
-            if ($insight && !empty($insight->review_ids)) {
-                $q->whereIn('review_news.id', (array) $insight->review_ids);
+            // Handle both array and comma-separated string
+            if (is_string($insightIds)) {
+                $insightIds = array_filter(array_map('trim', explode(',', $insightIds)));
+            }
+
+            if (empty($insightIds)) {
+                return;
+            }
+
+            $insights = InsightRecord::whereIn('id', (array) $insightIds)->get();
+
+            $allReviewIds = [];
+            foreach ($insights as $insight) {
+                if (!empty($insight->review_ids)) {
+                    $allReviewIds = array_merge($allReviewIds, (array) $insight->review_ids);
+                }
+            }
+            $allReviewIds = array_unique($allReviewIds);
+
+            if (!empty($allReviewIds)) {
+                $q->whereIn('review_news.id', $allReviewIds);
             } else {
                 $q->whereRaw('1 = 0');
             }

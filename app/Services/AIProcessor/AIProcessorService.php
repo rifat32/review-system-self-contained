@@ -724,6 +724,17 @@ class AIProcessorService
 
         $mainCategories = $insights->pluck('main_category')->unique()->values();
 
+        // 1.5 Map categories to their corresponding insight IDs
+        $categoryInsightMap = [];
+        foreach ($insights as $insight) {
+            $categoryInsightMap[$insight->main_category][] = $insight->id;
+        }
+
+        // Ensure IDs are unique for each category
+        foreach ($categoryInsightMap as $category => $ids) {
+            $categoryInsightMap[$category] = array_values(array_unique($ids));
+        }
+
         // 2. Fetch all reviews once to map sentiment and branch
         $relevantReviews = ReviewNew::whereIn('branch_id', $branchIds)
             ->whereBetween('created_at', [$startDate, $endDate])
@@ -744,6 +755,7 @@ class AIProcessorService
 
             $categoryData = [
                 'category' => $category,
+                'insight_ids' => $categoryInsightMap[$category] ?? [],
                 'branches' => []
             ];
 
