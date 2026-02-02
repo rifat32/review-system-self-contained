@@ -208,6 +208,22 @@ class SetupController extends Controller
             // strip 'php artisan' prefix if present
             $command = preg_replace('/^php\s+artisan\s+/', '', $command);
 
+            // Define allowed patterns or blocked commands
+            $isAllowed = str_starts_with($command, 'schedule:') ||
+                str_starts_with($command, 'recommendations:') ||
+                str_starts_with($command, 'rules:') ||
+                str_starts_with($command, 'reviews:') ||
+                str_starts_with($command, 'reports:') ||
+                str_contains($command, 'review_report:') ||
+                in_array(explode(' ', $command)[0], ['optimize:clear', 'config:clear', 'cache:clear', 'route:clear', 'view:clear', 'check:migrate', 'l5-swagger:generate']);
+
+            if (!$isAllowed) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This command is not allowed for security reasons or to prevent breaking the project.'
+                ], 403);
+            }
+
             Artisan::call($command);
             $output = Artisan::output();
 
