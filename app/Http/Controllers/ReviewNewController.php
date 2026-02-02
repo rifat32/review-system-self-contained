@@ -1010,6 +1010,13 @@ class ReviewNewController extends Controller
             'phone' => $request->guest_phone,
         ]);
 
+        // Ensure guest was created successfully
+        if (!$guest || !$guest->id) {
+            return response([
+                "message" => "Failed to create guest user. Please try again."
+            ], 500);
+        }
+
         $raw_text = $request->input('comment', '');
 
 

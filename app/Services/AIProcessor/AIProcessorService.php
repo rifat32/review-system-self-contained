@@ -1068,9 +1068,18 @@ class AIProcessorService
                 'total_reviews' => 0,
                 'avg_rating' => 0,
                 'sentiment_breakdown' => [
-                    'positive' => 0,
-                    'neutral' => 0,
-                    'negative' => 0
+                    'positive' => [
+                        'count' => 0,
+                        'percentage' => 0
+                    ],
+                    'neutral' => [
+                        'count' => 0,
+                        'percentage' => 0
+                    ],
+                    'negative' => [
+                        'count' => 0,
+                        'percentage' => 0
+                    ]
                 ],
                 'performance_by_category' => [],
                 'top_topics' => [],

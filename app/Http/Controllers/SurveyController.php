@@ -401,6 +401,14 @@ class SurveyController extends Controller
                     "id" => $id
                 ])->first();
 
+            // Check if survey exists
+            if (!$survey) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "Survey not found with ID: {$id}"
+                ], 404);
+            }
+
             $questions = $survey->questions;
             $data = json_decode(json_encode($questions), true);
 
