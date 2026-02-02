@@ -798,7 +798,7 @@ class AIProcessorService
                     'branch_name' => $branch->name,
                     'positive_percentage' => $totalCount > 0 ? round(($positiveCount / $totalCount) * 100) : 0,
                     'sentiment_label' => RuleEngineService::determineAggregatedLabel($positiveCount, $neutralCount, $negativeCount),
-                    'review_count' => $totalCount,
+                    'review_count' => $positiveCount,
                     'breakdown' => [
                         'positive' => $positiveCount,
                         'neutral' => $neutralCount,

@@ -6,19 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Review System - Developer Tools</title>
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- Centralized CSS Design System -->
     <link rel="stylesheet" href="{{ asset('css/variables.css') }}">
     <link rel="stylesheet" href="{{ asset('css/common.css') }}">
-    
+
     <style>
         /* ==================== PAGE-SPECIFIC STYLES ==================== */
-        
+
         /* Animated background gradient */
         body::before {
             content: '';
@@ -28,16 +28,26 @@
             width: 200%;
             height: 200%;
             background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
             animation: backgroundPulse 20s ease infinite;
             z-index: -1;
         }
 
         @keyframes backgroundPulse {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(5%, 5%) rotate(120deg); }
-            66% { transform: translate(-5%, 5%) rotate(240deg); }
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            33% {
+                transform: translate(5%, 5%) rotate(120deg);
+            }
+
+            66% {
+                transform: translate(-5%, 5%) rotate(240deg);
+            }
         }
 
         /* Header specific styles */
@@ -110,11 +120,30 @@
         }
 
         /* Stagger animations for cards */
-        .card:nth-child(1) { animation-delay: 0.1s; animation: fadeInUp 0.6s ease both; }
-        .card:nth-child(2) { animation-delay: 0.2s; animation: fadeInUp 0.6s ease both; }
-        .card:nth-child(3) { animation-delay: 0.3s; animation: fadeInUp 0.6s ease both; }
-        .card:nth-child(4) { animation-delay: 0.4s; animation: fadeInUp 0.6s ease both; }
-        .card:nth-child(5) { animation-delay: 0.5s; animation: fadeInUp 0.6s ease both; }
+        .card:nth-child(1) {
+            animation-delay: 0.1s;
+            animation: fadeInUp 0.6s ease both;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: 0.2s;
+            animation: fadeInUp 0.6s ease both;
+        }
+
+        .card:nth-child(3) {
+            animation-delay: 0.3s;
+            animation: fadeInUp 0.6s ease both;
+        }
+
+        .card:nth-child(4) {
+            animation-delay: 0.4s;
+            animation: fadeInUp 0.6s ease both;
+        }
+
+        .card:nth-child(5) {
+            animation-delay: 0.5s;
+            animation: fadeInUp 0.6s ease both;
+        }
 
         /* Page-specific grid */
         .grid {
@@ -227,6 +256,23 @@
                 <a href="{{ env('APP_URL') }}/swagger-refresh" class="btn btn-primary" target="_blank">
                     <span class="btn-icon">↻</span>
                     <span>Refresh Docs</span>
+                </a>
+            </div>
+
+            <!-- Run Artisan Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon icon-primary">
+                        💻
+                    </div>
+                    <h2 class="card-title">Run Artisan</h2>
+                </div>
+                <p class="card-description">
+                    Run essential artisan commands for system setup and maintenance
+                </p>
+                <a href="{{ url('/run-artisan') }}" class="btn btn-primary" target="_blank">
+                    <span class="btn-icon">⌨</span>
+                    <span>Run Artisan</span>
                 </a>
             </div>
 

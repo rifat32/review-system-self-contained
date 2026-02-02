@@ -99,8 +99,8 @@ class AiReadyDemoBusinessSeeder extends Seeder
             echo "✅ Owner created: {$this->owner->email}\n";
 
             // Step 1.5: Cleanup existing data for this business
-            $this->cleanupExistingData();
-            echo "✅ Cleaned up existing data for '{$this->seederData['business']['business_name']}'\n";
+            // $this->cleanupExistingData();
+            // echo "✅ Cleaned up existing data for '{$this->seederData['business']['business_name']}'\n";
 
 
             // Step 2: Create business using service
