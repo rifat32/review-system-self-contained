@@ -977,11 +977,29 @@ class ReviewNewController extends Controller
                 return response(["message" => "Location data required for review."], 400);
             }
 
-            if ($business->latitude && $business->longitude) {
-                $distance = getDistanceMeters($guest_lat, $guest_lon, $business->latitude, $business->longitude);
+            $target_lat = $business->latitude;
+            $target_lon = $business->longitude;
+            $location_name = "business location";
+
+            if ($request->filled('branch_id')) {
+                $branch = \App\Models\Branch::find($request->branch_id);
+                if ($branch && $branch->lat && $branch->long) {
+                    $target_lat = $branch->lat;
+                    $target_lon = $branch->long;
+                    $location_name = "branch location";
+                }
+            }
+
+            if ($target_lat && $target_lon) {
+                $distance = getDistanceMeters($guest_lat, $guest_lon, $target_lat, $target_lon);
                 if ($distance > $business->review_distance_limit) {
+                    $distance_away = round($distance - $business->review_distance_limit);
+                    $current_distance = round($distance);
                     return response([
-                        "message" => "You are too far from the business location to review (limit {$business->review_distance_limit}m)."
+                        "message" => "You are too far from the {$location_name} to review (limit {$business->review_distance_limit}m). You are currently {$current_distance}m away.",
+                        "distance" => $distance,
+                        "limit" => $business->review_distance_limit,
+                        "distance_away" => $distance_away
                     ], 400);
                 }
             }

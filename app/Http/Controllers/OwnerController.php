@@ -415,8 +415,6 @@ class OwnerController extends Controller
                 // Notify website owners
                 $adminEmails = ['info@feedgenius.ai', 'rifatbilalphilips@gmail.com'];
                 Mail::to($adminEmails)->send(new \App\Mail\NewBusinessAdminNotification($user, $business, $plan->name ?? 'N/A'));
-
-                
             } catch (Exception $e) {
                 log_message($e->getMessage(), 'register_mail.log');
             }
@@ -736,7 +734,6 @@ class OwnerController extends Controller
             function ($query) {
                 $query->where([
                     "id" => request()->input("owner_id")
-
                 ]);
             },
             function ($query) {
@@ -756,8 +753,28 @@ class OwnerController extends Controller
         }
 
         $user->image = $imageName;
-
         $user->save();
+
+        // RE-FETCH USER WITH RELATIONSHIPS TO MATCH AUTH RESPONSE
+        $user = User::with('business', 'branch')->find($user->id);
+
+        // SET DEFAULT_BRANCH_ID BASED ON ROLE
+        if ($user->hasRole('branch_manager')) {
+            // CHECK IF USER HAS A BRANCH ASSIGNED TO THEM
+            if (!$user->branch) {
+                throw new AuthorizationException('You do not have a branch assigned to you');
+            }
+            $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);
+        } else if ($user->hasRole('business_owner')) {
+            $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);
+            $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
+        }
+
+        // SET TOKEN AND PERMISSION 
+        $user->setAttribute('token', $user->createToken('authToken')->accessToken);
+        $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
+        // SET ROLE AS SINGLE OBJECT
+        $user->setAttribute('role', $user->roles->first());
 
         // RETURN RESPONSE
         return response()->json([
