@@ -292,26 +292,22 @@ class BranchController extends Controller
         if (!$businessId) {
             throw new AuthorizationException('No business found for the authenticated user');
         }
+        // Validate period and get date range (only for review filtering)
+        $dateRange = $this->branchService->validateAndGetDateRange($request->get('period', 'last_30_days'));
 
-
-        // Get branch IDs
-        $branchIds = Branch::where('business_id', $businessId)
-            ->branchGlobalFilters()
-            ->pluck('id');
+        // Get ALL branch IDs (no date filtering on branches themselves)
+        $branchIds = Branch::where('business_id', $businessId)->pluck('id');
 
         // ==================== TOTAL BRANCHES ====================
-        $currentBranchCount = Branch::where('business_id', $businessId)
-            ->branchGlobalFilters()
-            ->filterByDateRange()
-            ->count();
+        // Count ALL active branches (not filtered by date)
+        $totalBranchCount = Branch::where('business_id', $businessId)->count();
 
-        $previousBranchCount = Branch::where('business_id', $businessId)
-            ->branchGlobalFilters()
-            ->filterByDateRange(true)
-            ->count();
-
-        $branchCountChange = $currentBranchCount - $previousBranchCount;
-        $branchCountChangeType = $branchCountChange > 0 ? 'increase' : ($branchCountChange < 0 ? 'decrease' : 'no_change');
+        // For branch overview, the branch count doesn't change with periods
+        // (branches exist regardless of when reviews were created)
+        $currentBranchCount = $totalBranchCount;
+        $previousBranchCount = $totalBranchCount;
+        $branchCountChange = 0;
+        $branchCountChangeType = 'no_change';
 
         // ==================== REVIEWS COLLECTIONS ====================
         $currentReviews = ReviewNew::whereIn('branch_id', $branchIds)
