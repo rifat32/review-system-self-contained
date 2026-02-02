@@ -116,6 +116,8 @@ Route::get('/rollback-migrate', [SetupController::class, 'rollbackMigration'])->
 
 // CLEAR CACHE
 Route::get('/clear-cache', [SetupController::class, "clearCache"]);
+// RUN ARTISAN COMMAND
+Route::get('/run-artisan', [SetupController::class, "runArtisanCommand"]);
 // ONE TIME DB OPERATION
 Route::get('/one-time-db-operation', [SetupController::class, "oneTimeDBOperation"]);
 
@@ -162,7 +164,7 @@ Route::get("/activate/{token}", function (Request $request, $token) {
 
     // Check expiry
     if ($user->email_verify_token_expires && \Carbon\Carbon::parse($user->email_verify_token_expires)->isPast()) {
-         return view('auth.verification_result', [
+        return view('auth.verification_result', [
             'status' => 'error',
             'page_title' => 'Verification Failed',
             'message' => 'This verification link has expired.'

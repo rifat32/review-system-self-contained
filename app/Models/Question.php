@@ -65,6 +65,7 @@ class Question extends Model
         "type",
         "order_no",
         "is_overall",
+        "is_staff",
     ];
     protected $casts = [
         'is_active' => 'boolean',
@@ -145,7 +146,6 @@ class Question extends Model
             $query->whereHas('review_values', function ($q2) use ($is_overall) {
                 $q2->filterByOverall($is_overall);
             });
-
         }
         return $query;
     }

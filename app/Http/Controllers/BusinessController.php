@@ -28,6 +28,7 @@ use PDF;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class BusinessController extends Controller
 {
@@ -556,15 +557,32 @@ class BusinessController extends Controller
             "Logo" => $imagePath
         ]);
 
+        // GET USER WITH RELATIONSHIP
+        $user = User::with('business', 'branch')->findOrFail($request->user()->id);
+
+        // SET DEFAULT_BRANCH_ID BASED ON ROLE
+        if ($user->hasRole('branch_manager')) {
+            // CHECK IF USER HAS A BRANCH ASSIGNED TO THEM
+            if (!$user->branch) {
+                throw new AuthorizationException('You do not have a branch assigned to you');
+            }
+            $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);
+        } else if ($user->hasRole('business_owner')) {
+            $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);
+            $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
+        }
+
+        // SET TOKEN AND PERMISSION 
+        $user->setAttribute('token', $user->createToken('authToken')->accessToken);
+        $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
+        // SET ROLE AS SINGLE OBJECT
+        $user->setAttribute('role', $user->roles->first());
+
         // RETURN SUCCESS RESPONSE
         return response()->json([
-            "success" => true,
-            "message" => "Business logo uploaded successfully",
-            "data" => [
-                "id" => $business->id,
-                "Name" => $business->Name,
-                "Logo" => $business->Logo
-            ]
+            'success' => true,
+            'message' => 'Login successful',
+            'data' => $user
         ], 200);
     }
     // ##################################################
@@ -727,28 +745,35 @@ class BusinessController extends Controller
             throw new AccessDeniedHttpException('This business does not belong to you');
         }
 
-        // GET USER
-        $user = User::with('roles')->findOrFail($business->OwnerID);
+        // GET USER WITH RELATIONSHIP
+        $user = User::with('business', 'branch')->findOrFail($business->OwnerID);
 
-        // Add default_branch_id to user response
-        $user->setAttribute('default_branch_id', $business->default_branch_id);
-        $user->setAttribute('role', $user->roles->first());
+        // SET DEFAULT_BRANCH_ID BASED ON ROLE
+        if ($user->hasRole('branch_manager')) {
+            // CHECK IF USER HAS A BRANCH ASSIGNED TO THEM
+            if (!$user->branch) {
+                throw new AuthorizationException('You do not have a branch assigned to you');
+            }
+            $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);
+        } else if ($user->hasRole('business_owner')) {
+            $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);
+            $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
+        }
 
-        // Generate new access token
+        // SET TOKEN AND PERMISSION 
         $user->setAttribute('token', $user->createToken('authToken')->accessToken);
         $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
+        // SET ROLE AS SINGLE OBJECT
+        $user->setAttribute('role', $user->roles->first());
 
         // Update
         $business->update($request_payload);
 
-
-
         // Return
         return response()->json([
-            "status" => true,
-            "message" => "Business updated successfully",
-            "business" => $business,
-            "user" => $user
+            'success' => true,
+            'message' => 'Login successful',
+            'data' => $user
         ], 200);
     }
 

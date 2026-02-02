@@ -193,6 +193,37 @@ class SetupController extends Controller
         ], 200);
     }
 
+    public function runArtisanCommand(Request $request)
+    {
+        $command = $request->query('command');
+
+        if (!$command) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Command parameter is missing'
+            ], 400);
+        }
+
+        try {
+            // strip 'php artisan' prefix if present
+            $command = preg_replace('/^php\s+artisan\s+/', '', $command);
+
+            Artisan::call($command);
+            $output = Artisan::output();
+
+            return response()->json([
+                'success' => true,
+                'command' => $command,
+                'output' => $output
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Command execution failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     public function getActivityLogs(Request $request)
     {
