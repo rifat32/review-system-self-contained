@@ -197,6 +197,8 @@ return [
             'max_tokens' => 2500,
             'debug_max_tokens' => 10,
             'cache_ttl' => 3600,
+            'retry_times' => 3,
+            'retry_sleep' => 1000, // milliseconds
         ],
 
         'anomalies' => [

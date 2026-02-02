@@ -307,6 +307,7 @@ class AIProcessorService
 
             $response = Http::withToken($apiKey)
                 ->timeout(60)
+                ->retry(config('ai.openai.request.retry_times') ?? 3, config('ai.openai.request.retry_sleep') ?? 1000)
                 ->attach('file', fopen($filePath, 'r'), $fileName)
                 ->post('https://api.openai.com/v1/audio/transcriptions', [
                     'model' => 'whisper-1',
@@ -2275,6 +2276,7 @@ class AIProcessorService
                 'last_review_date' => $latestReviewDate ? $latestReviewDate->diffForHumans() : 'No reviews',
                 'recommended_training' => $staffPerformanceService->extractRecommendedTraining($suggestions),
                 'skill_gaps' => $staffPerformanceService->extractSkillGapsFromSuggestions($suggestions),
+
                 'rating_trend' => $staffPerformanceService->calculateStaffRatingTrend(collect($reviews)),
                 'performance_level' => $performanceScore
             ];

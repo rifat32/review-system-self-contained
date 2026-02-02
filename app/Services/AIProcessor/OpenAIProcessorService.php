@@ -41,6 +41,7 @@ class OpenAIProcessorService
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(config('ai.openai.request.debug_timeout') ?? 10)
+                ->retry(config('ai.openai.request.retry_times') ?? 3, config('ai.openai.request.retry_sleep') ?? 1000)
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => 'gpt-4o-mini',
                     'messages' => [
@@ -168,6 +169,7 @@ class OpenAIProcessorService
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(config('ai.openai.request.process_timeout') ?? 60)
+                ->retry(config('ai.openai.request.retry_times') ?? 3, config('ai.openai.request.retry_sleep') ?? 1000)
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => $model,
                     'temperature' => config('ai.openai.request.temperature') ?? 0.1,

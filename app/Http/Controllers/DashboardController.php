@@ -1668,7 +1668,7 @@ class DashboardController extends Controller
 
     /**
      * @OA\Get(
-     *      path="/v1.0/reports/staff-comparison/{businessId}",
+     *      path="/v1.0/reports/staff-comparison",
      *      operationId="staffComparison",
      *      tags={"Reports"},
      *      summary="Compare two staff members performance",
@@ -1719,14 +1719,16 @@ class DashboardController extends Controller
      * )
      */
     // All staff-related methods need to use ReviewValueNew for rating calculations
-    public function staffComparison($businessId, Request $request)
+    public function staffComparison(Request $request)
     {
         $request->validate([
             'staff_a_id' => 'required|integer|exists:users,id',
             'staff_b_id' => 'required|integer|exists:users,id'
         ]);
+        $businessId = auth()->user()->business_id;
 
         $business = Business::findOrFail($businessId);
+
         $staffAId = $request->staff_a_id;
         $staffBId = $request->staff_b_id;
 
@@ -1760,7 +1762,7 @@ class DashboardController extends Controller
             "success" => true,
             "message" => "Staff comparison data retrieved successfully",
             "data" => [
-                'business_id' => (int) $businessId,
+                'business_id' => (int) $business->id,
                 'business_name' => $business->Name,
                 'comparison' => [
                     'rating_gap' => $ratingGap,
@@ -1848,6 +1850,7 @@ class DashboardController extends Controller
     public function staffPerformance($businessId, $staffId)
     {
 
+        $businessId = auth()->user()->business_id;
         $staff = User::findOrFail($staffId);
 
         // Get reviews WITH calculated rating in one query
@@ -1965,6 +1968,7 @@ class DashboardController extends Controller
      */
     public function reviewAnalytics($businessId, Request $request)
     {
+        $businessId = auth()->user()->business_id;
         $business = Business::findOrFail($businessId);
 
         $filters = [
@@ -2142,6 +2146,7 @@ class DashboardController extends Controller
      */
     public function getOverallDashboardData($businessId, Request $request)
     {
+        $businessId = auth()->user()->business_id;
         $user = $request->user();
 
         $filterable_fields = [
@@ -2718,84 +2723,5 @@ class DashboardController extends Controller
             'message' => 'Dashboard metrics retrieved successfully',
             'data' => $metrics
         ], 200);
-    }
-
-    /**
-     *
-     * @OA\Get(
-     *      path="/review-new/getavg/review/{businessId}/{start}/{end}",
-     *      operationId="getAverages",
-     *      tags={"z.unused"},
-     *         security={
-     *           {"bearerAuth": {}}
-     *       },
-     *  @OA\Parameter(
-     * name="businessId",
-     * in="path",
-     * description="businessId",
-     * required=true,
-     * example="1"
-     * ),
-     *  @OA\Parameter(
-     * name="start",
-     * in="path",
-     * description="from date",
-     * required=true,
-     * example="2019-06-29"
-     * ),
-     *  @OA\Parameter(
-     * name="end",
-     * in="path",
-     * description="to date",
-     * required=true,
-     * example="2026-06-29"
-     * ),
-     *      summary="This method is to get average",
-     *      description="This method is to get average",
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocessable Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-    public function getAverages($businessId, $start, $end, Request $request)
-    {
-        // Get reviews with their values
-        $query = ReviewNew::with(['value'])
-            ->where("business_id", $businessId)
-            ->globalReviewFilters(0)
-            ->whereBetween('created_at', [$start, $end])
-            ->orderBy('order_no', 'asc')
-            ->withCalculatedRating();
-
-
-
-        $data = $this->reviewService->extractRatingBreakdown($query->get());
-
-        return response($data, 200);
     }
 }

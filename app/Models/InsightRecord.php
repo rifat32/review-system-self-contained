@@ -24,6 +24,7 @@ class InsightRecord extends Model
         'sentiment',
         'time_window_start',
         'time_window_end',
+        'review_ids',
     ];
 
     /**
