@@ -6,6 +6,7 @@ use App\Models\ReviewNew;
 use App\Models\User;
 use App\Services\Rule\RuleEngineService;
 use App\Services\Review\ReviewService;
+use App\Services\Review\ReviewMetricsService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -13,14 +14,16 @@ class StaffPerformanceService
 {
     private RuleEngineService $ruleEngineService;
     private ReviewService $reviewService;
-
+    private ReviewMetricsService $reviewMetricsService;
 
     public function __construct(
         RuleEngineService $ruleEngineService,
-        ReviewService $reviewService
+        ReviewService $reviewService,
+        ReviewMetricsService $reviewMetricsService
     ) {
         $this->ruleEngineService = $ruleEngineService;
         $this->reviewService = $reviewService;
+        $this->reviewMetricsService = $reviewMetricsService;
     }
     // ==================== STAFF PERFORMANCE SNAPSHOT ====================
 
@@ -31,7 +34,7 @@ class StaffPerformanceService
     {
         $query = ReviewNew::with('staff')
             ->where('review_news.business_id', $businessId)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters()
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
                 return $query->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
@@ -65,25 +68,12 @@ class StaffPerformanceService
                 ? round($reviews->avg('calculated_rating'), 1)
                 : 0;
 
-            // Use dynamic thresholds from rule engine
-            $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
-
-            $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-            $negativeReviews = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
-
-            // Align neutral logic with AIProcessorService: score >= negative AND score < positive
-            $neutralReviews = $reviews->where('sentiment_score', '>=', $negativeThreshold)
-                ->where('sentiment_score', '<', $positiveThreshold)->count();
+            // Use ReviewMetricsService for sentiment breakdown calculation
+            $sentimentData = $this->reviewMetricsService->calculateSentimentBreakdown($reviews);
 
             $totalCount = $reviews->count();
-            if ($totalCount > 0) {
-                $posPct = (int)round(($positiveReviews / $totalCount) * 100);
-                $neuPct = (int)round(($neutralReviews / $totalCount) * 100);
-                $negPct = (int)round(($negativeReviews / $totalCount) * 100);
-            } else {
-                $posPct = $neuPct = $negPct = 0;
-            }
+            $positiveReviews = $sentimentData['positive'];
+            $negativeReviews = $sentimentData['negative'];
 
             $staff_suggestions = $reviews->pluck('staff_suggestions')->flatten()->unique();
 
@@ -100,10 +90,11 @@ class StaffPerformanceService
                 'rating' => $avgRating,
                 'image' => $staff->image ?? null,
                 'review_count' => $totalCount,
+                // 'sentiment_breakdown' => $sentimentData,
                 'sentiment_breakdown' => [
-                    'positive' => $posPct,
-                    'neutral' => $neuPct,
-                    'negative' => $negPct
+                    'positive' => (int)round($sentimentData['percentages']['positive']),
+                    'neutral' => (int)round($sentimentData['percentages']['neutral']),
+                    'negative' => (int)round($sentimentData['percentages']['negative'])
                 ],
                 'positive_count' => $positiveReviews,
                 'negative_count' => $negativeReviews,

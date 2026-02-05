@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class ReviewNewController extends Controller
 {
@@ -962,9 +963,7 @@ class ReviewNewController extends Controller
                 ->first();
 
             if ($existing_review) {
-                return response([
-                    "message" => "You have already submitted a review today from this IP."
-                ], 400);
+              throw new BadRequestHttpException("You have already submitted a review today from this IP.");
             }
         }
 
@@ -973,8 +972,11 @@ class ReviewNewController extends Controller
             $guest_lat = $request->input('latitude');
             $guest_lon = $request->input('longitude');
 
+
             if (!$guest_lat || !$guest_lon) {
-                return response(["message" => "Location data required for review."], 400);
+                throw new BadRequestHttpException(
+                    'We could not detect your location. Please enable location access in your browser or device settings and try again.'
+                );
             }
 
             $target_lat = $business->latitude;

@@ -9,7 +9,9 @@ use App\Models\BranchMember;
 use App\Models\ReviewNew;
 use App\Models\User;
 use App\Services\AIProcessor\AIProcessorService;
+use App\Services\Review\ReviewMetricsService;
 use App\Services\Review\ReviewService;
+use App\Services\Rule\RuleEngineService;
 use App\Services\Staff\StaffPerformanceService;
 use App\Services\Staff\StaffService;
 use Exception;
@@ -31,6 +33,7 @@ class StaffController extends Controller
     private $staffPerformanceService;
     private $staffService;
     private $reviewService;
+    private ReviewMetricsService $reviewMetricsService;
 
     public function __construct(
         AIProcessorService $aiProcessorService,
@@ -954,14 +957,8 @@ class StaffController extends Controller
         // Fetch staff (ensure belongs to business)
         $staff = User::with(['branches', 'roles'])
             ->where('business_id', $business_id)
-            ->find($staff_id);
+            ->findOrFail($staff_id);
 
-        if (!$staff) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Staff not found',
-            ], 404);
-        }
 
         // Date range is now handled internally if null
         $data = [
@@ -1323,8 +1320,8 @@ class StaffController extends Controller
         }
 
         $query = ReviewNew::with('staff')
-            ->where('staff_id', $staffId)
             ->where('business_id', $businessId)
+            ->where('staff_id', $staffId)
             ->when($request->has('have_comment'), function ($query) use ($request) {
                 if ($request->boolean('have_comment')) {
                     $query->whereNotNull('comment');
@@ -1332,23 +1329,33 @@ class StaffController extends Controller
                     $query->whereNull('comment');
                 }
             })
-            ->globalReviewFilters(0)
+            ->globalReviewFilters()
             ->filterByDateRange()
             ->withCalculatedRating();
 
-        // Apply filter based on calculated_rating
+        // Use dynamic thresholds
+        $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+
+
+        // Apply filter based on sentiment_score
         if ($filter === 'positive') {
-            $query->having('calculated_rating', '>=', 4);
+            $query->where('sentiment_score', '>=', $positiveThreshold);
         } elseif ($filter === 'negative') {
-            $query->having('calculated_rating', '<=', 2);
+            $query->where('sentiment_score', '<', $negativeThreshold);
         } elseif ($filter === 'neutral') {
-            $query->havingRaw('calculated_rating BETWEEN 2.1 AND 3.9');
-        } else {
-            $query->having('calculated_rating', '>=', 4);
+            $query->where('sentiment_score', '>=', $negativeThreshold)
+                ->where('sentiment_score', '<', $positiveThreshold);
         }
+
+        // Get all reviews for sentiment breakdown calculation (before filtering)
+        $allReviews = $query->get();
+        $sentiment_breakdown = $this->reviewMetricsService->calculateSentimentBreakdown($allReviews);
 
         // Get the reviews using retrieve_data for consistent pagination
         $reviews = retrieve_data($query);
+
+        $reviews['meta']['sentiment_breakdown'] = $sentiment_breakdown ?? null;
 
         return response()->json([
             'success' => true,
