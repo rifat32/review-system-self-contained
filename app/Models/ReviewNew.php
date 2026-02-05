@@ -589,6 +589,35 @@ class ReviewNew extends Model
         return $query;
     }
 
+    public function scopeFilterByRating($query)
+    {
+        $rating = request()->input('rating');
+
+        if (empty($rating)) {
+            return $query;
+        }
+
+        // Validate rating is between 1-5
+        $rating = (int) $rating;
+        if ($rating < 1 || $rating > 5) {
+            return $query;
+        }
+
+        // Rating filter logic:
+        // 1: 0 to 1.9
+        // 2: 2.0 to 2.9
+        // 3: 3.0 to 3.9
+        // 4: 4.0 to 4.9
+        // 5: exactly 5.0
+        if ($rating === 1) {
+            return $query->havingRaw('calculated_rating >= 0 AND calculated_rating < 2');
+        } elseif ($rating === 5) {
+            return $query->havingRaw('calculated_rating = 5');
+        } else {
+            return $query->havingRaw('calculated_rating >= ? AND calculated_rating < ?', [$rating, $rating + 1]);
+        }
+    }
+
     public function scopeFilterByInsight($query)
     {
         $query->when(request()->filled('insight_id') || request()->filled('insight_ids'), function ($q) {
@@ -678,6 +707,8 @@ class ReviewNew extends Model
             ->filterByInsight()
             // Apply branch filter using dedicated scope
             ->filterByBranchIds()
+            // Apply rating filter using dedicated scope
+            ->filterByRating()
             ->when($show_published_only, function ($q) use ($is_staff_review) {
                 $q->whereMeetsThreshold($is_staff_review);
             })
@@ -733,7 +764,9 @@ class ReviewNew extends Model
             // Apply tag_ids filter using dedicated scope
             ->filterByTagIds()
             // Apply star_ids filter using dedicated scope
-            ->filterByStarIds();
+            ->filterByStarIds()
+            // Apply rating filter using dedicated scope
+            ->filterByRating();
 
         return $query;
     }

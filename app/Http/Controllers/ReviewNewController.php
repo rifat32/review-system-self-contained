@@ -3497,14 +3497,14 @@ class ReviewNewController extends Controller
      *          example="1,2,3"
      *      ),
      *      @OA\Parameter(
-     *          name="star_ids",
+     *          name="rating",
      *          in="query",
      *          required=false,
-     *          description="Filter reviews by specific star rating IDs associated with review values (comma-separated, e.g., 1,2,3)",
+     *          description="Filter reviews by specific calculated_rating (e.g., 1,2,3,4,5). If 1, it will fetch reviews with calculated_rating in range 1: 0 to 1.9 and 2: 2 to 2.9 and 3: 3 to 3.9 and 4: 4 to 4.9 and 5: 5",
      *          @OA\Schema(
      *              type="string"
      *          ),
-     *          example="1,2,3"
+     *          example="1"
      *      ),
      *      @OA\Response(
      *          response=200,
