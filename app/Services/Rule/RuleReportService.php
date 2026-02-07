@@ -21,14 +21,7 @@ class RuleReportService
             ->where('is_default', true)
             ->first();
 
-        if (!$rule) {
-            Log::warning('Default rule missing, auto-recreating', [
-                'rule_key' => $ruleKey,
-                'business_id' => $businessId
-            ]);
-
-            $rule = DefaultRuleSeederService::recreateRule($ruleKey, $businessId);
-        }
+        throw new \Exception("Default rule '{$ruleKey}' not found for business {$businessId}.");
 
         return $rule;
     }

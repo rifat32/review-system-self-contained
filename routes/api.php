@@ -525,35 +525,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/v1.0/notes/delete/{ids}', [NoteController::class, 'deleteNotes']);
 
 
-    // AI Rules with Explanations
-    Route::prefix('ai-rules')->group(function () {
-        // List all rules
-        Route::get('/', [AiRuleController::class, 'index']);
-
-        // Create new rule
-        Route::post('/', [AiRuleController::class, 'store']);
-
-        // Get rules needing explanations
-        Route::get('/missing-explanations', [AiRuleController::class, 'missingExplanations']);
-
-        // Batch regenerate explanations
-        Route::post('/batch-regenerate', [AiRuleController::class, 'batchRegenerateExplanations']);
-
-        // Get specific rule details
-        Route::get('/{ruleId}', [AiRuleController::class, 'show']);
-
-        // Update rule
-        Route::put('/{ruleId}', [AiRuleController::class, 'update']);
-
-        // Delete rule
-        Route::delete('/{ruleId}', [AiRuleController::class, 'destroy']);
-
-        // Toggle rule enabled/disabled
-        Route::patch('/{ruleId}/toggle', [AiRuleController::class, 'toggleEnabled']);
-
-        // Regenerate explanations for specific rule
-        Route::post('/{ruleId}/regenerate-explanations', [AiRuleController::class, 'regenerateExplanations']);
-    });
 
     // ============================================================================
     // RuleReportController - Default Rule-Based Reports (NEW)

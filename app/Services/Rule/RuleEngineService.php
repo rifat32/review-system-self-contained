@@ -4,7 +4,7 @@ namespace App\Services\Rule;
 
 use App\Models\{AiRule, ReviewNew, Business, InsightRecord, AiRuleEvaluation, Alert, Recommendation};
 use App\Services\AIProcessor\ConfidenceCalculatorService;
-use App\Services\Rule\AutoRuleCreatorService;
+
 use App\Services\Rule\RuleExecutionService;
 
 
@@ -68,38 +68,7 @@ class RuleEngineService
         ];
     }
 
-    public function evaluateReviewRules(ReviewNew $review, array $openaiData): array
-    {
-        $rules = $this->getApplicableRulesForReview($review->business_id);
-        $results = [];
 
-        foreach ($rules as $rule) {
-            // Apply branch filtering (done again in executionService but kept here for early exit if needed,
-            // though executionService handles it more robustly now)
-            if (!empty($rule->branch_ids)) {
-                if (!$review->branch_id || !in_array($review->branch_id, $rule->branch_ids)) {
-                    continue;
-                }
-            }
-
-            // Redirect to RuleExecutionService for unified execution, recording, and deduplication
-            // This ensures all rule matches are recorded in ai_rule_triggers
-            $this->executionService->runSingleRule($rule, $review, $openaiData);
-
-            // If it matched, we still want to return a result for the log in OpenAIProcessorService
-            // Note: executionService already matched it, but for simplicity of the return value,
-            // we do a quick match check here or just assume it might have matched if runSingleRule didn't throw.
-            // Actually, to avoid double matching, we could update runSingleRule to return match status.
-            if ($this->ruleMatchesReview($rule, $review, $openaiData)) {
-                $results[] = $this->createRuleEvaluation($rule, $review, $openaiData);
-            }
-        }
-
-        // Auto-create rules for new patterns
-        // AutoRuleCreatorService::checkAndCreateRules($review, $openaiData);
-
-        return $results;
-    }
 
     // PRIVATE METHODS
 

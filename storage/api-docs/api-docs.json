@@ -19,19 +19,463 @@
         }
     ],
     "paths": {
-        "/api/v1.0/ai-rules/{ruleId}/metrics": {
+        "/v1.0/ai-rules/{ruleId}/metrics": {
             "get": {
                 "tags": [
                     "AI Rules - Metrics"
                 ],
                 "summary": "Get rule performance metrics",
-                "description": "Get rule metrics and performance\nGET /api/v1.0/ai-rules/{ruleId}/metrics",
-                "operationId": "f67dfa4aacba2783235700c529a74c11",
+                "description": "Returns high-level performance metrics including precision rate, trigger counts, and trend data for a specific rule.",
+                "operationId": "86198b13d075cc9f49ffe12860534d82",
+                "parameters": [
+                    {
+                        "name": "ruleId",
+                        "in": "path",
+                        "description": "The external rule_id (e.g. SENTIMENT_ANALYSIS.1)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Metrics retrieved"
+                        "description": "Metrics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "rule_id": {
+                                                    "type": "string"
+                                                },
+                                                "precision_rate": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "total_triggers": {
+                                                    "type": "integer"
+                                                },
+                                                "true_positives": {
+                                                    "type": "integer"
+                                                },
+                                                "false_positives": {
+                                                    "type": "integer"
+                                                },
+                                                "pending_verification": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rule not found or unauthorized"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/ai-rules/{ruleId}/trigger-history": {
+            "get": {
+                "tags": [
+                    "AI Rules - Metrics"
+                ],
+                "summary": "Get trigger history for a rule",
+                "description": "Provides a paginated list of all times this rule was triggered.",
+                "operationId": "5221399bd398f3dc6cf2bef2a597c9ff",
+                "parameters": [
+                    {
+                        "name": "ruleId",
+                        "in": "path",
+                        "description": "External rule ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "outcome",
+                        "in": "query",
+                        "description": "Filter by outcome (true_positive, false_positive, pending)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true_positive",
+                                "false_positive",
+                                "pending"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "from_date",
+                        "in": "query",
+                        "description": "Filter from date (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to_date",
+                        "in": "query",
+                        "description": "Filter to date (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Trigger history retrieved",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "description": "Paginated result",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/ai-rules/triggers/{triggerId}/verify": {
+            "post": {
+                "tags": [
+                    "AI Rules - Metrics"
+                ],
+                "summary": "Verify trigger outcome",
+                "description": "Allows a manager to mark a trigger as True Positive or False Positive to refine AI accuracy.",
+                "operationId": "f17543c542ed7b87c0b09affd75fdb4a",
+                "parameters": [
+                    {
+                        "name": "triggerId",
+                        "in": "path",
+                        "description": "Numerical ID of the trigger record",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "outcome"
+                                ],
+                                "properties": {
+                                    "outcome": {
+                                        "type": "string",
+                                        "enum": [
+                                            "true_positive",
+                                            "false_positive"
+                                        ]
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "maxLength": 500,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Trigger verified successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/ai-rules/validate-conditions": {
+            "post": {
+                "tags": [
+                    "AI Rules - Validation"
+                ],
+                "summary": "Validate condition structure",
+                "description": "Validates a JSON condition tree before saving a rule.",
+                "operationId": "424c7e49ccecc647ddea94d54375d5ff",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "conditions"
+                                ],
+                                "properties": {
+                                    "conditions": {
+                                        "description": "The condition tree to validate",
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Conditions are valid",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "valid": {
+                                            "type": "boolean",
+                                            "example": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failures",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "errors": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/ai-rules/condition-types": {
+            "get": {
+                "tags": [
+                    "AI Rules - Validation"
+                ],
+                "summary": "Get supported condition types",
+                "description": "Returns all available condition sources, types, and operators for the rule builder UI.",
+                "operationId": "5289c0dbd2170371be32739f42e455e1",
+                "responses": {
+                    "200": {
+                        "description": "Metadata retrieved",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/ai-rules/top-performers": {
+            "get": {
+                "tags": [
+                    "AI Rules - Metrics"
+                ],
+                "summary": "Get top performing rules",
+                "description": "Returns rules with the highest precision and trigger counts for the current business.",
+                "operationId": "69fa97a8fb006fa366f13bb30802a88b",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 5
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Top rules retrieved",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AiRule"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/ai-rules/needs-attention": {
+            "get": {
+                "tags": [
+                    "AI Rules - Metrics"
+                ],
+                "summary": "Get rules needing attention",
+                "description": "Returns rules that fall below a certain precision threshold.",
+                "operationId": "792bb947d075f9702f8c7593dcabd17c",
+                "parameters": [
+                    {
+                        "name": "precision_threshold",
+                        "in": "query",
+                        "description": "Percentage threshold (0-100)",
+                        "required": false,
+                        "schema": {
+                            "type": "number",
+                            "format": "float",
+                            "default": 70
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rules requiring review retrieved",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AiRule"
+                                            }
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/resend-email-verify-mail": {
@@ -1754,10 +2198,16 @@
                                                     "format": "float",
                                                     "example": 4.20000000000000017763568394002504646778106689453125
                                                 },
-                                                "overall_sentiment": {
+                                                "overall_sentiment_score": {
+                                                    "description": "Average sentiment score (0.0-1.0)",
                                                     "type": "number",
                                                     "format": "float",
                                                     "example": 0.75
+                                                },
+                                                "overall_sentiment_label": {
+                                                    "description": "Sentiment label: positive (>=0.7), neutral (0.4-0.69), or negative (<0.4)",
+                                                    "type": "string",
+                                                    "example": "positive"
                                                 }
                                             },
                                             "type": "object"
@@ -2063,6 +2513,259 @@
                                         },
                                         "errors": {
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/branches/overview": {
+            "get": {
+                "tags": [
+                    "branches"
+                ],
+                "summary": "Get branch overview with comparison data",
+                "description": "Retrieve aggregated metrics for all branches including total branches, average rating, and overall sentiment with period-over-period comparison.",
+                "operationId": "getBranchOverview",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period for metrics calculation",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "last_7_days",
+                                "last_30_days",
+                                "last_90_days",
+                                "this_month",
+                                "last_month"
+                            ],
+                            "example": "last_30_days"
+                        }
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Start date for custom date range (DD-MM-YYYY)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "End date for custom date range (DD-MM-YYYY)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Branch overview retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Branch overview retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "total_branches": {
+                                                    "properties": {
+                                                        "value": {
+                                                            "description": "Current period total branches",
+                                                            "type": "integer",
+                                                            "example": 10
+                                                        },
+                                                        "previous_value": {
+                                                            "description": "Previous period total branches",
+                                                            "type": "integer",
+                                                            "example": 8
+                                                        },
+                                                        "change_value": {
+                                                            "description": "Difference between current and previous",
+                                                            "type": "integer",
+                                                            "example": 2
+                                                        },
+                                                        "change_type": {
+                                                            "description": "Type of change",
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "increase",
+                                                                "decrease",
+                                                                "no_change"
+                                                            ],
+                                                            "example": "increase"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "avg_rating": {
+                                                    "properties": {
+                                                        "value": {
+                                                            "description": "Current period average rating",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 4.5
+                                                        },
+                                                        "previous_value": {
+                                                            "description": "Previous period average rating",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 4.20000000000000017763568394002504646778106689453125
+                                                        },
+                                                        "change_value": {
+                                                            "description": "Difference between current and previous",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 0.299999999999999988897769753748434595763683319091796875
+                                                        },
+                                                        "change_type": {
+                                                            "description": "Type of change",
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "increase",
+                                                                "decrease",
+                                                                "no_change"
+                                                            ],
+                                                            "example": "increase"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "overall_sentiment": {
+                                                    "properties": {
+                                                        "value": {
+                                                            "description": "Current period sentiment score (0.0-1.0)",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 0.75
+                                                        },
+                                                        "previous_value": {
+                                                            "description": "Previous period sentiment score (0.0-1.0)",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 0.68000000000000004884981308350688777863979339599609375
+                                                        },
+                                                        "change_value": {
+                                                            "description": "Difference between current and previous",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 0.070000000000000006661338147750939242541790008544921875
+                                                        },
+                                                        "change_type": {
+                                                            "description": "Type of change",
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "increase",
+                                                                "decrease",
+                                                                "no_change"
+                                                            ],
+                                                            "example": "increase"
+                                                        },
+                                                        "label": {
+                                                            "description": "Current period sentiment label",
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "positive",
+                                                                "neutral",
+                                                                "negative"
+                                                            ],
+                                                            "example": "positive"
+                                                        },
+                                                        "previous_label": {
+                                                            "description": "Previous period sentiment label",
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "positive",
+                                                                "neutral",
+                                                                "negative"
+                                                            ],
+                                                            "example": "neutral"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - No business found for authenticated user",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No business found for the authenticated user"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed - Invalid period",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid period parameter"
                                         }
                                     },
                                     "type": "object"
@@ -10758,7 +11461,7 @@
                 ]
             }
         },
-        "/v1.0/reports/staff-comparison/{businessId}": {
+        "/v1.0/reports/staff-comparison": {
             "get": {
                 "tags": [
                     "Reports"
@@ -12246,78 +12949,6 @@
                                     },
                                     "type": "object"
                                 }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/review-new/getavg/review/{businessId}/{start}/{end}": {
-            "get": {
-                "tags": [
-                    "z.unused"
-                ],
-                "summary": "This method is to get average",
-                "description": "This method is to get average",
-                "operationId": "getAverages",
-                "parameters": [
-                    {
-                        "name": "businessId",
-                        "in": "path",
-                        "description": "businessId",
-                        "required": true,
-                        "example": "1"
-                    },
-                    {
-                        "name": "start",
-                        "in": "path",
-                        "description": "from date",
-                        "required": true,
-                        "example": "2019-06-29"
-                    },
-                    {
-                        "name": "end",
-                        "in": "path",
-                        "description": "to date",
-                        "required": true,
-                        "example": "2026-06-29"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Content",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
                             }
                         }
                     }
@@ -17259,7 +17890,7 @@
                         }
                     },
                     "422": {
-                        "description": "Unprocesseble Content",
+                        "description": "Unprocessable Content",
                         "content": {
                             "application/json": {
                                 "schema": {}
@@ -22896,20 +23527,6 @@
                         "required": false
                     },
                     {
-                        "name": "status",
-                        "in": "query",
-                        "description": "Filter by review status",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "pending",
-                                "published",
-                                "rejected"
-                            ]
-                        }
-                    },
-                    {
                         "name": "sort_by",
                         "in": "query",
                         "description": "Sort option",
@@ -22937,18 +23554,26 @@
                         "required": false
                     },
                     {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period filter (e.g., last_7_days, last_30_days, last_90_days, this_month, last_month, this_year)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "last_30_days"
+                    },
+                    {
                         "name": "sentiment_score",
                         "in": "query",
-                        "description": "Filter reviews by sentiment score",
+                        "description": "Filter reviews by sentiment score. ref : compliment=positive, complaint=negative",
                         "required": false,
                         "schema": {
                             "type": "string",
                             "enum": [
-                                "very_positive",
                                 "positive",
                                 "neutral",
-                                "negative",
-                                "very_negative"
+                                "negative"
                             ]
                         },
                         "example": "positive"
@@ -22956,7 +23581,7 @@
                     {
                         "name": "meets_threshold",
                         "in": "query",
-                        "description": "Filter reviews by threshold status (1 for reviews that meet threshold, 0 for reviews that don't meet threshold)",
+                        "description": "Filter reviews by threshold status (1 for csat score reviews that meet threshold, 0 for flagged reviews that don't meet threshold)",
                         "required": false,
                         "schema": {
                             "type": "integer",
@@ -22978,14 +23603,24 @@
                         "example": 1
                     },
                     {
-                        "name": "branch_id",
+                        "name": "staff_ids",
                         "in": "query",
-                        "description": "Filter reviews by branch ID",
+                        "description": "Filter reviews by multiple staff IDs (comma-separated, e.g., 1,2,3)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         },
-                        "example": 1
+                        "example": "1,2,3"
+                    },
+                    {
+                        "name": "branch_ids",
+                        "in": "query",
+                        "description": "Filter reviews by multiple branch IDs (comma-separated, e.g., 1,2,3)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1,2,3"
                     },
                     {
                         "name": "has_staff",
@@ -23018,12 +23653,106 @@
                     {
                         "name": "topics",
                         "in": "query",
-                        "description": "Filter reviews by topic",
+                        "description": "Filter reviews by topic main_category name (case-sensitive exact match)",
                         "required": false,
                         "schema": {
                             "type": "string"
                         },
-                        "example": "food quality"
+                        "example": "Food Quality"
+                    },
+                    {
+                        "name": "review_ids",
+                        "in": "query",
+                        "description": "Filter reviews by specific review IDs (comma-separated, e.g., 1,2,3)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1,2,3"
+                    },
+                    {
+                        "name": "is_voice_review",
+                        "in": "query",
+                        "description": "Filter reviews by voice review status (1 = voice reviews, 0 = text reviews)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "question_category_id",
+                        "in": "query",
+                        "description": "Filter reviews by parent question category ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "question_sub_category_id",
+                        "in": "query",
+                        "description": "Filter reviews by question sub-category ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 5
+                    },
+                    {
+                        "name": "business_area_id",
+                        "in": "query",
+                        "description": "Filter reviews by business area ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "business_service_id",
+                        "in": "query",
+                        "description": "Filter reviews by business service ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 3
+                    },
+                    {
+                        "name": "survey_ids",
+                        "in": "query",
+                        "description": "Filter reviews by specific survey IDs (comma-separated, e.g., 1,2,3)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1,2,3"
+                    },
+                    {
+                        "name": "tag_ids",
+                        "in": "query",
+                        "description": "Filter reviews by specific tag IDs associated with review values (comma-separated, e.g., 1,2,3)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1,2,3"
+                    },
+                    {
+                        "name": "rating",
+                        "in": "query",
+                        "description": "Filter reviews by specific calculated_rating (e.g., 1,2,3,4,5). If 1, it will fetch reviews with calculated_rating in range 1: 0 to 1.9 and 2: 2 to 2.9 and 3: 3 to 3.9 and 4: 4 to 4.9 and 5: 5",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1"
                     }
                 ],
                 "responses": {
@@ -25200,6 +25929,36 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1.0/ai-rules/{id}/toggle": {
+            "patch": {
+                "tags": [
+                    "AI Rules"
+                ],
+                "summary": "Toggle rule status",
+                "description": "Toggle rule enabled status",
+                "operationId": "toggleRuleEnabled",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status toggled"
                     }
                 },
                 "security": [
@@ -33487,6 +34246,10 @@
         {
             "name": "AI Rules - Metrics",
             "description": "AI Rules - Metrics"
+        },
+        {
+            "name": "AI Rules - Validation",
+            "description": "AI Rules - Validation"
         },
         {
             "name": "auth",

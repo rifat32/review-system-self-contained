@@ -186,72 +186,7 @@ class AiRule extends Model
         return $this->hasMany(Recommendation::class);
     }
 
-    /**
-     * Check if rule has complete explanations
-     */
-    public function hasExplanations(): bool
-    {
-        return !empty($this->short_explanation)
-            && !empty($this->detailed_explanation)
-            && !empty($this->why_it_matters);
-    }
 
-    /**
-     * Check if explanations are outdated
-     */
-    public function explanationsOutdated(): bool
-    {
-        if (!$this->hasExplanations()) {
-            return true;
-        }
-
-        // Check if rule was updated after explanations were generated
-        if (
-            $this->explanation_generated_at &&
-            $this->updated_at > $this->explanation_generated_at
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Get formatted explanation for display
-     */
-    public function getFormattedExplanation(): array
-    {
-        return [
-            'short' => $this->short_explanation ?? 'No explanation available',
-            'detailed' => $this->detailed_explanation ?? 'No detailed explanation available',
-            'why' => $this->why_it_matters ?? 'Business impact explanation not available',
-            'generated_at' => $this->explanation_generated_at?->diffForHumans(),
-            'is_complete' => $this->hasExplanations(),
-            'is_outdated' => $this->explanationsOutdated()
-        ];
-    }
-
-    /**
-     * Scope to get rules without explanations
-     */
-    public function scopeWithoutExplanations($query)
-    {
-        return $query->where(function ($q) {
-            $q->whereNull('short_explanation')
-                ->orWhereNull('detailed_explanation')
-                ->orWhereNull('why_it_matters');
-        });
-    }
-
-    /**
-     * Scope to get rules with outdated explanations
-     */
-    public function scopeWithOutdatedExplanations($query)
-    {
-        return $query->whereNotNull('short_explanation')
-            ->whereNotNull('explanation_generated_at')
-            ->whereColumn('updated_at', '>', 'explanation_generated_at');
-    }
 
     /**
      * Scope to get enabled rules only

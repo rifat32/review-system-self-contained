@@ -33,14 +33,7 @@ class Kernel extends ConsoleKernel
         $schedule->call(function () {
             Artisan::call('recommendations:generate');
         })->name('generate-recommendations')->dailyAt('03:00');
-        // 4. Regenerate Rule Explanations (Asset Maintenance)
-        // Updates the descriptive content for rules (short/detailed explanations) 
-        $schedule->call(function () {
-            Artisan::call('rules:regenerate-explanations', [
-                '--missing-only' => true,
-                '--outdated-only' => true
-            ]);
-        })->name('regenerate-explanations')->dailyAt('05:00');
+
         // 5. Cleanup Old Recommendations (Housekeeping)
         // Final cleanup of legacy data
         $schedule->call(function () {

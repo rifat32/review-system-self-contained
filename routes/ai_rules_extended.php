@@ -13,6 +13,7 @@ Route::prefix('/v1.0/ai-rules')->group(function () {
     Route::get('/{id}', [RuleWizardController::class, 'getRuleById']);       // Get rule by ID
     Route::put('/{id}', [RuleWizardController::class, 'updateRule']);        // Update rule
     Route::delete('/{id}', [RuleWizardController::class, 'deleteRule']);     // Delete rule
+    Route::patch('/{id}/toggle', [RuleWizardController::class, 'toggleEnabled']); // Toggle rule status
 
     // Preview
     Route::post('/preview', [RuleWizardController::class, 'previewRule']);   // Preview rule

@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\{AiRule, ReviewNew, Branch};
-use App\Services\Rule\ConditionBuilderService;
-use App\Services\Rule\{RuleExplanationService, RuleMetricsService, RulePreviewService};
+use App\Services\Rule\{ConditionBuilderService, RuleMetricsService, RulePreviewService};
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log};
@@ -186,29 +185,6 @@ class RuleWizardController extends Controller
                 'version' => 1  // Initial version
             ]);
 
-            // GENERATE AI EXPLANATIONS (Optional - uses OpenAI to explain rule in business terms)
-            if (class_exists(RuleExplanationService::class)) {
-                try {
-                    // Call AI service to generate human-readable explanations
-                    $explanations = app(RuleExplanationService::class)->regenerateForRule($rule);
-
-                    // UPDATE RULE WITH AI-GENERATED EXPLANATIONS
-                    if ($explanations) {
-                        $rule->update([
-                            'short_explanation' => $explanations['short_explanation'],
-                            'detailed_explanation' => $explanations['detailed_explanation'],
-                            'why_it_matters' => $explanations['why_it_matters'],
-                            'explanation_generated_at' => now()
-                        ]);
-                    }
-                } catch (Exception $e) {
-                    // AI explanation failure is non-critical - log warning and continue
-                    Log::warning("Failed to generate rule explanations", [
-                        'rule_id' => $rule->rule_id,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
 
             // INITIALIZE METRICS RECORD (For tracking rule performance)
             $this->metricsService->updateMetrics($rule->rule_id, []);
@@ -457,26 +433,6 @@ class RuleWizardController extends Controller
             $rule->version = $rule->version + 1;
             $rule->save();
 
-            // Regenerate explanations if conditions changed
-            if (isset($validated['conditions']) && class_exists(RuleExplanationService::class)) {
-                try {
-                    $explanations = app(RuleExplanationService::class)->regenerateForRule($rule);
-
-                    if ($explanations) {
-                        $rule->update([
-                            'short_explanation' => $explanations['short_explanation'],
-                            'detailed_explanation' => $explanations['detailed_explanation'],
-                            'why_it_matters' => $explanations['why_it_matters'],
-                            'explanation_generated_at' => now()
-                        ]);
-                    }
-                } catch (Exception $e) {
-                    Log::warning("Failed to regenerate rule explanations", [
-                        'rule_id' => $rule->rule_id,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
 
             DB::commit();
 
@@ -645,6 +601,36 @@ class RuleWizardController extends Controller
             'success' => true,
             'preview' => $preview,
             'message' => 'Preview generated successfully'
+        ]);
+    }
+
+    /**
+     * Toggle rule enabled status
+     * 
+     * @OA\Patch(
+     *     path="/v1.0/ai-rules/{id}/toggle",
+     *     operationId="toggleRuleEnabled",
+     *     tags={"AI Rules"},
+     *     summary="Toggle rule status",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Status toggled")
+     * )
+     */
+    public function toggleEnabled(Request $request, $id)
+    {
+        $businessId = $request->user()->business_id;
+
+        $rule = AiRule::where('id', $id)
+            ->where('business_id', $businessId)
+            ->firstOrFail();
+
+        $rule->update(['enabled' => !$rule->enabled]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $rule->enabled ? 'Rule enabled' : 'Rule disabled',
+            'enabled' => $rule->enabled
         ]);
     }
 }

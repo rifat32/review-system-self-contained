@@ -23,13 +23,37 @@ class AiRuleMetricsController extends Controller
 
     /**
      * Get rule metrics and performance
-     * GET /api/v1.0/ai-rules/{ruleId}/metrics
+     * GET /v1.0/ai-rules/{ruleId}/metrics
      *
      * @OA\Get(
-     *     path="/api/v1.0/ai-rules/{ruleId}/metrics",
+     *     path="/v1.0/ai-rules/{ruleId}/metrics",
      *     tags={"AI Rules - Metrics"},
+     *  *     security={{"bearerAuth":{}}},
      *     summary="Get rule performance metrics",
-     *     @OA\Response(response=200, description="Metrics retrieved")
+     *     description="Returns high-level performance metrics including precision rate, trigger counts, and trend data for a specific rule.",
+     *     @OA\Parameter(
+     *         name="ruleId",
+     *         in="path",
+     *         required=true,
+     *         description="The external rule_id (e.g. SENTIMENT_ANALYSIS.1)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Metrics retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="rule_id", type="string"),
+     *                 @OA\Property(property="precision_rate", type="number", format="float"),
+     *                 @OA\Property(property="total_triggers", type="integer"),
+     *                 @OA\Property(property="true_positives", type="integer"),
+     *                 @OA\Property(property="false_positives", type="integer"),
+     *                 @OA\Property(property="pending_verification", type="integer")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Rule not found or unauthorized")
      * )
      */
     public function getRuleMetrics(Request $request, $ruleId)
@@ -53,7 +77,59 @@ class AiRuleMetricsController extends Controller
 
     /**
      * Get trigger history for a rule
-     * GET /api/v1.0/ai-rules/{ruleId}/trigger-history
+     * GET /v1.0/ai-rules/{ruleId}/trigger-history
+     *
+     * @OA\Get(
+     *     path="/v1.0/ai-rules/{ruleId}/trigger-history",
+     *     tags={"AI Rules - Metrics"},
+     *  *     security={{"bearerAuth":{}}},
+     *     summary="Get trigger history for a rule",
+     *     description="Provides a paginated list of all times this rule was triggered.",
+     * 
+     *     @OA\Parameter(
+     *         name="ruleId",
+     *         in="path",
+     *         required=true,
+     *         description="External rule ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="outcome",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by outcome (true_positive, false_positive, pending)",
+     *         @OA\Schema(type="string", enum={"true_positive", "false_positive", "pending"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="from_date",
+     *         in="query",
+     *         required=false,
+     *         description="Filter from date (YYYY-MM-DD)",
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="to_date",
+     *         in="query",
+     *         required=false,
+     *         description="Filter to date (YYYY-MM-DD)",
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         required=false,
+     *         description="Items per page",
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Trigger history retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object", description="Paginated result")
+     *         )
+     *     )
+     * )
      */
     public function getTriggerHistory(Request $request, $ruleId)
     {
@@ -90,7 +166,39 @@ class AiRuleMetricsController extends Controller
 
     /**
      * Verify trigger outcome
-     * POST /api/v1.0/ai-rules/triggers/{triggerId}/verify
+     * POST /v1.0/ai-rules/triggers/{triggerId}/verify
+     *
+     * @OA\Post(
+     *     path="/v1.0/ai-rules/triggers/{triggerId}/verify",
+     *     tags={"AI Rules - Metrics"},
+     *  *     security={{"bearerAuth":{}}},
+     *     summary="Verify trigger outcome",
+     *     description="Allows a manager to mark a trigger as True Positive or False Positive to refine AI accuracy.",
+     *     @OA\Parameter(
+     *         name="triggerId",
+     *         in="path",
+     *         required=true,
+     *         description="Numerical ID of the trigger record",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"outcome"},
+     *             @OA\Property(property="outcome", type="string", enum={"true_positive", "false_positive"}),
+     *             @OA\Property(property="notes", type="string", maxLength=500, nullable=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Trigger verified successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function verifyTrigger(Request $request, $triggerId)
     {
@@ -115,7 +223,38 @@ class AiRuleMetricsController extends Controller
 
     /**
      * Validate condition structure
-     * POST /api/v1.0/ai-rules/validate-conditions
+     * POST /v1.0/ai-rules/validate-conditions
+     *
+     * @OA\Post(
+     *     path="/v1.0/ai-rules/validate-conditions",
+     *     tags={"AI Rules - Validation"},
+     *  *     security={{"bearerAuth":{}}},
+     *     summary="Validate condition structure",
+     *     description="Validates a JSON condition tree before saving a rule.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"conditions"},
+     *             @OA\Property(property="conditions", type="object", description="The condition tree to validate")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Conditions are valid",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="valid", type="boolean", example=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation failures",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="errors", type="array", @OA\Items(type="string"))
+     *         )
+     *     )
+     * )
      */
     public function validateConditions(Request $request)
     {
@@ -142,7 +281,23 @@ class AiRuleMetricsController extends Controller
 
     /**
      * Get supported condition types
-     * GET /api/v1.0/ai-rules/condition-types
+     * GET /v1.0/ai-rules/condition-types
+     *
+     * @OA\Get(
+     *     path="/v1.0/ai-rules/condition-types",
+     *     tags={"AI Rules - Validation"},
+     *  *     security={{"bearerAuth":{}}},
+     *     summary="Get supported condition types",
+     *     description="Returns all available condition sources, types, and operators for the rule builder UI.",
+     *     @OA\Response(
+     *         response=200,
+     *         description="Metadata retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     )
+     * )
      */
     public function getConditionTypes(Request $request)
     {
@@ -156,7 +311,29 @@ class AiRuleMetricsController extends Controller
 
     /**
      * Get top performing rules
-     * GET /api/v1.0/ai-rules/top-performers
+     * GET /v1.0/ai-rules/top-performers
+     *
+     * @OA\Get(
+     *     path="/v1.0/ai-rules/top-performers",
+     *     tags={"AI Rules - Metrics"},
+     *  *     security={{"bearerAuth":{}}},
+     *     summary="Get top performing rules",
+     *     description="Returns rules with the highest precision and trigger counts for the current business.",
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=5)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Top rules retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/AiRule"))
+     *         )
+     *     )
+     * )
      */
     public function getTopPerformers(Request $request)
     {
@@ -173,7 +350,31 @@ class AiRuleMetricsController extends Controller
 
     /**
      * Get rules needing attention
-     * GET /api/v1.0/ai-rules/needs-attention
+     * GET /v1.0/ai-rules/needs-attention
+     *
+     * @OA\Get(
+     *     path="/v1.0/ai-rules/needs-attention",
+     *     tags={"AI Rules - Metrics"},
+     *  *     security={{"bearerAuth":{}}},
+     *     summary="Get rules needing attention",
+     *     description="Returns rules that fall below a certain precision threshold.",
+     *     @OA\Parameter(
+     *         name="precision_threshold",
+     *         in="query",
+     *         required=false,
+     *         description="Percentage threshold (0-100)",
+     *         @OA\Schema(type="number", format="float", default=70.0)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Rules requiring review retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/AiRule")),
+     *             @OA\Property(property="count", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function getRulesNeedingAttention(Request $request)
     {

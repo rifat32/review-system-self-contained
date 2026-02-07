@@ -1316,8 +1316,7 @@ PROMPT;
             // Update the review model BEFORE rule evaluation so rules can access the data
             $review->fill($dbData);
 
-            $ruleResults = $this->ruleEngineService->evaluateReviewRules($review, $openAIResult);
-            Log::info('Review rules evaluated', ['results' => $ruleResults]);
+          
 
             // Save the updated review
             $review->save();
