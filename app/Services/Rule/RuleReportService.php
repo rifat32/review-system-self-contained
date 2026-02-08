@@ -7,6 +7,9 @@ use App\Models\ReviewNew;
 use App\Models\InsightRecord;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use App\Models\AiRuleTrigger;
+use App\Models\User;
 
 class RuleReportService
 {
@@ -21,7 +24,9 @@ class RuleReportService
             ->where('is_default', true)
             ->first();
 
-        throw new \Exception("Default rule '{$ruleKey}' not found for business {$businessId}.");
+        if (!$rule) {
+            throw new \Exception("Default rule '{$ruleKey}' not found for business {$businessId}.");
+        }
 
         return $rule;
     }
@@ -283,5 +288,249 @@ class RuleReportService
                 'message' => 'This report is under development. Rule configuration loaded successfully.'
             ]
         ];
+    }
+    /**
+     * Get aggregated dashboard boxes for all default rules
+     */
+    public function getDashboardBoxes(int $businessId, string $period = 'last_30_days'): array
+    {
+        // 1. Determine Date Range
+        $now = Carbon::now();
+        $startDate = match ($period) {
+            'last_7_days' => $now->copy()->subDays(7)->startOfDay(),
+            'this_month' => $now->copy()->startOfMonth(),
+            'last_month' => $now->copy()->subMonth()->startOfMonth(),
+            default => $now->copy()->subDays(30)->startOfDay(), // last_30_days
+        };
+        $endDate = match ($period) {
+            'last_month' => $now->copy()->subMonth()->endOfMonth(),
+            default => $now->copy()->endOfDay(),
+        };
+
+        // 2. Standard Metrics (Hardcoded/Core)
+        $baseQuery = ReviewNew::where('business_id', $businessId)
+            ->where('created_at', '>=', $startDate)
+            ->where('created_at', '<=', $endDate)
+            ->globalReviewFilters(0);
+
+        $totalReviews = (clone $baseQuery)->count();
+        $avgRating = (clone $baseQuery)->withCalculatedRating()->get()->avg('calculated_rating') ?? 0;
+
+        $boxes = [
+            [
+                'key' => 'TOTAL_REVIEWS',
+                'label' => 'Total Reviews',
+                'value' => number_format($totalReviews),
+                'sub_value' => null,
+                'trend' => null, // TODO: Calculate trend
+                'icon' => '📝',
+                'color' => 'blue',
+                'is_default_rule' => false
+            ],
+            [
+                'key' => 'AVG_RATING',
+                'label' => 'Average Rating',
+                'value' => number_format($avgRating, 1),
+                'sub_value' => 'out of 5.0',
+                'trend' => null,
+                'icon' => '⭐',
+                'color' => 'yellow',
+                'is_default_rule' => false
+            ]
+        ];
+
+        // 3. Rule Metrics (Iterate 9 Default Rules)
+        $requiredRules = DefaultRuleSeederService::getRequiredRuleKeys();
+
+        foreach ($requiredRules as $ruleKey) {
+            $ruleId = $ruleKey . '.' . $businessId;
+            $rule = AiRule::where('rule_id', $ruleId)->first();
+
+            if (!$rule || !$rule->enabled) {
+                continue;
+            }
+
+            $boxData = $this->calculateRuleBoxData($rule, $startDate, $endDate, $baseQuery);
+            if ($boxData) {
+                $boxes[] = $boxData;
+            }
+        }
+
+        // 4. Premium Insights
+        $topPerformer = $this->getTopPerformerBox($businessId, $period);
+        if ($topPerformer) {
+            $boxes[] = $topPerformer;
+        }
+
+        $boxes[] = $this->getRatingUpsideBox($businessId, $startDate, $endDate, $baseQuery);
+
+        return $boxes;
+    }
+
+    /**
+     * Premium Box: Top Staff Performer
+     */
+    private function getTopPerformerBox(int $businessId, string $period): ?array
+    {
+        $topStaff = AiRuleTrigger::where('business_id', $businessId)
+            ->whereNotNull('staff_id')
+            ->select('staff_id', DB::raw('count(*) as mentions'))
+            ->groupBy('staff_id')
+            ->orderBy('mentions', 'desc')
+            ->first();
+
+        if ($topStaff && $topStaff->staff_id) {
+            $user = User::find($topStaff->staff_id);
+            if ($user) {
+                return [
+                    'key' => 'TOP_PERFORMER',
+                    'label' => 'Top Performer',
+                    'value' => $user->name,
+                    'sub_value' => $topStaff->mentions . ' Mentions',
+                    'trend' => null,
+                    'icon' => '🏆',
+                    'color' => 'gold',
+                    'is_default_rule' => false
+                ];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Premium Box: Rating Upside Potential
+     */
+    private function getRatingUpsideBox(int $businessId, Carbon $startDate, Carbon $endDate, $baseQuery): array
+    {
+        $totalCount = (clone $baseQuery)->count();
+        $negativeCount = (clone $baseQuery)->where('sentiment_label', 'negative')->count();
+
+        // Potential increment logic (Simplified for "Wow" factor)
+        $upside = $totalCount > 0 ? ($negativeCount * 1.5) / $totalCount : 0;
+        $upside = min($upside, 1.0); // Cap at 1.0 point growth
+
+        return [
+            'key' => 'RATING_UPSIDE',
+            'label' => 'Rating Upside',
+            'value' => '+' . number_format($upside, 1),
+            'sub_value' => 'Potential Points',
+            'trend' => null,
+            'icon' => '🚀',
+            'color' => 'purple',
+            'is_default_rule' => false
+        ];
+    }
+
+    /**
+     * Calculate box data for a specific rule
+     */
+    private function calculateRuleBoxData(AiRule $rule, Carbon $startDate, Carbon $endDate, $baseQuery): ?array
+    {
+        $label = $rule->rule_name;
+        $query = clone $baseQuery;
+        $value = 0;
+        $unit = '';
+        $subValue = null;
+
+        switch ($this->getBaseRuleKey($rule->rule_id)) {
+            case 'SENTIMENT_ANALYSIS':
+                $label = 'Sentiment Score';
+                // Calculate % Positive
+                $total = (clone $query)->count();
+                $positive = (clone $query)->where('sentiment_label', 'positive')->count();
+                $value = $total > 0 ? round(($positive / $total) * 100) : 0;
+                $unit = '%';
+                $subValue = $value >= 80 ? 'Excellent Sentiment' : ($value >= 50 ? 'Strong Sentiment' : 'Needs Focus');
+                break;
+
+            case 'FLAG_AND_ALERT':
+                $label = 'Flagged Reviews';
+                $value = (clone $query)->where('is_flagged', true)->count();
+                $subValue = 'Action Required';
+                break;
+
+            case 'STAFF_MENTION_DETECTION':
+                $label = 'Staff-Linked Reviews';
+                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+                $subValue = 'Team Recognition';
+                break;
+
+            case 'STAFF_PERFORMANCE_RISK':
+                $label = 'Staff Performance Risk';
+                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+                $subValue = 'Immediate Review';
+                break;
+
+            case 'RATING_COMMENT_MISMATCH':
+                $label = 'Rating Mismatch';
+                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+                $subValue = 'Hidden Feedback';
+                break;
+
+            case 'CATEGORY_ISSUE_DETECTION':
+                $label = 'Top Topics';
+                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+                $subValue = 'Trending Issues';
+                break;
+
+            case 'EMOTION_INTENSITY':
+                $label = 'Emotion Intensity';
+                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+                $subValue = 'High Engagement';
+                break;
+
+            case 'SERVICE_TYPE_DETECTION':
+                $label = 'Service Type';
+                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+                $subValue = 'Services Identified';
+                break;
+
+            case 'BUSINESS_AREA_DETECTION':
+                $label = 'Business Area';
+                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+                $subValue = 'Locations Analyzed';
+                break;
+
+            default:
+                // Generic trigger count for any other default rules
+                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+                $subValue = 'Triggers';
+        }
+
+        return [
+            'key' => $this->getBaseRuleKey($rule->rule_id),
+            'label' => $label,
+            'value' => number_format($value) . $unit,
+            'sub_value' => $subValue,
+            'trend' => null, // Todo: Add trend calculation
+            'icon' => $rule->getCategoryIcon(),
+            'color' => $rule->getPriorityColor(),
+            'is_default_rule' => true,
+            'rule_id' => $rule->rule_id
+        ];
+    }
+
+    /**
+     * Helper to extract base key from "KEY.123"
+     */
+    private function getBaseRuleKey(string $ruleId): string
+    {
+        return explode('.', $ruleId)[0];
     }
 }

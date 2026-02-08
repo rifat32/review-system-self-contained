@@ -168,7 +168,7 @@ class RuleMetricsService
         $recentTriggers = AiRuleTrigger::where('rule_id', $ruleId)
             ->orderBy('created_at', 'desc')
             ->limit($options['limit'] ?? (config('ai.insights.opportunities.performance.report_limit') ?? 20))
-            ->with(['review:id,rating,comment,created_at'])
+            ->with(['review:id,comment,created_at'])
             ->get();
 
         // Get trigger trends

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\{AiRule, AiRuleTrigger};
 use App\Services\Rule\RuleMetricsService;
+use App\Services\Rule\RuleReportService;
 use App\Services\Rule\ConditionBuilderService;
 use Illuminate\Http\Request;
 
@@ -13,10 +14,61 @@ use Illuminate\Http\Request;
 class AiRuleMetricsController extends Controller
 {
     protected RuleMetricsService $metricsService;
+    protected RuleReportService $reportService;
 
-    public function __construct(RuleMetricsService $metricsService)
+    public function __construct(RuleMetricsService $metricsService, RuleReportService $reportService)
     {
         $this->metricsService = $metricsService;
+        $this->reportService = $reportService;
+    }
+
+    // ==================== DASHBOARD & REPORTING ====================
+
+    /**
+     * Get dashboard boxes with metrics
+     * GET /v1.0/ai-rules/dashboard-boxes
+     *
+     * @OA\Get(
+     *     path="/v1.0/ai-rules/dashboard-boxes",
+     *     tags={"AI Rules - Dashboard"},
+     *     security={{"bearerAuth":{}}},
+     *     summary="Get dashboard boxes metrics",
+     *     description="Returns aggregated metrics for standard boxes and default rules.",
+     *     @OA\Parameter(
+     *         name="period",
+     *         in="query",
+     *         required=false,
+     *         description="Time period (last_7_days, last_30_days, this_month, last_month)",
+     *         @OA\Schema(type="string", default="last_30_days")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dashboard metrics retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="array", @OA\Items(
+     *                 @OA\Property(property="key", type="string"),
+     *                 @OA\Property(property="label", type="string"),
+     *                 @OA\Property(property="value", type="string"),
+     *                 @OA\Property(property="sub_value", type="string"),
+     *                 @OA\Property(property="icon", type="string"),
+     *                 @OA\Property(property="color", type="string")
+     *             ))
+     *         )
+     *     )
+     * )
+     */
+    public function getDashboardBoxes(Request $request)
+    {
+        $businessId = $request->user()->business_id;
+        $period = $request->input('period', 'last_30_days');
+
+        $boxes = $this->reportService->getDashboardBoxes($businessId, $period);
+
+        return \response()->json([
+            'success' => true,
+            'data' => $boxes
+        ]);
     }
 
     // ==================== METRICS & PERFORMANCE ====================
@@ -60,11 +112,14 @@ class AiRuleMetricsController extends Controller
     {
         $businessId = $request->user()->business_id;
 
-        $rule = AiRule::where('rule_id', $ruleId)
+        $rule = AiRule::where(function ($query) use ($ruleId) {
+            $query->where('rule_id', $ruleId)
+                ->orWhere('id', $ruleId);
+        })
             ->forBusiness($businessId)
             ->firstOrFail();
 
-        $report = $this->metricsService->getPerformanceReport($ruleId, [
+        $report = $this->metricsService->getPerformanceReport($rule->rule_id, [
             'limit' => 20,
             'trend_days' => 30
         ]);
@@ -135,12 +190,15 @@ class AiRuleMetricsController extends Controller
     {
         $businessId = $request->user()->business_id;
 
-        $rule = AiRule::where('rule_id', $ruleId)
+        $rule = AiRule::where(function ($query) use ($ruleId) {
+            $query->where('rule_id', $ruleId)
+                ->orWhere('id', $ruleId);
+        })
             ->forBusiness($businessId)
             ->firstOrFail();
 
-        $query = AiRuleTrigger::where('rule_id', $ruleId)
-            ->with(['review:id,rating,comment,created_at', 'verifier:id,first_name,last_name'])
+        $query = AiRuleTrigger::where('rule_id', $rule->rule_id)
+            ->with(['review:id,comment,created_at', 'verifier:id,first_name,last_name'])
             ->orderBy('created_at', 'desc');
 
         // Apply filters
