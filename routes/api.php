@@ -42,6 +42,7 @@ use App\Http\Controllers\RuleReportController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\ServicePlanController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\SurveyPageSettingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -333,6 +334,7 @@ Route::middleware(['auth:api'])->group(function () {
     // Route::get('/auth', [AuthController::class, "getUsersWithRestaurants"]); // unused
     // Route::get('/auth/users', [AuthController::class, "getAllUsers"]); // unused
 
+
     // ============================================================================
     // SurveyController – CRUD & ordering/toggle (protected)
     // ============================================================================
@@ -343,6 +345,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/surveys/{business_id}', [SurveyController::class, "getAllSurveys"]);
     Route::patch('/v1.0/surveys/{id}/toggle-active', [SurveyController::class, "toggleSurveyActive"]);
     Route::delete('/v1.0/surveys/{id}', [SurveyController::class, "deleteSurveyById"]);
+
+    // Survey Page Settings
+    Route::put('/v1.0/survey-page-settings', [SurveyPageSettingController::class, 'updateSurveySettings']);
 
     // ============================================================================
     // SurveyQuestionController – Display order (protected)
@@ -632,6 +637,10 @@ Route::post('/v1.0/client/email/send-email', [EmailController::class, "sendEmail
 
 // Client Users (with branch filtering)
 Route::get('/v1.0/clients/users/{business_id}', [UserController::class, 'getUserClient']);
+
+// Survey Page Settings
+Route::get('/v1.0/survey-page-settings/{businessId}', [SurveyPageSettingController::class, 'getSurveySettingsByBusinessId']);
+
 
 Route::prefix('api')->group(function () {
     Route::post('/recommendations/generate', [RecommendationController::class, 'generate']);
