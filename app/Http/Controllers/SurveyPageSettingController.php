@@ -100,7 +100,7 @@ class SurveyPageSettingController extends Controller
 
         $authUser= auth()->user();
 
-        if(!$authUser->hasRole('owner')){
+        if(!$authUser->hasRole('business_owner')){
             throw new AccessDeniedHttpException('You are not authorized to perform this action');
         };
 
