@@ -11,6 +11,7 @@ use App\Mail\NotifyMail;
 use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\ServicePlan;
+use App\Models\SurveyPageSetting;
 use App\Models\User;
 use App\Services\Business\BusinessProfileService;
 use App\Services\User\UserService;
@@ -284,6 +285,11 @@ class OwnerController extends Controller
             $user->assignRole(User::USER_ROLE['BUSINESS_OWNER']);
             $user->save();
 
+            // Create default survey page settings
+            SurveyPageSetting::create([
+                'business_id' => $business->id,
+            ]);
+
             // Generate access token
             $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
 
@@ -391,6 +397,11 @@ class OwnerController extends Controller
             $user->business_id = $business->id;
             $user->assignRole(User::USER_ROLE['BUSINESS_OWNER']);
             $user->save();
+
+            // Create default survey page settings
+            SurveyPageSetting::create([
+                'business_id' => $business->id,
+            ]);
 
             // Generate access token (STORE IN VARIABLE ONLY INITIALLY)
             $token = $user->createToken('Laravel Password Grant Client')->accessToken;
@@ -770,7 +781,7 @@ class OwnerController extends Controller
             $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
         }
 
-        // SET TOKEN AND PERMISSION 
+        // SET TOKEN AND PERMISSION
         $user->setAttribute('token', $user->createToken('authToken')->accessToken);
         $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
         // SET ROLE AS SINGLE OBJECT
