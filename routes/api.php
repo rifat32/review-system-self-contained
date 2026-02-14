@@ -42,6 +42,7 @@ use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\RuleReportController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\ServicePlanController;
+use App\Http\Controllers\LogoColorController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SurveyPageSettingController;
 use Illuminate\Support\Facades\Route;
@@ -645,6 +646,9 @@ Route::get('/v1.0/clients/users/{business_id}', [UserController::class, 'getUser
 
 // Survey Page Settings
 Route::get('/v1.0/survey-page-settings/{businessId}', [SurveyPageSettingController::class, 'getSurveySettingsByBusinessId']);
+
+// Logo Color Extraction
+Route::post('/logo/extract-colors', [LogoColorController::class, 'extract']);
 
 
 Route::prefix('api')->group(function () {
