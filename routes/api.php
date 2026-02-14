@@ -36,6 +36,7 @@ use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\SurveyQuestionController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\QrCodeSettingController;
 use App\Http\Controllers\BusinessAiModuleController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\RuleReportController;
@@ -108,6 +109,10 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/business-modules/{business_id}', [ModuleController::class, "getBusinessModules"]);
     Route::get('/v1.0/modules', [ModuleController::class, "getModules"]);
     // end modules management section
+
+    // QR Code Settings
+    Route::get('v1.0/qr-code-settings/{businessId}', [QrCodeSettingController::class, 'getQRCodeSettings']);
+    Route::put('v1.0/qr-code-settings', [QrCodeSettingController::class, 'updateQRCodeSettings']);
 
     // =====================================================================================
     // SUPER ADMIN ROUTES (no "superadmin" in the URL; all under /v1.0; access via middleware)
