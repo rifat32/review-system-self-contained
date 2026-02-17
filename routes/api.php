@@ -278,6 +278,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/users/{id}', [UserController::class, 'getUserById']);
     Route::patch('/v1.0/users/{id}', [UserController::class, 'updateBusinessUser']);
     Route::delete('/v1.0/users/{id}', [UserController::class, 'deleteUserById']);
+    Route::patch('/v1.0/users/toggle-status', [UserController::class, 'toggleUserStatus']);
 
 
 

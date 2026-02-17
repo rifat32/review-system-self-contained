@@ -48,7 +48,8 @@ class User extends Authenticatable
         "job_title",
         "join_date",
         "email_verify_token",
-        "email_verify_token_expires"
+        "email_verify_token_expires",
+        "is_active"
     ];
 
     /**
@@ -73,6 +74,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'is_active' => 'boolean'
     ];
 
 

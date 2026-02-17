@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 use App\Http\Requests\UserRequest;
 use App\Models\BranchMember;
 use Mail;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -327,7 +328,7 @@ class UserController extends Controller
                 throw new AccessDeniedHttpException('Access denied : You can not delete user from another business');
             }
 
-            // business owner cannot delete 
+            // business owner cannot delete
             if ($authUser->id === $user->id) {
                 throw new AccessDeniedHttpException('Access denied : You can not delete yourself');
             }
@@ -1151,5 +1152,65 @@ class UserController extends Controller
             'meta' => $users['meta'],
             'data' => $users['data'],
         ], 200);
+    }
+
+    /**
+     * @OA\Patch(
+     *      path="/v1.0/users/toggle-status",
+     *      operationId="toggleUserStatus",
+     *      tags={"user_management"},
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      summary="Toggle user active status",
+     *      description="Enable or disable a user account",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"user_id", "is_active"},
+     *              @OA\Property(property="user_id", type="integer", example=1),
+     *              @OA\Property(property="is_active", type="boolean", example=true)
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="User status updated successfully",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="User status updated successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated"
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden"
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Validation error"
+     *      )
+     * )
+     */
+    public function toggleUserStatus(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'is_active' => 'required|boolean'
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        $user->is_active = $request->is_active;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User status updated successfully',
+            'data' => $user
+        ], Response::HTTP_OK);
     }
 }
