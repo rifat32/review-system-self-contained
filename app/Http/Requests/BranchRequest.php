@@ -37,6 +37,7 @@ class BranchRequest extends FormRequest
             'is_geo_enabled' => 'required|boolean',
             'lat' => 'nullable|string',
             'long' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
         ];
 
         if ($this->isMethod('post')) {

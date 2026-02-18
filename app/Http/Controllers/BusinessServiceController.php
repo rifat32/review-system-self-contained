@@ -617,4 +617,120 @@ class BusinessServiceController extends Controller
             throw $e;
         }
     }
+    /**
+     * @OA\Post(
+     *      path="/v1.0/business-services/with-area",
+     *      operationId="createBusinessServiceWithArea",
+     *      tags={"business_service_management"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *      },
+     *      summary="Create business service and areas together",
+     *      description="Create a new business service and link it with multiple areas",
+     *
+     *  @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"name", "areas"},
+     *            @OA\Property(property="name", type="string", format="string", example="Spa Service"),
+     *            @OA\Property(property="description", type="string", format="string", example="Luxury spa treatments"),
+     *            @OA\Property(property="question_title", type="string", format="string", example="How was your spa experience?"),
+     *            @OA\Property(property="is_active", type="boolean", example=true),
+     *            @OA\Property(
+     *                property="areas",
+     *                type="array",
+     *                @OA\Items(
+     *                    type="object",
+     *                    required={"area_name"},
+     *                    @OA\Property(property="area_name", type="string", example="Main Spa Area"),
+     *                    @OA\Property(property="is_active", type="boolean", example=true)
+     *                )
+     *            )
+     *         ),
+     *      ),
+     *      @OA\Response(
+     *          response=201,
+     *          description="Created successfully",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *   @OA\JsonContent()
+     * ),
+     *  @OA\Response(
+     *      response=400,
+     *      description="Bad Request",
+     *   @OA\JsonContent()
+     *   )
+     * )
+     */
+    public function createBusinessServiceWithArea(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can create business services.');
+            }
+
+            // ==================== VALIDATION ====================
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'question_title' => 'nullable|string',
+                'is_active' => 'nullable|boolean',
+                'areas' => 'array|present',
+                'areas.*.area_name' => 'required|string|max:255',
+                'areas.*.is_active' => 'nullable|boolean',
+            ]);
+
+            return DB::transaction(function () use ($request, $user) {
+                // ==================== BUSINESS VALIDATION ====================
+                if (!$user->business_id) {
+                    throw new AccessDeniedHttpException('No business associated with your account.');
+                }
+
+                // 1. Create Business Service
+                $servicePayload = [
+                    'business_id' => $user->business_id,
+                    'name' => $request->name,
+                    'description' => $request->description,
+                    'question_title' => $request->question_title,
+                    'is_active' => $request->input('is_active', true),
+                ];
+
+                $businessService = BusinessService::create($servicePayload);
+
+                // 2. Handle Business Areas
+                if ($request->has('areas')) {
+                    foreach ($request->areas as $areaData) {
+                        $areaPayload = [
+                            'business_id' => $user->business_id,
+                            'business_service_id' => $businessService->id,
+                            'area_name' => $areaData['area_name'],
+                            'is_active' => $areaData['is_active'] ?? true,
+                        ];
+                        \App\Models\BusinessArea::create($areaPayload);
+                    }
+                }
+
+                $businessService->load('business_areas');
+
+                return response()->json([
+                    "success" => true,
+                    "message" => "Business service and areas created successfully",
+                    "data" => $businessService
+                ], 201);
+            });
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
 }

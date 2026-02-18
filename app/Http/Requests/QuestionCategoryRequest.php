@@ -28,6 +28,7 @@ class QuestionCategoryRequest extends FormRequest
             'title' => 'required|string|max:255 |unique:question_categories,title,' . $this->route('id'),
             'description' => 'nullable|string|max:1000',
             'parent_question_category_id' => 'nullable|integer|exists:question_categories,id',
+            'is_active' => 'nullable|boolean',
         ];
 
         // If updating, add ID validation

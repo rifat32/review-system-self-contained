@@ -27,6 +27,7 @@ class QuestionRequest extends FormRequest
             'is_overall' => 'required|boolean',
             'question_sub_category_ids' => 'nullable|array', // Change to array
             'question_sub_category_ids.*' => 'integer|exists:question_categories,id',
+            'is_active' => 'nullable|boolean',
         ];
     }
 

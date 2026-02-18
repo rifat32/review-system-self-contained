@@ -31,6 +31,7 @@ class UpdateStaffRequest extends FormRequest
             'image'         => ['nullable', 'string', 'max:255'],
             'role'          => ['nullable', 'string', Rule::in(['business_staff'])],
             "branch_id"    => ['nullable', 'integer', 'exists:branches,id'],
+            'is_active' => 'nullable|boolean',
             // 'skills'     => 'required|string|max:255',
             // 'join_date'     => 'required|string|max:255',
         ];

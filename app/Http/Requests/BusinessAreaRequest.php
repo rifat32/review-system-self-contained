@@ -25,6 +25,7 @@ class BusinessAreaRequest extends FormRequest
     {
         $rules = [
             'business_service_id' => 'required|integer|exists:business_services,id',
+            'is_active' => 'nullable|boolean',
             'area_name' => 'required|string|max:255',
         ];
 

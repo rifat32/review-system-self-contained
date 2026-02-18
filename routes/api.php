@@ -254,6 +254,7 @@ Route::middleware(['auth:api'])->group(function () {
     // Business Service Management Routes
     // #################
     Route::post('/v1.0/business-services', [BusinessServiceController::class, 'createBusinessService']);
+    Route::post('/v1.0/business-services/with-area', [BusinessServiceController::class, 'createBusinessServiceWithArea']);
     Route::get('/v1.0/business-services', [BusinessServiceController::class, 'getAllBusinessServices']);
     Route::get('/v1.0/business-services/{id}', [BusinessServiceController::class, 'businessServiceById']);
     Route::patch('/v1.0/business-services/toggle', [BusinessServiceController::class, 'businessServiceToggle']);
