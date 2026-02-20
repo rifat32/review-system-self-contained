@@ -90,6 +90,7 @@ class Business extends Model
         'trial_end_date',
         'start_date',
         'is_setup_complete',
+        'step_no',
     ];
 
     protected $casts = [

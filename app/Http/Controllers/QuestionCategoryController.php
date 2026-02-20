@@ -684,4 +684,121 @@ class QuestionCategoryController extends Controller
             throw $e;
         }
     }
+
+    /**
+     * @OA\Post(
+     *      path="/v1.0/question-categories/with-sub-category",
+     *      operationId="createQuestionCategoryWithSubCategory",
+     *      tags={"question_category_management"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *      },
+     *      summary="Create question category and sub-categories together",
+     *      description="Create a new question category and link it with multiple sub-categories",
+     *
+     *  @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"title", "description", "sub_category"},
+     *            @OA\Property(property="title", type="string", format="string", example="Staff Performance"),
+     *            @OA\Property(property="description", type="string", format="string", example="Category for staff related questions"),
+     *            @OA\Property(property="is_active", type="boolean", example=true),
+     *            @OA\Property(
+     *                property="sub_category",
+     *                type="array",
+     *                @OA\Items(
+     *                    type="object",
+     *                    required={"title"},
+     *                    @OA\Property(property="title", type="string", example="Punctuality"),
+     *                    @OA\Property(property="description", type="string", example="Questions about staff punctuality"),
+     *                    @OA\Property(property="is_active", type="boolean", example=true)
+     *                )
+     *            )
+     *         ),
+     *      ),
+     *      @OA\Response(
+     *          response=201,
+     *          description="Created successfully",
+     *       @OA\JsonContent(),
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     * @OA\JsonContent(),
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *   @OA\JsonContent()
+     * ),
+     *  @OA\Response(
+     *      response=400,
+     *      description="Bad Request",
+     *   @OA\JsonContent()
+     *   )
+     * )
+     */
+    public function createQuestionCategoryWithSubCategory(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            // ==================== AUTHORIZATION ====================
+            if (!$user->hasRole('business_owner')) {
+                throw new AccessDeniedHttpException('Only business owners can create business services.');
+            }
+
+            // ==================== VALIDATION ====================
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'is_active' => 'nullable|boolean',
+                'sub_category' => 'array|present',
+                'sub_category.*.title' => 'required|string|max:255',
+                'sub_category.*.description' => 'nullable|string|max:255',
+                'sub_category.*.is_active' => 'nullable|boolean',
+            ]);
+
+            return DB::transaction(function () use ($request, $user) {
+                // ==================== BUSINESS VALIDATION ====================
+                if (!$user->business_id) {
+                    throw new AccessDeniedHttpException('No business associated with your account.');
+                }
+
+                // 1. Create Business Service
+                $servicePayload = [
+                    'business_id' => $user->business_id,
+                    'title' => $request->title,
+                    'description' => $request->description,
+                    'is_active' => $request->input('is_active', true),
+                ];
+
+                $question = QuestionCategory::create($servicePayload);
+
+                // 2. Handle Business Areas
+                if ($request->has('sub_category')) {
+                    foreach ($request->sub_category as $areaData) {
+                        $areaPayload = [
+                            'business_id' => $user->business_id,
+                            'parent_question_category_id' => $question->id,
+                            'title' => $areaData['title'],
+                            'description' => $areaData['description'] ?? null,
+                            'is_active' => $areaData['is_active'] ?? true,
+                        ];
+                        QuestionCategory::create($areaPayload);
+                    }
+                }
+
+                $question->load('children');
+
+                return response()->json([
+                    "success" => true,
+                    "message" => "Question category and sub categories created successfully",
+                    "data" => $question
+                ], 201);
+            });
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
 }

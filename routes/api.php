@@ -249,6 +249,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'updateQuestionCategory']);
     Route::patch('/v1.0/question-categories-toggle', [QuestionCategoryController::class, 'toggleQuestionCategory']);
     Route::delete('/v1.0/question-categories/{ids}', [QuestionCategoryController::class, 'deleteQuestionCategories']);
+    Route::post('/v1.0/question-categories/with-sub-category', [QuestionCategoryController::class, 'createQuestionCategoryWithSubCategory']);
 
     // #################
     // Business Service Management Routes
@@ -383,6 +384,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     // Specific routes MUST come before parameterized routes
     Route::patch('/v1.0/business/default-branch', [BusinessController::class, "updateDefaultBranch"]);
+    Route::patch('/v1.0/business/setup-progress', [BusinessController::class, "updateSetupProgress"]);
     Route::patch('/v1.0/business/upload-image/{businessId}', [BusinessController::class, "uploadRestaurantImage"]);
     Route::delete('/v1.0/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurantIdForceDelete"]);
 
