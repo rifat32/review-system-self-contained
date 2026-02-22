@@ -18,6 +18,7 @@ use Mail;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Throwable;
 
 class UserController extends Controller
 {
@@ -1204,13 +1205,37 @@ class UserController extends Controller
 
         $user = User::findOrFail($request->user_id);
 
-        $user->is_active = $request->is_active;
-        $user->save();
+        try {
+            DB::beginTransaction();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'User status updated successfully',
-            'data' => $user
-        ], Response::HTTP_OK);
+            $user->is_active = $request->is_active;
+            $user->save();
+
+            if(!$request->is_active && $user->hasRole('manager')) {
+                // Remove manager from branch
+                $branch = $user->branch;
+                $branch->manager_id = null;
+                $branch->save();
+
+                // Remove manager from branch members
+                BranchMember::where('user_id', $user->id)
+                ->where('branch_id', $branch->id)
+                ->update(['is_active' => false]);
+            }
+
+            // COMMIT TRANSACTION
+            DB::commit();
+
+            // SEND RESPONSE
+            return response()->json([
+                'success' => true,
+                'message' => 'User status updated successfully',
+                'data' => $user
+            ], Response::HTTP_OK);
+
+        } catch (Throwable $th) {
+            DB::rollBack();
+            throw $th;
+        }
     }
 }
