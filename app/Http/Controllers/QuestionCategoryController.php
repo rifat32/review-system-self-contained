@@ -9,6 +9,7 @@ use App\Models\QuestionCategory;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -750,15 +751,30 @@ class QuestionCategoryController extends Controller
 
             // ==================== VALIDATION ====================
             $request->validate([
-                'title' => 'required|string|max:255',
-                'description' => 'required|string',
+                'title' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('question_categories', 'title')
+                        ->where(fn($query) => $query->where('business_id', $user->business_id)),
+                ],
+
+                'description' => 'nullable|string',
                 'is_active' => 'nullable|boolean',
+
                 'sub_category' => 'array|present',
-                'sub_category.*.title' => 'required|string|max:255',
+
+                'sub_category.*.title' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('question_categories', 'title')
+                        ->where(fn($query) => $query->where('business_id', $user->business_id)),
+                ],
+
                 'sub_category.*.description' => 'nullable|string|max:255',
                 'sub_category.*.is_active' => 'nullable|boolean',
             ]);
-
             return DB::transaction(function () use ($request, $user) {
                 // ==================== BUSINESS VALIDATION ====================
                 if (!$user->business_id) {
