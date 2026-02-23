@@ -572,7 +572,7 @@ class BusinessController extends Controller
             $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
         }
 
-        // SET TOKEN AND PERMISSION 
+        // SET TOKEN AND PERMISSION
         $user->setAttribute('token', $user->createToken('authToken')->accessToken);
         $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
         // SET ROLE AS SINGLE OBJECT
@@ -760,7 +760,7 @@ class BusinessController extends Controller
             $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
         }
 
-        // SET TOKEN AND PERMISSION 
+        // SET TOKEN AND PERMISSION
         $user->setAttribute('token', $user->createToken('authToken')->accessToken);
         $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
         // SET ROLE AS SINGLE OBJECT
@@ -1551,6 +1551,67 @@ class BusinessController extends Controller
         return response()->json([
             "success" => true,
             "message" => "Business with tables retrieved successfully",
+            "data" => $business
+        ], 200);
+    }
+    /**
+     * @OA\Patch(
+     *     path="/v1.0/business/setup-progress",
+     *     operationId="updateSetupProgress",
+     *     tags={"business_management"},
+     *     security={
+     *         {"bearerAuth": {}}
+     *     },
+     *     summary="Update business setup progress",
+     *     description="Update the is_setup_complete and step_no fields for the current user's business",
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="is_setup_complete", type="boolean", example=true),
+     *             @OA\Property(property="step_no", type="integer", example=2)
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Setup progress updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Setup progress updated successfully"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Business not found")
+     * )
+     */
+    public function updateSetupProgress(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->business_id) {
+            throw new NotFoundHttpException("Business not found for this user");
+        }
+
+        $business = Business::findOrFail($user->business_id);
+
+        // CHECK OWNERSHIP (Safety check, though business_id usually implies ownership/association)
+        if ($business->OwnerID != $user->id && !$user->hasRole("superadmin")) {
+            throw new AccessDeniedHttpException('You do not have permission to update this business');
+        }
+
+        $request->validate([
+            'is_setup_complete' => 'nullable|boolean',
+            'step_no' => 'nullable|integer',
+        ]);
+
+        $business->update($request->only(['is_setup_complete', 'step_no']));
+
+        return response()->json([
+            "success" => true,
+            "message" => "Setup progress updated successfully",
             "data" => $business
         ], 200);
     }

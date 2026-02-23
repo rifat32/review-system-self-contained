@@ -12,6 +12,7 @@ use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\ServicePlan;
 use App\Models\SurveyPageSetting;
+use App\Models\QrCodeSetting;
 use App\Models\User;
 use App\Services\Business\BusinessProfileService;
 use App\Services\User\UserService;
@@ -290,6 +291,11 @@ class OwnerController extends Controller
                 'business_id' => $business->id,
             ]);
 
+            // Create default qr code settings
+            QrCodeSetting::create([
+                'business_id' => $business->id,
+            ]);
+
             // Generate access token
             $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
 
@@ -400,6 +406,11 @@ class OwnerController extends Controller
 
             // Create default survey page settings
             SurveyPageSetting::create([
+                'business_id' => $business->id,
+            ]);
+
+            // Create default qr code settings
+            QrCodeSetting::create([
                 'business_id' => $business->id,
             ]);
 

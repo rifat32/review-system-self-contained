@@ -20,6 +20,9 @@ class CreateUserWithBusinessRequest extends FormRequest
     public function rules(): array
     {
         return [
+            //
+            'business_type' => ['required', 'string', 'in:hotel,cafe,restaurant,pharmacy,hospital,fitness_center,beauty_salon,car_service,professional_services,others'],
+
             // User fields
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],

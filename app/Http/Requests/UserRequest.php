@@ -39,6 +39,7 @@ class UserRequest extends FormRequest
             'job_title' => 'nullable|string|max:255',
             'join_date' => 'nullable|date',
             'skills' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
         ];
 
 

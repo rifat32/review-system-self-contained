@@ -36,11 +36,13 @@ use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\SurveyQuestionController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\QrCodeSettingController;
 use App\Http\Controllers\BusinessAiModuleController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\RuleReportController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\ServicePlanController;
+use App\Http\Controllers\LogoColorController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SurveyPageSettingController;
 use Illuminate\Support\Facades\Route;
@@ -108,6 +110,10 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/business-modules/{business_id}', [ModuleController::class, "getBusinessModules"]);
     Route::get('/v1.0/modules', [ModuleController::class, "getModules"]);
     // end modules management section
+
+    // QR Code Settings
+    Route::get('v1.0/qr-code-settings/{businessId}', [QrCodeSettingController::class, 'getQRCodeSettings']);
+    Route::put('v1.0/qr-code-settings', [QrCodeSettingController::class, 'updateQRCodeSettings']);
 
     // =====================================================================================
     // SUPER ADMIN ROUTES (no "superadmin" in the URL; all under /v1.0; access via middleware)
@@ -243,11 +249,13 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/question-categories/{id}', [QuestionCategoryController::class, 'updateQuestionCategory']);
     Route::patch('/v1.0/question-categories-toggle', [QuestionCategoryController::class, 'toggleQuestionCategory']);
     Route::delete('/v1.0/question-categories/{ids}', [QuestionCategoryController::class, 'deleteQuestionCategories']);
+    Route::post('/v1.0/question-categories/with-sub-category', [QuestionCategoryController::class, 'createQuestionCategoryWithSubCategory']);
 
     // #################
     // Business Service Management Routes
     // #################
     Route::post('/v1.0/business-services', [BusinessServiceController::class, 'createBusinessService']);
+    Route::post('/v1.0/business-services/with-area', [BusinessServiceController::class, 'createBusinessServiceWithArea']);
     Route::get('/v1.0/business-services', [BusinessServiceController::class, 'getAllBusinessServices']);
     Route::get('/v1.0/business-services/{id}', [BusinessServiceController::class, 'businessServiceById']);
     Route::patch('/v1.0/business-services/toggle', [BusinessServiceController::class, 'businessServiceToggle']);
@@ -272,6 +280,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/users/{id}', [UserController::class, 'getUserById']);
     Route::patch('/v1.0/users/{id}', [UserController::class, 'updateBusinessUser']);
     Route::delete('/v1.0/users/{id}', [UserController::class, 'deleteUserById']);
+    Route::patch('/v1.0/users/toggle-status', [UserController::class, 'toggleUserStatus']);
 
 
 
@@ -375,6 +384,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     // Specific routes MUST come before parameterized routes
     Route::patch('/v1.0/business/default-branch', [BusinessController::class, "updateDefaultBranch"]);
+    Route::patch('/v1.0/business/setup-progress', [BusinessController::class, "updateSetupProgress"]);
     Route::patch('/v1.0/business/upload-image/{businessId}', [BusinessController::class, "uploadRestaurantImage"]);
     Route::delete('/v1.0/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurantIdForceDelete"]);
 
@@ -640,6 +650,9 @@ Route::get('/v1.0/clients/users/{business_id}', [UserController::class, 'getUser
 
 // Survey Page Settings
 Route::get('/v1.0/survey-page-settings/{businessId}', [SurveyPageSettingController::class, 'getSurveySettingsByBusinessId']);
+
+// Logo Color Extraction
+Route::post('/logo/extract-colors', [LogoColorController::class, 'extract']);
 
 
 Route::prefix('api')->group(function () {

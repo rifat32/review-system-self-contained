@@ -89,6 +89,8 @@ class Business extends Model
         'service_plan_discount_amount',
         'trial_end_date',
         'start_date',
+        'is_setup_complete',
+        'step_no',
     ];
 
     protected $casts = [
@@ -280,6 +282,11 @@ class Business extends Model
     public function registered_user_survey()
     {
         return $this->belongsTo(Survey::class, 'registered_user_survey_id', 'id');
+    }
+
+    public function qrCodeSettings()
+    {
+        return $this->hasOne(QrCodeSetting::class);
     }
 
     /**

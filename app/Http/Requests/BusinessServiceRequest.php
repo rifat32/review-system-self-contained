@@ -27,6 +27,7 @@ class BusinessServiceRequest extends FormRequest
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'question_title' => 'nullable|string|max:255',
+            'is_active' => 'nullable|boolean',
         ];
 
         // If updating, add ID validation
