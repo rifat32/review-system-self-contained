@@ -81,6 +81,9 @@ class BusinessProfileService
         // CREATE DEFAULT AI RULES
         $this->createDefaultAiRules($business);
 
+        //
+        $this->createDefaultData($business, $payloadData['business_type']);
+
         return $business->fresh();
     }
 
@@ -476,5 +479,292 @@ class BusinessProfileService
                 ]
             );
         }
+    }
+
+
+    public function createDefaultData(Business $business, $businessType)
+    {
+        $businessTypesData = [
+            "hotel" => [
+                "label" => "Hotel",
+                "services" => [
+                    "front_desk" => ["Check-in", "Staff behavior", "Waiting time"],
+                    "rooms" => ["Cleanliness", "Comfort", "Amenities"],
+                    "housekeeping" => ["Room service", "Laundry"],
+                    "food_and_beverage" => ["Breakfast", "Room dining"]
+                ],
+                "categories" => [
+                    "service" => ["Speed", "Professionalism", "Helpfulness"],
+                    "cleanliness" => ["Room", "Bathroom", "Public areas"],
+                    "comfort" => ["Bed", "Noise", "Temperature"],
+                    "food" => ["Taste", "Quality", "Presentation"]
+                ],
+                "questions" => [
+                    [ "text" => "How would you rate your overall stay?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "How clean was your room?", "type" => "rating", "category" => "cleanliness" ],
+                    [ "text" => "How comfortable was your room?", "type" => "rating", "category" => "comfort" ],
+                    [ "text" => "How was the quality of food and beverages?", "type" => "rating", "category" => "food" ],
+                    [ "text" => "What could we improve for your next stay?", "type" => "comment", "category" => "service" ]
+                ],
+                "labels" => ["staff", "room", "cleanliness", "food", "delay"]
+            ],
+            "cafe" => [
+                "label" => "Cafe",
+                "services" => [
+                    "dine_in" => ["Seating", "Cleanliness"],
+                    "takeaway" => ["Packaging", "Waiting time"]
+                ],
+                "categories" => [
+                    "food" => ["Taste", "Freshness"],
+                    "service" => ["Speed", "Friendliness"],
+                    "ambience" => ["Cleanliness", "Comfort"]
+                ],
+                "questions" => [
+                    [ "text" => "How was the quality of food or drinks?", "type" => "rating", "category" => "food" ],
+                    [ "text" => "How fast was the service?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "How friendly was our staff?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "How would you rate the ambience?", "type" => "rating", "category" => "ambience" ],
+                    [ "text" => "Any suggestions or comments?", "type" => "comment", "category" => "ambience" ]
+                ],
+                "labels" => ["coffee", "staff", "delay", "cleanliness"]
+            ],
+            "restaurant" => [
+                "label" => "Restaurant",
+                "services" => [
+                    "dine_in" => ["Table service", "Cleanliness"],
+                    "takeaway" => ["Packaging", "Order accuracy"]
+                ],
+                "categories" => [
+                    "food" => ["Taste", "Portion size"],
+                    "service" => ["Speed", "Courtesy"],
+                    "ambience" => ["Cleanliness", "Noise"]
+                ],
+                "questions" => [
+                    [ "text" => "How was the taste of the food?", "type" => "rating", "category" => "food" ],
+                    [ "text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "Was your order accurate?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "How would you rate the ambience?", "type" => "rating", "category" => "ambience" ],
+                    [ "text" => "Any feedback for our team?", "type" => "comment", "category" => "service" ]
+                ],
+                "labels" => ["food", "service", "delay", "staff"]
+            ],
+            "pharmacy" => [
+                "label" => "Pharmacy",
+                "services" => [
+                    "counter" => ["Prescription handling", "Advice"],
+                    "billing" => ["Speed", "Accuracy"]
+                ],
+                "categories" => [
+                    "service" => ["Speed", "Accuracy"],
+                    "staff" => ["Knowledge", "Courtesy"]
+                ],
+                "questions" => [
+                    [ "text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "Was the staff helpful and knowledgeable?", "type" => "rating", "category" => "staff" ],
+                    [ "text" => "How fast was the billing process?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "Was your prescription handled accurately?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "Any suggestions for improvement?", "type" => "comment", "category" => "staff" ]
+                ],
+                "labels" => ["staff", "medicine", "waiting"]
+            ],
+            "hospital" => [
+                "label" => "Hospital",
+                "services" => [
+                    "outpatient" => ["Consultation", "Waiting time"],
+                    "inpatient" => ["Nursing care", "Room cleanliness"],
+                    "emergency" => ["Response time", "Support"]
+                ],
+                "categories" => [
+                    "medical_care" => ["Doctor attention", "Treatment quality"],
+                    "service" => ["Waiting time", "Communication"],
+                    "hygiene" => ["Cleanliness", "Sanitation"]
+                ],
+                "questions" => [
+                    [ "text" => "How would you rate the medical care?", "type" => "rating", "category" => "medical_care" ],
+                    [ "text" => "How was the waiting time?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "How clean were the facilities?", "type" => "rating", "category" => "hygiene" ],
+                    [ "text" => "How supportive was the staff?", "type" => "rating", "category" => "medical_care" ],
+                    [ "text" => "Any comments or concerns?", "type" => "comment", "category" => "service" ]
+                ],
+                "labels" => ["doctor", "nurse", "cleanliness", "delay"]
+            ],
+            "fitness_center" => [
+                "label" => "Fitness Center / Gym",
+                "services" => [
+                    "training" => ["Personal training", "Group classes"],
+                    "facilities" => ["Equipment", "Locker rooms"]
+                ],
+                "categories" => [
+                    "equipment" => ["Availability", "Condition"],
+                    "staff" => ["Trainer support", "Guidance"],
+                    "facility" => ["Cleanliness", "Crowding"]
+                ],
+                "questions" => [
+                    [ "text" => "How satisfied are you with the equipment?", "type" => "rating", "category" => "equipment" ],
+                    [ "text" => "How helpful were the trainers?", "type" => "rating", "category" => "staff" ],
+                    [ "text" => "How clean are the facilities?", "type" => "rating", "category" => "facility" ],
+                    [ "text" => "Is the gym overcrowded during your visit?", "type" => "rating", "category" => "facility" ],
+                    [ "text" => "Any suggestions for improvement?", "type" => "comment", "category" => "facility" ]
+                ],
+                "labels" => ["trainer", "equipment", "cleanliness"]
+            ],
+            "beauty_salon" => [
+                "label" => "Beauty Salon / Barbershop",
+                "services" => [
+                    "hair" => ["Haircut", "Styling"],
+                    "skin" => ["Facial", "Treatment"]
+                ],
+                "categories" => [
+                    "service" => ["Skill", "Professionalism"],
+                    "hygiene" => ["Tools", "Cleanliness"],
+                    "experience" => ["Comfort", "Ambience"]
+                ],
+                "questions" => [
+                    [ "text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "How skilled was the stylist?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "Was the salon clean and hygienic?", "type" => "rating", "category" => "hygiene" ],
+                    [ "text" => "How comfortable was your experience?", "type" => "rating", "category" => "experience" ],
+                    [ "text" => "Any comments or suggestions?", "type" => "comment", "category" => "experience" ]
+                ],
+                "labels" => ["stylist", "cleanliness", "service"]
+            ],
+            "car_service" => [
+                "label" => "Car Repair / Car Wash / Tire Shop",
+                "services" => [
+                    "repair" => ["Diagnosis", "Repair work"],
+                    "wash" => ["Exterior", "Interior"],
+                    "maintenance" => ["Inspection", "Tires"]
+                ],
+                "categories" => [
+                    "service" => ["Speed", "Transparency"],
+                    "quality" => ["Work quality", "Parts used"],
+                    "pricing" => ["Fairness", "Clarity"]
+                ],
+                "questions" => [
+                    [ "text" => "How satisfied were you with the service?", "type" => "rating", "category" => "quality" ],
+                    [ "text" => "Was the issue explained clearly?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "Was the pricing fair?", "type" => "rating", "category" => "pricing" ],
+                    [ "text" => "Was the work completed on time?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "Any feedback or suggestions?", "type" => "comment", "category" => "service" ]
+                ],
+                "labels" => ["repair", "delay", "cost"]
+            ],
+            "professional_services" => [
+                "label" => "Accountant / Law Firm / Consultant / IT Services",
+                "services" => [
+                    "consultation" => ["Advice quality", "Understanding needs"],
+                    "delivery" => ["Timeliness", "Accuracy"]
+                ],
+                "categories" => [
+                    "expertise" => ["Knowledge", "Accuracy"],
+                    "communication" => ["Clarity", "Responsiveness"],
+                    "service" => ["Timeliness", "Reliability"]
+                ],
+                "questions" => [
+                    [ "text" => "How satisfied were you with the professional advice?", "type" => "rating", "category" => "expertise" ],
+                    [ "text" => "How clear was the communication?", "type" => "rating", "category" => "communication" ],
+                    [ "text" => "Was the service delivered on time?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "How confident are you in the outcome?", "type" => "rating", "category" => "expertise" ],
+                    [ "text" => "Any comments or improvement suggestions?", "type" => "comment", "category" => "communication" ]
+                ],
+                "labels" => ["expertise", "communication", "delay"]
+            ],
+            "others" => [
+                "label" => "Other / Custom Business",
+                "services" => [
+                    "general" => ["Service quality", "Responsiveness"]
+                ],
+                "categories" => [
+                    "service" => ["Quality", "Speed"],
+                    "experience" => ["Satisfaction", "Ease"]
+                ],
+                "questions" => [
+                    [ "text" => "How satisfied were you with our service?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "How easy was it to interact with us?", "type" => "rating", "category" => "experience" ],
+                    [ "text" => "Did we meet your expectations?", "type" => "rating", "category" => "experience" ],
+                    [ "text" => "Would you recommend us to others?", "type" => "rating", "category" => "service" ],
+                    [ "text" => "Any feedback or suggestions?", "type" => "comment", "category" => "experience" ]
+                ],
+                "labels" => ["general", "feedback", "service"]
+            ]
+        ];
+
+        $data = $businessTypesData[$businessType] ?? $businessTypesData['others'];
+
+        DB::transaction(function () use ($business, $data) {
+            // 1. Create Business Services and matching Areas
+            if (isset($data['services'])) {
+                foreach ($data['services'] as $serviceName => $areas) {
+                    $businessService = \App\Models\BusinessService::create([
+                        'business_id' => $business->id,
+                        'name' => ucwords(str_replace('_', ' ', $serviceName)),
+                        'is_active' => true,
+                    ]);
+
+                    foreach ($areas as $areaName) {
+                        \App\Models\BusinessArea::create([
+                            'business_id' => $business->id,
+                            'business_service_id' => $businessService->id,
+                            'area_name' => $areaName,
+                            'is_active' => true,
+                        ]);
+                    }
+                }
+            }
+
+            // 2. Create Question Categories (Parent -> Children)
+            $categoryMap = []; // Maps JSON category key to DB Category ID
+            if (isset($data['categories'])) {
+                foreach ($data['categories'] as $parentCatKey => $subCategories) {
+                    $parentCat = \App\Models\QuestionCategory::create([
+                        'title' => ucwords(str_replace('_', ' ', $parentCatKey)),
+                        'business_id' => $business->id,
+                        'is_active' => true,
+                        'is_default' => false,
+                    ]);
+                    $categoryMap[$parentCatKey] = $parentCat->id;
+
+                    foreach ($subCategories as $subcatName) {
+                        \App\Models\QuestionCategory::create([
+                            'title' => $subcatName,
+                            'business_id' => $business->id,
+                            'parent_question_category_id' => $parentCat->id,
+                            'is_active' => true,
+                            'is_default' => false,
+                        ]);
+                    }
+                }
+            }
+
+            // 3. Create Questions
+            if (isset($data['questions'])) {
+                foreach ($data['questions'] as $index => $qParams) {
+                    // Create the base question
+                    $question = \App\Models\Question::create([
+                        'question' => $qParams['text'],
+                        'business_id' => $business->id,
+                        'is_active' => true,
+                        'is_default' => false,
+                        'type' => $qParams['type'] === 'comment' ? 'comment' : 'star', // Adjust depending on schemas
+                        'order_no' => $index + 1,
+                    ]);
+
+                    // If question is linked to a category, attach it via pivot table
+                    if (isset($qParams['category']) && isset($categoryMap[$qParams['category']])) {
+                        $question->question_sub_categories()->attach($categoryMap[$qParams['category']]);
+                    }
+                }
+            }
+
+            // 4. Create Tags/Labels
+            if (isset($data['labels'])) {
+                foreach ($data['labels'] as $label) {
+                    \App\Models\Tag::create([
+                        'Name' => ucwords($label),
+                        'business_id' => $business->id,
+                    ]);
+                }
+            }
+        });
     }
 }

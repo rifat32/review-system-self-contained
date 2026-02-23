@@ -755,8 +755,8 @@ class QuestionCategoryController extends Controller
                     'required',
                     'string',
                     'max:255',
-                    Rule::unique('question_categories', 'title'),
-                        // ->where(fn($query) => $query->where('business_id', $user->business_id)),
+                    Rule::unique('question_categories', 'title')
+                        ->where(fn($query) => $query->where('business_id', $user->business_id)),
                 ],
 
                 'description' => 'nullable|string',
@@ -768,8 +768,9 @@ class QuestionCategoryController extends Controller
                     'required',
                     'string',
                     'max:255',
-                    Rule::unique('question_categories', 'title'),
-                        // ->where(fn($query) => $query->where('business_id', $user->business_id)),
+                    'distinct',
+                    Rule::unique('question_categories', 'title')
+                        ->where(fn($query) => $query->where('business_id', $user->business_id)),
                 ],
 
                 'sub_category.*.description' => 'nullable|string|max:255',
