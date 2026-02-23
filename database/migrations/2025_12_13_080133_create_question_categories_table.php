@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('question_categories', function (Blueprint $table) {
             $table->id();
-            $table->string('title')->unique();
+            $table->string('title');
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_default')->default(false);
@@ -47,9 +47,5 @@ return new class extends Migration
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-
-       
     }
-
-  
 };
