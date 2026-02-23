@@ -257,7 +257,7 @@ class BusinessProfileService
                         ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
-                'actions' => ['tag' => 'sentiment_categorized'],
+                'actions' => ['tag' => 'sentiment_categorized', 'icon' => 'sentiment_satisfied'],
                 'ai_explanation_title' => 'Sentiment Analysis',
                 'ai_plain_explanation' => 'Automatically categorize feedback into positive, neutral, or negative sentiment buckets.',
                 'ai_why_it_matters' => 'Understanding the general mood of customer feedback helps in broad quality assessment.',
@@ -280,7 +280,7 @@ class BusinessProfileService
                         ['source' => 'Emotion', 'type' => 'intensity', 'operator' => 'greater_than', 'value' => 0.7]
                     ]
                 ],
-                'actions' => ['tag' => 'high_emotion_intensity'],
+                'actions' => ['tag' => 'high_emotion_intensity', 'icon' => 'mood'],
                 'ai_explanation_title' => 'Emotion Intensity Detection',
                 'ai_plain_explanation' => 'Identify the strength of emotions like joy, frustration, or anger within text reviews.',
                 'ai_why_it_matters' => 'High intensity emotions often signal critical issues or exceptional praise.',
@@ -304,7 +304,7 @@ class BusinessProfileService
                         ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
-                'actions' => ['tag' => 'mismatch_detected', 'alert' => true],
+                'actions' => ['tag' => 'mismatch_detected', 'alert' => true, 'icon' => 'match_word'],
                 'ai_explanation_title' => 'Rating & Comment Mismatch',
                 'ai_plain_explanation' => 'Detect when a high numerical rating is paired with a negative written review.',
                 'ai_why_it_matters' => 'Identifies hidden dissatisfaction where customers are polite with stars but critical in text.',
@@ -329,7 +329,7 @@ class BusinessProfileService
                         ['source' => 'Comment', 'type' => 'keyword', 'operator' => 'contains', 'value' => 'delivery']
                     ]
                 ],
-                'actions' => ['tag' => 'category_assigned'],
+                'actions' => ['tag' => 'category_assigned', 'icon' => 'category'],
                 'ai_explanation_title' => 'Category Issue Detection',
                 'ai_plain_explanation' => 'Sort feedback into predefined categories like Pricing, Quality, or Delivery.',
                 'ai_why_it_matters' => 'Enables granular analysis of specific business problems.',
@@ -353,7 +353,7 @@ class BusinessProfileService
                         ['source' => 'Comment', 'type' => 'keyword', 'operator' => 'contains', 'value' => 'maintenance']
                     ]
                 ],
-                'actions' => ['tag' => 'service_type_identified'],
+                'actions' => ['tag' => 'service_type_identified', 'icon' => 'home_repair_service'],
                 'ai_explanation_title' => 'Service Type Detection',
                 'ai_plain_explanation' => 'Identify the specific type of service mentioned (e.g., Installation vs Maintenance).',
                 'ai_why_it_matters' => 'Helps routes feedback to the correct department.',
@@ -376,7 +376,7 @@ class BusinessProfileService
                         ['source' => 'Area', 'type' => 'area_mention', 'operator' => 'exists', 'value' => true]
                     ]
                 ],
-                'actions' => ['tag' => 'area_identified'],
+                'actions' => ['tag' => 'area_identified', 'icon' => 'domain'],
                 'ai_explanation_title' => 'Business Area Detection',
                 'ai_plain_explanation' => 'Pinpoint which business unit or physical location the feedback refers to.',
                 'ai_why_it_matters' => 'Identifies exactly where in the business an issue or win occurred.',
@@ -399,7 +399,7 @@ class BusinessProfileService
                         ['source' => 'Staff', 'type' => 'staff_mention', 'operator' => 'exists', 'value' => true]
                     ]
                 ],
-                'actions' => ['tag' => 'staff_identified'],
+                'actions' => ['tag' => 'staff_identified', 'icon' => 'badge'],
                 'ai_explanation_title' => 'Staff Mention Detection',
                 'ai_plain_explanation' => 'Extract employee names or roles from comments to track individual mentions.',
                 'ai_why_it_matters' => 'Enables staff-level performance tracking and recognition.',
@@ -423,7 +423,7 @@ class BusinessProfileService
                         ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
                     ]
                 ],
-                'actions' => ['tag' => 'staff_risk_flagged', 'alert' => true],
+                'actions' => ['tag' => 'staff_risk_flagged', 'alert' => true, 'icon' => 'warning'],
                 'ai_explanation_title' => 'Staff Performance Risk',
                 'ai_plain_explanation' => 'Flag recurring negative mentions or behavioral issues linked to specific personnel.',
                 'ai_why_it_matters' => 'Protects brand reputation by identifying problematic staff behavior early.',
@@ -446,7 +446,7 @@ class BusinessProfileService
                         ['source' => 'Rating', 'type' => 'rating', 'operator' => 'less_than', 'value' => 2]
                     ]
                 ],
-                'actions' => ['alert' => true, 'notification' => 'emergency'],
+                'actions' => ['alert' => true, 'notification' => 'emergency', 'icon' => 'notifications_active'],
                 'ai_explanation_title' => 'Flag and Alert Detection',
                 'ai_plain_explanation' => 'Trigger immediate notifications for critical keywords or severe dissatisfaction.',
                 'ai_why_it_matters' => 'Ensures immediate action on the most sensitive customer issues.',
@@ -500,11 +500,11 @@ class BusinessProfileService
                     "food" => ["Taste", "Quality", "Presentation"]
                 ],
                 "questions" => [
-                    [ "text" => "How would you rate your overall stay?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "How clean was your room?", "type" => "rating", "category" => "cleanliness" ],
-                    [ "text" => "How comfortable was your room?", "type" => "rating", "category" => "comfort" ],
-                    [ "text" => "How was the quality of food and beverages?", "type" => "rating", "category" => "food" ],
-                    [ "text" => "What could we improve for your next stay?", "type" => "comment", "category" => "service" ]
+                    ["text" => "How would you rate your overall stay?", "type" => "rating", "category" => "service"],
+                    ["text" => "How clean was your room?", "type" => "rating", "category" => "cleanliness"],
+                    ["text" => "How comfortable was your room?", "type" => "rating", "category" => "comfort"],
+                    ["text" => "How was the quality of food and beverages?", "type" => "rating", "category" => "food"],
+                    ["text" => "What could we improve for your next stay?", "type" => "comment", "category" => "service"]
                 ],
                 "labels" => ["staff", "room", "cleanliness", "food", "delay"]
             ],
@@ -520,11 +520,11 @@ class BusinessProfileService
                     "ambience" => ["Cleanliness", "Comfort"]
                 ],
                 "questions" => [
-                    [ "text" => "How was the quality of food or drinks?", "type" => "rating", "category" => "food" ],
-                    [ "text" => "How fast was the service?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "How friendly was our staff?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "How would you rate the ambience?", "type" => "rating", "category" => "ambience" ],
-                    [ "text" => "Any suggestions or comments?", "type" => "comment", "category" => "ambience" ]
+                    ["text" => "How was the quality of food or drinks?", "type" => "rating", "category" => "food"],
+                    ["text" => "How fast was the service?", "type" => "rating", "category" => "service"],
+                    ["text" => "How friendly was our staff?", "type" => "rating", "category" => "service"],
+                    ["text" => "How would you rate the ambience?", "type" => "rating", "category" => "ambience"],
+                    ["text" => "Any suggestions or comments?", "type" => "comment", "category" => "ambience"]
                 ],
                 "labels" => ["coffee", "staff", "delay", "cleanliness"]
             ],
@@ -540,11 +540,11 @@ class BusinessProfileService
                     "ambience" => ["Cleanliness", "Noise"]
                 ],
                 "questions" => [
-                    [ "text" => "How was the taste of the food?", "type" => "rating", "category" => "food" ],
-                    [ "text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "Was your order accurate?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "How would you rate the ambience?", "type" => "rating", "category" => "ambience" ],
-                    [ "text" => "Any feedback for our team?", "type" => "comment", "category" => "service" ]
+                    ["text" => "How was the taste of the food?", "type" => "rating", "category" => "food"],
+                    ["text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service"],
+                    ["text" => "Was your order accurate?", "type" => "rating", "category" => "service"],
+                    ["text" => "How would you rate the ambience?", "type" => "rating", "category" => "ambience"],
+                    ["text" => "Any feedback for our team?", "type" => "comment", "category" => "service"]
                 ],
                 "labels" => ["food", "service", "delay", "staff"]
             ],
@@ -559,11 +559,11 @@ class BusinessProfileService
                     "staff" => ["Knowledge", "Courtesy"]
                 ],
                 "questions" => [
-                    [ "text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "Was the staff helpful and knowledgeable?", "type" => "rating", "category" => "staff" ],
-                    [ "text" => "How fast was the billing process?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "Was your prescription handled accurately?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "Any suggestions for improvement?", "type" => "comment", "category" => "staff" ]
+                    ["text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service"],
+                    ["text" => "Was the staff helpful and knowledgeable?", "type" => "rating", "category" => "staff"],
+                    ["text" => "How fast was the billing process?", "type" => "rating", "category" => "service"],
+                    ["text" => "Was your prescription handled accurately?", "type" => "rating", "category" => "service"],
+                    ["text" => "Any suggestions for improvement?", "type" => "comment", "category" => "staff"]
                 ],
                 "labels" => ["staff", "medicine", "waiting"]
             ],
@@ -580,11 +580,11 @@ class BusinessProfileService
                     "hygiene" => ["Cleanliness", "Sanitation"]
                 ],
                 "questions" => [
-                    [ "text" => "How would you rate the medical care?", "type" => "rating", "category" => "medical_care" ],
-                    [ "text" => "How was the waiting time?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "How clean were the facilities?", "type" => "rating", "category" => "hygiene" ],
-                    [ "text" => "How supportive was the staff?", "type" => "rating", "category" => "medical_care" ],
-                    [ "text" => "Any comments or concerns?", "type" => "comment", "category" => "service" ]
+                    ["text" => "How would you rate the medical care?", "type" => "rating", "category" => "medical_care"],
+                    ["text" => "How was the waiting time?", "type" => "rating", "category" => "service"],
+                    ["text" => "How clean were the facilities?", "type" => "rating", "category" => "hygiene"],
+                    ["text" => "How supportive was the staff?", "type" => "rating", "category" => "medical_care"],
+                    ["text" => "Any comments or concerns?", "type" => "comment", "category" => "service"]
                 ],
                 "labels" => ["doctor", "nurse", "cleanliness", "delay"]
             ],
@@ -600,11 +600,11 @@ class BusinessProfileService
                     "facility" => ["Cleanliness", "Crowding"]
                 ],
                 "questions" => [
-                    [ "text" => "How satisfied are you with the equipment?", "type" => "rating", "category" => "equipment" ],
-                    [ "text" => "How helpful were the trainers?", "type" => "rating", "category" => "staff" ],
-                    [ "text" => "How clean are the facilities?", "type" => "rating", "category" => "facility" ],
-                    [ "text" => "Is the gym overcrowded during your visit?", "type" => "rating", "category" => "facility" ],
-                    [ "text" => "Any suggestions for improvement?", "type" => "comment", "category" => "facility" ]
+                    ["text" => "How satisfied are you with the equipment?", "type" => "rating", "category" => "equipment"],
+                    ["text" => "How helpful were the trainers?", "type" => "rating", "category" => "staff"],
+                    ["text" => "How clean are the facilities?", "type" => "rating", "category" => "facility"],
+                    ["text" => "Is the gym overcrowded during your visit?", "type" => "rating", "category" => "facility"],
+                    ["text" => "Any suggestions for improvement?", "type" => "comment", "category" => "facility"]
                 ],
                 "labels" => ["trainer", "equipment", "cleanliness"]
             ],
@@ -620,11 +620,11 @@ class BusinessProfileService
                     "experience" => ["Comfort", "Ambience"]
                 ],
                 "questions" => [
-                    [ "text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "How skilled was the stylist?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "Was the salon clean and hygienic?", "type" => "rating", "category" => "hygiene" ],
-                    [ "text" => "How comfortable was your experience?", "type" => "rating", "category" => "experience" ],
-                    [ "text" => "Any comments or suggestions?", "type" => "comment", "category" => "experience" ]
+                    ["text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service"],
+                    ["text" => "How skilled was the stylist?", "type" => "rating", "category" => "service"],
+                    ["text" => "Was the salon clean and hygienic?", "type" => "rating", "category" => "hygiene"],
+                    ["text" => "How comfortable was your experience?", "type" => "rating", "category" => "experience"],
+                    ["text" => "Any comments or suggestions?", "type" => "comment", "category" => "experience"]
                 ],
                 "labels" => ["stylist", "cleanliness", "service"]
             ],
@@ -641,11 +641,11 @@ class BusinessProfileService
                     "pricing" => ["Fairness", "Clarity"]
                 ],
                 "questions" => [
-                    [ "text" => "How satisfied were you with the service?", "type" => "rating", "category" => "quality" ],
-                    [ "text" => "Was the issue explained clearly?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "Was the pricing fair?", "type" => "rating", "category" => "pricing" ],
-                    [ "text" => "Was the work completed on time?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "Any feedback or suggestions?", "type" => "comment", "category" => "service" ]
+                    ["text" => "How satisfied were you with the service?", "type" => "rating", "category" => "quality"],
+                    ["text" => "Was the issue explained clearly?", "type" => "rating", "category" => "service"],
+                    ["text" => "Was the pricing fair?", "type" => "rating", "category" => "pricing"],
+                    ["text" => "Was the work completed on time?", "type" => "rating", "category" => "service"],
+                    ["text" => "Any feedback or suggestions?", "type" => "comment", "category" => "service"]
                 ],
                 "labels" => ["repair", "delay", "cost"]
             ],
@@ -661,11 +661,11 @@ class BusinessProfileService
                     "service" => ["Timeliness", "Reliability"]
                 ],
                 "questions" => [
-                    [ "text" => "How satisfied were you with the professional advice?", "type" => "rating", "category" => "expertise" ],
-                    [ "text" => "How clear was the communication?", "type" => "rating", "category" => "communication" ],
-                    [ "text" => "Was the service delivered on time?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "How confident are you in the outcome?", "type" => "rating", "category" => "expertise" ],
-                    [ "text" => "Any comments or improvement suggestions?", "type" => "comment", "category" => "communication" ]
+                    ["text" => "How satisfied were you with the professional advice?", "type" => "rating", "category" => "expertise"],
+                    ["text" => "How clear was the communication?", "type" => "rating", "category" => "communication"],
+                    ["text" => "Was the service delivered on time?", "type" => "rating", "category" => "service"],
+                    ["text" => "How confident are you in the outcome?", "type" => "rating", "category" => "expertise"],
+                    ["text" => "Any comments or improvement suggestions?", "type" => "comment", "category" => "communication"]
                 ],
                 "labels" => ["expertise", "communication", "delay"]
             ],
@@ -679,11 +679,11 @@ class BusinessProfileService
                     "experience" => ["Satisfaction", "Ease"]
                 ],
                 "questions" => [
-                    [ "text" => "How satisfied were you with our service?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "How easy was it to interact with us?", "type" => "rating", "category" => "experience" ],
-                    [ "text" => "Did we meet your expectations?", "type" => "rating", "category" => "experience" ],
-                    [ "text" => "Would you recommend us to others?", "type" => "rating", "category" => "service" ],
-                    [ "text" => "Any feedback or suggestions?", "type" => "comment", "category" => "experience" ]
+                    ["text" => "How satisfied were you with our service?", "type" => "rating", "category" => "service"],
+                    ["text" => "How easy was it to interact with us?", "type" => "rating", "category" => "experience"],
+                    ["text" => "Did we meet your expectations?", "type" => "rating", "category" => "experience"],
+                    ["text" => "Would you recommend us to others?", "type" => "rating", "category" => "service"],
+                    ["text" => "Any feedback or suggestions?", "type" => "comment", "category" => "experience"]
                 ],
                 "labels" => ["general", "feedback", "service"]
             ]
