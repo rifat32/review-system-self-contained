@@ -5,11 +5,15 @@ namespace App\Services\Business;
 use App\Http\Utils\DiscountUtil;
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\BusinessArea;
 use App\Models\BusinessDay;
 use App\Models\AiRule;
+use App\Models\BusinessService;
 use App\Models\Question;
+use App\Models\QuestionCategory;
 use App\Models\Star;
 use App\Models\ReviewValueNew;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -695,14 +699,14 @@ class BusinessProfileService
             // 1. Create Business Services and matching Areas
             if (isset($data['services'])) {
                 foreach ($data['services'] as $serviceName => $areas) {
-                    $businessService = \App\Models\BusinessService::create([
+                    $businessService = BusinessService::create([
                         'business_id' => $business->id,
                         'name' => ucwords(str_replace('_', ' ', $serviceName)),
                         'is_active' => true,
                     ]);
 
                     foreach ($areas as $areaName) {
-                        \App\Models\BusinessArea::create([
+                        BusinessArea::create([
                             'business_id' => $business->id,
                             'business_service_id' => $businessService->id,
                             'area_name' => $areaName,
@@ -716,23 +720,28 @@ class BusinessProfileService
             $categoryMap = []; // Maps JSON category key to DB Category ID
             if (isset($data['categories'])) {
                 foreach ($data['categories'] as $parentCatKey => $subCategories) {
-                    $parentCat = \App\Models\QuestionCategory::create([
+                    $parentCat = QuestionCategory::create([
                         'title' => ucwords(str_replace('_', ' ', $parentCatKey)),
                         'business_id' => $business->id,
                         'is_active' => true,
                         'is_default' => false,
                     ]);
-                    $categoryMap[$parentCatKey] = $parentCat->id;
 
+                    // Store child sub-category IDs (NOT parent ID)
+                    $subCatIds = [];
                     foreach ($subCategories as $subcatName) {
-                        \App\Models\QuestionCategory::create([
+                        $subCat = QuestionCategory::create([
                             'title' => $subcatName,
                             'business_id' => $business->id,
                             'parent_question_category_id' => $parentCat->id,
                             'is_active' => true,
                             'is_default' => false,
                         ]);
+                        $subCatIds[] = $subCat->id;
                     }
+
+                    // Map the parent key to its children IDs
+                    $categoryMap[$parentCatKey] = $subCatIds;
                 }
             }
 
@@ -740,7 +749,7 @@ class BusinessProfileService
             if (isset($data['questions'])) {
                 foreach ($data['questions'] as $index => $qParams) {
                     // Create the base question
-                    $question = \App\Models\Question::create([
+                    $question = Question::create([
                         'question' => $qParams['text'],
                         'business_id' => $business->id,
                         'is_active' => true,
@@ -749,9 +758,9 @@ class BusinessProfileService
                         'order_no' => $index + 1,
                     ]);
 
-                    // If question is linked to a category, attach it via pivot table
+                    // Attach the child sub-category IDs (array) to the question via pivot table
                     if (isset($qParams['category']) && isset($categoryMap[$qParams['category']])) {
-                        $question->question_sub_categories()->attach($categoryMap[$qParams['category']]);
+                        $question->question_sub_categories()->sync($categoryMap[$qParams['category']]);
                     }
                 }
             }
@@ -759,7 +768,7 @@ class BusinessProfileService
             // 4. Create Tags/Labels
             if (isset($data['labels'])) {
                 foreach ($data['labels'] as $label) {
-                    \App\Models\Tag::create([
+                    Tag::create([
                         'Name' => ucwords($label),
                         'business_id' => $business->id,
                     ]);
