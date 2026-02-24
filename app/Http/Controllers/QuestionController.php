@@ -206,7 +206,7 @@ class QuestionController extends Controller
 
         $query = Question::with([
             'surveys' => fn($q) => $q->select('surveys.id', 'surveys.name', 'surveys.order_no'),
-            'question_sub_categories' => fn($q) => $q->select('question_categories.id', 'question_categories.title'),
+            'question_sub_categories' => fn($q) => $q->select('question_categories.id', 'question_categories.title','question_categories.parent_question_category_id'),
         ]);
 
         if ($user->hasRole('superadmin')) {
