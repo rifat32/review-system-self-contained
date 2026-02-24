@@ -84,6 +84,20 @@ class BranchController extends Controller
      *          required=false,
      *          @OA\Schema(type="string", example="desc", enum={"asc", "desc"})
      *      ),
+     *      @OA\Parameter(
+     *          name="is_active",
+     *          in="query",
+     *          description="Filter branches by active status",
+     *          required=false,
+     *          @OA\Schema(type="boolean", example=true)
+     *      ),
+     *      @OA\Parameter(
+     *          name="is_default",
+     *          in="query",
+     *          description="Filter branches by default status",
+     *          required=false,
+     *          @OA\Schema(type="boolean")
+     *      ),
      *
      *      @OA\Response(
      *          response=200,

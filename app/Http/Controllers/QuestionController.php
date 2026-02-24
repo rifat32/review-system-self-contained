@@ -203,6 +203,7 @@ class QuestionController extends Controller
     public function getAllQuestions(Request $request): JsonResponse
     {
         $user = $request->user();
+        
 
         $query = Question::with([
             'surveys' => fn($q) => $q->select('surveys.id', 'surveys.name', 'surveys.order_no'),
@@ -300,8 +301,12 @@ class QuestionController extends Controller
 
         // Check permissions
         if (!$user->hasRole('superadmin')) {
+            log_message([
+                'user'=>$user->business_id,
+                'question'=>$question->business_id
+            ],'debug.log');
             // Business owner: can only access default questions or their own business questions
-            if (!$question->is_default && !in_array($question->business_id, $user->business()->pluck('id')->toArray())) {
+            if (!$question->is_default && (int) $question->business_id !== (int) $user->business_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have access to this question.'

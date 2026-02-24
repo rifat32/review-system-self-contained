@@ -314,9 +314,12 @@ class UserController extends Controller
         if ($authUser->hasRole('superadmin')) {
 
             $userRole = $user->roles->first();
+            log_message([
+                'user' => $user,
+            ], 'debug.log');
 
             // superadmin can delete ONLY business owners
-            if ($userRole->name !== User::USER_ROLE['CUSTOMER'] && $userRole->name !== User::USER_ROLE['BUSINESS_OWNER']) {
+            if (!$userRole || ($userRole->name !== User::USER_ROLE['CUSTOMER'] && $userRole->name !== User::USER_ROLE['BUSINESS_OWNER'])) {
                 throw new AccessDeniedHttpException('Super Admin can do business owner and custom delete only');
             }
         }

@@ -122,6 +122,14 @@ class Branch extends Model
             }
         }
 
+        if(request()->filled('is_active')) {
+            $query->where('is_active', request()->boolean("is_active"));
+        }
+
+        if(request()->filled('is_default')) {
+            $query->where('is_default', request()->boolean("is_default"));
+        }
+
         return $query;
     }
 
