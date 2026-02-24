@@ -522,6 +522,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     // Get dashboard metrics for authenticated user's business (no businessId parameter required)
     Route::get('/v1.0/dashboard/metrics', [DashboardController::class, 'getDashboardMetrics']);
+    Route::get('/v1.0/dashboard/unified', [DashboardController::class, 'getUnifiedDashboardData']);
     Route::get('/v1.0/dashboard/recent-reviews', [DashboardController::class, 'getRecentReviews']);
     Route::get('/v1.0/dashboard/rating-breakdown', [DashboardController::class, 'getRatingBreakdown']);
     Route::get('/v1.0/dashboard/tags-breakdown', [DashboardController::class, 'getTagsBreakdown']);

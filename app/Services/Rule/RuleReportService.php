@@ -316,13 +316,17 @@ class RuleReportService
         $totalReviews = (clone $baseQuery)->count();
         $avgRating = (clone $baseQuery)->withCalculatedRating()->get()->avg('calculated_rating') ?? 0;
 
+        // CSAT Score calculation (logic from DashboardController)
+        $csatReviewsCount = (clone $baseQuery)->whereMeetsThreshold()->count();
+        $csatPercentage = $totalReviews > 0 ? round(($csatReviewsCount / $totalReviews) * 100) : 0;
+
         $boxes = [
             [
                 'key' => 'TOTAL_REVIEWS',
                 'label' => 'Total Reviews',
                 'value' => number_format($totalReviews),
-                'sub_value' => null,
-                'trend' => null, // TODO: Calculate trend
+                'sub_value' => 'Total Volume',
+                'trend' => null,
                 'icon' => '📝',
                 'color' => 'blue',
                 'is_default_rule' => false
@@ -335,6 +339,16 @@ class RuleReportService
                 'trend' => null,
                 'icon' => '⭐',
                 'color' => 'yellow',
+                'is_default_rule' => false
+            ],
+            [
+                'key' => 'CSAT_SCORE',
+                'label' => 'CSAT Score',
+                'value' => $csatPercentage . '%',
+                'sub_value' => 'Satisfaction Index',
+                'trend' => null,
+                'icon' => '📈',
+                'color' => 'cyan',
                 'is_default_rule' => false
             ]
         ];
@@ -356,13 +370,22 @@ class RuleReportService
             }
         }
 
-        // 4. Premium Insights
-        $topPerformer = $this->getTopPerformerBox($businessId, $period);
-        if ($topPerformer) {
-            $boxes[] = $topPerformer;
-        }
+        // 4. Special Metrics: Repeat Issue
+        $repeatIssues = InsightRecord::where('business_id', $businessId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('mentions_count', '>', 3) // Example threshold for "repeat"
+            ->count();
 
-        $boxes[] = $this->getRatingUpsideBox($businessId, $startDate, $endDate, $baseQuery);
+        $boxes[] = [
+            'key' => 'REPEAT_ISSUE',
+            'label' => 'Repeat Issue',
+            'value' => $repeatIssues > 0 ? $repeatIssues : 'No major issues detected',
+            'sub_value' => 'Recurring Issues',
+            'trend' => null,
+            'icon' => '⚠️',
+            'color' => 'orange',
+            'is_default_rule' => false
+        ];
 
         return $boxes;
     }
@@ -435,34 +458,74 @@ class RuleReportService
         switch ($this->getBaseRuleKey($rule->rule_id)) {
             case 'SENTIMENT_ANALYSIS':
                 $label = 'Sentiment Score';
-                // Calculate % Positive
                 $total = (clone $query)->count();
                 $positive = (clone $query)->where('sentiment_label', 'positive')->count();
-                $value = $total > 0 ? round(($positive / $total) * 100) : 0;
-                $unit = '%';
-                $subValue = $value >= 80 ? 'Excellent Sentiment' : ($value >= 50 ? 'Strong Sentiment' : 'Needs Focus');
+                $negative = (clone $query)->where('sentiment_label', 'negative')->count();
+
+                if ($total > 0) {
+                    if ($positive > $negative) {
+                        $value = 'Positive';
+                    } elseif ($negative > $positive) {
+                        $value = 'Negative';
+                    } else {
+                        $value = 'Neutral';
+                    }
+                } else {
+                    $value = 'No Data';
+                }
+
+                $subValue = 'Overall Sentiment';
+                $icon = '😊';
+                $color = 'green';
                 break;
 
             case 'FLAG_AND_ALERT':
                 $label = 'Flagged Reviews';
                 $value = (clone $query)->where('is_flagged', true)->count();
-                $subValue = 'Action Required';
+                $subValue = 'Action Now';
+                $icon = '🚩';
+                $color = 'orange';
                 break;
 
             case 'STAFF_MENTION_DETECTION':
                 $label = 'Staff-Linked Reviews';
-                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
+                $value = (clone $query)->whereNotNull('staff_id')->count();
                 $subValue = 'Team Recognition';
+                $icon = '👥';
+                $color = 'green';
+                break;
+
+            case 'CATEGORY_ISSUE_DETECTION':
+                $label = 'Top Topics';
+                // Simplified top topic logic
+                $topTopic = InsightRecord::where('business_id', $rule->business_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->orderByDesc('mentions_count')
+                    ->first();
+                $value = $topTopic ? $topTopic->main_category : 'No Data';
+                $subValue = 'Trending Issues';
+                $icon = '🏷️';
+                $color = 'indigo';
                 break;
 
             case 'STAFF_PERFORMANCE_RISK':
-                $label = 'Staff Performance Risk';
+                $label = 'Performance Risk';
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
-                $subValue = 'Immediate Review';
+                $subValue = 'Care Required';
+                $icon = '📉';
+                $color = 'red';
+                break;
+
+            case 'EMOTION_INTENSITY':
+                $label = 'Emotional Intensity';
+                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+                $subValue = 'High Engagement';
+                $icon = '🔥';
+                $color = 'purple';
                 break;
 
             case 'RATING_COMMENT_MISMATCH':
@@ -470,57 +533,48 @@ class RuleReportService
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
-                $subValue = 'Hidden Feedback';
-                break;
-
-            case 'CATEGORY_ISSUE_DETECTION':
-                $label = 'Top Topics';
-                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
-                $subValue = 'Trending Issues';
-                break;
-
-            case 'EMOTION_INTENSITY':
-                $label = 'Emotion Intensity';
-                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
-                $subValue = 'High Engagement';
+                $subValue = 'Hidden Insights';
+                $icon = '🔄';
+                $color = 'blue';
                 break;
 
             case 'SERVICE_TYPE_DETECTION':
-                $label = 'Service Type';
+                $label = 'Service Insights';
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
-                $subValue = 'Services Identified';
+                $subValue = 'Departmental Analysis';
+                $icon = '🏢';
+                $color = 'teal';
                 break;
 
             case 'BUSINESS_AREA_DETECTION':
-                $label = 'Business Area';
+                $label = 'Area Performance';
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
-                $subValue = 'Locations Analyzed';
+                $subValue = 'Location Analytics';
+                $icon = '🗺️';
+                $color = 'brown';
                 break;
 
             default:
-                // Generic trigger count for any other default rules
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
                 $subValue = 'Triggers';
+                $icon = '📋';
+                $color = 'gray';
         }
 
         return [
             'key' => $this->getBaseRuleKey($rule->rule_id),
             'label' => $label,
-            'value' => number_format($value) . $unit,
+            'value' => is_numeric($value) ? number_format($value) : $value,
             'sub_value' => $subValue,
-            'trend' => null, // Todo: Add trend calculation
-            'icon' => $rule->getCategoryIcon(),
-            'color' => $rule->getPriorityColor(),
+            'trend' => null,
+            'icon' => $icon,
+            'color' => $color,
             'is_default_rule' => true,
             'rule_id' => $rule->rule_id
         ];

@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Validation\ValidationException;
+use App\Services\Rule\RuleReportService;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -38,6 +39,7 @@ class DashboardController extends Controller
     private $staffPerformanceService;
     private $reviewFeedService;
     private $reviewTopicService;
+    private $ruleReportService;
 
     public function __construct(
         DashboardService $dashboardService,
@@ -48,7 +50,8 @@ class DashboardController extends Controller
         ReviewService $reviewService,
         StaffPerformanceService $staffPerformanceService,
         ReviewFeedService $reviewFeedService,
-        ReviewTopicService $reviewTopicService
+        ReviewTopicService $reviewTopicService,
+        RuleReportService $ruleReportService
     ) {
         $this->dashboardService = $dashboardService;
         $this->aiProcessorService = $aiProcessorService;
@@ -59,6 +62,7 @@ class DashboardController extends Controller
         $this->staffPerformanceService = $staffPerformanceService;
         $this->reviewFeedService = $reviewFeedService;
         $this->reviewTopicService = $reviewTopicService;
+        $this->ruleReportService = $ruleReportService;
     }
 
     private function getBaseQueries(Request $request)
@@ -2722,6 +2726,62 @@ class DashboardController extends Controller
             'success' => true,
             'message' => 'Dashboard metrics retrieved successfully',
             'data' => $metrics
+        ], 200);
+    }
+
+    /**
+     * Get unified dashboard data
+     * GET /v1.0/dashboard/unified
+     */
+    public function getUnifiedDashboardData(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+        $period = $request->get('period', 'last_30_days');
+
+        // 1. Validate period and get date range
+        $dateRange = $this->dashboardService->validateAndGetDateRange($period);
+
+        // 2. Aggregate Data
+        $data = [
+            'metrics' => $this->dashboardService->calculateMetrics($businessId, $dateRange, $user),
+            'boxes' => $this->ruleReportService->getDashboardBoxes($businessId, $period),
+            'ai_insights' => $this->businessAnalyticsService->getAiInsightsPanel($businessId, $dateRange),
+            'top_worst_services' => $this->businessAnalyticsService->analyzeBusinessServicesPerformance($businessId, $dateRange),
+            'rating_breakdown' => $this->reviewService->extractRatingBreakdown($businessId, $dateRange, $user),
+            'tags_breakdown' => $this->reviewService->extractTagsBreakdown($businessId, $dateRange, $user),
+            'review_trends' => $this->reviewMetricsService->getSubmissionsOverTime(
+                reviews: ReviewNew::where('business_id', $businessId)
+                    ->globalReviewFilters(0)
+                    ->filterByDateRange()
+                    ->withCalculatedRating(),
+                period: $request->get('trend_period', '30d')
+            ),
+            'staff_insights' => $this->staffPerformanceService->getStaffPerformanceSnapshot($businessId, $dateRange),
+            'survey_insights' => [
+                'active_surveys' => Survey::where('business_id', $businessId)
+                    ->where('is_active', true)
+                    ->when($dateRange, function ($query) use ($dateRange) {
+                        $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+                    })->count(),
+                'recent_submissions' => ReviewNew::where('business_id', $businessId)
+                    ->globalReviewFilters(0)
+                    ->when($dateRange, function ($query) use ($dateRange) {
+                        $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+                    })->count(),
+                'action_text' => 'Manage'
+            ],
+            'recent_reviews' => $this->recentReviewService->getRecentReviews($businessId, $dateRange, 5)
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Unified dashboard data retrieved successfully',
+            'data' => $data
         ], 200);
     }
 }
