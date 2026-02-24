@@ -374,6 +374,18 @@ class AuthController extends Controller
             //     ], 403);
             // }
 
+            // Block login if the user's business has been soft-deleted
+            if ($user->business_id && !$user->hasRole('superadmin')) {
+                $business = Business::withTrashed()->find($user->business_id);
+                if ($business && $business->trashed()) {
+                    Auth::logout();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Your business account has been deleted. Please contact support.'
+                    ], 403);
+                }
+            }
+
             // Successful login - reset failed attempts and generate token
             return $this->handleSuccessfulLogin($user);
         } catch (Exception $e) {
@@ -463,7 +475,7 @@ class AuthController extends Controller
             $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
         }
 
-        // SET TOKEN AND PERMISSION 
+        // SET TOKEN AND PERMISSION
         $user->setAttribute('token', $user->createToken('authToken')->accessToken);
         $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
         // SET ROLE AS SINGLE OBJECT
