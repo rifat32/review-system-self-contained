@@ -203,7 +203,7 @@ class QuestionController extends Controller
     public function getAllQuestions(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
 
         $query = Question::with([
             'surveys' => fn($q) => $q->select('surveys.id', 'surveys.name', 'surveys.order_no'),
@@ -1164,106 +1164,6 @@ class QuestionController extends Controller
             ], 200);
         });
     }
-
-
-    /**
-     *
-     * @OA\Post(
-     *      path="/review-new/owner/create/questions",
-     *      operationId="storeOwnerQuestion",
-     *      tags={"z.unused"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      summary="This method is to store question",
-     *      description="This method is to store question.",
-     *
-     *  @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *            required={"question_id","stars"},
-
-     *  @OA\Property(property="question_id", type="number", format="number",example="1"),
-     *  @OA\Property(property="stars", type="string", format="array",example={
-     *
-     * { "star_id":"2",
-     *
-     * "tags":{
-     * {"tag_id":"2"},
-     * {"tag_id":"2"}
-     * }
-     *
-     * }
-     *
-     *
-     * }
-     *
-     * ),
-     *
-     *
-     *
-     *
-     *         ),
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *       @OA\JsonContent(),
-     *       ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     * @OA\JsonContent(),
-     *      ),
-     *        @OA\Response(
-     *          response=422,
-     *          description="Unprocesseble Content",
-     *    @OA\JsonContent(),
-     *      ),
-     *      @OA\Response(
-     *          response=403,
-     *          description="Forbidden",
-     *  * @OA\Response(
-     *      response=400,
-     *      description="Bad Request"
-     *   ),
-     * @OA\Response(
-     *      response=404,
-     *      description="not found"
-     *   ),
-     *@OA\JsonContent()
-     *      )
-     *     )
-     */
-
-    public function storeOwnerQuestion(Request $request)
-    {
-        return DB::transaction(function () use ($request) {
-            $question_id = $request->question_id;
-            foreach ($request->stars as $requestStar) {
-
-
-                QuestionStar::create([
-                    "question_id" => $question_id,
-                    "star_id" => $requestStar["star_id"]
-                ]);
-
-
-                foreach ($requestStar["tags"] as $tag) {
-
-
-                    StarTag::create([
-                        "question_id" => $question_id,
-                        "tag_id" => $tag["tag_id"],
-                        "star_id" => $requestStar["star_id"]
-                    ]);
-                }
-            }
-
-            return response(["message" => "ok"], 201);
-        });
-    }
-
 
 
     // ##################################################

@@ -472,7 +472,7 @@ class AuthController extends Controller
             $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);
         } else if ($user->hasRole('business_owner')) {
             $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);
-            $user->setAttribute('branch_count', $user->business?->branches->count() ?? null);
+            $user->setAttribute('branch_count', $user->business?->branches()->where('is_active', 1)->count() ?? null);
         }
 
         // SET TOKEN AND PERMISSION
@@ -489,7 +489,82 @@ class AuthController extends Controller
         ], 200);
     }
 
+    /**
+     * Validate token and return login-like response
+     *
+     * @OA\Get(
+     *      path="/v1.0/auth/user-by-token",
+     *      operationId="userByToken",
+     *      tags={"auth"},
+     *      security={{"bearerAuth": {}}},
+     *      summary="Validate token and get user data",
+     *      description="Validates the provided Bearer token. If the token is valid, returns the same response as the login endpoint. If expired or invalid, returns 401.",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Token is valid",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Token is valid"),
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  @OA\Property(property="id", type="integer", example=1),
+     *                  @OA\Property(property="first_Name", type="string", example="John"),
+     *                  @OA\Property(property="last_Name", type="string", example="Doe"),
+     *                  @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                  @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."),
+     *                  @OA\Property(property="permissions", type="array", @OA\Items(type="string", example="create-users")),
+     *                  @OA\Property(property="role", type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="name", type="string", example="business_owner")
+     *                  ),
+     *                  @OA\Property(property="business", type="object",
+     *                      @OA\Property(property="id", type="integer", example=1),
+     *                      @OA\Property(property="Name", type="string", example="ABC Company")
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Token expired or invalid",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=false),
+     *              @OA\Property(property="message", type="string", example="Unauthenticated")
+     *          )
+     *      )
+     * )
+     */
+    public function userByToken(Request $request): JsonResponse
+    {
+        $user = $request->user();
 
+        // GET USER WITH RELATIONSHIPS
+        $user = User::with('business', 'branch')->findOrFail($user->id);
+
+        // SET DEFAULT_BRANCH_ID BASED ON ROLE
+        if ($user->hasRole('branch_manager')) {
+            if (!$user->branch) {
+                throw new AuthorizationException('You do not have a branch assigned to you');
+            }
+            $user->setAttribute('default_branch_id', $user->branch?->branch_id ?? null);
+        } else if ($user->hasRole('business_owner')) {
+            $user->setAttribute('default_branch_id', $user->business?->default_branch_id ?? null);
+            $user->setAttribute('branch_count', $user->business?->branches()->where('is_active', 1)->count() ?? null);
+        }
+
+        // SET TOKEN AND PERMISSION
+        $user->setAttribute('token', $user->createToken('authToken')->accessToken);
+        $user->setAttribute('permissions', $user->getAllPermissions()->pluck('name'));
+        // SET ROLE AS SINGLE OBJECT
+        $user->setAttribute('role', $user->roles->first());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Token is valid',
+            'data' => $user
+        ], 200);
+    }
 
 
 
@@ -627,392 +702,7 @@ class AuthController extends Controller
             ], 500);
         }
     }
-    // ##################################################
-    // This method is to get user with business
-    // ##################################################
 
-
-    /**
-     * @OA\Get(
-     *      path="/auth",
-     *      operationId="getUsersWithRestaurants",
-     *      tags={"z.unused"},
-     *      security={{"bearerAuth": {}}},
-     *      summary="Get authenticated user with business details",
-     *      description="Retrieve the currently authenticated user's information including business and roles",
-     *      @OA\Response(
-     *          response=200,
-     *          description="User data retrieved successfully",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(
-     *                  property="data",
-     *                  type="object",
-     *                  @OA\Property(property="id", type="integer", example=1),
-     *                  @OA\Property(property="first_Name", type="string", example="John"),
-     *                  @OA\Property(property="last_Name", type="string", example="Doe"),
-     *                  @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
-     *                  @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *                  @OA\Property(property="type", type="string", example="user"),
-     *                  @OA\Property(property="post_code", type="string", example="12345"),
-     *                  @OA\Property(property="Address", type="string", example="123 Main St"),
-     *                  @OA\Property(property="door_no", type="string", example="A1"),
-     *                  @OA\Property(property="business_id", type="integer", example=1),
-     *                  @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
-     *                  @OA\Property(property="image", type="string", example="/images/user.jpg"),
-     *                  @OA\Property(property="job_title", type="string", example="Manager"),
-     *                  @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."),
-     *                  @OA\Property(
-     *                      property="permissions",
-     *                      type="array",
-     *                      @OA\Items(type="string", example="create-users")
-     *                  ),
-     *                  @OA\Property(
-     *                      property="business",
-     *                      type="object",
-     *                      @OA\Property(property="id", type="integer", example=1),
-     *                      @OA\Property(property="name", type="string", example="ABC Company")
-     *                  ),
-     *                  @OA\Property(
-     *                      property="roles",
-     *                      type="array",
-     *                      @OA\Items(type="string", example="admin")
-     *                  )
-     *              )
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="Unauthenticated")
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=404,
-     *          description="User not found",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="User not found")
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=500,
-     *          description="Internal Server Error",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="Failed to retrieve user data")
-     *          )
-     *      )
-     * )
-     */
-    public function getUsersWithRestaurants(Request $request): JsonResponse
-    {
-        try {
-            $user = User::with('business', 'roles')
-                ->find($request->user()->id);
-
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User not found'
-                ], 404);
-            }
-
-            $user->token = $user->createToken('authToken')->accessToken;
-            $user->permissions = $user->getAllPermissions()->pluck('name');
-            $user->roles = $user->roles->pluck('name');
-
-            return response()->json([
-                'success' => true,
-                'data' => $user
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve user data'
-            ], 500);
-        }
-    }
-    // ##################################################
-    // This method is to get user with business
-    // ##################################################
-
-
-
-
-    /**
-     * @OA\Get(
-     *      path="/v1.0/user",
-     *      operationId="getAllUser",
-     *      tags={"z.unused"},
-     *      security={{"bearerAuth": {}}},
-     *      summary="Get authenticated user details",
-     *      description="Retrieve the currently authenticated user's information including business, roles, and permissions",
-     *      @OA\Response(
-     *          response=200,
-     *          description="User data retrieved successfully",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="User data retrieved successfully"),
-     *              @OA\Property(
-     *                  property="data",
-     *                  type="object",
-     *                  @OA\Property(property="id", type="integer", example=1),
-     *                  @OA\Property(property="first_Name", type="string", example="John"),
-     *                  @OA\Property(property="last_Name", type="string", example="Doe"),
-     *                  @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
-     *                  @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *                  @OA\Property(property="type", type="string", example="user"),
-     *                  @OA\Property(property="post_code", type="string", example="12345"),
-     *                  @OA\Property(property="Address", type="string", example="123 Main St"),
-     *                  @OA\Property(property="door_no", type="string", example="A1"),
-     *                  @OA\Property(property="business_id", type="integer", example=1),
-     *                  @OA\Property(property="date_of_birth", type="string", format="date", example="1995-06-15"),
-     *                  @OA\Property(property="image", type="string", example="/images/user.jpg"),
-     *                  @OA\Property(property="job_title", type="string", example="Manager"),
-     *                  @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."),
-     *                  @OA\Property(
-     *                      property="permissions",
-     *                      type="array",
-     *                      @OA\Items(type="string", example="create-users")
-     *                  ),
-     *                  @OA\Property(
-     *                      property="business",
-     *                      type="object",
-     *                      @OA\Property(property="id", type="integer", example=1),
-     *                      @OA\Property(property="name", type="string", example="ABC Company")
-     *                  ),
-     *                  @OA\Property(
-     *                      property="roles",
-     *                      type="array",
-     *                      @OA\Items(type="string", example="admin")
-     *                  )
-     *              )
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="Unauthenticated")
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=404,
-     *          description="User not found",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="User not found")
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=500,
-     *          description="Internal Server Error",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="Failed to retrieve user data")
-     *          )
-     *      )
-     * )
-     */
-
-
-    public function getAllUser(Request $request): JsonResponse
-    {
-        try {
-            $user = User::with('business', 'roles')
-                ->find($request->user()->id);
-
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User not found'
-                ], 404);
-            }
-
-            $user->token = $user->createToken('authToken')->accessToken;
-            $user->permissions = $user->getAllPermissions()->pluck('name');
-            $user->roles = $user->roles->pluck('name');
-
-            return response()->json([
-                'success' => true,
-                'message' => 'User data retrieved successfully',
-                'data' => $user
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve user data'
-            ], 500);
-        }
-    }
-
-
-
-    /**
-     *
-     * @OA\Get(
-     *      path="/auth/users",
-     *      operationId="getAllUsers",
-     *      tags={"auth"},
-     *       security={
-     *           {"bearerAuth": {}}
-     *       },
-     *      @OA\Parameter(
-     *         name="per_page",
-     *         in="query",
-     *         description="Number of users per page (optional, if not provided returns all users)",
-     *         required=false,
-     *         @OA\Schema(type="integer", minimum=1, maximum=100),
-     *         example=10
-     *      ),
-     *      @OA\Parameter(
-     *         name="search_key",
-     *         in="query",
-     *         description="Search term to filter users",
-     *         required=false,
-     *         @OA\Schema(type="string"),
-     *         example="john"
-     *      ),
-     *      summary="Get users with optional pagination and search",
-     *      description="Retrieve users with optional pagination and search functionality",
-     *      @OA\Response(
-     *          response=200,
-     *          description="Users retrieved successfully",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="Users retrieved successfully"),
-     *              @OA\Property(property="data", type="object",
-     *                  oneOf={
-     *                      @OA\Schema(
-     *                          type="array",
-     *                          @OA\Items(
-     *                              type="object",
-     *                              @OA\Property(property="id", type="integer", example=1),
-     *                              @OA\Property(property="first_Name", type="string", example="John"),
-     *                              @OA\Property(property="last_Name", type="string", example="Doe"),
-     *                              @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
-     *                              @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *                              @OA\Property(property="type", type="string", example="user"),
-     *                              @OA\Property(property="business_id", type="integer", example=1),
-     *                              @OA\Property(
-     *                                  property="business",
-     *                                  type="object",
-     *                                  @OA\Property(property="id", type="integer", example=1),
-     *                                  @OA\Property(property="name", type="string", example="ABC Company")
-     *                              ),
-     *                              @OA\Property(
-     *                                  property="roles",
-     *                                  type="array",
-     *                                  @OA\Items(
-     *                                      type="object",
-     *                                      @OA\Property(property="id", type="integer", example=1),
-     *                                      @OA\Property(property="name", type="string", example="admin")
-     *                                  )
-     *                              )
-     *                          )
-     *                      ),
-     *                      @OA\Schema(
-     *                          type="object",
-     *                          @OA\Property(property="current_page", type="integer"),
-     *                          @OA\Property(property="data", type="array",
-     *                              @OA\Items(
-     *                                  type="object",
-     *                                  @OA\Property(property="id", type="integer", example=1),
-     *                                  @OA\Property(property="first_Name", type="string", example="John"),
-     *                                  @OA\Property(property="last_Name", type="string", example="Doe"),
-     *                                  @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
-     *                                  @OA\Property(property="phone", type="string", example="+8801765432109"),
-     *                                  @OA\Property(property="type", type="string", example="user"),
-     *                                  @OA\Property(property="business_id", type="integer", example=1),
-     *                                  @OA\Property(
-     *                                      property="business",
-     *                                      type="object",
-     *                                      @OA\Property(property="id", type="integer", example=1),
-     *                                      @OA\Property(property="name", type="string", example="ABC Company")
-     *                                  ),
-     *                                  @OA\Property(
-     *                                      property="roles",
-     *                                      type="array",
-     *                                      @OA\Items(
-     *                                          type="object",
-     *                                          @OA\Property(property="id", type="integer", example=1),
-     *                                          @OA\Property(property="name", type="string", example="admin")
-     *                                      )
-     *                                  )
-     *                              )
-     *                          ),
-     *                          @OA\Property(property="first_page_url", type="string"),
-     *                          @OA\Property(property="from", type="integer"),
-     *                          @OA\Property(property="last_page", type="integer"),
-     *                          @OA\Property(property="last_page_url", type="string"),
-     *                          @OA\Property(property="next_page_url", type="string"),
-     *                          @OA\Property(property="path", type="string"),
-     *                          @OA\Property(property="per_page", type="integer"),
-     *                          @OA\Property(property="prev_page_url", type="string"),
-     *                          @OA\Property(property="to", type="integer"),
-     *                          @OA\Property(property="total", type="integer")
-     *                      )
-     *                  }
-     *              )
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=400,
-     *          description="Bad Request - Invalid per_page value",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="Invalid per_page value. Must be between 1 and 100")
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=500,
-     *          description="Internal Server Error",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="success", type="boolean", example=false),
-     *              @OA\Property(property="message", type="string", example="Failed to retrieve users")
-     *          )
-     *      )
-     * )
-     */
-    public function getAllUsers(Request $request): JsonResponse
-    {
-        try {
-            $query = User::with('business', 'roles')->filter();
-
-            // Check if pagination is requested
-            if ($request->filled('per_page')) {
-                $perPage = (int) $request->per_page;
-
-                // Validate per_page parameter
-                if ($perPage < 1 || $perPage > 100) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Invalid per_page value. Must be between 1 and 100'
-                    ], 400);
-                }
-
-                $users = $query->orderByDesc('id')->paginate($perPage);
-            } else {
-                // Return all users without pagination
-                $users = $query->orderByDesc('id')->get();
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Users retrieved successfully',
-                'data' => $users
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve users'
-            ], 500);
-        }
-    }
 
     /**
      *
