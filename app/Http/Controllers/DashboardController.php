@@ -867,22 +867,11 @@ class DashboardController extends Controller
      *      )
      * )
      */
-    public function getStaffInsights(Request $request)
+    private function getStaffInsightsData($businessId, $dateRange)
     {
-
-        $user = auth()->user();
-        // GET BUSINESS ID
-        $businessId = $user->business_id;
-
-        // Validate period and get date range using service
-        $dateRange = $this->dashboardService->validateAndGetDateRange(
-            $request->get('period', 'last_30_days')
-        );
-
         // Get reviews with staff for the current period
         $staffReviewQuery = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-
             ->when($dateRange, fn($query) => $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
             ->globalReviewFilters(0)
             ->with('staff')
@@ -950,12 +939,23 @@ class DashboardController extends Controller
             }
         }
 
-
-        $data = [
+        return [
             'overall_sentiment' => $sentiment_status,
             'top_performer' => $topPerformer,
             'action_text' => 'Details'
         ];
+    }
+
+    public function getStaffInsights(Request $request)
+    {
+        $user = auth()->user();
+        $businessId = $user->business_id;
+
+        $dateRange = $this->dashboardService->validateAndGetDateRange(
+            $request->get('period', 'last_30_days')
+        );
+
+        $data = $this->getStaffInsightsData($businessId, $dateRange);
 
         return response()->json([
             'success' => true,
@@ -2170,45 +2170,53 @@ class DashboardController extends Controller
 
 
         // Metrics and breakdown now handle date filtering internally via
-        $metrics = $this->reviewService->calculateDashboardMetrics($businessId, null);
+        // 1. Get Base Period Data
+        $period = $request->get('period', 'last_30_days');
+        $dateRange = getDateRangeByPeriod($period);
 
-        // Get rating breakdown
-        $ratingBreakdown = $this->reviewService->extractRatingBreakdown(
-            ReviewNew::withCalculatedRating()
-                ->globalReviewFilters(0)
-                ->filterByDateRange()
-                ->get()
-        );
+        // 2. Fetch Core Metrics (DashboardService handles rounding and comparison)
+        $metrics = $this->dashboardService->calculateMetrics($businessId, $dateRange, $user);
 
-        // For other services that might still need explicit dateRange
-        $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
-
-        // Get tags breakdown (NEW)
+        // 3. Get Consolidated Data Components
+        $ratingBreakdown = $this->reviewService->extractRatingBreakdown($businessId, $dateRange, $user);
         $tagsBreakdown = $this->reviewService->extractTagsBreakdown($businessId, $dateRange, $user);
-
-        // Get AI insights using existing AI pipeline
         $aiInsights = $this->businessAnalyticsService->getAiInsightsPanel($businessId, $dateRange);
 
-        // Get staff performance using existing staff suggestions
-        $staffPerformance = $this->staffPerformanceService->getStaffPerformanceSnapshot($businessId, $dateRange);
+        // 4. Staff Insights Mapping
+        $staffSnapshot = $this->staffPerformanceService->getStaffPerformanceSnapshot($businessId, $dateRange);
+        $staffInsights = [
+            'top_performer' => $staffSnapshot['top_performing'][0] ?? null,
+            'needs_improvement' => $staffSnapshot['needs_improvement'] ?? [],
+            'overall_stats' => $staffSnapshot['overall_stats'] ?? []
+        ];
 
-        // Get recent reviews feed
-        $reviewFeed = $this->reviewFeedService->getReviewFeed($businessId, $dateRange);
+        // 5. Recent Reviews
+        $recentReviews = $this->recentReviewService->getRecentReviews($businessId, $dateRange, 5);
 
-        // Get available filters
-        $filters = $this->reviewService->getAvailableFilters($businessId);
+        // 6. Dynamic Boxes (New Requirement)
+        $boxes = $this->ruleReportService->getDashboardBoxes($businessId, $period);
+
+        // 7. Review Trends (New Requirement)
+        $reviewsForTrends = ReviewNew::where('business_id', $businessId)->globalReviewFilters(0)->get();
+        $reviewTrends = $this->reviewMetricsService->getSubmissionsOverTime($reviewsForTrends, str_replace('last_', '', str_replace('_days', 'd', $period)));
+
+        // 8. Top/Worst Services (New Requirement)
+        $topWorstServices = $this->businessAnalyticsService->analyzeBusinessServicesPerformance($businessId, $dateRange, $user);
 
         return response()->json([
             'success' => true,
-            'message' => 'Dashboard data retrieved successfully',
+            'message' => 'Unified dashboard data retrieved successfully',
             'data' => [
                 'metrics' => $metrics,
+                'boxes' => $boxes,
+                'review_trends' => $reviewTrends,
+                'top_worst_services' => $topWorstServices,
                 'rating_breakdown' => $ratingBreakdown,
                 'tags_breakdown' => $tagsBreakdown,
-                'ai_insights_panel' => $aiInsights,
-                'staff_performance_snapshot' => $staffPerformance,
-                'review_feed' => $reviewFeed,
-                'filters' => $filters
+                'ai_insights' => $aiInsights,
+                'staff_insights' => $staffInsights,
+                'recent_reviews' => $recentReviews,
+                'filters' => $this->reviewService->getAvailableFilters($businessId)
             ]
         ], 200);
     }
@@ -2761,7 +2769,7 @@ class DashboardController extends Controller
                     ->withCalculatedRating(),
                 period: $request->get('trend_period', '30d')
             ),
-            'staff_insights' => $this->staffPerformanceService->getStaffPerformanceSnapshot($businessId, $dateRange),
+            'staff_insights' => $this->getStaffInsightsData($businessId, $dateRange),
             'survey_insights' => [
                 'active_surveys' => Survey::where('business_id', $businessId)
                     ->where('is_active', true)

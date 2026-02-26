@@ -174,13 +174,13 @@ class DashboardService
 
         return [
             'avg_overall_rating' => [
-                'value' => $currentAvgRating,
-                'change' => $dateRange !== null ? $this->reviewService->calculatePercentageChange(
+                'value' => (float) round($currentAvgRating, 1),
+                'change' => $dateRange !== null ? (float) round($this->reviewService->calculatePercentageChange(
                     $currentAvgRating,
                     $previousAvgRating
-                ) : null,
+                ), 1) : null,
                 'change_type' => $ratingChangeType,
-                'previous_value' => $previousAvgRating,
+                'previous_value' => (float) round($previousAvgRating, 1),
                 'calculated_from' => 'review_value_news (via calculated_rating)',
                 'review_count' => $total
             ],
@@ -239,12 +239,12 @@ class DashboardService
                 ] : null
             ],
             'csat_score' => [
-                'percentage' => $csatPercentage,
+                'percentage' => (float) round($csatPercentage, 1),
                 'percentage_change' => $csatPercentageChange !== null
                     ? ($csatPercentageChange != 0 ? sprintf('%+.1f%%', $csatPercentageChange) : '0%')
                     : null,
                 'change_type' => $csatChangeType,
-                'previous_percentage' => $dateRange !== null ? $previousCSATPercentage : null,
+                'previous_percentage' => $dateRange !== null ? (float) round($previousCSATPercentage, 1) : null,
                 'review_count' => $total,
                 'csat_review_count' => $csatReviewsCount
             ],

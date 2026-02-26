@@ -370,22 +370,13 @@ class RuleReportService
             }
         }
 
-        // 4. Special Metrics: Repeat Issue
-        $repeatIssues = InsightRecord::where('business_id', $businessId)
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('mentions_count', '>', 3) // Example threshold for "repeat"
-            ->count();
+        // 4. Premium Metrics
+        $topPerformerBox = $this->getTopPerformerBox($businessId, $period);
+        if ($topPerformerBox) {
+            $boxes[] = $topPerformerBox;
+        }
 
-        $boxes[] = [
-            'key' => 'REPEAT_ISSUE',
-            'label' => 'Repeat Issue',
-            'value' => $repeatIssues > 0 ? $repeatIssues : 'No major issues detected',
-            'sub_value' => 'Recurring Issues',
-            'trend' => null,
-            'icon' => '⚠️',
-            'color' => 'orange',
-            'is_default_rule' => false
-        ];
+        $boxes[] = $this->getRatingUpsideBox($businessId, $startDate, $endDate, $baseQuery);
 
         return $boxes;
     }
@@ -509,7 +500,7 @@ class RuleReportService
                 break;
 
             case 'STAFF_PERFORMANCE_RISK':
-                $label = 'Performance Risk';
+                $label = 'Staff Performance Risk';
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
@@ -519,7 +510,7 @@ class RuleReportService
                 break;
 
             case 'EMOTION_INTENSITY':
-                $label = 'Emotional Intensity';
+                $label = 'Emotion Intensity';
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
@@ -539,7 +530,7 @@ class RuleReportService
                 break;
 
             case 'SERVICE_TYPE_DETECTION':
-                $label = 'Service Insights';
+                $label = 'Service Type';
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
@@ -549,7 +540,7 @@ class RuleReportService
                 break;
 
             case 'BUSINESS_AREA_DETECTION':
-                $label = 'Area Performance';
+                $label = 'Business Area';
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();

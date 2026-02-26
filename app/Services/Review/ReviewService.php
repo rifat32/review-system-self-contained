@@ -208,10 +208,34 @@ class ReviewService
     }
 
     /**
-     * Extract rating breakdown from reviews
+     * Extract rating breakdown from reviews or fetch them by business ID
      */
-    public function extractRatingBreakdown($reviews)
+    public function extractRatingBreakdown($reviewsOrBusinessId, $dateRange = null, $user = null)
     {
+        $reviews = $reviewsOrBusinessId;
+
+        // If it's a numeric ID, fetch the reviews first
+        if (is_numeric($reviewsOrBusinessId)) {
+            $businessId = $reviewsOrBusinessId;
+            $userBranchId = ($user && ($user->hasRole('branch_manager') || $user->hasRole('business_owner')))
+                ? $user->default_branch_id
+                : null;
+
+            $query = ReviewNew::where('business_id', $businessId)
+                ->globalReviewFilters(0)
+                ->withCalculatedRating();
+
+            if ($dateRange) {
+                $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+            }
+
+            if ($userBranchId) {
+                $query->where('branch_id', $userBranchId);
+            }
+
+            $reviews = $query->get();
+        }
+
         $breakdown = [
             'excellent' => 0, // 4.5-5.0
             'good' => 0,      // 3.5-4.49
@@ -251,7 +275,7 @@ class ReviewService
                 }
 
                 // Exact ratings
-                $roundedRating = round($rating);
+                $roundedRating = (string) round($rating);
                 if (isset($breakdown['exact_ratings'][$roundedRating])) {
                     $breakdown['exact_ratings'][$roundedRating]++;
                 }
