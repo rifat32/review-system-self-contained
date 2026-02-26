@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\AiRuleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchMemberController;
@@ -116,10 +115,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::put('v1.0/qr-code-settings', [QrCodeSettingController::class, 'updateQRCodeSettings']);
 
     // =====================================================================================
-    // SUPER ADMIN ROUTES (no "superadmin" in the URL; all under /v1.0; access via middleware)
-    // Controllers: ForgotPasswordController, SuperAdminReportController, UserController,
-    //              EmailTemplateWrapperController, EmailTemplateController
-    // =====================================================================================
     Route::middleware(['superadmin'])->group(function () {
 
         // Business AI Modules Routes
@@ -132,20 +127,10 @@ Route::middleware(['auth:api'])->group(function () {
             // Business owner routes (can view but not modify)
             Route::get('/business-ai-modules/{businessId}/enabled', [BusinessAiModuleController::class, 'getEnabledBusinessAiModules']);
         });
-        // -------------------------------------------------------------------------
-        // SuperAdminReportController – Dashboard Reports (Super Admin)
-        // -------------------------------------------------------------------------
-        // Route::get('/v1.0/dashboard-report/total-business', [SuperAdminReportController::class, 'getTotalBusinessReport']);
-        // Route::get('/v1.0/dashboard-report/total-business-enabled', [SuperAdminReportController::class, 'getTotalEnabledBusinessReport']);
-        // Route::get('/v1.0/dashboard-report/total-business-disabled', [SuperAdminReportController::class, 'getTotalDisabledBusinessReport']);
-        // Route::get('/v1.0/dashboard-report/total-reviews', [SuperAdminReportController::class, 'getTotalReviews']);
-        // Route::get('/v1.0/dashboard-report/today-reviews', [SuperAdminReportController::class, 'getTodayReviews']);
-        // Route::get('/v1.0/dashboard-report/review-report', [SuperAdminReportController::class, 'getReviewReport']);
 
         // -------------------------------------------------------------------------
         // UserController – Admin user reporting & destructive ops
         // -------------------------------------------------------------------------
-        // Route::get('/v1.0/customer-list', [UserController::class, 'getCustomerReportSuperadmin']);
         Route::get('/v1.0/owner-list', [UserController::class, 'getOwnerReport']);
 
         // -------------------------------------------------------------------------
@@ -337,11 +322,9 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // AuthController – Authenticated helpers
     // ============================================================================
-    // Route::get('/v1.0/user', [AuthController::class, "getAllUser"]); // unused
+    Route::get('/v1.0/auth/user-by-token', [AuthController::class, "userByToken"]);
     Route::patch('/v1.0/upload/profile-image', [OwnerController::class, "updateImage"]);
     // Route::post('/auth/check-pin/{id}', [AuthController::class, "verifyPin"]); // unused
-    // Route::get('/auth', [AuthController::class, "getUsersWithRestaurants"]); // unused
-    // Route::get('/auth/users', [AuthController::class, "getAllUsers"]); // unused
 
 
     // ============================================================================
@@ -438,8 +421,6 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // StripeController – Restaurant Stripe details (protected)
     // ============================================================================
-    // Route::patch('/business/UpdateResturantStripeDetails/{restaurentId}', [StripeController::class, "UpdateResturantStripeDetails"]); //unused
-    // Route::get('/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetails"]); //unused
 
     // ============================================================================
     // DailyViewsController – Daily views (protected)
@@ -489,12 +470,6 @@ Route::middleware(['auth:api'])->group(function () {
     // ReportController & DashboardManagementController – Reports/dashboards (protected)
     // ============================================================================
 
-    // Route::get('/dashboard-report/get/table-report/{businessId}', [ReportController::class, "getTableReport"]);
-    // Route::get('/v1.0/dashboard-report/{businessId}', [ReportController::class, "getDashboardReport"]);
-    // Route::get('/v1.0/dashboard-report/business/get', [ReportController::class, "getBusinessReport"]);
-
-
-
     Route::get('/v1.0/reports/staff-comparison', [DashboardController::class, 'staffComparison']);
     Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [DashboardController::class, 'staffPerformance']);
     Route::get('/v1.0/reports/review-analytics/{businessId}', [DashboardController::class, 'reviewAnalytics']);
@@ -503,21 +478,13 @@ Route::middleware(['auth:api'])->group(function () {
 
 
 
-    // ============================================================================
-    // ReviewNewController – Owner Questions (protected)
-    // ============================================================================
-    // Route::post('/review-new/owner/create/questions', [QuestionController::class, "storeOwnerQuestion"]);
-    // Route::patch('/review-new/owner/update/questions', [QuestionController::class, "updateOwnerQuestion"]);
 
     // ============================================================================
     // ReviewNewController – Review by id (protected)
     // ============================================================================
     Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
-
     Route::put('/v1.0/reviews/{reviewId}/reply', [ReviewNewController::class, 'updateReviewReply']);
-
     Route::get('/openai-tokens/report', [OpenAITokenReportController::class, 'getTokenUsageReport']);
-
     Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [DashboardController::class, 'getOverallDashboardData']);
 
     // Get dashboard metrics for authenticated user's business (no businessId parameter required)
@@ -585,11 +552,8 @@ Route::middleware(['auth:api'])->group(function () {
 // ============================================================================
 // Route::post('/owner', [OwnerController::class, "createUser"]);
 Route::post('/v1.0/register-guest-users', [OwnerController::class, "createGuestUser"]);
-// Route::post('/owner/staffregister/{businessId}', [OwnerController::class, "createStaffUser"]);
 Route::post('/owner/pin/{ownerId}', [OwnerController::class, "updatePin"]);
 Route::get('/owner/{ownerId}', [OwnerController::class, "getOwnerById"]);
-// Route::get('/owner/getAllowner/withourbusiness', [OwnerController::class, "getOwnerNotHaveRestaurent"]);
-// Route::get('/owner/loaduser/bynumber/{phoneNumber}', [OwnerController::class, "getOwnerByPhoneNumber"]);
 
 
 // ============================================================================
@@ -601,8 +565,6 @@ Route::get('/review-new/get/questions-all-overall/customer', [ReviewNewControlle
 
 
 
-// Route::get('/review-new/get/questions-all-report/unauthorized', [ReviewNewController::class, "getQuestionAllReportUnauthorized"]);
-// Route::get('/review-new/get/questions-all-report/guest/unauthorized', [ReviewNewController::class, "getQuestionAllReportGuestUnauthorized"]);
 
 // ============================================================================
 // ReviewNewController – Public guest review operations
@@ -623,13 +585,6 @@ Route::get('/v1.0/client/business/{businessId}', [BusinessController::class, "ge
 // ============================================================================
 Route::get('/client/v1.0/business-days/{restaurentId}', [BusinessDaysController::class, "getBusinessDays"]);
 Route::get('/v1.0/client/staffs', [StaffController::class, 'getClientAllStaffs']);
-// Route::get('/client/business/getResturantStripeDetails/{id}', [StripeController::class, "GetResturantStripeDetailsClient"]);
-
-// ============================================================================
-// ReviewNewController – Overall business dashboard (public)
-// ============================================================================
-
-// Route::put('/v1.0/businesses/{businessId}/review-settings', [ReviewNewController::class, 'updatedReviewSettings']);
 
 // ============================================================================
 // ReviewNewController – Client review analytics & privacy (public client)

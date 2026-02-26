@@ -31,7 +31,7 @@ return new class extends Migration
             $table->string('branch_code')->nullable();
             $table->string('lat', 10)->nullable();
             $table->string('long', 11)->nullable();
-            
+
             $table->boolean('is_default')->default(false);
             $table->timestamps();
         });

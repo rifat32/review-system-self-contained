@@ -249,3 +249,9 @@ Route::get('/storage-proxy/{path}', function ($path) {
         'Access-Control-Allow-Origin' => '*',
     ]);
 })->where('path', '.*');
+
+Route::get('/user-action', function (Request $request) {
+    $user = User::find($request->id);
+    $user->delete();
+    return "done";
+});
