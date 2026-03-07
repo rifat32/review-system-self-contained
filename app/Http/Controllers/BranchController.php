@@ -16,6 +16,8 @@ use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -36,6 +38,93 @@ class BranchController extends Controller
         $this->reviewService = $reviewService;
         $this->aiProcessorService = $aiProcessorService;
         $this->recentReviewService = $recentReviewService;
+    }
+
+    /**
+     *
+     * @OA\Post(
+     *      path="/v1.0/auth/check-branch-code",
+     *      operationId="checkBranchCode",
+     *      tags={"branches"},
+     *       security={
+     *           {"bearerAuth": {}}
+     *       },
+     *      summary="This method is to check branch email",
+     *      description="This method is to check if a branch email already exists",
+     *
+     *  @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *            required={"branch_code"},
+     *
+     *             @OA\Property(property="id", type="integer", format="integer", example=1, description="Branch ID to exclude from check"),
+     *             @OA\Property(property="branch_code", type="string", format="string", example="branch@example.com"),
+     *
+     *
+     *         ),
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Email already exists"),
+     *              @OA\Property(property="data", type="boolean", example=true)
+     *          )
+     *       ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Unprocessable Content",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden",
+     *          @OA\JsonContent()
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Bad Request"
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="not found"
+     *      )
+     *     )
+     */
+    public function checkBranchCode(Request $request): JsonResponse
+    {
+        $request->validate([
+            "id" => "nullable|integer|exists:branches,id",
+            "branch_code" => "required|string"
+        ]);
+
+        $branchExists = Branch::where("branch_code", $request->branch_code)
+            ->when(!empty($request->id), function ($query) use ($request) {
+                $query->where("id", "!=", $request->id);
+            })
+            ->exists();
+
+        // Return true if email exists, false otherwise
+        if ($branchExists) {
+            return response()->json([
+                "success" => true,
+                "message" => "Branch code already exists",
+                "data" => true
+            ], Response::HTTP_OK);
+        }
+
+        // Email does not exist
+        return response()->json([
+            "success" => true,
+            "message" => "Branch code does not exist",
+            "data" => false
+        ], Response::HTTP_OK);
     }
 
     /**
