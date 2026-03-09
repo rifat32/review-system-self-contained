@@ -627,6 +627,8 @@ class BusinessController extends Controller
      *             @OA\Property(property="Logo", type="string", example="img/business/logo.png", description="Logo image path"),
      *             @OA\Property(property="Key_ID", type="string", example="abc123", description="Unique business key"),
      *             @OA\Property(property="expiry_date", type="string", format="date", example="15-12-2025", description="Subscription expiry date"),
+     *             @OA\Property(property="service_plan_id", type="integer", example=1, description="ID of the service plan"),
+     *             @OA\Property(property="trial_end_date", type="string", format="date", example="15-12-2025", description="Trial period end date"),
      *             @OA\Property(property="About", type="string", example="Best restaurant in town", description="Business description"),
      *             @OA\Property(property="Webpage", type="string", format="url", example="https://example.com", description="Business website"),
      *             @OA\Property(property="PhoneNumber", type="string", example="+44123456789", description="Contact phone number"),
@@ -734,11 +736,7 @@ class BusinessController extends Controller
         $request_payload = $request->validated();
 
         // Check Business
-        $business = Business::find($businessId);
-
-        if (!$business) {
-            throw new NotFoundHttpException('Business not found');
-        }
+        $business = Business::findOrFail($businessId);
 
         // Check Ownership or Super admin
         if ($business->OwnerID != $request->user()->id && !$request->user()->hasRole("superadmin")) {

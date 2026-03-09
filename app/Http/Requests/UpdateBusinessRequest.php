@@ -87,6 +87,8 @@ class UpdateBusinessRequest extends FormRequest
             'registered_user_survey_id' => ['nullable', 'integer', new ValidSurvey($this->route('businessId'))],
 
             'default_color_threshold' => 'present|array',
+            'service_plan_id' => 'nullable|integer|exists:service_plans,id',
+            'trial_end_date' => 'nullable|date',
 
         ];
     }
