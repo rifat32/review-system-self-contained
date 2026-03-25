@@ -99,7 +99,7 @@ class BusinessAnalyticsService
                     ->take(2)
                     ->map(function ($review) {
                         return [
-                            'comment' => substr($review->comment ?? '', 0, 100) . (strlen($review->comment ?? '') > 100 ? '...' : ''),
+                            'comment' => mb_substr($review->comment ?? '', 0, 100) . (mb_strlen($review->comment ?? '') > 100 ? '...' : ''),
                             'rating' => round($review->calculated_rating ?? 0, 1),
                             'sentiment' => AIProcessorService::getSentimentLabel($review->sentiment_score ?? 0),
                             'date' => $review->created_at->format('M d, Y')

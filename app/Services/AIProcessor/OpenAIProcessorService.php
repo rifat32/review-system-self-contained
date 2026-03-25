@@ -150,16 +150,14 @@ class OpenAIProcessorService
             $systemPrompt = $this->getSystemPrompt($enabledModules);
             $userMessage = $this->createUserMessage($payload, $enabledModules);
 
-            // Calculate dynamic max_tokens based on enabled modules
-            // $dynamicMaxTokens = $this->calculateDynamicMaxTokens($enabledModules, strlen($payload['review_text'] ?? ''));
 
             $dynamicMaxTokens = config('ai.openai.request.max_tokens') ?? 2500;
 
             Log::debug('Sending to OpenAI with modules', [
                 'enabled_modules' => $enabledModules,
-                'text_length' => strlen($payload['review_text'] ?? ''),
-                'system_prompt_length' => strlen($systemPrompt),
-                'user_message_length' => strlen($userMessage),
+                'text_length' => mb_strlen($payload['review_text'] ?? ''),
+                'system_prompt_length' => mb_strlen($systemPrompt),
+                'user_message_length' => mb_strlen($userMessage),
                 'dynamic_max_tokens' => $dynamicMaxTokens,
                 'estimated_completion_tokens' => $this->estimateCompletionTokens($enabledModules, $payload)
             ]);
@@ -224,9 +222,9 @@ class OpenAIProcessorService
 
             // Log the raw content length for debugging
             Log::debug('OpenAI raw content stats', [
-                'content_length' => strlen($content),
-                'content_preview_begin' => substr($content, 0, 100),
-                'content_preview_end' => substr($content, -100),
+                'content_length' => mb_strlen($content),
+                'content_preview_begin' => mb_substr($content, 0, 100),
+                'content_preview_end' => mb_substr($content, -100),
                 'content_has_newlines' => str_contains($content, "\n") ? 'yes' : 'no',
                 'content_has_tabs' => str_contains($content, "\t") ? 'yes' : 'no'
             ]);
@@ -238,7 +236,7 @@ class OpenAIProcessorService
                     'finish_reason' => $finishReason,
                     'completion_tokens' => $data['usage']['completion_tokens'] ?? 0,
                     'max_tokens' => $dynamicMaxTokens,
-                    'content_ends_with' => substr($content, -50)
+                    'content_ends_with' => mb_substr($content, -50)
                 ]);
 
                 // Try to fix truncated JSON
@@ -286,7 +284,7 @@ class OpenAIProcessorService
             Log::debug('OpenAI parsed sentiment', [
                 'sentiment_score' => $result['sentiment']['score'] ?? null,
                 'sentiment_label' => $result['sentiment']['label'] ?? null,
-                'review_preview' => substr($payload['review_text'] ?? '', 0, 50)
+                'review_preview' => mb_substr($payload['review_text'] ?? '', 0, 50)
             ]);
 
             // If parsing fails, try with error detection
@@ -295,9 +293,9 @@ class OpenAIProcessorService
                     'error' => json_last_error_msg(),
                     'error_code' => json_last_error(),
                     'finish_reason' => $finishReason,
-                    'content_sample_start' => substr($cleanedContent, 0, 200),
-                    'content_sample_end' => substr($cleanedContent, -200),
-                    'content_full_length' => strlen($cleanedContent)
+                    'content_sample_start' => mb_substr($cleanedContent, 0, 200),
+                    'content_sample_end' => mb_substr($cleanedContent, -200),
+                    'content_full_length' => mb_strlen($cleanedContent)
                 ]);
 
                 // Try to fix common JSON issues
@@ -347,11 +345,11 @@ class OpenAIProcessorService
                     'cache_key' => $cacheKey,
                     'cache_hit' => false,
                     'enabled_modules' => $enabledModules,
-                    'review_text_length' => strlen($payload['review_text'] ?? ''),
+                    'review_text_length' => mb_strlen($payload['review_text'] ?? ''),
                     'has_staff' => !empty($payload['staff_info']),
                     'rating' => $payload['rating'] ?? 0,
                     'source' => $payload['metadata']['source'] ?? 'web',
-                    'response_length' => strlen($content),
+                    'response_length' => mb_strlen($content),
                     'finish_reason' => $finishReason,
                     'max_tokens_setting' => $dynamicMaxTokens,
                     'token_usage_percentage' => $dynamicMaxTokens > 0 ? round(($completionTokens / $dynamicMaxTokens) * 100, 1) : 0
@@ -382,9 +380,9 @@ class OpenAIProcessorService
         } catch (\Exception $e) {
             Log::error('OpenAI processing failed', [
                 'error' => $e->getMessage(),
-                'error_trace' => substr($e->getTraceAsString(), 0, 500),
-                'payload_text' => substr($payload['review_text'] ?? '', 0, 100),
-                'payload_length' => strlen($payload['review_text'] ?? ''),
+                'error_trace' => mb_substr($e->getTraceAsString(), 0, 500),
+                'payload_text' => mb_substr($payload['review_text'] ?? '', 0, 100),
+                'payload_length' => mb_strlen($payload['review_text'] ?? ''),
                 'business_id' => $payload['business_id'] ?? null,
                 'enabled_modules' => $enabledModules
             ]);
@@ -396,54 +394,6 @@ class OpenAIProcessorService
 
 
 
-    /**
-     * Calculate dynamic max_tokens based on enabled modules
-     */
-
-    private function calculateDynamicMaxTokens(array $enabledModules, int $reviewTextLength): int
-    {
-        // Base tokens for required modules - INCREASED
-        $baseTokens = 1000; // Increased from 500
-
-        // Add tokens for each enabled optional module
-        $moduleTokens = [
-            'category_analysis' => 300,
-            'staff_intelligence' => 400,
-            'service_unit_intelligence' => 200,
-            'business_recommendations' => 500,
-            'alerts' => 200,
-        ];
-
-        foreach ($moduleTokens as $module => $tokenCost) {
-            if ($enabledModules[$module] ?? false) {
-                $baseTokens += $tokenCost;
-            }
-        }
-
-        // Adjust based on review text length (longer reviews need more analysis)
-        $textLengthFactor = ceil($reviewTextLength / 100) * 100; // Increased from 50
-        $baseTokens += $textLengthFactor;
-
-        // Add safety margin
-        $baseTokens = ceil($baseTokens * 1.3); // Increased from 1.2 to 1.3
-
-        // Cap at model limits but ensure minimum
-        $maxTokens = max(1500, min($baseTokens, 4000)); // Minimum 1500 tokens
-
-        Log::debug('Calculated dynamic max_tokens', [
-            'base_tokens' => $baseTokens,
-            'enabled_modules' => $enabledModules,
-            'review_text_length' => $reviewTextLength,
-            'text_length_factor' => $textLengthFactor,
-            'final_max_tokens' => $maxTokens
-        ]);
-
-        return (int) $maxTokens;
-    }
-
-    /**
-     * Estimate completion tokens needed
-     */
 
     private function estimateCompletionTokens(array $enabledModules, array $payload): int
     {
@@ -669,38 +619,6 @@ class OpenAIProcessorService
     }
 
 
-    /**
-     * Sanitize JSON string when initial parsing fails
-     */
-    private function sanitizeJsonString(string $content): string
-    {
-        // Try to extract JSON from text if it's wrapped
-        if (preg_match('/\{.*\}/s', $content, $matches)) {
-            $content = $matches[0];
-        }
-
-        // Fix common JSON issues
-        $replacements = [
-            // Fix unescaped quotes within strings
-            '/:\s*([^"]\S*[^"])(,|\})/' => ': "$1"$2',
-            // Fix trailing commas in objects/arrays
-            '/,\s*([\]}])/' => '$1',
-            // Fix missing quotes on property names
-            '/([{,]\s*)(\w+)(\s*:)/' => '$1"$2"$3',
-        ];
-
-        foreach ($replacements as $pattern => $replacement) {
-            $content = preg_replace($pattern, $replacement, $content);
-        }
-
-        // Ensure proper escaping of quotes within strings
-        $content = preg_replace_callback('/:\s*"([^"]*)"/', function ($matches) {
-            $value = str_replace('"', '\"', $matches[1]);
-            return ': "' . $value . '"';
-        }, $content);
-
-        return $content;
-    }
 
 
 
@@ -1316,7 +1234,7 @@ PROMPT;
             // Update the review model BEFORE rule evaluation so rules can access the data
             $review->fill($dbData);
 
-          
+
 
             // Save the updated review
             $review->save();
