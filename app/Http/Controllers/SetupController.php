@@ -215,7 +215,8 @@ class SetupController extends Controller
                 str_starts_with($command, 'reviews:') ||
                 str_starts_with($command, 'reports:') ||
                 str_contains($command, 'review_report:') ||
-                in_array(explode(' ', $command)[0], ['optimize:clear', 'config:clear', 'cache:clear', 'route:clear', 'view:clear', 'check:migrate', 'l5-swagger:generate']);
+                str_contains($command, 'businesses:') ||
+                in_array(explode(' ', $command)[0], ['optimize:clear', 'config:clear', 'cache:clear', 'route:clear', 'view:clear', 'check:migrate', 'l5-swagger:generate', 'businesses:purge-deleted']);
 
             if (!$isAllowed) {
                 return response()->json([

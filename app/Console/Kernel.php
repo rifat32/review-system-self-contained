@@ -42,6 +42,12 @@ class Kernel extends ConsoleKernel
                 '--force' => true
             ]);
         })->name('cleanup-recommendations')->weeklyOn(0, '04:00');
+
+        // 6. Permanently Delete Soft-Deleted Businesses (After 30 Days)
+        // Purge businesses that have been soft-deleted for 30+ days along with related data
+        $schedule->call(function () {
+            Artisan::call('businesses:purge-deleted');
+        })->name('purge-deleted-businesses')->dailyAt('00:00')->timezone('UTC');
     }
 
     protected function commands()

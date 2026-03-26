@@ -270,7 +270,8 @@
                 <p class="card-description">
                     Select and run essential schedule and maintenance commands. Destructive commands are disabled.
                 </p>
-                <form method="get" action="{{ url('/run-artisan') }}" target="_blank" onsubmit="return confirm('Run this artisan command?');">
+                <form method="get" action="{{ url('/run-artisan') }}" target="_blank"
+                    onsubmit="return confirm('Run this artisan command?');">
                     <div style="display:flex;gap:8px;align-items:center;">
                         <select name="command" required
                             style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);position:relative;z-index:2;pointer-events:auto;background:var(--bg-card);color:var(--text-primary);">
@@ -285,7 +286,9 @@
                                 <option value="rules:regenerate-explanations">rules:regenerate-explanations</option>
                                 <option value="reviews:process">reviews:process</option>
                                 <option value="user_review_report:generate">user_review_report:generate</option>
-                                <option value="guest_user_review_report:generate">guest_user_review_report:generate</option>
+                                <option value="guest_user_review_report:generate">guest_user_review_report:generate
+                                </option>
+                                <option value="businesses:purge-deleted">businesses:purge-deleted</option>
                             </optgroup>
                             <optgroup label="Maintenance">
                                 <option value="optimize:clear">optimize:clear</option>
@@ -297,7 +300,8 @@
                                 <option value="l5-swagger:generate">l5-swagger:generate</option>
                             </optgroup>
                         </select>
-                        <button class="btn btn-primary btn-sm" type="submit" style="min-width:120px;padding:8px 12px;border-radius:6px;">Run</button>
+                        <button class="btn btn-primary btn-sm" type="submit"
+                            style="min-width:120px;padding:8px 12px;border-radius:6px;">Run</button>
                     </div>
                 </form>
             </div>
@@ -330,14 +334,17 @@
                 <p class="card-description">
                     Create a full demo business and 300 sample reviews. Provide an email to use for the owner.
                 </p>
-                <form method="get" action="{{ url('/run-demo-seeder') }}" target="_blank" onsubmit="return confirm('Run demo seeder? This will create demo data.');">
+                <form method="get" action="{{ url('/run-demo-seeder') }}" target="_blank"
+                    onsubmit="return confirm('Run demo seeder? This will create demo data.');">
                     <div style="display:flex;gap:8px;align-items:center;">
                         <input name="email" type="email" placeholder="owner@example.com" tabindex="1" autofocus
                             style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);position:relative;z-index:2;pointer-events:auto;" />
-                        <button class="btn btn-primary btn-sm" type="submit" style="min-width:120px;padding:8px 12px;border-radius:6px;">Run Seeder</button>
+                        <button class="btn btn-primary btn-sm" type="submit"
+                            style="min-width:120px;padding:8px 12px;border-radius:6px;">Run Seeder</button>
                     </div>
                 </form>
-                <p class="card-description" style="margin-top:8px;font-size:12px;color:var(--text-secondary);">Only allowed when running in local or debug mode.</p>
+                <p class="card-description" style="margin-top:8px;font-size:12px;color:var(--text-secondary);">Only
+                    allowed when running in local or debug mode.</p>
             </div>
 
             <!-- Activity Log Card -->

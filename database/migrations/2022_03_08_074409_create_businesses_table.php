@@ -87,33 +87,7 @@ return new class extends Migration {
             $table->boolean('has_rule_management')->default(false);
 
 
-            $table->json('default_color_threshold')->default(json_encode([
-                [
-                    "score_range" => [80, 100],
-                    "status" => "Excellent",
-                    "color" => "bg-green-500",
-                ],
-                [
-                    "score_range" => [65, 79],
-                    "status" => "Good",
-                    "color" => "bg-lime-500",
-                ],
-                [
-                    "score_range" => [50, 64],
-                    "status" => "Average",
-                    "color" => "bg-yellow-500",
-                ],
-                [
-                    "score_range" => [40, 49],
-                    "status" => "Needs Attention",
-                    "color" => "bg-orange-500",
-                ],
-                [
-                    "score_range" => [0, 39],
-                    "status" => "Critical",
-                    "color" => "bg-red-500",
-                ],
-            ]));
+            $table->json('default_color_threshold')->nullable();
 
 
 
