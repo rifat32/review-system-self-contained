@@ -99,6 +99,7 @@ class BusinessProfileService
         $discountAmount = $this->getDiscountAmount($payloadData);
 
         return Business::create([
+            'business_type' => $payloadData['business_type'],
             'OwnerID' => $user->id,
             'Status' => 'Inactive',
             'Key_ID' => Str::random(10),

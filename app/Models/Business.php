@@ -23,6 +23,7 @@ class Business extends Model
         "PostCode",
         "OwnerID",
         "Status",
+        "business_type",
         "Logo",
         "Key_ID",
         "expiry_date",
