@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CreateUserWithBusinessRequest;
 use App\Http\Requests\ImageUploadRequest;
 use App\Http\Requests\OwnerRequest;
-
 use App\Mail\AccountCreateMail;
 use App\Mail\NotifyMail;
 use App\Models\Business;
@@ -25,7 +24,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-
 
 use OpenApi\Annotations as OA;
 

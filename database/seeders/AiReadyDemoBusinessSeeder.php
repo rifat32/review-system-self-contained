@@ -214,7 +214,10 @@ class AiReadyDemoBusinessSeeder extends Seeder
 
 
         // Use BusinessService to create business (ensures all defaults and AI rules are set)
-        $this->business = $this->businessProfileService->createBusiness($this->owner, $businessData);
+        $this->business = $this->businessProfileService->createBusiness($this->owner, [
+            ...$businessData,
+            'business_type' => $this->seederData['business']['business_type'] ?? 'hotel'
+        ]);
 
         // Update owner's business_id link
         $this->updateOwnerBusinessRelation();
@@ -880,12 +883,30 @@ class AiReadyDemoBusinessSeeder extends Seeder
             $starValue = max(1, min(5, $baseRating + rand(-1, 1)));
             $starId = $this->stars[$starValue - 1]['id'];
 
-            // Random tags (0-2 tags per question)
+            // Realistic tags based on star rating
             $tagIds = [];
-            $numTags = rand(0, 2);
-            if ($numTags > 0 && !empty($this->tags)) {
-                $selectedTagIndices = (array)array_rand($this->tags, min($numTags, count($this->tags)));
-                $tagIds = array_map(fn($idx) => $this->tags[$idx]['id'], $selectedTagIndices);
+            $starTagMappings = $this->seederData['star_tag_mappings'] ?? [];
+            if (isset($starTagMappings[$starValue])) {
+                $possibleTagNames = $starTagMappings[$starValue];
+                
+                // Map of tag names to IDs for this business/default
+                $tagNameToId = [];
+                foreach ($this->tags as $tag) {
+                    $tagNameToId[$tag['tag']] = $tag['id'];
+                }
+
+                foreach ($possibleTagNames as $tagName) {
+                    if (isset($tagNameToId[$tagName])) {
+                        $tagIds[] = $tagNameToId[$tagName];
+                    }
+                }
+                
+                // Randomly pick 1-2 tags from the mapping for realism
+                if (!empty($tagIds)) {
+                    $numTags = min(rand(1, 2), count($tagIds));
+                    $selectedIndices = (array)array_rand($tagIds, $numTags);
+                    $tagIds = array_map(fn($idx) => $tagIds[$idx], $selectedIndices);
+                }
             }
 
             // Format exactly as ReviewService expects (tag_ids will be filtered out during create, then synced)

@@ -2,6 +2,7 @@
 
 return [
     'business' => [
+        'business_type' => 'hotel',
         'business_name' => 'AI Demo Grand Hotel',
         'business_address' => '45 Royal Avenue',
         'business_postcode' => 'W1A 4AA',
