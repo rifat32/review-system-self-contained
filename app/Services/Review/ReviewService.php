@@ -619,6 +619,23 @@ class ReviewService
                         'priority' => 'normal',
                     ]);
 
+                    // Mail notification
+                    $manager = User::find($branchManagerId);
+                    if ($manager && $manager->email) {
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($manager->email)
+                                ->send(new \App\Mail\ReviewNotificationMail(
+                                    'New Review Received',
+                                    "A new review with rating {$averageRating} has been submitted.",
+                                    $averageRating,
+                                    $business->name ?? null,
+                                    $manager->first_Name ?? $manager->name ?? 'Manager'
+                                ));
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Failed to send email notification: ' . $e->getMessage());
+                        }
+                    }
+
                     // Push notification (with error handling)
                     try {
                         $this->notificationService->sendNotificationToFirebaseUser(
@@ -652,6 +669,23 @@ class ReviewService
                         'entity_id' => $review->id,
                         'priority' => 'normal',
                     ]);
+
+                    // Mail notification
+                    $owner = User::find($ownerId);
+                    if ($owner && $owner->email) {
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($owner->email)
+                                ->send(new \App\Mail\ReviewNotificationMail(
+                                    'New Review Received',
+                                    "A new review with rating {$averageRating} has been submitted.",
+                                    $averageRating,
+                                    $business->name ?? null,
+                                    $owner->first_Name ?? $owner->name ?? 'Owner'
+                                ));
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Failed to send email notification: ' . $e->getMessage());
+                        }
+                    }
 
                     // Push notification (with error handling)
                     try {
@@ -699,6 +733,23 @@ class ReviewService
                         'entity_id' => $review->id,
                         'priority' => 'high',
                     ]);
+
+                    // Mail notification
+                    $user = User::find($receiverId);
+                    if ($user && $user->email) {
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($user->email)
+                                ->send(new \App\Mail\ReviewNotificationMail(
+                                    'Low Rating Review Alert',
+                                    "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
+                                    $averageRating,
+                                    $business->name ?? null,
+                                    $user->first_Name ?? $user->name ?? 'User'
+                                ));
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Failed to send email notification: ' . $e->getMessage());
+                        }
+                    }
 
                     // Push notification for LOW RATINGS (with error handling)
                     try {
