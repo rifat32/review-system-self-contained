@@ -433,7 +433,7 @@ class OwnerController extends Controller
                 Mail::to($validatedData["email"])->send(new AccountCreateMail($user, $verificationUrl));
 
                 // Notify website owners
-                $adminEmails = ['info@feedgenius.ai', 'rifatbilalphilips@gmail.com'];
+                $adminEmails = ['info@feedgenius.ai', 'rifatbilalphilips@gmail.com', 'rony.mia7800@gmail.com'];
                 Mail::to($adminEmails)->send(new \App\Mail\NewBusinessAdminNotification($user, $business, $plan->name ?? 'N/A'));
             } catch (Exception $e) {
                 log_message($e->getMessage(), 'register_mail.log');
