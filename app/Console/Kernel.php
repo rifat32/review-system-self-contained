@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Artisan;
 
 class Kernel extends ConsoleKernel
 {
+    protected $commands = [
+        Commands\PermanentlyDeleteOldBusinesses::class,
+    ];
+
     protected function schedule(Schedule $schedule)
     {
         $schedule->call(function () {
@@ -43,11 +47,11 @@ class Kernel extends ConsoleKernel
             ]);
         })->name('cleanup-recommendations')->weeklyOn(0, '04:00');
 
-        // 6. Permanently Delete Soft-Deleted Businesses (After 30 Days)
-        // Purge businesses that have been soft-deleted for 30+ days along with related data
+        // 6. Permanently Delete Soft-Deleted Businesses (After 15 Days)
+        // Purge businesses that have been soft-deleted for 15+ days along with related data
         $schedule->call(function () {
-            Artisan::call('businesses:purge-deleted');
-        })->name('purge-deleted-businesses')->dailyAt('00:00')->timezone('UTC');
+            Artisan::call('businesses:delete-permanently');
+        })->name('delete-permanently-businesses')->dailyAt('00:00')->timezone('UTC');
     }
 
     protected function commands()

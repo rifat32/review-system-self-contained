@@ -187,6 +187,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 'phone' => '+1234567890',
                 'type' => 'business_Owner',
                 'remember_token' => Str::random(10),
+                'is_active' => true,
             ]
         );
         $this->owner->email_verified_at = now();
@@ -295,8 +296,9 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 $lastName = $lastNames[$nameIndex % count($lastNames)];
                 $nameIndex++;
 
+                $ownerPrefix = explode('@', $this->owner->email)[0];
                 $staff = User::updateOrCreate(
-                    ['email' => strtolower($firstName . '.' . $lastName . $branchIndex .  '.' .  Str::random(5)   . '@aidemo.com')],
+                    ['email' => strtolower($firstName . '.' . $lastName . '.' . $ownerPrefix . $branchIndex . '@aidemo.com')],
                     [
                         'password' => Hash::make('12345678@We'),
                         'first_Name' => $firstName,
@@ -306,6 +308,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
                         'business_id' => $this->business->id,
                         'job_title' => $i === 0 ? 'Senior Server' : 'Server',
                         'join_date' => Carbon::now()->subMonths(rand(6, 24))->format('Y-m-d'),
+                        'is_active' => true,
                     ]
                 );
                 $staff->email_verified_at = now();
@@ -343,15 +346,16 @@ class AiReadyDemoBusinessSeeder extends Seeder
             $lastName = $lastNames[array_rand($lastNames)];
 
             $user = User::updateOrCreate(
-                ['email' => strtolower($firstName . '.' . $lastName . '.' . Str::random(5) . '@customer.com')],
+                ['email' => strtolower('customer.' . ($i + 1) . '@aidemo.com')],
                 [
                     'password' => Hash::make('12345678@We'),
                     'first_Name' => $firstName,
                     'last_Name' => $lastName,
                     'phone' => '+44770000' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
                     'type' => 'customer',
-                    'business_id' => null, // Regular customer, not tied to business
+                    'business_id' => null, // Global customer
                     'remember_token' => Str::random(10),
+                    'is_active' => true,
                 ]
             );
             $user->email_verified_at = now();

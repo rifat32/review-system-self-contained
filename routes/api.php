@@ -370,6 +370,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/business/setup-progress', [BusinessController::class, "updateSetupProgress"]);
     Route::patch('/v1.0/business/upload-image/{businessId}', [BusinessController::class, "uploadRestaurantImage"]);
     Route::delete('/v1.0/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurantIdForceDelete"]);
+    Route::delete("/v1.0/business/force-delete-by-ids/{ids}", [BusinessController::class, "forceDeleteBusinessesByIds"]);
+    Route::post("/v1.0/business/restore-by-ids/{ids}", [BusinessController::class, "restoreBusinessesByIds"]);
+    Route::get("/v1.0/business/deleted/all", [BusinessController::class, "getSoftDeletedBusinesses"]);
 
     // Parameterized routes come AFTER specific routes
     Route::get('/v1.0/business/{businessId}', [BusinessController::class, "getBusinessById"]);

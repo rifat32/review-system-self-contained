@@ -132,19 +132,19 @@ class SuperAdminDashboardController extends Controller
         $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
 
         // ==================== BUSINESS METRICS ====================
-        $currentBusinessCount = Business::when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))->count();
+        $currentBusinessCount = Business::withTrashed()->when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))->count();
 
-        $comparisonBusinessCount = Business::when($dateRange, function ($query) use ($dateRange) {
+        $comparisonBusinessCount = Business::withTrashed()->when($dateRange, function ($query) use ($dateRange) {
             $startDate = Carbon::parse($dateRange["start"])->subDays($dateRange["daysOffset"])->startOfDay();
             $endDate = Carbon::parse($dateRange["end"])->subDays($dateRange["daysOffset"])->endOfDay();
             return $query->whereBetween("created_at", [$startDate, $endDate]);
         })->count();
 
-        $activeBusinessCount = Business::where("is_active", true)
+        $activeBusinessCount = Business::withTrashed()->where("is_active", true)
             ->when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))
             ->count();
 
-        $comparisonActiveBusinessCount = Business::where("is_active", true)
+        $comparisonActiveBusinessCount = Business::withTrashed()->where("is_active", true)
             ->when($dateRange, function ($query) use ($dateRange) {
                 $startDate = Carbon::parse($dateRange["start"])->subDays($dateRange["daysOffset"])->startOfDay();
                 $endDate = Carbon::parse($dateRange["end"])->subDays($dateRange["daysOffset"])->endOfDay();
@@ -152,11 +152,11 @@ class SuperAdminDashboardController extends Controller
             })
             ->count();
 
-        $inactiveBusinessCount = Business::where("is_active", false)
+        $inactiveBusinessCount = Business::withTrashed()->where("is_active", false)
             ->when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))
             ->count();
 
-        $comparisonInactiveBusinessCount = Business::where("is_active", false)
+        $comparisonInactiveBusinessCount = Business::withTrashed()->where("is_active", false)
             ->when($dateRange, function ($query) use ($dateRange) {
                 $startDate = Carbon::parse($dateRange["start"])->subDays($dateRange["daysOffset"])->startOfDay();
                 $endDate = Carbon::parse($dateRange["end"])->subDays($dateRange["daysOffset"])->endOfDay();
@@ -164,7 +164,7 @@ class SuperAdminDashboardController extends Controller
             })
             ->count();
 
-        $totalBusinessCount = Business::count();
+        $totalBusinessCount = Business::withTrashed()->count();
 
         // ==================== REVIEW METRICS ====================
         $currentReviewCount = ReviewNew::when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))->count();

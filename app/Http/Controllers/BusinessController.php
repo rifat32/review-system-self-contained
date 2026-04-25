@@ -1167,7 +1167,7 @@ class BusinessController extends Controller
     public function getAllBusinesses(Request $request)
     {
         // BUILD QUERY WITH FILTER SCOPE
-        $businessQuery = Business::with("owner")->filter();
+        $businessQuery = Business::withTrashed()->with("owner")->filter();
 
         // HANDLE PDF/CSV EXPORT
         if ($request->filled('response_type') && in_array(strtoupper($request->response_type), ['PDF', 'CSV'])) {
@@ -1611,6 +1611,113 @@ class BusinessController extends Controller
             "success" => true,
             "message" => "Setup progress updated successfully",
             "data" => $business
+        ], 200);
+    }
+
+    /**
+     * Bulk permanent delete businesses (Super Admin only)
+     * Ported from HRM logic
+     */
+    public function forceDeleteBusinessesByIds(Request $request, $ids)
+    {
+        if (!$request->user()->hasRole("superadmin")) {
+            return response()->json(["message" => "You do not have permission to perform this action"], 403);
+        }
+
+        $idsArray = explode(',', $ids);
+        $businesses = Business::withTrashed()->whereIn('id', $idsArray)->get();
+
+        foreach ($businesses as $business) {
+            DB::transaction(function () use ($business) {
+                $businessId = $business->id;
+
+                // Disable foreign key checks for this transaction to handle complex dependencies
+                DB::statement("SET FOREIGN_KEY_CHECKS=0;");
+
+                // 1. Delete CHILD tables and related Review-specific data
+                \App\Models\Recommendation::where("business_id", $businessId)->delete();
+                \App\Models\AiRule::where("business_id", $businessId)->delete();
+                DB::table("ai_rule_triggers")->where("business_id", $businessId)->delete();
+                \App\Models\InsightRecord::where("business_id", $businessId)->delete();
+                \App\Models\OpenAITokenUsage::where("business_id", $businessId)->delete();
+                \App\Models\Leaflet::where("business_id", $businessId)->delete();
+                \App\Models\ReviewNew::where("business_id", $businessId)->delete();
+                \App\Models\DailyView::where("business_id", $businessId)->delete();
+                DB::table("surveys")->where("business_id", $businessId)->delete();
+                DB::table("branches")->where("business_id", $businessId)->delete();
+
+                // 2. Delete staff and associated users
+                User::where("business_id", $businessId)->delete();
+
+                // 3. Force delete the business record
+                $business->forceDelete();
+
+                // 4. Delete the business owner
+                User::where("id", $business->OwnerID)->delete();
+
+                // Re-enable foreign key checks
+                DB::statement("SET FOREIGN_KEY_CHECKS=1;");
+                // 4. Delete the owner
+                User::where("id", $business->OwnerID)->delete();
+            });
+        }
+
+        return response()->json([
+            "success" => true,
+            "message" => "Businesses permanently deleted successfully"
+        ], 200);
+    }
+
+    /**
+     * Bulk restore soft-deleted businesses (Super Admin only)
+     * Ported from HRM logic
+     */
+    public function restoreBusinessesByIds(Request $request, $ids)
+    {
+        if (!$request->user()->hasRole("superadmin")) {
+            return response()->json(["message" => "You do not have permission to perform this action"], 403);
+        }
+
+        $idsArray = explode(',', $ids);
+        $businesses = Business::onlyTrashed()->whereIn('id', $idsArray)->get();
+
+        foreach ($businesses as $business) {
+            $business->restore();
+            // Note: Users are not soft-deleted in Review, so we only restore the business
+        }
+
+        return response()->json([
+            "success" => true,
+            "message" => "Businesses restored successfully"
+        ], 200);
+    }
+
+    /**
+     * Get all soft-deleted businesses (Super Admin only)
+     */
+    public function getSoftDeletedBusinesses(Request $request)
+    {
+        if (!$request->user()->hasRole("superadmin")) {
+            return response()->json(["message" => "You do not have permission to perform this action"], 403);
+        }
+
+        $businessQuery = Business::onlyTrashed()->with("owner");
+
+        if ($request->filled('search_key')) {
+            $searchTerm = $request->input('search_key');
+            $businessQuery->where(function ($q) use ($searchTerm) {
+                $q->where('Name', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('EmailAddress', 'like', '%' . $searchTerm . '%');
+            });
+        }
+
+        $result = retrieve_data($businessQuery);
+
+        return response()->json([
+            "success" => true,
+            "message" => "Soft-deleted businesses retrieved successfully",
+            "data" => $result['data'],
+            "meta" => $result['meta']
         ], 200);
     }
 }
