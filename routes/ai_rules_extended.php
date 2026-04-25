@@ -35,15 +35,3 @@ Route::prefix('/v1.0/ai-rules')->group(function () {
     Route::delete('/{id}', [RuleWizardController::class, 'deleteRule']);     // Delete rule
     Route::patch('/{id}/toggle', [RuleWizardController::class, 'toggleEnabled']); // Toggle rule status
 });
-
-// ============================================================================
-// BULK RULE OPERATIONS - Cross-branch rule management
-// ============================================================================
-Route::prefix('/v1.0/ai-rules')->group(function () {
-    Route::post('/bulk-apply', [BulkRuleController::class, 'bulkApplyRule']);
-    Route::get('/cross-branch', [BulkRuleController::class, 'getCrossBranchRules']);
-    Route::post('/bulk-enable', [BulkRuleController::class, 'bulkEnableRules']);
-    Route::post('/bulk-disable', [BulkRuleController::class, 'bulkDisableRules']);
-    Route::post('/bulk-delete', [BulkRuleController::class, 'bulkDeleteRules']);
-    Route::post('/bulk-priority', [BulkRuleController::class, 'bulkUpdatePriority']);
-});
