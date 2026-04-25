@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('qr_code_settings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('business_id')->constrained('businesses')->onDelete('cascade');
             $table->string('slug')->default('preview-qr');
             $table->json('qrStyling')->nullable();
             $table->timestamps();
