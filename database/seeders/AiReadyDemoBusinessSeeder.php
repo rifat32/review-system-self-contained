@@ -892,7 +892,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
             $starTagMappings = $this->seederData['star_tag_mappings'] ?? [];
             if (isset($starTagMappings[$starValue])) {
                 $possibleTagNames = $starTagMappings[$starValue];
-                
+
                 // Map of tag names to IDs for this business/default
                 $tagNameToId = [];
                 foreach ($this->tags as $tag) {
@@ -904,7 +904,7 @@ class AiReadyDemoBusinessSeeder extends Seeder
                         $tagIds[] = $tagNameToId[$tagName];
                     }
                 }
-                
+
                 // Randomly pick 1-2 tags from the mapping for realism
                 if (!empty($tagIds)) {
                     $numTags = min(rand(1, 2), count($tagIds));
@@ -989,65 +989,5 @@ class AiReadyDemoBusinessSeeder extends Seeder
     private function randomIp(): string
     {
         return rand(1, 255) . '.' . rand(0, 255) . '.' . rand(0, 255) . '.' . rand(1, 255);
-    }
-
-    /**
-     * Cleanup existing data for the demo business to ensure re-runnability
-     */
-    private function cleanupExistingData(): void
-    {
-        $businessName = $this->seederData['business']['business_name'];
-        $businesses = Business::where('Name', $businessName)->get();
-
-        if ($businesses->isNotEmpty()) {
-            echo "🗑️  Existing businesses found. Cleaning up data for '{$businessName}'...\n";
-
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-            try {
-                foreach ($businesses as $business) {
-                    echo "   - Cleaning business ID: {$business->id}\n";
-
-                    // Delete relationships first to avoid constraint issues
-                    $reviewIds = ReviewNew::where('business_id', $business->id)->pluck('id');
-                    ReviewValueNew::whereIn('review_id', $reviewIds)->delete();
-                    DB::table('review_business_services')->whereIn('review_id', $reviewIds)->delete();
-                    ReviewNew::where('business_id', $business->id)->delete();
-
-                    // Delete surveys and questions
-                    $questionIds = Question::where('business_id', $business->id)->pluck('id');
-                    DB::table('survey_questions')->whereIn('question_id', $questionIds)->delete();
-                    DB::table('question_stars')->whereIn('question_id', $questionIds)->delete();
-                    DB::table('star_tags')->whereIn('question_id', $questionIds)->delete();
-                    DB::table('q_q_sub_categories')->whereIn('question_id', $questionIds)->delete();
-
-                    Survey::where('business_id', $business->id)->delete();
-                    Question::where('business_id', $business->id)->delete();
-
-                    // Delete custom question categories
-                    QuestionCategory::where('business_id', $business->id)->delete();
-
-                    // Delete services and areas
-                    BusinessArea::where('business_id', $business->id)->delete();
-                    BusinessService::where('business_id', $business->id)->delete();
-
-                    // Delete staff associated with this business (except owner)
-                    $staffIds = User::where('business_id', $business->id)->where('id', '!=', $this->owner->id)->pluck('id');
-                    DB::table('branch_members')->whereIn('user_id', $staffIds)->delete();
-                    User::whereIn('id', $staffIds)->delete();
-
-                    // Delete branches
-                    Branch::where('business_id', $business->id)->delete();
-
-                    // Delete AI rules and other business-linked tables
-                    DB::table('ai_rules')->where('business_id', $business->id)->delete();
-
-                    // Delete the business itself
-                    $business->delete();
-                }
-            } finally {
-                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-            }
-        }
     }
 }

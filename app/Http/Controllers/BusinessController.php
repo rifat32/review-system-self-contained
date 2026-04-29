@@ -1631,8 +1631,7 @@ class BusinessController extends Controller
             DB::transaction(function () use ($business) {
                 $businessId = $business->id;
 
-                // Disable foreign key checks for this transaction to handle complex dependencies
-                DB::statement("SET FOREIGN_KEY_CHECKS=0;");
+
 
                 // 1. Delete CHILD tables and related Review-specific data
                 \App\Models\Recommendation::where("business_id", $businessId)->delete();
@@ -1655,8 +1654,7 @@ class BusinessController extends Controller
                 // 4. Delete the business owner
                 User::where("id", $business->OwnerID)->delete();
 
-                // Re-enable foreign key checks
-                DB::statement("SET FOREIGN_KEY_CHECKS=1;");
+
                 // 4. Delete the owner
                 User::where("id", $business->OwnerID)->delete();
             });

@@ -57,8 +57,7 @@ class PermanentlyDeleteOldBusinesses extends Command
                 $businessId = $business->id;
                 $ownerId = $business->OwnerID;
 
-                // Disable foreign key checks for this transaction to handle complex dependencies
-                DB::statement("SET FOREIGN_KEY_CHECKS=0;");
+
 
                 // 1. Delete CHILD tables and related Review-specific data
                 Recommendation::where("business_id", $businessId)->delete();
@@ -80,10 +79,7 @@ class PermanentlyDeleteOldBusinesses extends Command
 
                 // 4. Delete the owner
                 User::where("id", $ownerId)->delete();
-
-                // Re-enable foreign key checks
-                DB::statement("SET FOREIGN_KEY_CHECKS=1;");
-                User::where("id", $ownerId)->delete();
+            });
         }
 
         $this->info("Permanently deleted $count businesses soft-deleted before {$cutoff_date->toDateString()}.");
