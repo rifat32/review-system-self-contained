@@ -583,28 +583,6 @@ class ReviewService
 
 
 
-    /**
-     * Calculate trend direction from monthly ratings
-     */
-    public function calculateTrendDirection($monthlyRatings)
-    {
-        if (count($monthlyRatings) < 2) {
-            return 'stable';
-        }
-
-        $values = array_values($monthlyRatings);
-        $first = $values[0];
-        $last = end($values);
-
-        if ($last > $first + 0.3) {
-            return 'improving';
-        } elseif ($last < $first - 0.3) {
-            return 'declining';
-        } else {
-            return 'stable';
-        }
-    }
-
 
 
     /**

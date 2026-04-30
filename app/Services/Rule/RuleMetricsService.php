@@ -79,31 +79,7 @@ class RuleMetricsService
 
   
 
-    // ==================== PERFORMANCE CALCULATION ====================
-
-    /**
-     * Calculate precision rate for a rule
-     * 
-     * @param string $ruleId Rule ID
-     * @return float|null Precision rate percentage (0-100) or null if insufficient data
-     */
-    public function calculatePrecisionRate(string $ruleId): ?float
-    {
-        $metrics = AiRuleMetric::where('rule_id', $ruleId)->first();
-
-        if (!$metrics) {
-            return null;
-        }
-
-        $total = $metrics->true_positives + $metrics->false_positives;
-
-        if ($total < (config('ai.insights.opportunities.performance.min_total_for_precision') ?? 5)) {
-            // Insufficient data for reliable precision rate
-            return null;
-        }
-
-        return ($metrics->true_positives / $total) * 100;
-    }
+  
 
     // ==================== PERFORMANCE REPORT ====================
 

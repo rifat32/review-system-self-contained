@@ -1213,102 +1213,6 @@ PROMPT;
         }
     }
 
-    private function extractIssuesFromExplanation(string $explanation): array
-    {
-        $issues = [];
-
-        // Common patterns in explanations
-        $patterns = [
-            '/wait.*time/i' => 'Wait Time',
-            '/slow.*service/i' => 'Slow Service',
-            '/rude|impolite|unprofessional/i' => 'Staff Behavior',
-            '/dirty|clean|hygiene/i' => 'Cleanliness',
-            '/expensive|price|cost/i' => 'Pricing',
-            '/noisy|loud|quiet/i' => 'Noise Level',
-            '/broken|damaged|not working/i' => 'Maintenance',
-            '/disorganised|chaotic|messy/i' => 'Organization',
-            '/cold|hot|temperature/i' => 'Temperature',
-            '/small|cramped|space/i' => 'Space/Size',
-            '/crowded|busy|packed/i' => 'Crowding',
-            '/late|delay|on time/i' => 'Timeliness',
-            '/mistake|error|wrong/i' => 'Accuracy',
-            '/quality|standard/i' => 'Quality',
-            '/staff.*attitude/i' => 'Staff Attitude',
-            '/food.*quality/i' => 'Food Quality',
-            '/service.*speed/i' => 'Service Speed'
-        ];
-
-        foreach ($patterns as $pattern => $issue) {
-            if (preg_match($pattern, $explanation)) {
-                $issues[] = $issue;
-            }
-        }
-
-        return array_unique($issues);
-    }
-
-    private function generateMismatchRecommendations(
-        int $mismatchCount,
-        int $totalReviews,
-        array $commonIssues,
-        array $affectedAreas,
-        string $mostCommonType
-    ): array {
-        $recommendations = [];
-        $mismatchPercentage = $totalReviews > 0 ? ($mismatchCount / $totalReviews) * 100 : 0;
-
-        if ($mismatchPercentage > 15) {
-            $recommendations[] = [
-                'priority' => 'high',
-                'title' => 'High Rate of Hidden Issues',
-                'description' => "{$mismatchPercentage}% of reviews show rating-comment mismatch. Customers may be hesitant to give low ratings.",
-                'action' => 'Review survey design and encourage honest feedback'
-            ];
-        }
-
-        if (!empty($commonIssues)) {
-            $topIssue = array_key_first($commonIssues);
-            $issueCount = $commonIssues[$topIssue];
-
-            $recommendations[] = [
-                'priority' => 'medium',
-                'title' => 'Common Hidden Issue: ' . $topIssue,
-                'description' => "Mentioned {$issueCount} times in mismatched reviews",
-                'action' => 'Investigate and address ' . strtolower($topIssue)
-            ];
-        }
-
-        if (!empty($affectedAreas)) {
-            $topArea = array_key_first($affectedAreas);
-
-            $recommendations[] = [
-                'priority' => 'medium',
-                'title' => 'Area Needing Attention: ' . $topArea,
-                'description' => 'Most frequently mentioned in mismatched feedback',
-                'action' => 'Conduct focused review of ' . $topArea . ' operations'
-            ];
-        }
-
-        if ($mostCommonType === 'positive_rating_negative_comment') {
-            $recommendations[] = [
-                'priority' => 'low',
-                'title' => 'Customer Rating Behavior',
-                'description' => 'Customers giving high ratings but mentioning issues',
-                'action' => 'Consider adding "What could we improve?" as a follow-up question'
-            ];
-        }
-
-        if (count($recommendations) === 0) {
-            $recommendations[] = [
-                'priority' => 'low',
-                'title' => 'Monitor Mismatch Patterns',
-                'description' => 'Current mismatch levels are within acceptable range',
-                'action' => 'Continue monitoring for patterns'
-            ];
-        }
-
-        return $recommendations;
-    }
 
 
 
@@ -1445,26 +1349,7 @@ PROMPT;
         }
     }
 
-    /**
-     * Update business AI module stats
-     */
-    public function updateBusinessAiModule(int $businessId, int $tokens, float $cost): void
-    {
-        try {
-            $module = BusinessAiModule::where('business_id', $businessId)->first();
-            if ($module) {
-                $module->increment('total_tokens_used', $tokens);
-                $module->increment('total_cost_usd', $cost);
-                $module->last_used_at = \now();
-                $module->save();
-            }
-        } catch (\Exception $e) {
-            Log::error('Failed to update business AI module stats', [
-                'business_id' => $businessId,
-                'error' => $e->getMessage()
-            ]);
-        }
-    }
+
 
     /**
      * Get enabled modules for a business
@@ -1583,20 +1468,5 @@ PROMPT;
 
             return false;
         }
-    }
-
-    /**
-     * Legacy compatibility method
-     */
-    public function processReview(string $text, $staffId = null, $businessId = null): array
-    {
-        $review = new ReviewNew([
-            'raw_text' => $text,
-            'staff_id' => $staffId,
-            'business_id' => $businessId,
-            'comment' => $text
-        ]);
-
-        return $this->analyzeReview($review);
     }
 }

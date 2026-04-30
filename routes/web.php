@@ -229,8 +229,7 @@ Route::post('/resend-verification', function (Request $request) {
     ]);
 });
 
-Route::get("/test-pdf", [TestController::class, "testReport"]);
-Route::get("/test-pdf2", [TestController::class, "testReport2"]);
+
 
 Route::get("/orders/redirect-to-stripe", [StripeController::class, "redirectUserToStripe"]);
 

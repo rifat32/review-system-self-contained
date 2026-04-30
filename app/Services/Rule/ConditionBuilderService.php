@@ -342,36 +342,4 @@ class ConditionBuilderService
                 return false;
         }
     }
-
-
-
-    /**
-     * Format condition for display
-     */
-    public static function formatCondition(array $condition): string
-    {
-        $type = $condition['type'] ?? '';
-        $operator = $condition['operator'] ?? '';
-        $value = $condition['value'] ?? '';
-
-        $operatorLabels = [
-            'equals' => 'is',
-            'not_equals' => 'is not',
-            'greater_than' => 'is greater than',
-            'less_than' => 'is less than',
-            'between' => 'is between',
-            'contains' => 'contains',
-            'starts_with' => 'starts with',
-            'ends_with' => 'ends with',
-            'regex' => 'matches pattern'
-        ];
-
-        $operatorLabel = $operatorLabels[$operator] ?? $operator;
-
-        if ($operator === 'between' && is_array($value)) {
-            $value = "{$value[0]} and {$value[1]}";
-        }
-
-        return ucfirst($type) . " {$operatorLabel} \"{$value}\"";
-    }
 }

@@ -137,25 +137,6 @@ class StaffPerformanceService
     }
 
   
-    // ==================== STAFF TOPICS EXTRACTION ====================
-
-    /**
-     * Extract staff topics dynamically
-     */
-    public function extractStaffTopics($staffReviews)
-    {
-        $allTopics = [];
-
-        foreach ($staffReviews as $review) {
-            foreach ($review->topics ?? [] as $topic) {
-                $topicName = is_array($topic) ? ($topic['main_category'] ?? 'General') : $topic;
-                $allTopics[$topicName] = ($allTopics[$topicName] ?? 0) + 1;
-            }
-        }
-
-        arsort($allTopics);
-        return $allTopics;
-    }
 
     // ==================== STAFF METRICS ====================
 
@@ -279,16 +260,7 @@ class StaffPerformanceService
         }
     }
 
-    /**
-     * Map suggestions to skill gaps
-     */
-    public function extractSuggestionsFromReviews(Collection $reviews): Collection
-    {
-        return $reviews->pluck('staff_suggestions')
-            ->flatten()
-            ->filter()
-            ->unique();
-    }
+
 
     /**
      * Extract skill gaps from suggestions dynamically

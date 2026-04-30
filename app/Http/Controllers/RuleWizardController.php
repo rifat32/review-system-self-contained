@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\{AiRule, ReviewNew, Branch};
-use App\Services\Rule\{ConditionBuilderService, RuleMetricsService, RulePreviewService};
+use App\Services\Rule\{ConditionBuilderService, RuleMetricsService};
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log};
@@ -24,12 +24,10 @@ class RuleWizardController extends Controller
     // ==================== DEPENDENCY INJECTION ====================
 
     protected RuleMetricsService $metricsService;      // Handles rule performance metrics
-    protected RulePreviewService $previewService;      // Generates rule previews ("what-if" analysis)
 
-    public function __construct(RuleMetricsService $metricsService, RulePreviewService $previewService)
+    public function __construct(RuleMetricsService $metricsService)
     {
         $this->metricsService = $metricsService;
-        $this->previewService = $previewService;
     }
 
     // ==================== CREATE RULE ====================
@@ -506,7 +504,7 @@ class RuleWizardController extends Controller
         }
     }
 
-   
+
 
     /**
      * Toggle rule enabled status
