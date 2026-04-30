@@ -49,8 +49,8 @@ class BranchController extends Controller
      *       security={
      *           {"bearerAuth": {}}
      *       },
-     *      summary="This method is to check branch email",
-     *      description="This method is to check if a branch email already exists",
+     *      summary="This method is to check branch code",
+     *      description="This method is to check if a branch code already exists",
      *
      *  @OA\RequestBody(
      *         required=true,
@@ -58,7 +58,7 @@ class BranchController extends Controller
      *            required={"branch_code"},
      *
      *             @OA\Property(property="id", type="integer", format="integer", example=1, description="Branch ID to exclude from check"),
-     *             @OA\Property(property="branch_code", type="string", format="string", example="branch@example.com"),
+     *             @OA\Property(property="branch_code", type="string", format="string", example="BR001"),
      *
      *
      *         ),
@@ -68,7 +68,7 @@ class BranchController extends Controller
      *          description="Successful operation",
      *          @OA\JsonContent(
      *              @OA\Property(property="success", type="boolean", example=true),
-     *              @OA\Property(property="message", type="string", example="Email already exists"),
+     *              @OA\Property(property="message", type="string", example="Branch code already exists"),
      *              @OA\Property(property="data", type="boolean", example=true)
      *          )
      *       ),

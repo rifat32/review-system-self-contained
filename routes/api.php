@@ -6,14 +6,11 @@ use App\Http\Controllers\BranchMemberController;
 use App\Http\Controllers\BusinessDaysController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomWebhookController;
-use App\Http\Controllers\DailyViewsController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\EmailTemplateController;
-use App\Http\Controllers\EmailTemplateWrapperController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OwnerController;
-use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessServiceController;
 use App\Http\Controllers\BusinessAreaController;
@@ -27,8 +24,6 @@ use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\ReviewNewController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StaffController;
-use App\Http\Controllers\StarController;
-use App\Http\Controllers\StarTagQuestionController;
 use App\Http\Controllers\SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SurveyController;
@@ -37,7 +32,6 @@ use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\QrCodeSettingController;
 use App\Http\Controllers\BusinessAiModuleController;
-use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\RuleReportController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\ServicePlanController;
@@ -93,6 +87,7 @@ Route::post('/owner/user/registration', [OwnerController::class, "createUser2"])
 // ============================================================================
 Route::post('/v1.0/auth/check-user-email', [AuthController::class, "checkUserEmail"]);
 Route::post('/v1.0/auth/check-branch-email', [AuthController::class, "checkBranchEmail"]);
+Route::post('/v1.0/auth/check-branch-code', [BranchController::class, "checkBranchCode"]);
 
 // ============================================================================
 // Protected Routes (auth:api)
@@ -132,6 +127,7 @@ Route::middleware(['auth:api'])->group(function () {
         // UserController – Admin user reporting & destructive ops
         // -------------------------------------------------------------------------
         Route::get('/v1.0/owner-list', [UserController::class, 'getOwnerReport']);
+        Route::patch('/v1.0/owner/update-user', [OwnerController::class, 'updateUser']);
 
 
 
@@ -169,23 +165,15 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/owner/update', [OwnerController::class, "updateUserByUser"]);
     Route::patch('/v1.0/owner/review-reply', [OwnerController::class, "reviewReply"]);
 
+    Route::post('/v1.0/header-image/{business_id}', [OwnerController::class, 'createHeaderImage']);
+    Route::post('/v1.0/placeholder-image/{business_id}', [OwnerController::class, 'createPlaceholderImage']);
+    Route::post('/v1.0/rating-page-image/{business_id}', [OwnerController::class, 'createRatingPageImage']);
+
     // ============================================================================
     // ReviewNewController – Create review (protected)
     // ============================================================================
     Route::post('/v1.0/review-new/{businessId}', [ReviewNewController::class, "createReview"]);
     Route::get('/v1.0/reviews', [ReviewNewController::class, 'getAllReviews']);
-
-
-
-
-
-    // ============================================================================
-    // ReportController – v3 dashboard report (protected)
-    // ============================================================================
-
-    Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
-
-
 
 
 
@@ -363,6 +351,8 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     // BranchController – Branch CRUD (protected, /v1.0/branches)
     // ============================================================================
+
+
     Route::prefix('v1.0/branches')->group(function () {
         Route::get('/', [BranchController::class, 'getBranches']);
         Route::post('/', [BranchController::class, 'createBranch']);
@@ -424,8 +414,7 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     Route::get('/v1.0/customers', [CustomerController::class, "getCustomers"]);
 
-    // ============================================================================
-    // ReportController & DashboardManagementController – Reports/dashboards (protected)
+
     // ============================================================================
 
     Route::get('/v1.0/reports/staff-comparison', [DashboardController::class, 'staffComparison']);
