@@ -343,52 +343,7 @@ class ConditionBuilderService
         }
     }
 
-    // ==================== HELPER METHODS ====================
 
-    /**
-     * Get supported condition types
-     */
-    public static function getSupportedTypes(): array
-    {
-        return [
-            'sentiment' => [
-                'label' => 'Sentiment',
-                'operators' => ['equals', 'not_equals'],
-                'values' => ['positive', 'negative', 'neutral', 'very_positive', 'very_negative']
-            ],
-            'rating' => [
-                'label' => 'Star Rating',
-                'operators' => ['equals', 'not_equals', 'greater_than', 'less_than', 'between'],
-                'value_type' => 'number'
-            ],
-            'keyword' => [
-                'label' => 'Comment Keyword',
-                'operators' => ['contains', 'equals', 'not_equals', 'starts_with', 'ends_with', 'regex'],
-                'value_type' => 'text'
-            ],
-            'staff_mention' => [
-                'label' => 'Staff Mentioned',
-                'operators' => ['equals'],
-                'value_type' => 'staff_list'
-            ],
-            'area_mention' => [
-                'label' => 'Business Area',
-                'operators' => ['equals'],
-                'value_type' => 'area_list'
-            ],
-            'emotion' => [
-                'label' => 'Emotion Detected',
-                'operators' => ['equals'],
-                'values' => ['joy', 'anger', 'frustration', 'satisfaction', 'disappointment'],
-                'has_threshold' => true
-            ],
-            'service_type' => [
-                'label' => 'Service Type',
-                'operators' => ['equals'],
-                'value_type' => 'service_list'
-            ]
-        ];
-    }
 
     /**
      * Format condition for display

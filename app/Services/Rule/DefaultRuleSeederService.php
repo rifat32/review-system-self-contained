@@ -22,68 +22,6 @@ class DefaultRuleSeederService
         'FLAG_AND_ALERT'
     ];
 
-    /**
-     * Ensure all 9 default rules exist for a business
-     * Auto-creates missing rules
-     */
-    public static function ensureDefaultRulesExist(int $businessId): array
-    {
-        $results = [
-            'existing' => [],
-            'created' => [],
-            'errors' => []
-        ];
-
-        foreach (self::$requiredRules as $ruleKey) {
-            $ruleId = $ruleKey . '.' . $businessId;
-
-            $exists = AiRule::where('rule_id', $ruleId)
-                ->where('is_default', true)
-                ->exists();
-
-            if ($exists) {
-                // Update existing default rule to ensure latest actions/conditions
-                try {
-                    $ruleData = self::getRuleDefinition($ruleKey, $businessId);
-                    if ($ruleData) {
-                        AiRule::where('rule_id', $ruleId)
-                            ->where('is_default', true)
-                            ->update(['actions' => $ruleData['actions']]); // Update actions specifically
-                    }
-                    $results['existing'][] = $ruleId;
-                } catch (\Exception $e) {
-                    Log::error('Failed to update default rule', [
-                        'rule_id' => $ruleId,
-                        'business_id' => $businessId,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            } else {
-                try {
-                    $rule = self::recreateRule($ruleKey, $businessId);
-                    $results['created'][] = $ruleId;
-
-                    Log::info('Default rule auto-created', [
-                        'rule_id' => $ruleId,
-                        'business_id' => $businessId
-                    ]);
-                } catch (\Exception $e) {
-                    $results['errors'][] = [
-                        'rule_id' => $ruleId,
-                        'error' => $e->getMessage()
-                    ];
-
-                    Log::error('Failed to create default rule', [
-                        'rule_id' => $ruleId,
-                        'business_id' => $businessId,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
-        }
-
-        return $results;
-    }
 
     /**
      * Recreate a specific default rule for a business

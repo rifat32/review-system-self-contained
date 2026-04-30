@@ -176,30 +176,7 @@ class BusinessProfileService
         }
     }
 
-    /**
-     * Create default questions for business
-     */
-    public function createDefaultQuestions(Business $business): void
-    {
-        DB::transaction(function () use ($business) {
-            $defaultQuestions = Question::where([
-                'business_id' => null,
-                'is_default' => true
-            ])->get();
 
-            $questionsData = $defaultQuestions->map(fn($question) => [
-                'question' => $question->question,
-                'business_id' => $business->id,
-                'is_active' => false,
-                'created_at' => now(),
-                'updated_at' => now()
-            ])->toArray();
-
-            if (!empty($questionsData)) {
-                Question::insert($questionsData);
-            }
-        });
-    }
     /**
      * Create default questions for business
      */

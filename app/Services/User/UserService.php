@@ -59,18 +59,6 @@ class UserService
 
 
     /**
-     * Verify user email
-     */
-    public function verifyEmail(User $user): bool
-    {
-        return $user->update([
-            'email_verified_at' => now(),
-            'email_verify_token' => null,
-            'email_verify_token_expires' => null
-        ]);
-    }
-
-    /**
      * Get user registration trends over time
      * 
      * @param mixed $users Users collection or query builder

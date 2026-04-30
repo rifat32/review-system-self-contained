@@ -110,30 +110,4 @@ class RecommendationGeneratorService
             return null;
         }
     }
-
-    /**
-     * Get actionable recommendations for dashboard
-     */
-    public function getDashboardRecommendations(int $businessId, ?int $limit = null): array
-    {
-        $limit = $limit ?? config('ai.insights.opportunities.dashboard.limit') ?? 3;
-        $recommendations = Recommendation::where('business_id', $businessId)
-            ->where('created_at', '>=', Carbon::now()->subDays(config('ai.insights.opportunities.dashboard.days') ?? 7))
-            ->orderBy('priority', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
-
-        return $recommendations->map(function ($rec) {
-            return [
-                'id' => $rec->id,
-                'type' => $rec->type,
-                'text' => $rec->text,
-                'confidence' => $rec->confidence,
-                'priority' => $rec->priority,
-                'evidence' => json_decode($rec->evidence, true),
-                'created_at' => $rec->created_at->diffForHumans()
-            ];
-        })->toArray();
-    }
 }

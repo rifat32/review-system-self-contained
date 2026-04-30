@@ -5,11 +5,8 @@ namespace App\Http\Controllers;
 use App\Traits\AuthorizesRoles;
 use App\Http\Utils\ErrorUtil;
 
-use App\Models\Business;
-
-use App\Models\ReviewNew;
 use App\Models\User;
-use App\Services\Customer\CustomerService;
+
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,17 +16,6 @@ class CustomerController extends Controller
 {
     use ErrorUtil, AuthorizesRoles;
 
-    protected $customerService;
-
-    /**
-     * Constructor to inject CustomerService
-     *
-     * @param CustomerService $customerService
-     */
-    public function __construct(CustomerService $customerService)
-    {
-        $this->customerService = $customerService;
-    }
     /**
      *
      * @OA\Get(

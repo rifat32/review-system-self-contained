@@ -115,53 +115,7 @@ class ReviewService
         return $query->get();
     }
 
-    /**
-     * Get reviews for a specific time period with flexible filtering
-     *
-     * @param int $businessId
-     * @param array $filters Additional filters ['branch_id' => int, 'staff_id' => int, etc.]
-     * @param array|null $dateRange Optional date range with 'start' and 'end'
-     * @param bool $withCalculatedRating Whether to include calculated rating
-     * @param array $with Relations to eager load
-     * @return \Illuminate\Support\Collection
-     */
-    public function getReviewsWithFilters(
-        int $businessId,
-        array $filters = [],
-        ?array $dateRange = null,
-        bool $withCalculatedRating = true,
-        array $with = []
-    ) {
-        $query = ReviewNew::globalReviewFilters()
-            ->where('business_id', $businessId)
-            ->filterByDateRange();
 
-        // Apply additional filters
-        foreach ($filters as $field => $value) {
-            if ($value !== null) {
-                $query->where($field, $value);
-            }
-        }
-
-        // Apply date range filter if provided
-        if ($dateRange !== null) {
-            $startDate = Carbon::parse($dateRange['start'])->startOfDay();
-            $endDate = Carbon::parse($dateRange['end'])->endOfDay();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
-        }
-
-        // Add calculated rating if requested
-        if ($withCalculatedRating) {
-            $query->withCalculatedRating();
-        }
-
-        // Eager load relationships
-        if (!empty($with)) {
-            $query->with($with);
-        }
-
-        return $query->get();
-    }
 
     /**
      * Get both current and comparison period reviews
@@ -393,177 +347,8 @@ class ReviewService
         ];
     }
 
-    /**
-     * Format period display for date ranges
-     */
-    public function formatPeriodDisplay($startDate, $endDate)
-    {
-        // Check if it's all-time data (start date is very old)
-        $veryOldDate = Carbon::createFromTimestamp(0)->addDay();
-
-        if ($startDate->lessThan($veryOldDate)) {
-            return 'All Time';
-        }
-
-        $startFormatted = $startDate->format('M j, Y');
-        $endFormatted = $endDate->format('M j, Y');
-
-        // If same day
-        if ($startDate->isSameDay($endDate)) {
-            return $startDate->format('M j, Y');
-        }
-
-        // If same month
-        if ($startDate->format('Y-m') === $endDate->format('Y-m')) {
-            return $startDate->format('M j') . ' - ' . $endDate->format('j, Y');
-        }
-
-        // If same year
-        if ($startDate->format('Y') === $endDate->format('Y')) {
-            return $startDate->format('M j') . ' - ' . $endDate->format('M j, Y');
-        }
-
-        return $startFormatted . ' - ' . $endFormatted;
-    }
-
-    /**
-     * Calculate dashboard metrics
-     */
-    public function calculateDashboardMetrics($businessId, $dateRange = null)
-    {
-        // Get current period reviews WITH calculated rating
-        $reviewsQuery = ReviewNew::globalReviewFilters(0)
-            ->where('review_news.business_id', $businessId)
-            ->withCalculatedRating();
-
-        // Apply manual date filter only if dateRange is provided (for comparison or specific overrides)
-        if ($dateRange !== null) {
-            $reviewsQuery->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
-        }
-
-        $reviews = $reviewsQuery->get();
-
-        // Get previous period reviews WITH calculated rating (only if dateRange provided)
-        $previousReviews = collect();
-        $previousAvgRating = 0;
-        $previousTotal = 0;
-        $previous_sentiment_score = 0;
-
-        if ($dateRange !== null) {
-            $previousReviews = ReviewNew::globalReviewFilters(0)
-                ->where('review_news.business_id', $businessId)
-                ->whereBetween('review_news.created_at', [
-                    $dateRange['start']->copy()->subDays(30),
-                    $dateRange['end']->copy()->subDays(30)
-                ])
-                ->withCalculatedRating()
-                ->get();
-
-            $previousTotal = $previousReviews->count();
-
-            // Calculate previous period ratings FROM calculated_rating field
-            $previousAvgRating = $previousReviews->isNotEmpty()
-                ? round($previousReviews->avg('calculated_rating'), 1)
-                : 0;
-
-            // Calculate sentiment scores (still from ReviewNew)
-            $previous_sentiment_score = $previousReviews->avg('sentiment_score') ?? 0;
-        }
-
-        $total = $reviews->count();
-
-        // Calculate current period ratings FROM calculated_rating field
-        $currentAvgRating = $reviews->isNotEmpty()
-            ? round($reviews->avg('calculated_rating'), 1)
-            : 0;
-
-        // Calculate sentiment scores (still from ReviewNew)
-        $current_sentiment_score = $reviews->avg('sentiment_score') ?? 0;
-
-        // Calculate positive/negative counts based on calculated_rating
-        $positiveReviewsCount = $reviews->where('calculated_rating', '>=', 4)->count();
-        $negativeReviewsCount = $reviews->where('calculated_rating', '<=', 2)->count();
-
-        // Top Topic (minimal summary)
-        $topTopicSummary = $this->reviewTopicService->getTopTopicSummary($reviews);
-
-        // Detect repeated issues (minimal data only)
-        $businessId = $reviews->first()->business_id ?? 0;
-        $issueAnalysis = $this->businessAnalyticsService->extractIssuesFromRuleEngine(
-            $businessId,
-            $reviews,
-            [
-                'start' => $reviews->min('created_at') ?? now()->subMonth(),
-                'end' => $reviews->max('created_at') ?? now()
-            ]
-        );
-
-        // Calculate issue count and top issue correctly
-        $isDefaultMessage = (count($issueAnalysis) === 1 && isset($issueAnalysis[0]['issue']) && str_starts_with(trim($issueAnalysis[0]['issue']), 'No major issues'));
-
-        $totalIssues = $isDefaultMessage ? 0 : count($issueAnalysis);
-        $topIssue = $isDefaultMessage ? null : ($issueAnalysis[0]['issue'] ?? null);
 
 
-
-        return [
-            'avg_overall_rating' => [
-                'value' => $currentAvgRating,
-                'change' => $dateRange !== null ? $this->calculatePercentageChange(
-                    $currentAvgRating,
-                    $previousAvgRating
-                ) : null,
-                'previous_value' => $previousAvgRating,
-                'calculated_from' => 'review_value_news (via calculated_rating)',
-                'review_count' => $total
-            ],
-            'ai_sentiment_score' => [
-                'value' => round($current_sentiment_score * 10, 1),
-                'max' => 10,
-                'change' => $dateRange !== null ? $this->calculatePercentageChange(
-                    $current_sentiment_score,
-                    $previous_sentiment_score
-                ) : null,
-                'review_count' => $total
-            ],
-            'total_reviews' => [
-                'value' => $total,
-                'change' => $dateRange !== null ? $this->calculatePercentageChange($total, $previousTotal) : null
-            ],
-            'positive_negative_ratio' => [
-                'positive' => $total > 0 ? round(($positiveReviewsCount / $total) * 100) : 0,
-                'negative' => $total > 0 ? round(($negativeReviewsCount / $total) * 100) : 0,
-                'positive_count' => $positiveReviewsCount,
-                'negative_count' => $negativeReviewsCount,
-                'review_count' => $total
-            ],
-            'staff_linked_reviews' => [
-                'percentage' => $total > 0 ? round(($reviews->whereNotNull('staff_id')->count() / $total) * 100) : 0,
-                'count' => $reviews->whereNotNull('staff_id')->count(),
-                'total' => $total,
-                'review_count' => $total
-            ],
-            'voice_reviews' => [
-                'percentage' => $total > 0 ? round(($reviews->where('is_voice_review', true)->count() / $total) * 100) : 0,
-                'count' => $reviews->where('is_voice_review', true)->count(),
-                'total' => $total,
-                'review_count' => $total
-            ],
-            'rating_distribution' => [
-                '5_star' => $reviews->where('calculated_rating', '>=', 4.5)->count(),
-                '4_star' => $reviews->whereBetween('calculated_rating', [4.0, 4.49])->count(),
-                '3_star' => $reviews->whereBetween('calculated_rating', [3.0, 3.99])->count(),
-                '2_star' => $reviews->whereBetween('calculated_rating', [2.0, 2.99])->count(),
-                '1_star' => $reviews->where('calculated_rating', '<', 2.0)->count()
-            ],
-            'top_topic' => $topTopicSummary,
-            'repeated_issues' => [
-                'review_count' => $total,
-                'issue_count' => $totalIssues,
-                'top_issue' => $topIssue
-            ]
-        ];
-    }
 
     /**
      * Store review values (question/star)
@@ -780,25 +565,7 @@ class ReviewService
         // Ratings will be calculated on-the-fly from ReviewValue data
     }
 
-    /**
-     * Get available filters for the business
-     */
-    public function getAvailableFilters($businessId)
-    {
-        return [
-            'periods' => ['Last 30 Days', 'Last 7 Days', 'This Month', 'Last Month', 'Custom Range'],
-            'staff' => array_merge(
-                ['All Staff'],
-                User::whereHas('staffReviews', fn($q) => $q->where('business_id', $businessId))
-                    ->get()
-                    ->map(fn($user) => $user->name)
-                    ->toArray()
-            ),
-            'branches' => ['All Branches', 'Downtown', 'Uptown', 'Westside'],
-            'review_types' => ['All Review Types', 'Text Only', 'Voice Only', 'Survey', 'Overall'],
-            'ai_sentiment' => ['All Sentiments', 'Positive', 'Neutral', 'Negative', 'AI Flagged']
-        ];
-    }
+
 
     /**
      * Calculate response rate
@@ -814,51 +581,7 @@ class ReviewService
         return round(($responded / $total) * 100, 1);
     }
 
-    /**
-     * Calculate tenure from join date
-     */
-    public function calculateTenure($joinDate)
-    {
-        if (!$joinDate) {
-            return 'Not specified';
-        }
 
-        $join = Carbon::parse($joinDate);
-        $now = Carbon::now();
-
-        $years = $now->diffInYears($join);
-        $months = $now->diffInMonths($join) % 12;
-
-        return "{$years} years {$months} months";
-    }
-
-    /**
-     * Get rating trend from review values
-     */
-    public function getRatingTrendFromReviewValue($reviews)
-    {
-        $sixMonthsAgo = Carbon::now()->subMonths(6);
-
-        $monthlyReviews = $reviews->where('created_at', '>=', $sixMonthsAgo)
-            ->groupBy(function ($review) {
-                return $review->created_at->format('Y-m');
-            });
-
-        $monthlyRatings = [];
-
-        foreach ($monthlyReviews as $month => $monthReviews) {
-            // Use calculated_rating field directly
-            $monthlyRatings[$month] = $monthReviews->avg('calculated_rating') ?? 0;
-        }
-
-        ksort($monthlyRatings);
-
-        return [
-            'period' => 'last_6_months',
-            'data' => $monthlyRatings,
-            'trend_direction' => $this->calculateTrendDirection($monthlyRatings)
-        ];
-    }
 
     /**
      * Calculate trend direction from monthly ratings
@@ -882,31 +605,7 @@ class ReviewService
         }
     }
 
-    /**
-     * Fill missing periods in data
-     */
-    public function fillMissingPeriods($data, $startDate, $endDate, $format)
-    {
-        $filledData = [];
-        $current = $startDate->copy();
 
-        while ($current <= $endDate) {
-            $periodKey = $current->format($format);
-            $filledData[$periodKey] = $data[$periodKey] ?? [
-                'submissions_count' => 0,
-                'average_rating' => 0,
-                'sentiment_score' => 0
-            ];
-
-            if ($format === 'd-m-Y') {
-                $current->addDay();
-            } else {
-                $current->addMonth();
-            }
-        }
-
-        return $filledData;
-    }
 
     /**
      * Apply filters to query
@@ -1028,19 +727,5 @@ class ReviewService
             ->toArray();
 
         return $staffRatings;
-    }
-
-    /**
-     * Get user name from review
-     */
-    public function getUserName($review)
-    {
-        if ($review->user) {
-            return $review->user->name;
-        } elseif ($review->guest_user) {
-            return $review->guest_user->full_name;
-        } else {
-            return 'Anonymous User';
-        }
     }
 }

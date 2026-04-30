@@ -39,7 +39,6 @@ class NotificationService
             $this->client->setSubject(config('services.firebase.client_email')); // optional if you need to specify subject
             $this->client->refreshTokenWithAssertion();
             $this->accessToken = $this->client->getAccessToken()['access_token'];
-
         } catch (Exception $e) {
             // GRACEFULLY HANDLE FIREBASE CREDENTIAL ERRORS
             // This prevents the entire app from crashing when Firebase credentials are invalid
@@ -55,158 +54,6 @@ class NotificationService
         }
     }
 
-    /**
-     * Send push notification to iOS device via APNs
-     *
-     * @TODO: iOS push notifications - To be implemented later
-     * @TODO: Configure APNs credentials in .env and config/services.php
-     *
-     * @param string $deviceToken
-     * @param string $title
-     * @param string $body
-     * @param array $data
-     * @return array
-     */
-    /*
-    public function sendNotificationToIOSDevice($deviceToken, $title, $body, $data = [])
-    {
-        try {
-            // Validate required parameters
-            if (empty($deviceToken)) {
-                throw new BadRequestHttpException('Device token is required');
-            }
-
-            if (empty($title) && empty($body)) {
-                throw new BadRequestHttpException('Either title or body is required');
-            }
-
-            $keyId = config('services.apn.key_id');
-            $teamId = config('services.apn.team_id');
-            $bundleId = config('services.apn.bundle_id');
-            $authKeyPath = config('services.apn.auth_key_path');
-            $useSandbox = config('services.apn.use_sandbox', true);
-
-            // Validate configuration
-            if (empty($keyId) || empty($teamId) || empty($bundleId) || empty($authKeyPath)) {
-                throw new BadRequestHttpException('APNs configuration is incomplete');
-            }
-
-            // Check if auth key file exists and is readable
-            if (!file_exists($authKeyPath) || !is_readable($authKeyPath)) {
-                throw new BadRequestHttpException("APNs auth key file not found or not readable: {$authKeyPath}");
-            }
-
-            $authKey = file_get_contents($authKeyPath);
-            if ($authKey === false) {
-                throw new BadRequestHttpException("Failed to read APNs auth key file: {$authKeyPath}");
-            }
-
-            // Generate JWT token for APNs
-            $jwtHeader = [
-                'alg' => 'ES256',
-                'kid' => $keyId,
-            ];
-            $jwtPayload = [
-                'iss' => $teamId,
-                'iat' => Carbon::now()->timestamp,
-            ];
-
-            $token = JWT::encode($jwtPayload, $authKey, 'ES256', $keyId);
-
-            // APNs URL
-            $url = $useSandbox
-                ? "https://api.sandbox.push.apple.com/3/device/{$deviceToken}"
-                : "https://api.push.apple.com/3/device/{$deviceToken}";
-
-            // Calculate badge count with error handling
-            try {
-                $badgeCount = Notification::where([
-                    "receiver_id" => $data['receiver_id'] ?? null,
-                    "status" => "unread"
-                ])->count();
-            } catch (Exception $e) {
-                // If badge count fails, default to 0 and log the error
-                log_message([
-                    "message" => 'Failed to calculate badge count',
-                    'receiver_id' => $data['receiver_id'] ?? null,
-                    'error' => $e->getMessage()
-                ], 'notificationIOS.log');
-                $badgeCount = 0;
-            }
-
-            $payload = [
-                "aps" => [
-                    "alert" => [
-                        "title" => $title,
-                        "body" => $body,
-                    ],
-                    "sound" => "default",
-                    "badge" => $badgeCount,
-                ],
-                "data" => $data
-            ];
-
-            $response = Http::withHeaders([
-                'authorization' => "bearer {$token}",
-                'apns-topic' => $bundleId,
-                'apns-push-type' => 'alert',
-            ])
-                ->withBody(json_encode($payload), 'application/json')
-                ->timeout(30)
-                ->withOptions([
-                    'version' => 2.0,
-                    'curl' => [
-                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
-                    ],
-                ])
-                ->post($url);
-
-            $responseBody = $response->body();
-            $statusCode = $response->status();
-
-            // Check for APNs specific errors
-            if (!$response->successful()) {
-                $errorMessage = "APNs API Error (Status: {$statusCode})";
-
-                // Try to parse APNs error response
-                if (!empty($responseBody)) {
-                    $errorData = json_decode($responseBody, true);
-                    if (isset($errorData['reason'])) {
-                        $errorMessage .= ": {$errorData['reason']}";
-                    } else {
-                        $errorMessage .= ": {$responseBody}";
-                    }
-                }
-
-                throw new Exception($errorMessage, 500);
-            }
-
-            return [
-                'success' => true,
-                'status' => $statusCode,
-                'response' => $responseBody,
-            ];
-
-        } catch (Exception $e) {
-            // Log the error for debugging
-            log_message([
-                'message' => 'APNs Notification Failed',
-                'device_token' => substr($deviceToken, 0, 20) . '...', // Partial token for security
-                'title' => $title,
-                'error' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'code' => $e->getCode()
-            ];
-        }
-    }
-    */
 
 
     public function sendNotificationToDevice($deviceToken, $title, $body, $data = [])
@@ -284,7 +131,6 @@ class NotificationService
                 "debug" => [$url, substr($this->accessToken, 0, 20) . '...'], // Only log partial token for security
                 "response" => $response->json()
             ];
-
         } catch (Exception $e) {
             // Log the error for debugging
             log_message([
@@ -413,25 +259,7 @@ class NotificationService
         };
     }
 
-    /**
-     * Create notifications for multiple receivers
-     *
-     * @param array $receiverIds
-     * @param array $data
-     * @return array
-     */
 
-    public function createForMultipleReceivers(array $receiverIds, array $data): array
-    {
-        $notifications = [];
-
-        foreach ($receiverIds as $receiverId) {
-            $data['receiver_id'] = $receiverId;
-            $notifications[] = $this->send_notification($data);
-        }
-
-        return $notifications;
-    }
 
     /**
      * Mark notification as read
@@ -443,7 +271,7 @@ class NotificationService
     {
         return $notification->update([
             'read_at' => now(),
-            'status'=> 'read'
+            'status' => 'read'
         ]);
     }
 
@@ -462,33 +290,4 @@ class NotificationService
                 'status' => 'read'
             ]);
     }
-
-    /**
-     * Get unread notifications count for a user
-     *
-     * @param int $userId
-     * @return int
-     */
-    public function getUnreadCount(int $userId): int
-    {
-        return Notification::where('receiver_id', $userId)
-            ->whereNull('read_at')
-            ->count();
-    }
-
-
-    /**
-     * Delete old notifications
-     *
-     * @param int $days
-     * @return int
-     */
-    public function deleteOldNotifications(int $days = 30): int
-    {
-        return Notification::where('created_at', '<', now()->subDays($days))
-            ->whereNotNull('read_at')
-            ->delete();
-    }
-
-
 }

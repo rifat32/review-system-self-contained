@@ -302,136 +302,7 @@ class RuleEngineService
         return str_replace(array_keys($replacements), array_values($replacements), $template);
     }
 
-    private function getRecommendationTemplate(string $templateId): string
-    {
-        // 1. Try to get from database first (seeded templates)
-        $dbTemplate = AiRule::where('category', 'recommendation_templates')
-            ->where('key_name', $templateId)
-            ->where('enabled', true)
-            ->value('value');
 
-        if ($dbTemplate) {
-            return $dbTemplate;
-        }
-
-        // 2. Fallback to config
-        return \config('ai.insights.recommendation_templates.' . $templateId)
-            ?? \config('ai.insights.recommendation_templates.GENERAL', 'Improve {{main_category}} based on {{count}} customer mentions.');
-    }
-
-    // REVIEW-LEVEL RULE MATCHING (for real-time evaluation)
-
-    private function getApplicableRulesForReview(int $businessId)
-    {
-        // $businessType = Business::where('id', $businessId)->value('type');
-        $businessType = null;
-
-        return AiRule::where('enabled', true)
-            ->where('category', '!=', 'trend')
-            ->where(function ($query) use ($businessId, $businessType) {
-                $query->where('scope', 'system')
-                    ->orWhere(function ($q) use ($businessType) {
-                        if ($businessType) {
-                            $q->where('scope', 'business_type')
-                                ->where('business_type', $businessType);
-                        }
-                    })
-                    ->orWhere(function ($q) use ($businessId) {
-                        $q->where('scope', 'business')
-                            ->where('business_id', $businessId);
-                    });
-            })
-            ->get();
-    }
-
-    private function ruleMatchesReview(AiRule $rule, ReviewNew $review, array $openaiData): bool
-    {
-        // Use the centralized ConditionBuilderService for robust evaluation
-        return ConditionBuilderService::evaluateConditions(
-            $rule->conditions,
-            $review,
-            $openaiData
-        );
-    }
-
-    private function reviewContainsCategory(array $openaiData, array $condition): bool
-    {
-        $categories = $openaiData['category_analysis'] ?? [];
-
-        foreach ($categories as $category) {
-            $mainCat = $category['main_category'] ?? '';
-            $subCat = $category['sub_category'] ?? '';
-
-            if (isset($condition['main_category']) && isset($condition['sub_category'])) {
-                if ($mainCat === $condition['main_category'] && $subCat === $condition['sub_category']) {
-                    return true;
-                }
-            } elseif (isset($condition['main_category'])) {
-                if ($mainCat === $condition['main_category']) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private function createRuleEvaluation(AiRule $rule, ReviewNew $review, array $openaiData): array
-    {
-        return [
-            'rule_id' => $rule->rule_id,
-            'review_id' => $review->id,
-            'business_id' => $review->business_id,
-            'triggered' => true,
-            'severity' => $rule->priority,
-            'explanation' => "Rule '{$rule->rule_name}' triggered for review #{$review->id}",
-            'confidence' => 0.8, // Default confidence for review-level matches
-            'evaluation_data' => [
-                'matched_conditions' => $rule->conditions,
-                'review_categories' => $openaiData['category_analysis'] ?? [],
-                'timestamp' => \now()->toISOString()
-            ]
-        ];
-    }
-
-    public function triggerRuleActions(AiRule $rule, ReviewNew $review, array $openaiData): void
-    {
-        $actions = $rule->actions;
-        if (empty($actions))
-            return;
-
-        // Trigger alert
-        if ($actions['trigger_alert'] ?? false) {
-            Alert::create([
-                'business_id' => $review->business_id,
-                'type' => 'rule_triggered',
-                'title' => $rule->rule_name,
-                'message' => "Rule triggered for review #{$review->id}",
-                'severity' => $actions['severity'] ?? 'medium',
-                'metadata' => [
-                    'rule_id' => $rule->rule_id,
-                    'review_id' => $review->id,
-                    'categories' => $openaiData['category_analysis'] ?? []
-                ]
-            ]);
-        }
-    }
-
-    private function checkRatingCondition(array $condition, float $rating): bool
-    {
-        $operator = $condition['operator'] ?? 'eq';
-        $value = $condition['value'] ?? 0;
-
-        return match ($operator) {
-            'lt' => $rating < $value,
-            'lte' => $rating <= $value,
-            'gt' => $rating > $value,
-            'gte' => $rating >= $value,
-            'eq' => $rating == $value,
-            'between' => $rating >= ($condition['min'] ?? 0) && $rating <= ($condition['max'] ?? 5),
-            default => false
-        };
-    }
 
     private function generateRuleExplanation(AiRule $rule, InsightRecord $insight): string
     {
@@ -466,10 +337,6 @@ class RuleEngineService
         return (float) \config('ai.sentiment.thresholds.negative_score', 0.4);
     }
 
-    public static function getNeutralLowerThreshold(): float
-    {
-        return (float) \config('ai.sentiment.thresholds.negative_score', 0.4);
-    }
 
     public static function getNeutralUpperThreshold(): float
     {
@@ -587,10 +454,6 @@ class RuleEngineService
             ->toArray();
     }
 
-    public function getOpportunityKeywords(): array
-    {
-        return \config('ai.topics.opportunity_keywords', []);
-    }
 
     public function generateRatingPrediction(float $avgRating): array
     {
@@ -613,15 +476,7 @@ class RuleEngineService
         ];
     }
 
-    public function getMinimumPraiseForRecommendation(): int
-    {
-        return (int) \config('ai.sentiment.thresholds.min_praise_recommendation', 2);
-    }
 
-    public function getMinimumMentionsForIssue(): int
-    {
-        return (int) \config('ai.sentiment.thresholds.min_mentions_issue', 2);
-    }
 
     public function getHighPriorityThreshold(): int
     {
@@ -1141,10 +996,6 @@ class RuleEngineService
         ];
     }
 
-    public function getPerformanceCategories(): array
-    {
-        return \config('ai.performance.performance_categories', []);
-    }
 
     public function extractTopicsV2($reviews, $limit = 5): array
     {

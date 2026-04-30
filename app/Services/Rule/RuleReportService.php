@@ -185,60 +185,7 @@ class RuleReportService
         ];
     }
 
-    /**
-     * Get flagged reviews report
-     */
-    public function getFlaggedReviewsReport(int $businessId, ?string $startDate = null, ?string $endDate = null): array
-    {
-        $rule = $this->getDefaultRule('FLAG_AND_ALERT', $businessId);
 
-        $query = ReviewNew::where('business_id', $businessId)
-            ->where('is_flagged', true)
-            ->globalReviewFilters(0);
-
-        if ($startDate) {
-            $query->where('created_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $query->where('created_at', '<=', $endDate);
-        }
-
-        $flaggedReviews = $query->get();
-
-        $criticalFlags = $flaggedReviews->filter(function ($review) {
-            return ($review->calculated_rating ?? 0) < (config('ai.insights.opportunities.reporting.mismatch_low_rating') ?? 2);
-        });
-
-        return [
-            'rule_info' => [
-                'rule_id' => $rule->rule_id,
-                'rule_name' => $rule->rule_name,
-                'precision_rate' => $rule->precision_rate
-            ],
-            'summary' => [
-                'total_flagged' => $flaggedReviews->count(),
-                'critical_flags' => $criticalFlags->count(),
-                'pending_response' => $flaggedReviews->whereNull('responded_at')->count(),
-                'resolved' => $flaggedReviews->whereNotNull('responded_at')->count()
-            ],
-            'flagged_reviews' => $flaggedReviews->map(function ($review) {
-                return [
-                    'review_id' => $review->id,
-                    'rating' => $review->calculated_rating,
-                    'flag_reason' => 'Very low rating',
-                    'flagged_at' => $review->created_at,
-                    'status' => $review->responded_at ? 'resolved' : 'pending',
-                    'priority' => ($review->calculated_rating ?? 0) < (config('ai.insights.opportunities.reporting.mismatch_low_rating') ?? 2) ? 'critical' : 'high'
-                ];
-            })->values(),
-            'trends' => [],
-            'response_time_analysis' => [
-                'avg_time_to_respond' => 'N/A',
-                'fastest_response' => 'N/A',
-                'slowest_response' => 'N/A'
-            ]
-        ];
-    }
 
     /**
      * Helper: Get sentiment trends over time

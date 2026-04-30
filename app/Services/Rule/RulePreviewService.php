@@ -9,51 +9,6 @@ use Illuminate\Support\Collection;
 
 class RulePreviewService
 {
-    /**
-     * Generate a detailed preview for a rule
-     */
-    public function generatePreview(array $ruleData, int $businessId): array
-    {
-        // Get recent reviews for simulation
-        $recentReviews = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters(0)
-            ->filterByDateRange()
-            ->orderBy('created_at', 'desc')
-            ->limit(config('ai.insights.opportunities.preview.sample_limit') ?? 50)
-            ->get();
-
-        $previewResults = [];
-        $totalMatches = 0;
-
-        foreach ($recentReviews as $review) {
-            $aiData = $this->getReviewAIData($review);
-
-            $logicTrace = $this->getLogicTrace($ruleData['conditions'] ?? [], $review, $aiData);
-            $isMatch = $logicTrace['is_match'];
-
-            if ($isMatch) {
-                $totalMatches++;
-                if (count($previewResults) < (config('ai.insights.opportunities.preview.match_display_limit') ?? 5)) {
-                    $previewResults[] = [
-                        'review_id' => $review->id,
-                        'text' => $review->comment,
-                        'highlighted_text' => $this->highlightMatches($review->comment, $ruleData['conditions'] ?? []),
-                        'rating' => $review->rating,
-                        'created_at' => $review->created_at->diffForHumans(),
-                        'logic_breakdown' => $logicTrace['breakdown']
-                    ];
-                }
-            }
-        }
-
-        return [
-            'estimated_triggers_past_50' => $totalMatches,
-            'precision_estimate' => $this->calculatePrecision($totalMatches, count($ruleData['conditions'] ?? [])),
-            'confidence_level' => $this->getConfidenceLevel($totalMatches),
-            'sample_matches' => $previewResults,
-            'behaviour_simulation' => $this->simulateBehaviour($totalMatches, $ruleData)
-        ];
-    }
 
     /**
      * Trace which conditions passed/failed
