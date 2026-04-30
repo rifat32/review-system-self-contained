@@ -133,14 +133,7 @@ Route::middleware(['auth:api'])->group(function () {
         // -------------------------------------------------------------------------
         Route::get('/v1.0/owner-list', [UserController::class, 'getOwnerReport']);
 
-        // -------------------------------------------------------------------------
-        // EmailTemplateWrapperController – Wrapper management
-        // -------------------------------------------------------------------------
-        Route::prefix('/v1.0/email-template-wrappers')->group(function () {
-            Route::put('/{id}', [EmailTemplateWrapperController::class, 'updateEmailTemplateWrapper']);
-            Route::get('/{id}', [EmailTemplateWrapperController::class, 'getEmailTemplateWrapperById']);
-            Route::get('/', [EmailTemplateWrapperController::class, 'getEmailTemplateWrappers']);
-        });
+
 
         // -------------------------------------------------------------------------
         // EmailTemplateController – Email template management & types
@@ -181,8 +174,10 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
     Route::post('/v1.0/review-new/{businessId}', [ReviewNewController::class, "createReview"]);
     Route::get('/v1.0/reviews', [ReviewNewController::class, 'getAllReviews']);
-    Route::get('/v1.0/review-trends/{businessId}', [ReviewNewController::class, 'reviewTrends']);
-    Route::get('/v1.0/overall-reviews-metrics', [ReviewNewController::class, 'overallReviewsMetrics']);
+
+
+
+
 
     // ============================================================================
     // ReportController – v3 dashboard report (protected)
@@ -190,23 +185,8 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/v3.0/dashboard-report', [ReportController::class, "getDashboardReportV3"]);
 
-    Route::get('/v1.0/dashboard/insights-overview', [DashboardController::class, "getInsightsOverview"]);
-    Route::get('/v1.0/dashboard/monthly-trends', [DashboardController::class, "getMonthlyTrends"]);
-
-    Route::get('/v1.0/dashboard/top-worst-services', [DashboardController::class, "getTopWorstServices"]);
-
-    Route::get('/v1.0/dashboard/staff-performance', [DashboardController::class, "getStaffPerformanceAnalysis"]);
-    Route::get('/v1.0/dashboard/staff-insights', [DashboardController::class, "getStaffInsights"]);
-    Route::get('/v1.0/dashboard/survey-insights', [DashboardController::class, "getSurveyInsights"]);
 
 
-
-
-
-    Route::get('/v1.0/dashboard/content', [DashboardController::class, "getContentStatistics"]);
-    Route::get('/v1.0/dashboard/reviews', [DashboardController::class, "getReviewStatistics"]);
-
-    Route::get('/v1.0/dashboard/overview', [DashboardController::class, "getDashboardOverview"]);
 
 
 
@@ -369,7 +349,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/business/default-branch', [BusinessController::class, "updateDefaultBranch"]);
     Route::patch('/v1.0/business/setup-progress', [BusinessController::class, "updateSetupProgress"]);
     Route::patch('/v1.0/business/upload-image/{businessId}', [BusinessController::class, "uploadRestaurantImage"]);
-    Route::delete('/v1.0/business/delete/force-delete/{email}', [BusinessController::class, "deleteBusinessByRestaurantIdForceDelete"]);
+
     Route::delete("/v1.0/business/force-delete-by-ids/{ids}", [BusinessController::class, "forceDeleteBusinessesByIds"]);
     Route::post("/v1.0/business/restore-by-ids/{ids}", [BusinessController::class, "restoreBusinessesByIds"]);
     Route::get("/v1.0/business/deleted/all", [BusinessController::class, "getSoftDeletedBusinesses"]);
@@ -378,7 +358,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/business/{businessId}', [BusinessController::class, "getBusinessById"]);
     Route::patch('/v1.0/business/{businessId}', [BusinessController::class, "UpdateBusiness"]);
     Route::delete('/v1.0/business/{id}', [BusinessController::class, "deleteBusinessById"]);
-    Route::get('/v1.0/restaurants/tables/{businessId}', [BusinessController::class, "getRestaurantTableByBusinessId"]);
+
 
     // ============================================================================
     // BranchController – Branch CRUD (protected, /v1.0/branches)
@@ -421,25 +401,12 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/v1.0/business-days/{restaurentId}', [BusinessDaysController::class, "updateBusinessDays"]);
     Route::get('/v1.0/business-days/{restaurentId}', [BusinessDaysController::class, "getBusinessDays"]);
 
-    // ============================================================================
-    // StripeController – Restaurant Stripe details (protected)
-    // ============================================================================
 
-    // ============================================================================
-    // DailyViewsController – Daily views (protected)
-    // ============================================================================
-    Route::post('/v1.0/daily-views/{businessId}', [DailyViewsController::class, "createDailyView"]);
-    Route::patch('/v1.0/daily-views/update/{businessId}', [DailyViewsController::class, "updateDailyView"]);
 
     // ============================================================================
     // ForgotPasswordController – Authenticated password change (protected)
     // ============================================================================
     Route::patch('/v1.0/auth/change-password', [ForgotPasswordController::class, "changePassword"]);
-
-    // ============================================================================
-    // ReviewNewController – Values/filters/tags/stars/reporting (protected)
-    // ============================================================================
-    Route::get('/v1.0/review-new/values/{businessId}/{rate}', [ReviewNewController::class, "getReviewValue"]);
 
 
 
@@ -449,20 +416,8 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/review-new/get/questions-all-report', [ReviewNewController::class, "getQuestionAllReport"]);
 
-    // Stars (protected)
-    Route::post('/v1.0/stars', [StarController::class, "createStar"]);
-    Route::patch('/v1.0/stars', [StarController::class, "updateStar"]);
-    Route::get('/v1.0/stars', [StarController::class, "getAllStar"]);
-    Route::get('/v1.0/stars/{id}', [StarController::class, "getStarById"]);
-    Route::delete('/v1.0/stars/{id}', [StarController::class, "deleteStarById"]);
 
 
-    // Star-tag-question (protected)
-    Route::post('/v1.0/star-tag-question', [StarTagQuestionController::class, "createStarTagQuestion"]);
-    Route::patch('/v1.0/star-tag-question/{id}', [StarTagQuestionController::class, "updateStarTagQuestion"]);
-    Route::get('/v1.0/star-tag-question', [StarTagQuestionController::class, "getAllStarQuestionTag"]);
-    Route::get('/v1.0/star-tag-question/{id}', [StarTagQuestionController::class, "getStarTagQuestionById"]);
-    Route::delete('/v1.0/star-tag-question/{id}', [StarTagQuestionController::class, "deleteStarTagQuestionById"]);
 
     // ============================================================================`
     // CustomerController – Customers (protected)
@@ -474,8 +429,8 @@ Route::middleware(['auth:api'])->group(function () {
     // ============================================================================
 
     Route::get('/v1.0/reports/staff-comparison', [DashboardController::class, 'staffComparison']);
-    Route::get('/v1.0/reports/staff-performance/{businessId}/{staffId}', [DashboardController::class, 'staffPerformance']);
-    Route::get('/v1.0/reports/review-analytics/{businessId}', [DashboardController::class, 'reviewAnalytics']);
+
+
     // Route::get('/v1.0/branch-dashboard/{branchId}', [DashboardController::class, 'getBranchDashboard']);
     Route::get('/v1.0/reports/branch-comparison', [DashboardController::class, 'branchComparison']);
 
@@ -488,16 +443,13 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/v1.0/review-new/{reviewId}', [ReviewNewController::class, "getReviewById"]);
     Route::put('/v1.0/reviews/{reviewId}/reply', [ReviewNewController::class, 'updateReviewReply']);
     Route::get('/openai-tokens/report', [OpenAITokenReportController::class, 'getTokenUsageReport']);
-    Route::get('/v1.0/reviews/overall-dashboard/{businessId}', [DashboardController::class, 'getOverallDashboardData']);
 
-    // Get dashboard metrics for authenticated user's business (no businessId parameter required)
-    Route::get('/v1.0/dashboard/metrics', [DashboardController::class, 'getDashboardMetrics']);
+
+
     Route::get('/v1.0/dashboard/unified', [DashboardController::class, 'getUnifiedDashboardData']);
-    Route::get('/v1.0/dashboard/recent-reviews', [DashboardController::class, 'getRecentReviews']);
-    Route::get('/v1.0/dashboard/rating-breakdown', [DashboardController::class, 'getRatingBreakdown']);
-    Route::get('/v1.0/dashboard/tags-breakdown', [DashboardController::class, 'getTagsBreakdown']);
-    Route::get('/v1.0/dashboard/ai-insights', [DashboardController::class, 'getAiInsights']);
-    Route::get('/v1.0/dashboard/staff-performance-snapshot', [DashboardController::class, 'getStaffPerformanceSnapshot']);
+
+
+
 
 
 
@@ -559,10 +511,7 @@ Route::post('/owner/pin/{ownerId}', [OwnerController::class, "updatePin"]);
 Route::get('/owner/{ownerId}', [OwnerController::class, "getOwnerById"]);
 
 
-// ============================================================================
-// ReviewNewController – Public/unauthorized question sets
-// ============================================================================
-// Route::get('/review-new/get/questions-all/customer', [ReviewNewController::class, 'getQuestionAllUnauthorized'])->name('getQuestionAllUnauthorized');
+
 
 Route::get('/review-new/get/questions-all-overall/customer', [ReviewNewController::class, 'getQuestionAllUnauthorizedOverall'])->name('getQuestionAllUnauthorizedOverall');
 
@@ -612,11 +561,3 @@ Route::get('/v1.0/survey-page-settings/{businessId}', [SurveyPageSettingControll
 
 // Logo Color Extraction
 Route::post('/logo/extract-colors', [LogoColorController::class, 'extract']);
-
-
-Route::prefix('api')->group(function () {
-    Route::post('/recommendations/generate', [RecommendationController::class, 'generate']);
-    Route::get('/recommendations', [RecommendationController::class, 'index']);
-    Route::get('/recommendations/{id}/explain', [RecommendationController::class, 'explain']);
-    Route::get('/dashboard/insights', [RecommendationController::class, 'dashboardInsights']);
-});

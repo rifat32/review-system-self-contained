@@ -119,7 +119,7 @@ Route::get('/clear-cache', [SetupController::class, "clearCache"]);
 // RUN ARTISAN COMMAND
 Route::get('/run-artisan', [SetupController::class, "runArtisanCommand"]);
 // ONE TIME DB OPERATION
-Route::get('/one-time-db-operation', [SetupController::class, "oneTimeDBOperation"]);
+
 
 // CHANGE PASSWORD FOR TEST USER
 Route::get('/change-password', function () {

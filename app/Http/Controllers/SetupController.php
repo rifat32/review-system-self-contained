@@ -17,25 +17,6 @@ class SetupController extends Controller
 {
     use ErrorUtil;
 
-    public function oneTimeDBOperation()
-    {
-        // DB::table('question_categories')->insert([
-        //     'title' => 'Staff',
-        //     'description' => 'Default category for staff-related questions',
-        //     'is_active' => true,
-        //     'is_default' => true,
-        //     'business_id' => null,
-        //     'parent_question_category_id' => null,
-        //     'created_by' => null, // Nullable field
-        //     'created_at' => now(),
-        //     'updated_at' => now(),
-        // ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'DB Operation Complete'
-        ]);
-    }
 
     public function setupPassport()
     {
