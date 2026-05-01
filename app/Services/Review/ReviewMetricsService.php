@@ -6,6 +6,8 @@ use App\Models\ReviewNew;
 use App\Models\Business;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use App\Models\AiRule;
+use App\Services\Rule\ConditionBuilderService;
 use App\Services\Rule\RuleEngineService;
 
 class ReviewMetricsService
@@ -52,18 +54,36 @@ class ReviewMetricsService
         int $businessId,
         Collection $reviews
     ): array {
-        // Enforce AI processed check
-        $processedReviews = $reviews->filter(function ($review) {
-            return $review->is_ai_processed == 1;
-        });
+        // 1. Get the current active Flag and Alert rule for this business
+        $flagRule = AiRule::where('business_id', $businessId)
+            ->where('rule_id', 'like', 'FLAG_AND_ALERT%')
+            ->where('enabled', true)
+            ->first();
 
-        $totalCount = $processedReviews->count();
+        // 2. If no specific rule exists, fallback to standard sentiment-based threshold
+        if (!$flagRule) {
+            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+            $flaggedCount = $reviews->filter(function ($review) use ($negativeThreshold) {
+                return $review->is_ai_processed == 1 && $review->sentiment_score < $negativeThreshold;
+            })->count();
+        } else {
+            // 3. Dynamic evaluation based on the CURRENT rule configuration
+            $flaggedCount = 0;
+            foreach ($reviews as $review) {
+                // We use a simplified AI data context for dashboard metrics
+                $aiData = [
+                    'sentiment' => $review->sentiment_label,
+                    'sentiment_score' => $review->sentiment_score,
+                    'emotion' => $review->emotion['primary'] ?? 'neutral'
+                ];
 
-        // Get unified threshold from RuleEngineService
-        $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
+                if (ConditionBuilderService::evaluateConditions($flagRule->conditions, $review, $aiData)) {
+                    $flaggedCount++;
+                }
+            }
+        }
 
-        $flaggedCount = $processedReviews->where('sentiment_score', '<', $negativeThreshold)->count();
-
+        $totalCount = $reviews->count();
         $percentage = $totalCount > 0 ? round(($flaggedCount / $totalCount) * 100, 1) : 0;
 
         return [
