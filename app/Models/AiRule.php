@@ -110,7 +110,8 @@ class AiRule extends Model
         'lifetime_triggers',
         'branch_ids',
         // Default rule enforcement
-        'is_default'
+        'is_default',
+        'recipient'
     ];
 
     protected $casts = [
@@ -131,6 +132,58 @@ class AiRule extends Model
         'ai_generated_at' => 'datetime',
         'is_default' => 'boolean'
     ];
+
+    protected $appends = ['recipient'];
+
+    /**
+     * Get the recipient email from the value column
+     */
+    public function getRecipientAttribute()
+    {
+        return $this->key_name === 'recipient' ? $this->value : null;
+    }
+
+    /**
+     * Set the recipient email to the value column
+     */
+    public function setRecipientAttribute($value)
+    {
+        $this->attributes['key_name'] = 'recipient';
+        $this->attributes['value'] = $value;
+    }
+
+    /**
+     * Ensure conditions are always in the nested {logic, conditions} format.
+     */
+    protected function setConditionsAttribute($value)
+    {
+        if (isset($value['logic']) && isset($value['conditions'])) {
+            $this->attributes['conditions'] = json_encode($value);
+        } else {
+            $this->attributes['conditions'] = json_encode([
+                'logic' => 'AND',
+                'conditions' => $value
+            ]);
+        }
+    }
+
+    /**
+     * Ensure conditions are always returned in the nested {logic, conditions} format.
+     */
+    protected function getConditionsAttribute($value)
+    {
+        if (!$value) return null;
+        $conditions = json_decode($value, true);
+        
+        if (isset($conditions['logic']) && isset($conditions['conditions'])) {
+            return $conditions;
+        }
+
+        return [
+            'logic' => 'AND',
+            'conditions' => $conditions
+        ];
+    }
 
     /**
      * Boot the model and add protection logic

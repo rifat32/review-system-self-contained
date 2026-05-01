@@ -358,10 +358,13 @@ class RuleExecutionService
 
     private function notifyEmail(ReviewNew $review, AiRule $rule, array $context): void
     {
+        $recipient = $rule->recipient ?? $rule->value;
+
         // Send email notification
         Log::info("Email notification sent", [
             'review_id' => $review->id,
-            'rule_id' => $rule->rule_id
+            'rule_id' => $rule->rule_id,
+            'recipient' => $recipient
         ]);
     }
 

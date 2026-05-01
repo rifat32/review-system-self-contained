@@ -116,13 +116,14 @@ class RuleWizardController extends Controller
             'priority' => 'required|in:critical,high,medium,low',
 
             // CONDITIONS & ACTIONS
-            'conditions' => 'required|array|min:1',
-            'conditions.*.source' => 'required|in:Comment,Rating,Staff,Area,Emotion,Trend',
-            'conditions.*.type' => 'required|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
-            'conditions.*.operator' => 'required|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
-            'conditions.*.value' => 'required',
-            'conditions.*.logic' => 'nullable|in:AND,OR',
-            'conditions.*.analyse_comment_for' => 'nullable|string',
+            'conditions' => 'required|array',
+            'conditions.logic' => 'required|in:AND,OR',
+            'conditions.conditions' => 'required|array|min:1',
+            'conditions.conditions.*.source' => 'required|in:Comment,Rating,Staff,Area,Emotion,Trend',
+            'conditions.conditions.*.type' => 'required|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
+            'conditions.conditions.*.operator' => 'required|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
+            'conditions.conditions.*.value' => 'required',
+            'conditions.conditions.*.analyse_comment_for' => 'nullable|string',
             'actions' => 'required|array|min:1',
             'actions.*' => 'required|in:flag_review,notify_manager,recommend_coaching,link_staff,escalate,notify_slack,notify_email',
 
@@ -136,7 +137,8 @@ class RuleWizardController extends Controller
             'applies_to' => 'nullable|in:new_reviews_only,all_reviews',
             'branch_ids' => 'nullable|array',
             'branch_ids.*' => 'exists:branches,id',
-            'sensitivity' => 'nullable|numeric|min:0|max:100'
+            'sensitivity' => 'nullable|numeric|min:0|max:100',
+            'recipient' => 'nullable|email'
         ]);
 
 
@@ -180,7 +182,9 @@ class RuleWizardController extends Controller
 
                 // METADATA
                 'created_by' => $user->id,
-                'version' => 1  // Initial version
+                'version' => 1, // Initial version
+                'key_name' => 'recipient',
+                'value' => $validated['recipient'] ?? null
             ]);
 
 
@@ -394,12 +398,13 @@ class RuleWizardController extends Controller
             'description' => 'nullable|string|max:1000',
             'category' => 'sometimes|required|in:sentiment,staff,area,rating_mismatch,trend,quality',
             'priority' => 'sometimes|required|in:critical,high,medium,low',
-            'conditions' => 'sometimes|required|array|min:1',
-            'conditions.*.source' => 'required_with:conditions|in:Comment,Rating,Staff,Area,Emotion,Trend',
-            'conditions.*.type' => 'required_with:conditions|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
-            'conditions.*.operator' => 'required_with:conditions|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
-            'conditions.*.value' => 'required_with:conditions',
-            'conditions.*.logic' => 'nullable|in:AND,OR',
+            'conditions' => 'sometimes|required|array',
+            'conditions.logic' => 'required_with:conditions|in:AND,OR',
+            'conditions.conditions' => 'required_with:conditions|array|min:1',
+            'conditions.conditions.*.source' => 'required_with:conditions|in:Comment,Rating,Staff,Area,Emotion,Trend',
+            'conditions.conditions.*.type' => 'required_with:conditions|in:sentiment,rating,keyword,staff_mention,area_mention,emotion,service_type,frequency,trend_direction',
+            'conditions.conditions.*.operator' => 'required_with:conditions|in:equals,contains,greater_than,less_than,between,not_equals,starts_with,ends_with,regex',
+            'conditions.conditions.*.value' => 'required_with:conditions',
             'actions' => 'sometimes|required|array|min:1',
             'actions.*' => 'required_with:actions|in:flag_review,notify_manager,recommend_coaching,link_staff,escalate,notify_slack,notify_email',
             'enabled' => 'sometimes|boolean',
@@ -410,7 +415,8 @@ class RuleWizardController extends Controller
             'deduplication_scope' => 'nullable|in:review,staff,category,branch,staff_category',
             'applies_to' => 'nullable|in:new_reviews_only,all_reviews',
             'branch_ids' => 'nullable|array',
-            'branch_ids.*' => 'exists:branches,id'
+            'branch_ids.*' => 'exists:branches,id',
+            'recipient' => 'nullable|email'
         ]);
 
         // Validate conditions if provided
@@ -427,6 +433,10 @@ class RuleWizardController extends Controller
 
         DB::beginTransaction();
         try {
+            if (isset($validated['recipient'])) {
+                $rule->key_name = 'recipient';
+                $rule->value = $validated['recipient'];
+            }
             $rule->update($validated);
             $rule->version = $rule->version + 1;
             $rule->save();

@@ -18,6 +18,11 @@ class ConditionBuilderService
     {
         $errors = [];
 
+        // Handle standardized structure [logic => ..., conditions => ...]
+        if (isset($conditions['conditions']) && is_array($conditions['conditions'])) {
+            return self::validateConditionTree($conditions['conditions']);
+        }
+
         foreach ($conditions as $index => $condition) {
             // Check for nested group
             if (isset($condition['group'])) {
@@ -98,14 +103,9 @@ class ConditionBuilderService
             return false;
         }
 
-        // Handle both simple array of conditions and complex [logic => ..., conditions => ...] structure
-        if (isset($conditionData['logic']) && isset($conditionData['conditions'])) {
-            $logic = $conditionData['logic'];
-            $conditions = $conditionData['conditions'];
-        } else {
-            $logic = $defaultLogic;
-            $conditions = $conditionData;
-        }
+        // Standardized structure: always [logic => ..., conditions => ...]
+        $logic = $conditionData['logic'] ?? $defaultLogic;
+        $conditions = $conditionData['conditions'] ?? [];
 
         if (empty($conditions)) {
             return true;
