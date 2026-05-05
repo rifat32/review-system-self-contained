@@ -1,0 +1,65 @@
+DEFAULT AI RULES SUMMARY
+========================
+
+1. Sentiment Analysis
+   - ID: SENTIMENT_ANALYSIS
+   - Category: Quality (Priority: Medium)
+   - Conditions: Sentiment equals positive OR neutral OR negative
+   - Actions: tag: sentiment_categorized, icon: sentiment_satisfied
+   - Purpose: Automatically categorize feedback into positive, neutral, or negative sentiment buckets.
+
+2. Emotion Intensity Detection
+   - ID: EMOTION_INTENSITY
+   - Category: Quality (Priority: Medium)
+   - Conditions: Intensity greater than 0.7
+   - Actions: tag: high_emotion_intensity, icon: mood
+   - Purpose: Identify the strength of emotions like joy, frustration, or anger within text reviews.
+
+3. Rating & Comment Mismatch
+   - ID: RATING_COMMENT_MISMATCH
+   - Category: Trend (Priority: High)
+   - Conditions: Rating greater than 3 AND Sentiment equals negative
+   - Actions: tag: mismatch_detected, alert: true, icon: match_word
+   - Purpose: Detect when a high numerical rating is paired with a negative written review.
+
+4. Category Issue Detection
+   - ID: CATEGORY_ISSUE_DETECTION
+   - Category: Trend (Priority: Medium)
+   - Conditions: Comment contains 'price' OR 'quality' OR 'delivery'
+   - Actions: tag: category_assigned, icon: category
+   - Purpose: Sort feedback into predefined categories like Pricing, Quality, or Delivery.
+
+5. Service Type Detection
+   - ID: SERVICE_TYPE_DETECTION
+   - Category: Area (Priority: Low)
+   - Conditions: Comment contains 'installation' OR 'maintenance'
+   - Actions: tag: service_type_identified, icon: home_repair_service
+   - Purpose: Identify the specific type of service mentioned (e.g., Installation vs Maintenance).
+
+6. Business Area Detection
+   - ID: BUSINESS_AREA_DETECTION
+   - Category: Area (Priority: Medium)
+   - Conditions: Area mention exists
+   - Actions: tag: area_identified, icon: domain
+   - Purpose: Pinpoint which business unit or physical location the feedback refers to.
+
+7. Staff Mention Detection
+   - ID: STAFF_MENTION_DETECTION
+   - Category: Staff (Priority: Low)
+   - Conditions: Staff mention exists
+   - Actions: tag: staff_identified, icon: badge
+   - Purpose: Extract employee names or roles from comments to track individual mentions.
+
+8. Staff Performance Risk
+   - ID: STAFF_PERFORMANCE_RISK
+   - Category: Staff (Priority: Critical)
+   - Conditions: Staff mention exists AND Sentiment equals negative
+   - Actions: tag: staff_risk_flagged, alert: true, icon: warning
+   - Purpose: Flag recurring negative mentions or behavioral issues linked to specific personnel.
+
+9. Flag and Alert Detection
+   - ID: FLAG_AND_ALERT
+   - Category: Quality (Priority: Critical)
+   - Conditions: Rating less than 2
+   - Actions: alert: true, notification: emergency, icon: notifications_active
+   - Purpose: Trigger immediate notifications for critical keywords or severe dissatisfaction.

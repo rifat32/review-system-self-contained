@@ -19,25 +19,31 @@ return new class extends Migration {
             $table->string('key_name')->nullable();
             $table->text('value')->nullable();
 
-            $table->enum('scope', ['system', 'business_type', 'business']);
-            $table->string('business_type', 50)->nullable();
-            $table->unsignedBigInteger('business_id')->nullable();
-            $table->json('branch_ids')->nullable();
+            $table->enum('scope', ['business', 'system'])->default('business');
+            $table->string('business_type')->nullable();
+            $table->foreignId('business_id')->constrained('businesses')->cascadeOnDelete();
 
-            $table->string('category', 50);
-            $table->string('priority', 20)->default('medium');
+            $table->string('category', 100)->nullable();
+            $table->string('priority', 50)->default('medium');
             $table->boolean('enabled')->default(true);
+
+            $table->json('conditions')->nullable();
+            $table->json('actions')->nullable();
+            $table->json('explainability')->nullable();
+
+            // UI & Visualization fields
+            $table->float('precision_rate')->nullable();
+            $table->integer('lifetime_triggers')->default(0);
+            $table->json('branch_ids')->nullable();
             $table->boolean('multi_tag_detection')->default(false);
             $table->boolean('trigger_only_on_first_occurrence')->default(false);
             $table->enum('applies_to', ['new_reviews_only', 'all_reviews'])->default('new_reviews_only');
-            $table->decimal('precision_rate', 5, 2)->nullable();
-            $table->integer('lifetime_triggers')->default(0);
 
-            $table->json('conditions');
-            $table->json('actions');
-            $table->json('explainability')->nullable();
+            // Recipient for email notifications
+            $table->string('recipient')->nullable();
 
-            $table->string('ai_explanation_title')->nullable();
+            // AI Explanation fields (Legacy/UI specific)
+            $table->text('ai_explanation_title')->nullable();
             $table->text('ai_plain_explanation')->nullable();
             $table->text('ai_why_it_matters')->nullable();
             $table->text('ai_when_it_triggers')->nullable();
@@ -64,9 +70,6 @@ return new class extends Migration {
                 ->comment('True for system-owned default rules, false for user-created custom rules');
             $table->integer('version')->default(1);
             $table->timestamps();
-
-            // Foreign keys
-            $table->foreign('business_id')->references('id')->on('businesses');
 
             // Indexes
             $table->index(['scope', 'business_type', 'business_id']);

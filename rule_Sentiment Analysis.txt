@@ -1,0 +1,135 @@
+FULL LIFE CYCLE: SENTIMENT ANALYSIS RULE
+=======================================
+
+This document details the complete technical flow of the "Sentiment Analysis" rule from creation to dashboard display.
+
+1. DATABASE SCHEMA & RESPONSIBLE FIELDS
+---------------------------------------
+A. Table: ai_rules
+   - conditions (JSON): Stores the logic (Sentiment equals Positive/Neutral/Negative).
+   - is_default (Boolean): Set to true (System Rule).
+   - run_frequency (String): 'daily' (Defines how often the cron job checks it).
+   - actions (JSON): ['tag' => 'sentiment_categorized'].
+
+B. Table: review_news
+   - sentiment_label (String): The AI-calculated label (positive, neutral, negative).
+   - is_ai_processed (Boolean): Must be 1 for the rule to evaluate.
+   - is_flagged (Boolean): Updated by the Rule Engine if the rule triggers an alert action.
+
+C. Table: ai_rule_triggers
+   - dedup_key (String): Prevents duplicate alerts based on cooldown_days.
+
+
+2. PHASE 1: BUSINESS CREATION & RULE INITIALIZATION
+---------------------------------------------------
+File: app/Services/Business/BusinessProfileService.php
+Method: createDefaultAiRules(Business $business)
+
+When a new business is registered, this method is called to insert the 9 default rules.
+Code:
+```php
+public function createDefaultAiRules(Business $business): void {
+    $rules = [
+        [
+            'rule_id' => 'SENTIMENT_ANALYSIS.' . $business->id,
+            'rule_name' => 'Sentiment Analysis',
+            'conditions' => [
+                'logic' => 'OR',
+                'conditions' => [
+                    ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'positive'],
+                    ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'neutral'],
+                    ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
+                ]
+            ],
+            'is_default' => true,
+            'run_frequency' => 'daily'
+        ],
+        // ... other rules
+    ];
+    // Saves to ai_rules table
+}
+```
+
+
+3. PHASE 2: CRON JOB EXECUTION (The "Runner")
+---------------------------------------------
+File: app/Console/Commands/ExecuteScheduledRules.php
+Command: php artisan rules:execute-scheduled
+
+This command runs (usually once per hour) and finds rules that are due.
+Code:
+```php
+public function handle(RuleExecutionService $executionService) {
+    $rules = $executionService->getRulesToExecute(); // Finds 'daily' rules due for execution
+    foreach ($rules as $rule) {
+        $reviews = $executionService->getReviewsForRule($rule); // Gets new reviews since last run
+        $executionService->executeRule($rule, $reviews);
+    }
+}
+```
+
+
+4. PHASE 3: RULE EVALUATION LOGIC
+---------------------------------
+File: app/Services/Rule/RuleExecutionService.php
+Method: executeRule(AiRule $rule, $reviews)
+
+This service evaluates the matches and handles cooldowns.
+Code:
+```php
+foreach ($reviews as $review) {
+    // 1. Check conditions
+    $isMatch = ConditionBuilderService::evaluateConditions($rule->conditions, $review, $aiData);
+    
+    if ($isMatch) {
+        // 2. Check Cooldown (ai_rule_triggers table)
+        if (!$this->checkCooldown($dedupKey, $rule->cooldown_days)) {
+            // 3. Execute Actions (flagging, tagging, etc.)
+            $this->executeActions($rule, $review, $aiData);
+            $this->recordTrigger($rule, $review, $dedupKey);
+        }
+    }
+}
+```
+
+
+5. PHASE 4: CONDITION CHECKING (The "Brain")
+--------------------------------------------
+File: app/Services/Rule/ConditionBuilderService.php
+Method: evaluateConditions($conditionData, $review, $aiData)
+
+The actual comparison of "is the review sentiment equal to the rule value".
+Code:
+```php
+// Inside evaluateConditions
+case 'sentiment':
+    $actualValue = $aiData['sentiment']; // e.g., 'negative'
+    return $this->compare($actualValue, $condition['operator'], $condition['value']);
+```
+
+
+6. PHASE 5: DASHBOARD DISPLAY & METRICS
+---------------------------------------
+File: app/Services/Review/ReviewMetricsService.php
+Method: getFlaggedReviews(int $businessId, Collection $reviews)
+
+This provides the data for the Dashboard charts and counters.
+Code:
+```php
+public function getFlaggedReviews(int $businessId, Collection $reviews) {
+    // Counts reviews where the flag was actually set by a Default Rule
+    $flaggedCount = $reviews->where('is_flagged', true)->count();
+    
+    $percentage = $totalCount > 0 ? round(($flaggedCount / $totalCount) * 100, 1) : 0;
+    return ['count' => $flaggedCount, 'percentage' => $percentage];
+}
+```
+
+7. SUMMARY OF FILE PATHS
+------------------------
+- Model: app/Models/AiRule.php
+- Initialization: app/Services/Business/BusinessProfileService.php
+- Cron Command: app/Console/Commands/ExecuteScheduledRules.php
+- Execution Service: app/Services/Rule/RuleExecutionService.php
+- Condition Engine: app/Services/Rule/ConditionBuilderService.php
+- Dashboard Metrics: app/Services/Review/ReviewMetricsService.php

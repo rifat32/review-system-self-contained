@@ -6,340 +6,136 @@ use App\Models\ReviewNew;
 
 class ConditionBuilderService
 {
-    // ==================== VALIDATION ====================
-
-    /**
-     * Validate condition structure
-     * 
-     * @param array $conditions Condition tree to validate
-     * @return array Array of validation errors (empty if valid)
-     */
     public static function validateConditionTree(array $conditions): array
     {
         $errors = [];
-
-        // Handle standardized structure [logic => ..., conditions => ...]
-        if (isset($conditions['conditions']) && is_array($conditions['conditions'])) {
-            return self::validateConditionTree($conditions['conditions']);
+        if (isset($conditions['logic']) && !in_array($conditions['logic'], ['AND', 'OR'])) $errors[] = "Invalid logic operator: {$conditions['logic']}";
+        $items = $conditions['conditions'] ?? $conditions;
+        if (!is_array($items) || empty($items)) { $errors[] = "Condition tree must contain at least one condition"; return $errors; }
+        foreach ($items as $index => $condition) {
+            if (isset($condition['group'])) { $errors = array_merge($errors, self::validateConditionTree($condition['group'])); continue; }
+            $validSources = ['Comment', 'Rating', 'Staff', 'Area', 'Emotion', 'Trend'];
+            $validTypes = ['sentiment', 'rating', 'keyword', 'staff_mention', 'area_mention', 'emotion', 'intensity', 'frequency', 'trend_direction'];
+            $validOperators = ['equals', 'eq', 'contains', 'greater_than', 'gt', 'less_than', 'lt', 'greater_than_or_equal', 'gte', 'less_than_or_equal', 'lte', 'between', 'regex', 'not_equals', 'neq', 'starts_with', 'ends_with', 'exists'];
+            if (!isset($condition['source']) || !in_array($condition['source'], $validSources)) $errors[] = "Condition at index {$index} has invalid source";
+            if (!isset($condition['type']) || !in_array($condition['type'], $validTypes)) $errors[] = "Condition at index {$index} has invalid type";
+            if (!isset($condition['operator']) || !in_array($condition['operator'], $validOperators)) $errors[] = "Condition at index {$index} has invalid operator";
+            if (($condition['operator'] ?? null) === 'between') {
+                if (!isset($condition['value']) || !is_array($condition['value']) || count($condition['value']) < 2) $errors[] = "Condition at index {$index} using between must have two values";
+            } elseif (($condition['operator'] ?? null) !== 'exists' && !array_key_exists('value', $condition)) { $errors[] = "Condition at index {$index} is missing value"; }
         }
-
-        foreach ($conditions as $index => $condition) {
-            // Check for nested group
-            if (isset($condition['group'])) {
-                $nestedErrors = self::validateConditionTree($condition['group']);
-                $errors = array_merge($errors, $nestedErrors);
-                continue;
-            }
-
-            // Validate source
-            if (isset($condition['source'])) {
-                $validSources = ['Comment', 'Rating', 'Staff', 'Area', 'Emotion', 'Trend'];
-                if (!in_array($condition['source'], $validSources)) {
-                    $errors[] = "Condition at index $index has invalid source: {$condition['source']}";
-                }
-            }
-
-            // Validate condition type
-            if (!isset($condition['type'])) {
-                $errors[] = "Condition at index $index is missing 'type' field";
-                continue;
-            }
-
-            $validTypes = ['sentiment', 'rating', 'keyword', 'staff_mention', 'area_mention', 'emotion', 'service_type', 'frequency', 'trend_direction'];
-            if (!in_array($condition['type'], $validTypes)) {
-                $errors[] = "Condition at index $index has invalid type: {$condition['type']}";
-            }
-
-            // Validate operator
-            if (!isset($condition['operator'])) {
-                $errors[] = "Condition at index $index is missing 'operator' field";
-                continue;
-            }
-
-            $validOperators = ['equals', 'contains', 'greater_than', 'less_than', 'between', 'regex', 'not_equals', 'starts_with', 'ends_with'];
-            if (!in_array($condition['operator'], $validOperators)) {
-                $errors[] = "Condition at index $index has invalid operator: {$condition['operator']}";
-            }
-
-            // Validate value exists
-            if (!isset($condition['value']) && !in_array($condition['type'], ['staff_mention'])) {
-                $errors[] = "Condition at index $index is missing 'value' field";
-            }
-
-            // Validate 'between' operator has array value with 2 elements
-            if ($condition['operator'] === 'between') {
-                if (!is_array($condition['value']) || count($condition['value']) !== 2) {
-                    $errors[] = "Condition at index $index with 'between' operator must have array value with 2 elements";
-                }
-            }
-        }
-
         return $errors;
     }
 
-    // ==================== EVALUATION ====================
-
-    /**
-     * Evaluate condition tree against review data
-     * 
-     * @param array $conditions Condition tree to evaluate
-     * @param ReviewNew $review Review to check against
-     * @param array $aiData AI analysis data
-     * @param string $logic Logic operator (AND or OR)
-     * @return bool True if conditions match
-     */
-    public static function evaluateConditions($conditionData, ReviewNew $review, array $aiData, string $defaultLogic = 'AND'): bool
+    public static function evaluateConditions($conditionData, ReviewNew $review, array &$aiData, string $defaultLogic = 'AND'): bool
     {
-        // Recursively decode if it's a double-encoded string
         while (is_string($conditionData)) {
             $decoded = json_decode($conditionData, true);
-            if (json_last_error() !== JSON_ERROR_NONE || $decoded === $conditionData) {
-                break;
-            }
+            if (json_last_error() !== JSON_ERROR_NONE || $decoded === $conditionData) break;
             $conditionData = $decoded;
         }
-
-        if (!is_array($conditionData)) {
-            return false;
-        }
-
-        // Standardized structure: always [logic => ..., conditions => ...]
+        if (!is_array($conditionData)) return false;
         $logic = $conditionData['logic'] ?? $defaultLogic;
         $conditions = $conditionData['conditions'] ?? [];
+        if (empty($conditions)) return true;
 
-        if (empty($conditions)) {
-            return true;
-        }
-
-        $results = [];
-
+        $results = []; $localMatches = [];
         foreach ($conditions as $condition) {
-            if (!is_array($condition)) {
-                continue;
-            }
-
             if (isset($condition['group']) || (isset($condition['logic']) && isset($condition['conditions']))) {
-                // Evaluate nested group
-                $nestedConditions = $condition['group'] ?? $condition;
-                $results[] = self::evaluateConditions($nestedConditions, $review, $aiData);
+                $nestedAiData = $aiData;
+                $res = self::evaluateConditions($condition['group'] ?? $condition, $review, $nestedAiData, $defaultLogic);
+                if ($res) $localMatches = array_merge($localMatches, $nestedAiData['matched_conditions'] ?? []);
             } else {
-                // Evaluate single condition
-                $results[] = self::evaluateSingleCondition($condition, $review, $aiData);
+                $res = self::evaluateSingleCondition($condition, $review, $aiData);
+                if ($res) $localMatches[] = $condition;
             }
+            $results[] = $res;
         }
-
-        // Apply logic operator
-        $logic = strtoupper($logic);
-        if ($logic === 'OR') {
-            return in_array(true, $results, true);
-        } else {
-            // Default to AND
-            return !in_array(false, $results, true);
-        }
+        $final = strtoupper($logic) === 'OR' ? in_array(true, $results, true) : !in_array(false, $results, true);
+        if ($final) $aiData['matched_conditions'] = array_merge($aiData['matched_conditions'] ?? [], $localMatches);
+        return $final;
     }
 
-    /**
-     * Evaluate single condition
-     * 
-     * @param array $condition Single condition to evaluate
-     * @param ReviewNew $review Review to check against
-     * @param array $aiData AI analysis data
-     * @return bool True if condition matches
-     */
     private static function evaluateSingleCondition(array $condition, ReviewNew $review, array $aiData): bool
     {
-        $source = $condition['source'] ?? null;
-        $type = $condition['type'] ?? $condition['field'] ?? '';
-        $operator = $condition['operator'] ?? 'equals';
-        $value = $condition['value'] ?? null;
+        $source = $condition['source'] ?? null; $type = $condition['type'] ?? ''; $operator = $condition['operator'] ?? 'equals'; $value = $condition['value'] ?? null;
 
-        // Route by source if available, otherwise fallback to type
-        if ($source === 'Rating' || $type === 'rating') {
-            $rating = $review->calculated_rating ?? 0;
-            return self::matchNumeric($rating, $operator, $value);
+        if ($operator === 'exists') {
+            $hasData = match ($source) {
+                'Staff' => (!empty($aiData['staff_intelligence']) || !empty($aiData['staff_mentions'])),
+                'Area' => (!empty($aiData['area_insights']) || !empty($aiData['areas'])),
+                'Sentiment', 'Emotion' => (isset($aiData['sentiment']) || isset($aiData['emotion'])),
+                'Rating' => isset($review->calculated_rating),
+                default => match ($type) {
+                    'staff_mention' => (!empty($aiData['staff_intelligence']) || !empty($aiData['staff_mentions'])),
+                    'area_mention' => (!empty($aiData['area_insights']) || !empty($aiData['areas'])),
+                    'sentiment' => isset($aiData['sentiment']),
+                    default => false
+                }
+            };
+            return (bool)$value === $hasData;
         }
 
-        if ($source === 'Comment' || in_array($type, ['sentiment', 'keyword', 'emotion'])) {
-            if ($type === 'sentiment') {
-                // OpenAI returns sentiment in different formats depending on module
-                $sentiment = $aiData['sentiment']['label'] ?? $aiData['overall_sentiment'] ?? $aiData['sentiment'] ?? 'neutral';
-                if (is_array($sentiment)) {
-                    $sentiment = $sentiment['label'] ?? 'neutral';
-                }
-                return self::matchSentiment($sentiment, $operator, $value);
-            }
-            if ($type === 'keyword') {
-                $text = $review->comment ?? $review->raw_text ?? '';
-                // Also check translated text if available
-                if (isset($aiData['language']['translated_text'])) {
-                    $text .= " " . $aiData['language']['translated_text'];
-                }
-                return self::matchText($text, $operator, $value);
-            }
+        if ($source === 'Rating' || $type === 'rating') return self::matchNumeric($review->calculated_rating ?? 0, $operator, $value);
+
+        if ($source === 'Comment' || $source === 'Emotion' || in_array($type, ['sentiment', 'keyword', 'emotion', 'intensity'])) {
+            if ($type === 'sentiment') return self::matchSentiment($aiData['sentiment']['label'] ?? $aiData['overall_sentiment'] ?? 'neutral', $operator, $value);
+            if ($type === 'keyword') return self::matchText($review->comment ?? $review->raw_text ?? '', $operator, $value);
             if ($type === 'emotion' || $type === 'intensity') {
-                // Handle complex emotion intensity matching
-                $intensityStr = $aiData['emotion']['intensity'] ?? 'low';
-                $intensityMapping = config('ai.topics.intensity_mapping', []);
-                $intensityVal = $intensityMapping[strtolower((string)$intensityStr)] ?? ($intensityMapping['default'] ?? 0.5);
-
-                // If it's a numeric comparison for intensity
-                if ($type === 'intensity' || is_numeric($value)) {
-                    return self::matchNumeric($intensityVal, $operator, $value);
-                }
-
-                // If it's a primary emotion match
-                $primaryEmotion = $aiData['emotion']['primary'] ?? 'neutral';
-                return self::matchSentiment($primaryEmotion, $operator, $value);
+                $raw = $aiData['emotion']['intensity'] ?? 'low';
+                $intensityVal = is_numeric($raw) ? (float) $raw : (['low' => 0.3, 'medium' => 0.6, 'high' => 0.9][strtolower((string)$raw)] ?? 0.5);
+                if ($type === 'intensity' || is_numeric($value)) return self::matchNumeric($intensityVal, $operator, $value);
+                return self::matchSentiment($aiData['emotion']['primary'] ?? 'neutral', $operator, $value);
             }
         }
 
-        if ($source === 'Trend' || in_array($type, ['frequency', 'trend_direction'])) {
-            $trendData = $aiData['trend_data'] ?? [];
-            if ($type === 'frequency') {
-                return self::matchNumeric($trendData['frequency'] ?? 0, $operator, $value);
-            }
-            if ($type === 'trend_direction') {
-                return ($trendData['direction'] ?? 'steady') === $value;
-            }
+        if ($source === 'Trend') {
+            $trend = $aiData['trend_data'] ?? [];
+            if ($type === 'frequency') return self::matchNumeric($trend['frequency'] ?? 0, $operator, $value);
+            if ($type === 'trend_direction') return self::matchText($trend['direction'] ?? '', $operator, $value);
         }
 
         if ($source === 'Staff' || $type === 'staff_mention') {
-            // Check staff intelligence from OpenAI
-            $staffInfo = $aiData['staff_intelligence'] ?? null;
-            if ($staffInfo && isset($staffInfo['mentioned_explicitly']) && $staffInfo['mentioned_explicitly']) {
-                if ($value && isset($staffInfo['staff_name'])) {
-                    return self::matchText($staffInfo['staff_name'], 'contains', $value);
-                }
-                return true;
-            }
-
-            // Fallback for older staff mentions format
-            $staffMentions = $aiData['staff_mentions'] ?? [];
-            if ($value) {
-                return in_array($value, array_column((array)$staffMentions, 'name'));
-            }
-            return !empty($staffMentions);
+            $mentions = $aiData['staff_mentions'] ?? [];
+            if ($value === true || $value === false) return (bool)$value === !empty($mentions);
+            return in_array(strtolower($value), array_map(fn($s) => strtolower($s['name'] ?? ''), (array)$mentions));
         }
 
         if ($source === 'Area' || $type === 'area_mention') {
-            // Check area insights
-            $areaInsights = $aiData['area_insights'] ?? [];
-            if (!empty($areaInsights)) {
-                if ($value) {
-                    foreach ($areaInsights as $area) {
-                        if (self::matchText($area['area_name'] ?? '', 'contains', $value)) return true;
-                    }
-                    return false;
-                }
-                return true;
-            }
-
-            // Fallback
-            $areaMentions = $aiData['areas'] ?? [];
-            if (is_array($areaMentions)) {
-                return in_array($value, array_column($areaMentions, 'name'));
-            }
-            return in_array($value, (array)$areaMentions);
+            $areas = $aiData['area_insights'] ?? $aiData['areas'] ?? [];
+            if ($value === true || $value === false) return (bool)$value === !empty($areas);
+            return in_array(strtolower($value), array_map(fn($a) => strtolower($a['area_name'] ?? $a['name'] ?? ''), (array)$areas));
         }
-
-        // Fallback for other types
-        switch ($type) {
-            case 'service_type':
-                $serviceInfo = $aiData['service_unit_intelligence'] ?? null;
-                if ($serviceInfo && isset($serviceInfo['unit_type'])) {
-                    return self::matchText($serviceInfo['unit_type'], 'equals', $value);
-                }
-                $serviceTypes = $aiData['service_types'] ?? [];
-                return in_array($value, $serviceTypes);
-
-            default:
-                return false;
-        }
+        return false;
     }
 
-    // ==================== MATCHERS ====================
-
-    /**
-     * Match sentiment condition
-     */
-    private static function matchSentiment(?string $sentiment, string $operator, $value): bool
+    private static function matchNumeric($actual, $op, $val)
     {
-        $sentiment = strtolower($sentiment ?? 'neutral');
-        $value = strtolower((string)$value);
-
-        switch ($operator) {
-            case 'equals':
-            case 'eq':
-                return $sentiment === $value;
-            case 'not_equals':
-            case 'neq':
-                return $sentiment !== $value;
-            default:
-                return false;
-        }
+        $actual = (float)$actual; $val = is_array($val) ? array_map('floatval', $val) : (float)$val;
+        return match ($op) {
+            'equals', 'eq' => abs($actual - (is_array($val) ? $val[0] : $val)) < 0.01,
+            'greater_than', 'gt' => $actual > (is_array($val) ? $val[0] : $val),
+            'less_than', 'lt' => $actual < (is_array($val) ? $val[0] : $val),
+            'greater_than_or_equal', 'gte' => $actual >= (is_array($val) ? $val[0] : $val),
+            'less_than_or_equal', 'lte' => $actual <= (is_array($val) ? $val[0] : $val),
+            'between' => is_array($val) && count($val) >= 2 && $actual >= $val[0] && $actual <= $val[1],
+            default => false
+        };
     }
 
-    /**
-     * Match numeric condition
-     */
-    private static function matchNumeric($actual, string $operator, $value): bool
+    private static function matchSentiment($actual, $op, $val)
     {
-        $actual = (float)$actual;
-        $value = is_array($value) ? array_map('floatval', $value) : (float)$value;
-
-        $epsilon = config('ai.topics.numeric_epsilon') ?? 0.01;
-
-        switch ($operator) {
-            case 'equals':
-            case 'eq':
-                return abs($actual - $value) < $epsilon;
-            case 'not_equals':
-            case 'neq':
-                return abs($actual - $value) >= $epsilon;
-            case 'greater_than':
-            case 'gt':
-                return $actual > $value;
-            case 'less_than':
-            case 'lt':
-                return $actual < $value;
-            case 'greater_than_or_equal':
-            case 'gte':
-                return $actual >= $value;
-            case 'less_than_or_equal':
-            case 'lte':
-                return $actual <= $value;
-            case 'between':
-                return is_array($value) && $actual >= $value[0] && $actual <= $value[1];
-            default:
-                return false;
-        }
+        $actual = strtolower($actual ?? 'neutral'); $val = strtolower((string)$val);
+        return match ($op) { 'equals', 'eq' => $actual === $val, 'not_equals', 'neq' => $actual !== $val, default => false };
     }
 
-    /**
-     * Match text condition
-     */
-    private static function matchText(?string $text, string $operator, $value): bool
+    private static function matchText($text, $op, $val)
     {
-        $text = strtolower($text ?? '');
-        $value = strtolower((string)$value);
-
-        switch ($operator) {
-            case 'contains':
-                return str_contains($text, $value);
-            case 'equals':
-            case 'eq':
-                return $text === $value;
-            case 'not_equals':
-            case 'neq':
-                return $text !== $value;
-            case 'starts_with':
-                return str_starts_with($text, $value);
-            case 'ends_with':
-                return str_ends_with($text, $value);
-            case 'regex':
-                return @preg_match($value, $text) === 1;
-            default:
-                return false;
-        }
+        $text = strtolower($text ?? ''); $val = strtolower((string)$val);
+        return match ($op) {
+            'contains' => str_contains($text, $val), 'equals', 'eq' => $text === $val, 'not_equals', 'neq' => $text !== $val,
+            'starts_with' => str_starts_with($text, $val), 'ends_with' => str_ends_with($text, $val),
+            'regex' => @preg_match($val, $text) === 1, default => false
+        };
     }
 }

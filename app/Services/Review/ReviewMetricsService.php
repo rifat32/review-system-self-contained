@@ -54,34 +54,12 @@ class ReviewMetricsService
         int $businessId,
         Collection $reviews
     ): array {
-        // 1. Get the current active Flag and Alert rule for this business
-        $flagRule = AiRule::where('business_id', $businessId)
-            ->where('rule_id', 'like', 'FLAG_AND_ALERT%')
-            ->where('enabled', true)
-            ->first();
-
-        // 2. If no specific rule exists, fallback to standard sentiment-based threshold
-        if (!$flagRule) {
-            $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
-            $flaggedCount = $reviews->filter(function ($review) use ($negativeThreshold) {
-                return $review->is_ai_processed == 1 && $review->sentiment_score < $negativeThreshold;
-            })->count();
-        } else {
-            // 3. Dynamic evaluation based on the CURRENT rule configuration
-            $flaggedCount = 0;
-            foreach ($reviews as $review) {
-                // We use a simplified AI data context for dashboard metrics
-                $aiData = [
-                    'sentiment' => $review->sentiment_label,
-                    'sentiment_score' => $review->sentiment_score,
-                    'emotion' => $review->emotion['primary'] ?? 'neutral'
-                ];
-
-                if (ConditionBuilderService::evaluateConditions($flagRule->conditions, $review, $aiData)) {
-                    $flaggedCount++;
-                }
-            }
-        }
+        // Count reviews that triggered a Critical Alert in the granular outcomes table
+        $reviewIds = $reviews->pluck('id');
+        
+        $flaggedCount = \App\Models\ReviewRuleOutcome::whereIn('review_id', $reviewIds)
+            ->where('is_flagged', true)
+            ->count();
 
         $totalCount = $reviews->count();
         $percentage = $totalCount > 0 ? round(($flaggedCount / $totalCount) * 100, 1) : 0;

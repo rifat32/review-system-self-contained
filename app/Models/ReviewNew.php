@@ -77,7 +77,6 @@ class ReviewNew extends Model
         'is_voice_review' => 'boolean',
         'transcription_metadata' => 'array',
         'sentiment_score' => 'float',
-        'is_flagged' => 'boolean',
         'ai_insights' => 'array',
         'ai_recommendations' => 'array',
         'topics' => 'array',
@@ -209,6 +208,14 @@ class ReviewNew extends Model
     public function review_values()
     {
         return $this->hasMany(ReviewValueNew::class, 'review_id');
+    }
+
+    /**
+     * Relationship with granular rule outcomes
+     */
+    public function rule_outcomes()
+    {
+        return $this->hasOne(ReviewRuleOutcome::class, 'review_id');
     }
 
 
