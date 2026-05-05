@@ -3,6 +3,7 @@
 namespace App\Services\Rule;
 
 use App\Models\ReviewNew;
+use Illuminate\Support\Facades\Log;
 
 class ConditionBuilderService
 {
@@ -34,7 +35,10 @@ class ConditionBuilderService
             if (json_last_error() !== JSON_ERROR_NONE || $decoded === $conditionData) break;
             $conditionData = $decoded;
         }
-        if (!is_array($conditionData)) return false;
+        if (!is_array($conditionData)) {
+            Log::warning("Condition data is not an array", ['review_id' => $review->id]);
+            return false;
+        }
         $logic = $conditionData['logic'] ?? $defaultLogic;
         $conditions = $conditionData['conditions'] ?? [];
         if (empty($conditions)) return true;
@@ -47,12 +51,20 @@ class ConditionBuilderService
                 if ($res) $localMatches = array_merge($localMatches, $nestedAiData['matched_conditions'] ?? []);
             } else {
                 $res = self::evaluateSingleCondition($condition, $review, $aiData);
-                if ($res) $localMatches[] = $condition;
+                if ($res) {
+                    $localMatches[] = $condition;
+                    Log::debug("Single condition matched", ['review_id' => $review->id, 'condition' => $condition]);
+                } else {
+                    Log::debug("Single condition failed", ['review_id' => $review->id, 'condition' => $condition]);
+                }
             }
             $results[] = $res;
         }
         $final = strtoupper($logic) === 'OR' ? in_array(true, $results, true) : !in_array(false, $results, true);
-        if ($final) $aiData['matched_conditions'] = array_merge($aiData['matched_conditions'] ?? [], $localMatches);
+        if ($final) {
+            $aiData['matched_conditions'] = array_merge($aiData['matched_conditions'] ?? [], $localMatches);
+            Log::info("Condition group evaluation result", ['review_id' => $review->id, 'logic' => $logic, 'result' => $final, 'match_count' => count($localMatches)]);
+        }
         return $final;
     }
 

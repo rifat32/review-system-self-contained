@@ -112,6 +112,8 @@ class RuleWizardController extends Controller
             $this->metricsService->updateMetrics($rule->rule_id, []);
             DB::commit();
 
+            Log::info("AI Rule Created", ['rule_id' => $rule->rule_id, 'user_id' => $user->id, 'business_id' => $businessId]);
+
             return response()->json(['success' => true, 'message' => 'Rule created successfully', 'data' => $rule], 201);
         } catch (Exception $e) {
             DB::rollBack();
@@ -185,6 +187,9 @@ class RuleWizardController extends Controller
             $rule->version = $rule->version + 1;
             $rule->save();
             DB::commit();
+
+            Log::info("AI Rule Updated", ['rule_id' => $rule->rule_id, 'user_id' => $user->id, 'version' => $rule->version]);
+
             return response()->json(['success' => true, 'message' => 'Rule updated successfully', 'data' => $rule->fresh()]);
         } catch (Exception $e) {
             DB::rollBack();

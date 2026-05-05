@@ -19,6 +19,8 @@ class RuleExecutionService
      */
     public function executeRule(AiRule $rule, $reviews, ?array $forcedAiData = null): array
     {
+        Log::info("Rule Execution Started", ['rule_id' => $rule->rule_id, 'rule_name' => $rule->rule_name, 'review_count' => count($reviews)]);
+
         $summary = [
             'rule_id' => $rule->rule_id,
             'rule_name' => $rule->rule_name,
@@ -33,7 +35,10 @@ class RuleExecutionService
             $summary['reviews_evaluated']++;
             $aiData = $forcedAiData ?: $this->getReviewAIData($review);
 
-            if (!empty($rule->branch_ids) && !in_array($review->branch_id, $rule->branch_ids)) continue;
+            if (!empty($rule->branch_ids) && !in_array($review->branch_id, $rule->branch_ids)) {
+                Log::debug("Review skipped: Branch mismatch", ['rule_id' => $rule->rule_id, 'review_id' => $review->id, 'review_branch' => $review->branch_id, 'rule_branches' => $rule->branch_ids]);
+                continue;
+            }
 
             if (ConditionBuilderService::evaluateConditions($rule->conditions, $review, $aiData)) {
                 $summary['conditions_matched']++;
@@ -42,15 +47,20 @@ class RuleExecutionService
                 
                 $cooldownCheck = $this->checkCooldown($dedupKey, $rule->cooldown_days);
                 if ($cooldownCheck['active']) {
+                    Log::info("Rule suppressed: Cooldown active", ['rule_id' => $rule->rule_id, 'review_id' => $review->id, 'dedup_key' => $dedupKey, 'reason' => $cooldownCheck['reason']]);
                     $this->recordSuppression($rule, $review, $dedupKey, $context, $cooldownCheck['reason']);
                     $summary['suppressed_count']++;
                     continue;
                 }
 
+                Log::info("Conditions matched for review", ['rule_id' => $rule->rule_id, 'review_id' => $review->id, 'matched_count' => count($aiData['matched_conditions'] ?? [])]);
+
                 $triggeredCount = $this->executeActions($rule, $review, $aiData, $context);
                 if ($triggeredCount > 0) {
                     $summary['actions_triggered']++;
                     $this->recordTrigger($rule, $review, $dedupKey, $context, $aiData);
+                } else {
+                    Log::warning("No actions triggered despite condition match", ['rule_id' => $rule->rule_id, 'review_id' => $review->id]);
                 }
             }
         }
@@ -59,6 +69,8 @@ class RuleExecutionService
             'last_run_at' => now(),
             'next_run_at' => $this->calculateNextRun($rule)
         ]);
+
+        Log::info("Rule Execution Completed", $summary);
 
         return $summary;
     }
@@ -69,12 +81,17 @@ class RuleExecutionService
         $triggeredCount = 0;
         $actionList = array_is_list($actions) ? $actions : array_keys(array_filter((array) $actions));
 
+        Log::debug("Executing actions", ['rule_id' => $rule->rule_id, 'action_count' => count($actionList)]);
+
         foreach ($actionList as $action) {
             if ($rule->is_default) {
-                if (in_array($action, ['notify_manager', 'notify_slack', 'notify_email', 'create_support_ticket', 'notification', 'escalate', 'recommend_coaching'])) continue;
+                if (in_array($action, ['notify_manager', 'notify_slack', 'notify_email', 'create_support_ticket', 'notification', 'escalate', 'recommend_coaching'])) {
+                    Log::debug("Action skipped: Default rule internal restriction", ['rule_id' => $rule->rule_id, 'action' => $action]);
+                    continue;
+                }
             } else {
                 if ($action !== 'notify_email') {
-                    Log::warning("Skipped non-email action for custom rule", ['rule_id' => $rule->rule_id, 'action' => $action]);
+                    Log::warning("Action skipped: Custom rule limited to email", ['rule_id' => $rule->rule_id, 'action' => $action]);
                     continue;
                 }
             }
@@ -85,9 +102,15 @@ class RuleExecutionService
                     'notify_email' => $this->notifyEmail($review, $rule, $context),
                     default => false
                 };
-                if ($success) $triggeredCount++;
+
+                if ($success) {
+                    $triggeredCount++;
+                    Log::info("Action executed successfully", ['rule_id' => $rule->rule_id, 'review_id' => $review->id, 'action' => $action]);
+                } else {
+                    Log::warning("Action failed or returned false", ['rule_id' => $rule->rule_id, 'review_id' => $review->id, 'action' => $action]);
+                }
             } catch (\Exception $e) {
-                Log::error("Action execution failed", ['action' => $action, 'error' => $e->getMessage()]);
+                Log::error("Action execution exception", ['rule_id' => $rule->rule_id, 'review_id' => $review->id, 'action' => $action, 'error' => $e->getMessage()]);
             }
         }
 
