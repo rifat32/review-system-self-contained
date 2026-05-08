@@ -814,7 +814,15 @@ class AIProcessorService
         $topTopic = $this->extractTopTopic($reviews);
 
 
-        $flagged = $reviews->where('status', 'flagged')->count();
+        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            $flagged = (clone $reviews)->whereHas('rule_outcomes', function($q) {
+                $q->where('is_flagged', true);
+            })->count();
+        } else {
+            $flagged = $reviews->filter(function($r) {
+                return $r->rule_outcomes->where('is_flagged', true)->isNotEmpty();
+            })->count();
+        }
 
         return [
             'total_reviews' => $totalReviews,
@@ -1375,7 +1383,7 @@ class AIProcessorService
     {
         // Ensure we only process AI-analyzed reviews
         if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
-            $reviews = $reviews->where('is_ai_processed', 1);
+            $reviews = $reviews->where('is_ai_processed', 1)->get();
         } else {
             $reviews = $reviews->filter(function ($review) {
                 return $review->is_ai_processed == 1;

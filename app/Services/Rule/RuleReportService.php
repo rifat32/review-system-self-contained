@@ -411,8 +411,8 @@ class RuleReportService
                 ];
             })
             ->filter(fn($item) => $item['total_reviews'] > 0)
-            ->sortByDesc('avg_rating')
             ->sortByDesc('positive_reviews')
+            ->sortByDesc('avg_rating')
             ->first();
 
         if (!$topStaff) {

@@ -1210,10 +1210,13 @@ PROMPT;
         $shouldFlag = false;
         $flagType = 'none';
 
-        if ($mismatchData['mismatch_type'] === 'positive_rating_negative_comment' && $avgRating >= 3.5) {
+        $highThreshold = config('ai.openai.anomalies.mismatch_high_rating', 4.0);
+        $lowThreshold = config('ai.openai.anomalies.mismatch_low_rating', 2.0);
+
+        if ($mismatchData['mismatch_type'] === 'positive_rating_negative_comment' && $avgRating >= $highThreshold) {
             $shouldFlag = true;
             $flagType = 'insight'; // Soft flag for high rating + negative comment
-        } elseif ($mismatchData['mismatch_type'] === 'negative_rating_positive_comment' && $avgRating <= 2.5) {
+        } elseif ($mismatchData['mismatch_type'] === 'negative_rating_positive_comment' && $avgRating <= $lowThreshold) {
             $shouldFlag = true;
             $flagType = 'warning';
         }

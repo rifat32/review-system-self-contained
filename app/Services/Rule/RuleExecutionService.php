@@ -90,7 +90,7 @@ class RuleExecutionService
 
                 $triggeredCount = $this->executeActions($rule, $review, $aiData, $context);
                 if ($triggeredCount > 0) {
-                    $summary['actions_triggered']++;
+                    $summary['actions_triggered'] += $triggeredCount;
                     $this->recordTrigger($rule, $review, $dedupKey, $context, $aiData);
                 } else {
                     Log::warning("No actions triggered despite condition match", ['rule_id' => $rule->rule_id, 'review_id' => $review->id]);

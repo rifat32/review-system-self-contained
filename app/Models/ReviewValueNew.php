@@ -21,6 +21,18 @@ class ReviewValueNew extends Model
         'updated_at',
     ];
 
+    protected $appends = ['rating'];
+
+    public function getRatingAttribute()
+    {
+        return $this->star->value ?? null;
+    }
+
+    public function star()
+    {
+        return $this->belongsTo(Star::class, 'star_id');
+    }
+
     public function business()
     {
         return $this->hasOne(Business::class, 'id', 'business_id');

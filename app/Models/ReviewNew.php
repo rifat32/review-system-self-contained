@@ -98,6 +98,11 @@ class ReviewNew extends Model
 
     public function getSentimentLabelAttribute($value)
     {
+        // If the database already has a label (from AI processing), use it
+        if ($value) {
+            return $value;
+        }
+
         $sentimentScore = $this->attributes['sentiment_score'] ?? null;
 
         if ($sentimentScore === null) {
