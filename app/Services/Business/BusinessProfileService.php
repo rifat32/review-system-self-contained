@@ -218,6 +218,7 @@ class BusinessProfileService
      */
     public function createDefaultAiRules(Business $business): void
     {
+        $businessId = $business->id;
         $mismatchHighRating = (float) config('ai.openai.anomalies.mismatch_high_rating', 4.0);
 
         $rules = [
