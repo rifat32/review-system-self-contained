@@ -8,7 +8,10 @@ use App\Models\User;
 use App\Models\OpenAITokenUsage;
 use App\Models\Tag;
 use App\Services\Rule\RuleEngineService;
+use App\Services\Rule\RuleExecutionService;
+use App\Models\AiRule;
 use Exception;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -17,10 +20,14 @@ use Illuminate\Support\Facades\Config;
 class OpenAIProcessorService
 {
     private RuleEngineService $ruleEngineService;
+    private RuleExecutionService $ruleExecutionService;
 
-    public function __construct(RuleEngineService $ruleEngineService)
-    {
+    public function __construct(
+        RuleEngineService $ruleEngineService,
+        RuleExecutionService $ruleExecutionService
+    ) {
         $this->ruleEngineService = $ruleEngineService;
+        $this->ruleExecutionService = $ruleExecutionService;
     }
 
     private function moduleEnabled(array $enabledModules, string $moduleName, bool $default = false): bool
@@ -350,6 +357,24 @@ class OpenAIProcessorService
                 ]);
             }
 
+            // Reset rules before re-evaluating
+            $result['rule_outcomes'] = [];
+
+            // Execute rules
+            $businessId = $payload['business_id'] ?? null;
+            if ($businessId) {
+                $activeRules = AiRule::where('business_id', $businessId)
+                    ->where('is_active', true)
+                    ->get();
+
+                foreach ($activeRules as $rule) {
+                    $outcome = $this->ruleExecutionService->evaluate($rule, $result, $payload);
+                    if ($outcome) {
+                        $result['rule_outcomes'][] = $outcome;
+                    }
+                }
+            }
+
             // Extract token usage
             $usage = $data['usage'] ?? [];
             $promptTokens = $usage['prompt_tokens'] ?? 0;
@@ -615,22 +640,9 @@ class OpenAIProcessorService
         // Remove any leading/trailing whitespace and control characters
         $content = trim($content);
 
-        // Remove any markdown code blocks if present
+        // Remove markdown code block markers if present
         $content = preg_replace('/^```json\s*/', '', $content);
         $content = preg_replace('/\s*```$/', '', $content);
-        $content = preg_replace('/^```\s*/', '', $content); // Also remove non-json code blocks
-
-        // Replace escaped unicode characters
-        $content = str_replace(
-            ['\u201c', '\u201d', '\u2018', '\u2019', '\u2026', '\u2014'],
-            ['"', '"', "'", "'", '...', '-'],
-            $content
-        );
-
-        // Remove any BOM (Byte Order Mark)
-        $content = str_replace("\xEF\xBB\xBF", '', $content);
-
-        // Remove other control characters except newlines, tabs, and returns
         $content = preg_replace('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $content);
 
         // Normalize line endings
@@ -1128,15 +1140,34 @@ PROMPT;
 
         // Get question ratings if this is a survey review
         $questionRatings = [];
-        if ($review->survey_id && $review->value) {
-            foreach ($review->value as $value) {
-                if ($value->question_id && $value->rating) {
+
+        if ($review->survey_id) {
+            $values = $review->relationLoaded('value')
+                ? $review->value
+                : $review->value()->with('question')->get();
+
+            $starIds = $values
+                ->pluck('star_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $starValuesById = $starIds->isEmpty()
+                ? collect()
+                : \App\Models\Star::whereIn('id', $starIds)->pluck('value', 'id');
+
+            foreach ($values as $value) {
+                $rating = $value->star_id
+                    ? ($starValuesById[$value->star_id] ?? null)
+                    : null;
+
+                if ($value->question_id && $rating !== null) {
                     $questionRatings[] = [
                         'question_id' => $value->question_id,
                         'question_text' => $value->question->question_text ?? 'Question',
-                        'rating' => $value->rating,
-                        'scale' => 5, // Assuming 5-point scale, adjust as needed
-                        'category' => $value->question->category ?? 'General'
+                        'rating' => (float) $rating,
+                        'scale' => 5,
+                        'category' => $value->question->category ?? 'General',
                     ];
                 }
             }
@@ -1280,10 +1311,21 @@ PROMPT;
             // Update the review model BEFORE rule evaluation so rules can access the data
             $review->fill($dbData);
 
-
+            // Reset old rule outcomes before re-processing
+            $this->ruleExecutionService->resetRuleOutcomes($review);
 
             // Save the updated review
             $review->save();
+
+            // Trigger real-time rules
+            $realTimeRules = AiRule::where('business_id', $businessId)
+                ->where('enabled', true)
+                ->where('run_frequency', 'real_time')
+                ->get();
+
+            foreach ($realTimeRules as $rule) {
+                $this->ruleExecutionService->executeRule($rule, [$review], $dbData);
+            }
 
             Log::info('Review analysis completed', [
                 'review_id' => $review->id,

@@ -114,6 +114,17 @@ class ConditionBuilderService
             if ($type === 'trend_direction') return self::matchText($trend['direction'] ?? '', $operator, $value);
         }
 
+        if (in_array($source, ['Branch', 'Staff', 'Area', 'Service'])) {
+            $actualId = match ($source) {
+                'Branch' => $review->branch_id,
+                'Staff' => $review->staff_id,
+                'Area' => $review->business_area_id,
+                'Service' => $review->business_service_id,
+                default => null
+            };
+            return self::matchNumeric($actualId ?? 0, $operator, $value);
+        }
+
         if ($source === 'Staff' || $type === 'staff_mention') {
             $mentions = $aiData['staff_mentions'] ?? [];
             if ($value === true || $value === false) return (bool)$value === !empty($mentions);
@@ -137,6 +148,7 @@ class ConditionBuilderService
             'less_than', 'lt' => $actual < (is_array($val) ? $val[0] : $val),
             'greater_than_or_equal', 'gte' => $actual >= (is_array($val) ? $val[0] : $val),
             'less_than_or_equal', 'lte' => $actual <= (is_array($val) ? $val[0] : $val),
+            'not_equals', 'neq' => abs($actual - (is_array($val) ? $val[0] : $val)) >= 0.01,
             'between' => is_array($val) && count($val) >= 2 && $actual >= $val[0] && $actual <= $val[1],
             default => false
         };
@@ -150,7 +162,9 @@ class ConditionBuilderService
 
     private static function matchText($text, $op, $val)
     {
-        $text = strtolower($text ?? ''); $val = strtolower((string)$val);
+        $text = strtolower($text ?? ''); 
+        $val = strtolower((string)$val);
+        if ($val === '') return false; 
         return match ($op) {
             'contains' => str_contains($text, $val), 'equals', 'eq' => $text === $val, 'not_equals', 'neq' => $text !== $val,
             'starts_with' => str_starts_with($text, $val), 'ends_with' => str_ends_with($text, $val),

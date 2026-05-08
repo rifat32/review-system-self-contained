@@ -85,12 +85,13 @@ class ReviewMetricsService
         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
-        $positiveCount = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
-        $negativeCount = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
-        $totalCount = $reviews->count();
+        $processedReviews = $reviews->where('is_ai_processed', 1);
+        $positiveCount = $processedReviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+        $negativeCount = $processedReviews->where('sentiment_score', '<', $negativeThreshold)->count();
+        $totalCount = $processedReviews->count();
         $neutralCount = max(0, $totalCount - $positiveCount - $negativeCount);
 
-        $currentSentimentScore = $reviews->avg('sentiment_score') ?? 0;
+        $currentSentimentScore = $processedReviews->avg('sentiment_score') ?? 0;
 
         return [
             'positive' => $positiveCount,

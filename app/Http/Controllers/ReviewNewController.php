@@ -8,13 +8,14 @@ use App\Models\Business;
 use App\Models\ReviewNew;
 use App\Models\ReviewValue;
 use App\Models\Survey;
-use App\Models\ReviewValueNew;
 use App\Models\Star;
 use App\Models\User;
 use App\Services\Dashboard\DashboardService;
 use App\Services\Review\ReviewService;
 use App\Services\AIProcessor\AIProcessorService;
+use App\Services\AIProcessor\OpenAIProcessorService;
 use App\Services\Review\ReviewMetricsService;
+use Illuminate\Validation\Rule;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,21 +25,20 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class ReviewNewController extends Controller
 {
-    private AIProcessorService $aiProcessorService;
-    private ReviewService $reviewService;
-    private ReviewMetricsService $reviewMetricsService;
-    private DashboardService $dashboardService;
+    private OpenAIProcessorService $openAIProcessorService;
 
     public function __construct(
         AIProcessorService $aiProcessorService,
         ReviewService $reviewService,
         ReviewMetricsService $reviewMetricsService,
-        DashboardService $dashboardService
+        DashboardService $dashboardService,
+        OpenAIProcessorService $openAIProcessorService
     ) {
         $this->aiProcessorService = $aiProcessorService;
         $this->reviewService = $reviewService;
         $this->reviewMetricsService = $reviewMetricsService;
         $this->dashboardService = $dashboardService;
+        $this->openAIProcessorService = $openAIProcessorService;
     }
 
     /**
@@ -229,7 +229,7 @@ class ReviewNewController extends Controller
             $duration = $this->aiProcessorService->getAudioDuration($audioFile->getRealPath());
 
             // Transcribe the audio using existing method
-            $transcribedText = $this->aiProcessorService->transcribeAudio($audioFile->getRealPath());
+            $transcribedText = $this->aiProcessorService->transcribeAudio($audioFile->getRealPath(), $task);
 
             // If transcription is empty, try alternative method
             // if (empty($transcribedText)) {
@@ -343,21 +343,34 @@ class ReviewNewController extends Controller
         $request->validate([
             'source' => ['required', 'string', 'in:web,app'],
             'description' => 'nullable|string',
-            'staff_id' => 'nullable|exists:users,id',
-            "branch_id" => 'nullable|exists:branches,id',
+            'staff_id' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(function ($query) use ($businessId) {
+                    $query->whereHas('branches', function ($q) use ($businessId) {
+                        $q->where('business_id', $businessId);
+                    });
+                })
+            ],
+            "branch_id" => [
+                'nullable',
+                Rule::exists('branches', 'id')->where('business_id', $businessId)
+            ],
             'comment' => 'nullable|string',
             'is_overall' => 'required|boolean',
             'values' => 'required|array',
-            'values.*.question_id' => 'required|integer',
-
+            'values.*.question_id' => 'required|integer|exists:questions,id',
             'values.*.tag_ids' => 'present|array',
-
             'values.*.tag_ids.*' => 'integer|exists:tags,id',
-
-            'values.*.star_id' => 'nullable|integer',
+            'values.*.star_id' => 'nullable|integer|exists:stars,id',
             'business_services' => 'nullable|array',
-            'business_services.*.business_service_id' => 'required|exists:business_services,id',
-            'business_services.*.business_area_id' => 'required|exists:business_areas,id',
+            'business_services.*.business_service_id' => [
+                'required',
+                Rule::exists('business_services', 'id')->where('business_id', $businessId)
+            ],
+            'business_services.*.business_area_id' => [
+                'required',
+                Rule::exists('business_areas', 'id')->where('business_id', $businessId)
+            ],
             'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg,mp4|max:10240',
             "is_voice_review" => 'required|boolean',
         ]);
@@ -394,18 +407,23 @@ class ReviewNewController extends Controller
 
         $averageRating = $this->calculateAverageStarValueFromRequest($request->values);
 
-        $review = ReviewNew::create($reviewData);
-        $this->reviewService->storeReviewValues($review, $request->values, $business);
+        $review = DB::transaction(function () use ($reviewData, $request, $business) {
+            $review = ReviewNew::create($reviewData);
+            $this->reviewService->storeReviewValues($review, $request->values, $business);
 
-        if (!empty($request->business_services)) {
-            $businessServicesData = [];
-            foreach ($request->business_services as $service) {
-                $businessServicesData[$service['business_service_id']] = [
-                    'business_area_id' => $service['business_area_id']
-                ];
+            if (!empty($request->business_services)) {
+                $businessServicesData = [];
+                foreach ($request->business_services as $service) {
+                    $businessServicesData[$service['business_service_id']] = [
+                        'business_area_id' => $service['business_area_id']
+                    ];
+                }
+                $review->business_services()->sync($businessServicesData);
             }
-            $review->business_services()->sync($businessServicesData);
-        }
+
+            return $review;
+        });
+
 
         $responseData = [
             "success" => true,
@@ -491,20 +509,36 @@ class ReviewNewController extends Controller
             'guest_full_name' => 'nullable|string',
             'guest_phone' => 'nullable|string',
             'description' => 'nullable|string',
-            'staff_id' => 'nullable|exists:users,id',
-            'branch_id' => 'nullable|exists:branches,id',
+            'staff_id' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(function ($query) use ($businessId) {
+                    $query->whereHas('branches', function ($q) use ($businessId) {
+                        $q->where('business_id', $businessId);
+                    });
+                })
+            ],
+            'branch_id' => [
+                'nullable',
+                Rule::exists('branches', 'id')->where('business_id', $businessId)
+            ],
             'comment' => 'nullable|string',
             'is_overall' => 'required|boolean',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'values' => 'required|array',
-            'values.*.question_id' => 'required|integer',
+            'values.*.question_id' => 'required|integer|exists:questions,id',
             'values.*.tag_ids' => 'present|array',
             'values.*.tag_ids.*' => 'integer|exists:tags,id',
-            'values.*.star_id' => 'nullable|integer',
+            'values.*.star_id' => 'nullable|integer|exists:stars,id',
             'business_services' => 'nullable|array',
-            'business_services.*.business_service_id' => 'required|exists:business_services,id',
-            'business_services.*.business_area_id' => 'required|exists:business_areas,id',
+            'business_services.*.business_service_id' => [
+                'required',
+                Rule::exists('business_services', 'id')->where('business_id', $businessId)
+            ],
+            'business_services.*.business_area_id' => [
+                'required',
+                Rule::exists('business_areas', 'id')->where('business_id', $businessId)
+            ],
             'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg,mp4|max:10240',
             "is_voice_review" => 'required|boolean',
         ]);
@@ -516,9 +550,8 @@ class ReviewNewController extends Controller
         if ($business->enable_ip_check) {
             $existing_review = ReviewNew::where('business_id', $businessId)
                 ->where('ip_address', $ip_address)
-                ->globalReviewFilters(0)
                 ->whereDate('created_at', now()->toDateString())
-                ->orderBy('order_no', 'asc')
+                ->orderBy('created_at', 'asc')
                 ->first();
 
             if ($existing_review) {
@@ -608,20 +641,23 @@ class ReviewNewController extends Controller
             $reviewData['audio'] = $filename;
         }
 
-        $review = ReviewNew::create($reviewData);
-        $this->reviewService->storeReviewValues($review, $request->values, $business);
+        $review = DB::transaction(function () use ($reviewData, $request, $business) {
+            $review = ReviewNew::create($reviewData);
+            $this->reviewService->storeReviewValues($review, $request->values, $business);
 
-        // Attach business services with their respective business_area_id
-
-        if (!empty($request->business_services)) {
-            $businessServicesData = [];
-            foreach ($request->business_services as $service) {
-                $businessServicesData[$service['business_service_id']] = [
-                    'business_area_id' => $service['business_area_id']
-                ];
+            if (!empty($request->business_services)) {
+                $businessServicesData = [];
+                foreach ($request->business_services as $service) {
+                    $businessServicesData[$service['business_service_id']] = [
+                        'business_area_id' => $service['business_area_id']
+                    ];
+                }
+                $review->business_services()->sync($businessServicesData);
             }
-            $review->business_services()->sync($businessServicesData);
-        }
+
+            return $review;
+        });
+
 
         $average_rating = $this->calculateAverageStarValueFromRequest($request->values);
 

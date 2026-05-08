@@ -385,7 +385,7 @@ class ReviewService
             $review_value = ReviewValueNew::create([
                 'review_id' => $review->id,
                 'question_id' => $value['question_id'],
-                'star_id' => $value['star_id'],
+                'star_id' => $value['star_id'] ?? null,
             ]);
 
             // Sync tags via relationship

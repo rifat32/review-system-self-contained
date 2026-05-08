@@ -811,7 +811,8 @@ class RuleEngineService
                     'title' => $rec->text,
                     'description' => $rec->text,
                     'priority' => $rec->priority >= 4 ? 'High' : ($rec->priority >= 2 ? 'Medium' : 'Low'),
-                    'category' => 'Staff Training'
+                    'category' => 'Staff Training',
+                    'type' => 'training'
                 ];
             })->toArray();
     }

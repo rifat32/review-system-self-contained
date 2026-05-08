@@ -195,7 +195,8 @@ class RuleReportService
             if (!$label && isset($review->sentiment_score)) {
                 $label = RuleEngineService::getSentimentLabelFromScore($review->sentiment_score, $businessId);
             }
-            return ($review->calculated_rating ?? 0) >= (config('ai.insights.opportunities.reporting.mismatch_high_rating') ?? 4) && $label === 'negative';
+            $highThreshold = RuleEngineService::getHighRatingThreshold();
+            return ($review->calculated_rating ?? 0) >= $highThreshold && $label === 'negative';
         });
 
         $lowRatingPositiveComment = $reviews->filter(function ($review) use ($businessId) {
@@ -203,7 +204,8 @@ class RuleReportService
             if (!$label && isset($review->sentiment_score)) {
                 $label = RuleEngineService::getSentimentLabelFromScore($review->sentiment_score, $businessId);
             }
-            return ($review->calculated_rating ?? 0) <= (config('ai.insights.opportunities.reporting.mismatch_low_rating') ?? 2) && $label === 'positive';
+            $lowThreshold = RuleEngineService::getLowRatingThreshold();
+            return ($review->calculated_rating ?? 0) <= $lowThreshold && $label === 'positive';
         });
 
         $totalMismatches = $highRatingNegativeComment->count() + $lowRatingPositiveComment->count();
@@ -222,9 +224,16 @@ class RuleReportService
             ],
             'mismatch_patterns' => [
                 [
+                    'pattern' => 'High Rating + Negative Comment',
                     'rating_range' => '4-5',
-                    'negative_comments' => $highRatingNegativeComment->count(),
-                    'common_issues' => []
+                    'count' => $highRatingNegativeComment->count(),
+                    'type' => 'critical'
+                ],
+                [
+                    'pattern' => 'Low Rating + Positive Comment',
+                    'rating_range' => '1-2',
+                    'count' => $lowRatingPositiveComment->count(),
+                    'type' => 'insight'
                 ]
             ],
             'sample_reviews' => $highRatingNegativeComment
@@ -244,9 +253,9 @@ class RuleReportService
         $query = ReviewNew::where('business_id', $businessId)
             ->select(
                 DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(CASE WHEN sentiment_label IN ("positive", "very_positive") THEN 1 ELSE 0 END) as positive'),
-                DB::raw('SUM(CASE WHEN sentiment_label = "neutral" THEN 1 ELSE 0 END) as neutral'),
-                DB::raw('SUM(CASE WHEN sentiment_label IN ("negative", "very_negative") THEN 1 ELSE 0 END) as negative')
+                DB::raw('SUM(CASE WHEN sentiment_label IN ("positive", "very_positive") OR (sentiment_label IS NULL AND sentiment_score >= 0.7) THEN 1 ELSE 0 END) as positive'),
+                DB::raw('SUM(CASE WHEN sentiment_label = "neutral" OR (sentiment_label IS NULL AND sentiment_score >= 0.3 AND sentiment_score < 0.7) THEN 1 ELSE 0 END) as neutral'),
+                DB::raw('SUM(CASE WHEN sentiment_label IN ("negative", "very_negative") OR (sentiment_label IS NULL AND sentiment_score < 0.3) THEN 1 ELSE 0 END) as negative')
             )
             ->groupBy('date')
             ->orderBy('date', 'desc')

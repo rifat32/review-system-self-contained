@@ -17,8 +17,13 @@ class RuleExecutionService
     /**
      * Primary entry point for rule execution
      */
-    public function executeRule(AiRule $rule, $reviews, ?array $forcedAiData = null): array
+    public function executeRule(AiRule $rule, $reviews, ?array $forcedAiData = null, bool $isReprocessing = false): array
     {
+        if ($isReprocessing) {
+            foreach ($reviews as $review) {
+                $this->resetRuleOutcomes($review, $rule->id);
+            }
+        }
         Log::info("Rule Execution Started", ['rule_id' => $rule->rule_id, 'rule_name' => $rule->rule_name, 'review_count' => count($reviews)]);
 
         $summary = [
@@ -45,7 +50,8 @@ class RuleExecutionService
                 $context = $this->extractContext($review, $aiData, $rule);
                 $dedupKey = $this->buildDedupKey($rule, $review, $context);
                 
-                $cooldownCheck = $this->checkCooldown($dedupKey, $rule->cooldown_days);
+                $cooldownDays = (int) ($rule->cooldown_days ?? 0);
+                $cooldownCheck = $this->checkCooldown($dedupKey, $cooldownDays);
                 if ($cooldownCheck['active']) {
                     Log::info("Rule suppressed: Cooldown active", ['rule_id' => $rule->rule_id, 'review_id' => $review->id, 'dedup_key' => $dedupKey, 'reason' => $cooldownCheck['reason']]);
                     $this->recordSuppression($rule, $review, $dedupKey, $context, $cooldownCheck['reason']);
@@ -106,6 +112,22 @@ class RuleExecutionService
         Log::info("Rule Execution Completed", $summary);
 
         return $summary;
+    }
+
+    public function resetRuleOutcomes(ReviewNew $review, ?int $ruleId = null): void
+    {
+        $outcomeQuery = ReviewRuleOutcome::where('review_id', $review->id);
+        $triggerQuery = AiRuleTrigger::where('review_id', $review->id);
+
+        if ($ruleId) {
+            $outcomeQuery->where('rule_id', $ruleId);
+            $triggerQuery->where('rule_id', $ruleId);
+        }
+
+        $outcomeQuery->delete();
+        $triggerQuery->update(['was_suppressed' => true]);
+
+        Log::debug("Reset rule outcomes and triggers", ['review_id' => $review->id, 'rule_id' => $ruleId]);
     }
 
     protected function executeActions(AiRule $rule, ReviewNew $review, array $aiData, array $context): int
@@ -300,8 +322,16 @@ class RuleExecutionService
 
     private function extractContext(ReviewNew $review, array $aiData, AiRule $rule): array
     {
-        $context = ['staff_id' => null, 'category' => $rule->category ?? 'general', 'branch_id' => $review->branch_id ?? null];
-        if (!empty($aiData['staff_mentions'])) $context['staff_id'] = $aiData['staff_mentions'][0]['id'] ?? null;
+        $context = [
+            'staff_id' => $review->staff_id ?? null,
+            'category' => $rule->category ?? 'general',
+            'branch_id' => $review->branch_id ?? null
+        ];
+
+        if (!empty($aiData['staff_mentions'])) {
+            $context['staff_id'] = $aiData['staff_mentions'][0]['id'] ?? $context['staff_id'];
+        }
+
         return $context;
     }
 

@@ -236,7 +236,7 @@ class AIProcessorService
     /**
      * Transcribe audio - Keep as is (external API)
      */
-    public function transcribeAudio($filePath)
+    public function transcribeAudio($filePath, $task = 'transcribe')
     {
         try {
             $apiKey = \config('services.openai.api_key');
@@ -277,11 +277,12 @@ class AIProcessorService
                 $fileName .= '.' . $ext;
             }
 
+            $endpoint = ($task === 'translate') ? 'translations' : 'transcriptions';
             $response = Http::withToken($apiKey)
                 ->timeout(60)
                 ->retry(config('ai.openai.request.retry_times') ?? 3, config('ai.openai.request.retry_sleep') ?? 1000)
                 ->attach('file', fopen($filePath, 'r'), $fileName)
-                ->post('https://api.openai.com/v1/audio/transcriptions', [
+                ->post("https://api.openai.com/v1/audio/{$endpoint}", [
                     'model' => 'whisper-1',
                 ]);
 
@@ -691,7 +692,11 @@ class AIProcessorService
         $insights = InsightRecord::where('business_id', $businessId)
             ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('time_window_start', [$startDate, $endDate])
-                    ->orWhereBetween('time_window_end', [$startDate, $endDate]);
+                    ->orWhereBetween('time_window_end', [$startDate, $endDate])
+                    ->orWhere(function ($sq) use ($startDate, $endDate) {
+                        $sq->where('time_window_start', '<=', $startDate)
+                            ->where('time_window_end', '>=', $endDate);
+                    });
             })
             ->get();
 
@@ -792,37 +797,47 @@ class AIProcessorService
      */
     public function calculateBranchSummary($reviews)
     {
+        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            $reviews = (clone $reviews)
+                ->with(['rule_outcomes'])
+                ->withCalculatedRating()
+                ->get();
+        } elseif ($reviews instanceof \Illuminate\Database\Eloquent\Collection) {
+            $reviews->loadMissing('rule_outcomes');
+        }
+
         $totalReviews = $reviews->count();
-        $averageRating = $reviews->avg('calculated_rating') ?? 0;
+
+        $ratedReviews = $reviews->filter(function ($review) {
+            return $review->calculated_rating !== null;
+        });
+
+        $averageRating = $ratedReviews->avg('calculated_rating') ?? 0;
 
         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
-        $positiveReviews = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
 
+        $positiveReviews = $reviews
+            ->where('sentiment_score', '>=', $positiveThreshold)
+            ->count();
 
-        $sentiment = $this->ruleEngineService->determineOverallSentiment($positiveReviews, $totalReviews);
-
-
+        $sentiment = $this->ruleEngineService
+            ->determineOverallSentiment($positiveReviews, $totalReviews);
 
         $csatThreshold = $this->ruleEngineService->getCsatThreshold();
-        $csatCount = $reviews->filter(function ($review) use ($csatThreshold) {
-            return ($review->calculated_rating ?? 0) >= $csatThreshold;
+
+        $csatCount = $ratedReviews->filter(function ($review) use ($csatThreshold) {
+            return (float) $review->calculated_rating >= $csatThreshold;
         })->count();
 
-
-        $csatScore = $totalReviews > 0 ? round(($csatCount / $totalReviews) * 100) : 0;
+        $csatScore = $ratedReviews->count() > 0
+            ? round(($csatCount / $ratedReviews->count()) * 100)
+            : 0;
 
         $topTopic = $this->extractTopTopic($reviews);
 
-
-        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
-            $flagged = (clone $reviews)->whereHas('rule_outcomes', function($q) {
-                $q->where('is_flagged', true);
-            })->count();
-        } else {
-            $flagged = $reviews->filter(function($r) {
-                return $r->rule_outcomes->where('is_flagged', true)->isNotEmpty();
-            })->count();
-        }
+        $flagged = $reviews->filter(function ($review) {
+            return (bool) optional($review->rule_outcomes)->is_flagged;
+        })->count();
 
         return [
             'total_reviews' => $totalReviews,
@@ -832,7 +847,7 @@ class AIProcessorService
             'csat_score' => $csatScore,
             'top_topic' => $topTopic['topic'] ?? 'General',
             'flagged' => $flagged,
-            'response_rate' => ReviewService::calculateResponseRate($reviews)
+            'response_rate' => ReviewService::calculateResponseRate($reviews),
         ];
     }
 
@@ -1102,7 +1117,7 @@ class AIProcessorService
             ->whereBetween('created_at', [$startDate, $endDate])
             ->whereNotNull('staff_id')
             ->with(['staff'])
-            ->globalReviewFilters(0)
+            ->globalReviewFilters(is_ai_processed: 1)
             ->withCalculatedRating(); // Ensure metrics use calculated rating
 
         if ($branchId) {
@@ -1432,7 +1447,7 @@ class AIProcessorService
                 ->where('sentiment_score', '<', $positiveThreshold)
                 ->count();
         } else {
-            $filtered = $reviews->filter(fn ($review) => (int) $review->is_ai_processed === 1);
+            $filtered = $reviews->filter(fn($review) => (int) $review->is_ai_processed === 1);
 
             $totalReviews = $filtered->count();
 

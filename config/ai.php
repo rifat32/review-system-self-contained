@@ -58,10 +58,10 @@ return [
         // Rules for sentiment summary (Numeric status mappings)
         'sentiment_rules' => [
             ['min' => 80, 'max' => 100, 'label' => 'Exceptionally Positive'],
-            ['min' => 60, 'max' => 79, 'label' => 'Generally Positive'],
-            ['min' => 40, 'max' => 59, 'label' => 'Mixed'],
-            ['min' => 20, 'max' => 39, 'label' => 'Mostly Negative'],
-            ['min' => 0, 'max' => 19, 'label' => 'Critical'],
+            ['min' => 60, 'max' => 80, 'label' => 'Generally Positive'],
+            ['min' => 40, 'max' => 60, 'label' => 'Mixed'],
+            ['min' => 20, 'max' => 40, 'label' => 'Mostly Negative'],
+            ['min' => 0, 'max' => 20, 'label' => 'Critical'],
         ],
     ],
 

@@ -24,7 +24,8 @@ class AiRule extends Model
         'trigger_only_on_first_occurrence' => 'boolean', 'precision_rate' => 'float',
         'lifetime_triggers' => 'integer', 'branch_ids' => 'array',
         'explanation_generated_at' => 'datetime', 'last_run_at' => 'datetime',
-        'next_run_at' => 'datetime', 'is_default' => 'boolean'
+        'next_run_at' => 'datetime', 'is_default' => 'boolean',
+        'cooldown_days' => 'integer'
     ];
 
     public static $bypassDefaultGuard = false;

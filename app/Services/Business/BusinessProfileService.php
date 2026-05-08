@@ -218,7 +218,8 @@ class BusinessProfileService
      */
     public function createDefaultAiRules(Business $business): void
     {
-        $businessId = $business->id;
+        $mismatchHighRating = (float) config('ai.openai.anomalies.mismatch_high_rating', 4.0);
+
         $rules = [
             [
                 'rule_id' => 'SENTIMENT_ANALYSIS.' . $businessId,
@@ -282,8 +283,8 @@ class BusinessProfileService
                 'conditions' => [
                     'logic' => 'AND',
                     'conditions' => [
-                        ['source' => 'Rating', 'type' => 'rating', 'operator' => 'greater_than', 'value' => 3],
-                        ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'equals', 'value' => 'negative']
+                        ['source' => 'Rating', 'type' => 'rating', 'operator' => 'greater_than_or_equal', 'value' => $mismatchHighRating],
+                        ['source' => 'Comment', 'type' => 'sentiment', 'operator' => 'less_than', 'value' => 0.4]
                     ]
                 ],
                 'actions' => ['tag' => 'mismatch_detected', 'alert' => true, 'icon' => 'match_word'],
