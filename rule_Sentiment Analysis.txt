@@ -117,7 +117,7 @@ This provides the data for the Dashboard charts and counters.
 Code:
 ```php
 public function getFlaggedReviews(int $businessId, Collection $reviews) {
-    // Counts reviews where the flag was actually set by a Default Rule
+    // Counts reviews where the flag was actually set by a Default Rule (using the is_flagged accessor or whereHas)
     $flaggedCount = $reviews->where('is_flagged', true)->count();
     
     $percentage = $totalCount > 0 ? round(($flaggedCount / $totalCount) * 100, 1) : 0;

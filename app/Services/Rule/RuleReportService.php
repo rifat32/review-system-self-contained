@@ -395,103 +395,91 @@ class RuleReportService
 
         switch ($this->getBaseRuleKey($rule->rule_id)) {
             case 'SENTIMENT_ANALYSIS':
-                $label = 'Sentiment Score';
-                $total = (clone $query)->count();
-                $positive = (clone $query)->where('sentiment_label', 'positive')->count();
-                $negative = (clone $query)->where('sentiment_label', 'negative')->count();
-
-                if ($total > 0) {
-                    if ($positive > $negative) {
-                        $value = 'Positive';
-                    } elseif ($negative > $positive) {
-                        $value = 'Negative';
-                    } else {
-                        $value = 'Neutral';
-                    }
-                } else {
-                    $value = 'No Data';
-                }
-
-                $subValue = 'Overall Sentiment';
+                $label = 'Sentiment Issues';
+                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                    $q->where('is_sentiment_flagged', true);
+                })->count();
+                $subValue = 'Needs Attention';
                 $icon = '😊';
                 $color = 'green';
                 break;
 
             case 'FLAG_AND_ALERT':
-                $label = 'Flagged Reviews';
-                $value = (clone $query)->where('is_flagged', true)->count();
-                $subValue = 'Action Now';
+                $label = 'Critical Alerts';
+                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                    $q->where('is_critical_alert', true);
+                })->count();
+                $subValue = 'Action Required';
                 $icon = '🚩';
                 $color = 'orange';
                 break;
 
             case 'STAFF_MENTION_DETECTION':
-                $label = 'Staff-Linked Reviews';
-                $value = (clone $query)->whereNotNull('staff_id')->count();
-                $subValue = 'Team Recognition';
+                $label = 'Staff Mentions';
+                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                    $q->where('is_staff_mentioned', true);
+                })->count();
+                $subValue = 'AI Detected';
                 $icon = '👥';
                 $color = 'green';
                 break;
 
             case 'CATEGORY_ISSUE_DETECTION':
-                $label = 'Top Topics';
-                // Simplified top topic logic
-                $topTopic = InsightRecord::where('business_id', $rule->business_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->orderByDesc('mentions_count')
-                    ->first();
-                $value = $topTopic ? $topTopic->main_category : 'No Data';
-                $subValue = 'Trending Issues';
+                $label = 'Category Alerts';
+                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                    $q->where('is_category_detected', true);
+                })->count();
+                $subValue = 'Issues Found';
                 $icon = '🏷️';
                 $color = 'indigo';
                 break;
 
             case 'STAFF_PERFORMANCE_RISK':
-                $label = 'Staff Performance Risk';
-                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
+                $label = 'Performance Risks';
+                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                    $q->where('is_staff_risk', true);
+                })->count();
                 $subValue = 'Care Required';
                 $icon = '📉';
                 $color = 'red';
                 break;
 
             case 'EMOTION_INTENSITY':
-                $label = 'Emotion Intensity';
-                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
-                $subValue = 'High Engagement';
+                $label = 'High Emotion';
+                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                    $q->where('is_high_emotion', true);
+                })->count();
+                $subValue = 'High Intensity';
                 $icon = '🔥';
                 $color = 'purple';
                 break;
 
             case 'RATING_COMMENT_MISMATCH':
                 $label = 'Rating Mismatch';
-                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
-                $subValue = 'Hidden Insights';
+                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                    $q->where('is_mismatch', true);
+                })->count();
+                $subValue = 'Inconsistencies';
                 $icon = '🔄';
                 $color = 'blue';
                 break;
 
             case 'SERVICE_TYPE_DETECTION':
-                $label = 'Service Type';
-                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
-                $subValue = 'Departmental Analysis';
+                $label = 'Service Identified';
+                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                    $q->where('is_service_identified', true);
+                })->count();
+                $subValue = 'Dept Detection';
                 $icon = '🏢';
                 $color = 'teal';
                 break;
 
             case 'BUSINESS_AREA_DETECTION':
-                $label = 'Business Area';
-                $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
-                $subValue = 'Location Analytics';
+                $label = 'Area Identified';
+                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                    $q->where('is_area_detected', true);
+                })->count();
+                $subValue = 'Location Specific';
                 $icon = '🗺️';
                 $color = 'brown';
                 break;

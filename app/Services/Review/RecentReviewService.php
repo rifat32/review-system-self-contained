@@ -29,7 +29,7 @@ class RecentReviewService
                 $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
             }
 
-            $reviews = $query->latest()->get();
+            $reviews = $query->with('rule_outcomes')->latest()->get();
         }
 
         // If second parameter was passed as limit (numeric and no third param), handle legacy calls
@@ -37,7 +37,7 @@ class RecentReviewService
             $limit = $dateRange;
         }
 
-        return $reviews->sortByDesc('created_at')
+        return $reviews->loadMissing('rule_outcomes')->sortByDesc('created_at')
             ->take($limit)
             ->map(function ($review) {
                 $rating = $review->calculated_rating ?? 0;
@@ -53,7 +53,7 @@ class RecentReviewService
                     'date' => $review->created_at ? $review->created_at->diffForHumans() : 'Unknown',
                     'exact_date' => $review->created_at ? $review->created_at->format('Y-m-d H:i:s') : null,
                     'created_at' => $review->created_at ? $review->created_at->format('d-m-Y H:i:s') : null,
-                    'is_flagged' => $review->status === 'flagged',
+                    'is_flagged' => $review->is_flagged,
                     'has_actions' => true,
                     'user_type' => $review->user_id ? 'Registered' : ($review->guest_id ? 'Guest' : 'Anonymous')
                 ];

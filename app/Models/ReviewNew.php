@@ -218,6 +218,14 @@ class ReviewNew extends Model
         return $this->hasOne(ReviewRuleOutcome::class, 'review_id');
     }
 
+    /**
+     * Accessor for is_flagged (mapped from rule_outcomes)
+     */
+    public function getIsFlaggedAttribute(): bool
+    {
+        return (bool) ($this->rule_outcomes->is_flagged ?? false);
+    }
+
 
 
 
@@ -737,8 +745,72 @@ class ReviewNew extends Model
             ->when(request()->has('flagged_reviews'), function ($q) {
                 $flaggedReviews = request()->input('flagged_reviews');
                 if ($flaggedReviews == 1) {
-                    $q->where('review_news.is_ai_processed', 1)
-                        ->where('review_news.sentiment_score', '<', RuleEngineService::getNegativeSentimentThreshold());
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_flagged', true);
+                    });
+                }
+            })
+            ->when(request()->has('is_critical_alert'), function ($q) {
+                if (request()->input('is_critical_alert') == 1) {
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_critical_alert', true);
+                    });
+                }
+            })
+            ->when(request()->has('is_sentiment_flagged'), function ($q) {
+                if (request()->input('is_sentiment_flagged') == 1) {
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_sentiment_flagged', true);
+                    });
+                }
+            })
+            ->when(request()->has('is_high_emotion'), function ($q) {
+                if (request()->input('is_high_emotion') == 1) {
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_high_emotion', true);
+                    });
+                }
+            })
+            ->when(request()->has('is_mismatch'), function ($q) {
+                if (request()->input('is_mismatch') == 1) {
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_mismatch', true);
+                    });
+                }
+            })
+            ->when(request()->has('is_category_detected'), function ($q) {
+                if (request()->input('is_category_detected') == 1) {
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_category_detected', true);
+                    });
+                }
+            })
+            ->when(request()->has('is_service_identified'), function ($q) {
+                if (request()->input('is_service_identified') == 1) {
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_service_identified', true);
+                    });
+                }
+            })
+            ->when(request()->has('is_area_detected'), function ($q) {
+                if (request()->input('is_area_detected') == 1) {
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_area_detected', true);
+                    });
+                }
+            })
+            ->when(request()->has('is_staff_mentioned'), function ($q) {
+                if (request()->input('is_staff_mentioned') == 1) {
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_staff_mentioned', true);
+                    });
+                }
+            })
+            ->when(request()->has('is_staff_risk'), function ($q) {
+                if (request()->input('is_staff_risk') == 1) {
+                    $q->whereHas('rule_outcomes', function($sq) {
+                        $sq->where('is_staff_risk', true);
+                    });
                 }
             })
             ->when(request()->has('has_staff'), function ($q) {
