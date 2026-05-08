@@ -16,20 +16,13 @@ use DB;
 
 class ReviewService
 {
-    private RuleEngineService $ruleEngineService;
-    private BusinessAnalyticsService $businessAnalyticsService;
-    private ReviewTopicService $reviewTopicService;
+
     private NotificationService $notificationService;
 
     public function __construct(
-        RuleEngineService $ruleEngineService,
-        BusinessAnalyticsService $businessAnalyticsService,
-        ReviewTopicService $reviewTopicService,
         NotificationService $notificationService
     ) {
-        $this->ruleEngineService = $ruleEngineService;
-        $this->businessAnalyticsService = $businessAnalyticsService;
-        $this->reviewTopicService = $reviewTopicService;
+
         $this->notificationService = $notificationService;
     }
     /**
@@ -401,7 +394,14 @@ class ReviewService
 
 
         if ($business && $review->guest_id) {
-            // $notificationService = app(\App\Services\Notification\NotificationService::class);
+            $review->save();
+
+            // Do not classify comment-only/no-star reviews as low-rating reviews.
+            if ($averageRating === null) {
+                return;
+            }
+
+            $thresholdRating = $business->threshold_rating ?? RuleEngineService::getCsatThreshold();
 
             // Get branch manager if review has branch_id
             $branchManagerId = null;
@@ -410,9 +410,7 @@ class ReviewService
                 $branchManagerId = $branch?->manager_id;
             }
 
-            if ($averageRating >= $business->threshold_rating) {
-                $review->save();
-
+            if ($averageRating >= $thresholdRating) {
                 // Send notification only to branch manager
                 if ($branchManagerId) {
                     // In-app notification
@@ -516,8 +514,6 @@ class ReviewService
                     }
                 }
             } else {
-                $review->save();
-
                 // Send notification to both business owner and branch manager
                 $receiverIds = [];
 
@@ -536,7 +532,7 @@ class ReviewService
                         'business_id' => $business->id,
                         'type' => 'low_rating_review',
                         'title' => 'Low Rating Review Alert',
-                        'message' => "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
+                        'message' => "A review with rating {$averageRating} (below threshold {$thresholdRating}) has been submitted.",
                         'entity_id' => $review->id,
                         'priority' => 'high',
                     ]);
@@ -548,7 +544,7 @@ class ReviewService
                             \Illuminate\Support\Facades\Mail::to($user->email)
                                 ->send(new \App\Mail\ReviewNotificationMail(
                                     'Low Rating Review Alert',
-                                    "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
+                                    "A review with rating {$averageRating} (below threshold {$thresholdRating}) has been submitted.",
                                     $averageRating,
                                     $business->name ?? null,
                                     $user->first_Name ?? $user->name ?? 'User'
@@ -563,12 +559,12 @@ class ReviewService
                         $this->notificationService->sendNotificationToFirebaseUser(
                             userId: $receiverId,
                             title: 'Low Rating Review Alert',
-                            body: "A review with rating {$averageRating} (below threshold {$business->threshold_rating}) has been submitted.",
+                            body: "A review with rating {$averageRating} (below threshold {$thresholdRating}) has been submitted.",
                             data: [
                                 'type' => 'low_rating_review',
                                 'entity_id' => (string) $review->id,
                                 'rating' => (string) $averageRating,
-                                'threshold' => (string) $business->threshold_rating,
+                                'threshold' => (string) $thresholdRating,
                             ],
                         );
                     } catch (\Exception $e) {

@@ -240,10 +240,10 @@ class BusinessProfileService
                     ]
                 ],
                 'actions' => ['tag' => 'sentiment_categorized', 'icon' => 'sentiment_satisfied'],
-                'ai_explanation_title' => 'Sentiment Analysis',
-                'ai_plain_explanation' => 'Automatically categorize feedback into positive, neutral, or negative sentiment buckets.',
-                'ai_why_it_matters' => 'Understanding the general mood of customer feedback helps in broad quality assessment.',
-                'ai_when_it_triggers' => 'Triggers on every review to assign a sentiment category.'
+                'short_explanation' => 'Sentiment Analysis',
+                'detailed_explanation' => 'Automatically categorize feedback into positive, neutral, or negative sentiment buckets.',
+                'why_it_matters' => 'Understanding the general mood of customer feedback helps in broad quality assessment.',
+                'when_it_triggers' => 'Triggers on every review to assign a sentiment category.'
             ],
             [
                 'rule_id' => 'EMOTION_INTENSITY.' . $businessId,
@@ -263,10 +263,10 @@ class BusinessProfileService
                     ]
                 ],
                 'actions' => ['tag' => 'high_emotion_intensity', 'icon' => 'mood'],
-                'ai_explanation_title' => 'Emotion Intensity Detection',
-                'ai_plain_explanation' => 'Identify the strength of emotions like joy, frustration, or anger within text reviews.',
-                'ai_why_it_matters' => 'High intensity emotions often signal critical issues or exceptional praise.',
-                'ai_when_it_triggers' => 'Triggers when strong emotions are detected in review text.'
+                'short_explanation' => 'Emotion Intensity Detection',
+                'detailed_explanation' => 'Identify the strength of emotions like joy, frustration, or anger within text reviews.',
+                'why_it_matters' => 'High intensity emotions often signal critical issues or exceptional praise.',
+                'when_it_triggers' => 'Triggers when strong emotions are detected in review text.'
             ],
             [
                 'rule_id' => 'RATING_COMMENT_MISMATCH.' . $businessId,
@@ -287,10 +287,10 @@ class BusinessProfileService
                     ]
                 ],
                 'actions' => ['tag' => 'mismatch_detected', 'alert' => true, 'icon' => 'match_word'],
-                'ai_explanation_title' => 'Rating & Comment Mismatch',
-                'ai_plain_explanation' => 'Detect when a high numerical rating is paired with a negative written review.',
-                'ai_why_it_matters' => 'Identifies hidden dissatisfaction where customers are polite with stars but critical in text.',
-                'ai_when_it_triggers' => 'Triggers when stars are high (4+) but comment sentiment is negative.'
+                'short_explanation' => 'Rating & Comment Mismatch',
+                'detailed_explanation' => 'Detect when a high numerical rating is paired with a negative written review.',
+                'why_it_matters' => 'Identifies hidden dissatisfaction where customers are polite with stars but critical in text.',
+                'when_it_triggers' => 'Triggers when stars are high (4+) but comment sentiment is negative.'
             ],
             [
                 'rule_id' => 'CATEGORY_ISSUE_DETECTION.' . $businessId,
@@ -312,10 +312,10 @@ class BusinessProfileService
                     ]
                 ],
                 'actions' => ['tag' => 'category_assigned', 'icon' => 'category'],
-                'ai_explanation_title' => 'Category Issue Detection',
-                'ai_plain_explanation' => 'Sort feedback into predefined categories like Pricing, Quality, or Delivery.',
-                'ai_why_it_matters' => 'Enables granular analysis of specific business problems.',
-                'ai_when_it_triggers' => 'Triggers when keywords related to pricing, quality, or delivery are found.'
+                'short_explanation' => 'Category Issue Detection',
+                'detailed_explanation' => 'Sort feedback into predefined categories like Pricing, Quality, or Delivery.',
+                'why_it_matters' => 'Enables granular analysis of specific business problems.',
+                'when_it_triggers' => 'Triggers when keywords related to pricing, quality, or delivery are found.'
             ],
             [
                 'rule_id' => 'SERVICE_TYPE_DETECTION.' . $businessId,
@@ -336,10 +336,10 @@ class BusinessProfileService
                     ]
                 ],
                 'actions' => ['tag' => 'service_type_identified', 'icon' => 'home_repair_service'],
-                'ai_explanation_title' => 'Service Type Detection',
-                'ai_plain_explanation' => 'Identify the specific type of service mentioned (e.g., Installation vs Maintenance).',
-                'ai_why_it_matters' => 'Helps routes feedback to the correct department.',
-                'ai_when_it_triggers' => 'Triggers when specific service terms are mentioned.'
+                'short_explanation' => 'Service Type Detection',
+                'detailed_explanation' => 'Identify the specific type of service mentioned (e.g., Installation vs Maintenance).',
+                'why_it_matters' => 'Helps routes feedback to the correct department.',
+                'when_it_triggers' => 'Triggers when specific service terms are mentioned.'
             ],
             [
                 'rule_id' => 'BUSINESS_AREA_DETECTION.' . $businessId,
@@ -359,10 +359,10 @@ class BusinessProfileService
                     ]
                 ],
                 'actions' => ['tag' => 'area_identified', 'icon' => 'domain'],
-                'ai_explanation_title' => 'Business Area Detection',
-                'ai_plain_explanation' => 'Pinpoint which business unit or physical location the feedback refers to.',
-                'ai_why_it_matters' => 'Identifies exactly where in the business an issue or win occurred.',
-                'ai_when_it_triggers' => 'Triggers when AI detects a physical area mention in the review.'
+                'short_explanation' => 'Business Area Detection',
+                'detailed_explanation' => 'Pinpoint which business unit or physical location the feedback refers to.',
+                'why_it_matters' => 'Identifies exactly where in the business an issue or win occurred.',
+                'when_it_triggers' => 'Triggers when AI detects a physical area mention in the review.'
             ],
             [
                 'rule_id' => 'STAFF_MENTION_DETECTION.' . $businessId,
@@ -382,10 +382,10 @@ class BusinessProfileService
                     ]
                 ],
                 'actions' => ['tag' => 'staff_identified', 'icon' => 'badge'],
-                'ai_explanation_title' => 'Staff Mention Detection',
-                'ai_plain_explanation' => 'Extract employee names or roles from comments to track individual mentions.',
-                'ai_why_it_matters' => 'Enables staff-level performance tracking and recognition.',
-                'ai_when_it_triggers' => 'Triggers when a staff member or role is explicitly mentioned.'
+                'short_explanation' => 'Staff Mention Detection',
+                'detailed_explanation' => 'Extract employee names or roles from comments to track individual mentions.',
+                'why_it_matters' => 'Enables staff-level performance tracking and recognition.',
+                'when_it_triggers' => 'Triggers when a staff member or role is explicitly mentioned.'
             ],
             [
                 'rule_id' => 'STAFF_PERFORMANCE_RISK.' . $businessId,
@@ -406,10 +406,10 @@ class BusinessProfileService
                     ]
                 ],
                 'actions' => ['tag' => 'staff_risk_flagged', 'alert' => true, 'icon' => 'warning'],
-                'ai_explanation_title' => 'Staff Performance Risk',
-                'ai_plain_explanation' => 'Flag recurring negative mentions or behavioral issues linked to specific personnel.',
-                'ai_why_it_matters' => 'Protects brand reputation by identifying problematic staff behavior early.',
-                'ai_when_it_triggers' => 'Triggers when staff are mentioned in a negative context.'
+                'short_explanation' => 'Staff Performance Risk',
+                'detailed_explanation' => 'Flag recurring negative mentions or behavioral issues linked to specific personnel.',
+                'why_it_matters' => 'Protects brand reputation by identifying problematic staff behavior early.',
+                'when_it_triggers' => 'Triggers when staff are mentioned in a negative context.'
             ],
             [
                 'rule_id' => 'FLAG_AND_ALERT.' . $businessId,
@@ -429,10 +429,10 @@ class BusinessProfileService
                     ]
                 ],
                 'actions' => ['alert' => true, 'notification' => 'emergency', 'icon' => 'notifications_active'],
-                'ai_explanation_title' => 'Flag and Alert Detection',
-                'ai_plain_explanation' => 'Trigger immediate notifications for critical keywords or severe dissatisfaction.',
-                'ai_why_it_matters' => 'Ensures immediate action on the most sensitive customer issues.',
-                'ai_when_it_triggers' => 'Triggers on very low ratings or critical emergency keywords.'
+                'short_explanation' => 'Flag and Alert Detection',
+                'detailed_explanation' => 'Trigger immediate notifications for critical keywords or severe dissatisfaction.',
+                'why_it_matters' => 'Ensures immediate action on the most sensitive customer issues.',
+                'when_it_triggers' => 'Triggers on very low ratings or critical emergency keywords.'
             ]
         ];
 
@@ -451,10 +451,12 @@ class BusinessProfileService
                     'precision_rate' => $ruleData['precision_rate'],
                     'conditions' => $ruleData['conditions'], // Cast to array in model
                     'actions' => $ruleData['actions'],
-                    'ai_explanation_title' => $ruleData['ai_explanation_title'],
-                    'ai_plain_explanation' => $ruleData['ai_plain_explanation'],
-                    'ai_why_it_matters' => $ruleData['ai_why_it_matters'],
-                    'ai_when_it_triggers' => $ruleData['ai_when_it_triggers'],
+                    'short_explanation' => $ruleData['short_explanation'] ?? null,
+                    'detailed_explanation' => $ruleData['detailed_explanation'] ?? null,
+                    'why_it_matters' => $ruleData['why_it_matters'] ?? null,
+                    'explainability' => [
+                        'when_it_triggers' => $ruleData['when_it_triggers'] ?? null,
+                    ],
                     'run_frequency' => 'daily',
                     'version' => 1,
                     'created_by' => 'system'

@@ -908,8 +908,11 @@ PROMPT;
 PROMPT;
         }
 
-        // NEW: Area insights guidelines
-        $prompt .= <<<PROMPT
+        if (
+            $this->moduleEnabled($enabledModules, 'area_insights') ||
+            $this->moduleEnabled($enabledModules, 'business_area_detection')
+        ) {
+            $prompt .= <<<PROMPT
 7. AREA INSIGHTS:
    - Map comments to specific areas mentioned (reception, room, kitchen, etc.)
    - If multiple areas mentioned, analyze each separately
@@ -918,6 +921,7 @@ PROMPT;
    - Identify which area is most impacted by negative feedback
 
 PROMPT;
+        }
 
         if ($this->moduleEnabled($enabledModules, 'business_recommendations')) {
             $prompt .= <<<PROMPT
@@ -1086,12 +1090,19 @@ PROMPT;
         }
 
         // Only include staff info if staff_intelligence module is enabled
-        if (($enabledModules['staff_intelligence'] ?? true) && $staffInfo) {
+        if ($this->moduleEnabled($enabledModules, 'staff_intelligence') && $staffInfo) {
             $message .= "\nStaff Mentioned: " . ($staffInfo['staff_name'] ?? 'Unknown') . " (ID: " . ($staffInfo['staff_id'] ?? '') . ")\n";
         }
 
-        // Add business services/areas if available
-        if (!empty($payload['business_services'])) {
+        // Add business services/areas if available (Gated by area/service modules)
+        if (
+            !empty($payload['business_services']) &&
+            (
+                $this->moduleEnabled($enabledModules, 'area_insights') ||
+                $this->moduleEnabled($enabledModules, 'business_area_detection') ||
+                $this->moduleEnabled($enabledModules, 'service_unit_intelligence')
+            )
+        ) {
             $message .= "\nBUSINESS AREAS/SERVICES MENTIONED:\n";
             foreach ($payload['business_services'] as $service) {
                 $message .= "- {$service['business_service_name']} (Area: {$service['business_area_name']})\n";

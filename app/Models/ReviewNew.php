@@ -618,19 +618,25 @@ class ReviewNew extends Model
             return $query;
         }
 
-        // Rating filter logic:
-        // 1: 0 to 1.9
-        // 2: 2.0 to 2.9
-        // 3: 3.0 to 3.9
-        // 4: 4.0 to 4.9
-        // 5: exactly 5.0
-        if ($rating === 1) {
-            return $query->havingRaw('calculated_rating >= 0 AND calculated_rating < 2');
-        } elseif ($rating === 5) {
-            return $query->havingRaw('calculated_rating = 5');
-        } else {
-            return $query->havingRaw('calculated_rating >= ? AND calculated_rating < ?', [$rating, $rating + 1]);
-        }
+        // Use self-contained subquery to avoid dependency on calculated_rating alias
+        return $query->whereExists(function ($subQuery) use ($rating) {
+            $subQuery->select(DB::raw(1))
+                ->from('review_value_news as rvn_rating')
+                ->join('stars as s_rating', 'rvn_rating.star_id', '=', 's_rating.id')
+                ->whereColumn('rvn_rating.review_id', 'review_news.id')
+                ->groupBy('rvn_rating.review_id');
+
+            if ($rating === 1) {
+                $subQuery->havingRaw('ROUND(AVG(s_rating.value), 1) >= 0 AND ROUND(AVG(s_rating.value), 1) < 2');
+            } elseif ($rating === 5) {
+                $subQuery->havingRaw('ROUND(AVG(s_rating.value), 1) = 5');
+            } else {
+                $subQuery->havingRaw(
+                    'ROUND(AVG(s_rating.value), 1) >= ? AND ROUND(AVG(s_rating.value), 1) < ?',
+                    [$rating, $rating + 1]
+                );
+            }
+        });
     }
 
     public function scopeFilterByInsight($query)
@@ -735,11 +741,13 @@ class ReviewNew extends Model
                     $q->whereDoesNotMeetsThreshold($is_staff_review);
                 }
             })
-            ->when(request()->has('csat_score'), function ($q) {
-                $csatScore = request()->input('csat_score');
-                if ($csatScore == 1) {
-                    $q->where('review_news.is_ai_processed', 1)
-                        ->where('review_news.sentiment_score', '>=', RuleEngineService::getPositiveSentimentThreshold());
+            ->when(request()->has('csat_score'), function ($q) use ($is_staff_review) {
+                $csatScore = (int) request()->input('csat_score');
+
+                if ($csatScore === 1) {
+                    $q->whereMeetsThreshold($is_staff_review);
+                } elseif ($csatScore === 0) {
+                    $q->whereDoesNotMeetsThreshold($is_staff_review);
                 }
             })
             ->when(request()->has('flagged_reviews'), function ($q) {
