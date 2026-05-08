@@ -41,7 +41,10 @@ class ConditionBuilderService
         }
         $logic = $conditionData['logic'] ?? $defaultLogic;
         $conditions = $conditionData['conditions'] ?? [];
-        if (empty($conditions)) return true;
+        if (empty($conditions)) {
+            Log::warning("Condition tree is empty during execution", ['review_id' => $review->id]);
+            return false;
+        }
 
         $results = []; $localMatches = [];
         foreach ($conditions as $condition) {
@@ -85,7 +88,11 @@ class ConditionBuilderService
                     default => false
                 }
             };
-            return (bool)$value === $hasData;
+            if (!array_key_exists('value', $condition)) {
+                return $hasData;
+            }
+
+            return (bool) $value === $hasData;
         }
 
         if ($source === 'Rating' || $type === 'rating') return self::matchNumeric($review->calculated_rating ?? 0, $operator, $value);

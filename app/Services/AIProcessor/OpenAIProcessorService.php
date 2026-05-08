@@ -23,6 +23,79 @@ class OpenAIProcessorService
         $this->ruleEngineService = $ruleEngineService;
     }
 
+    private function moduleEnabled(array $enabledModules, string $moduleName, bool $default = false): bool
+    {
+        return array_key_exists($moduleName, $enabledModules)
+            ? (bool) $enabledModules[$moduleName]
+            : $default;
+    }
+
+    private function normalizeSentimentScore($score): float
+    {
+        $score = is_numeric($score) ? (float) $score : (float) config('ai.topics.intensity_mapping.default', 0.5);
+
+        // Backward safety: old prompt allowed -1.0 to 1.0.
+        if ($score < 0) {
+            $score = ($score + 1) / 2;
+        }
+
+        // Backward safety if a future response accidentally returns 0-100.
+        if ($score > 1) {
+            $score = $score / 100;
+        }
+
+        return round(max(0, min(1, $score)), 4);
+    }
+
+    private function normalizeSentimentLabel(?string $label, float $score): string
+    {
+        $label = strtolower((string) ($label ?? ''));
+
+        return match ($label) {
+            'very_positive', 'positive' => 'positive',
+            'very_negative', 'negative' => 'negative',
+            'neutral' => 'neutral',
+            default => RuleEngineService::getSentimentLabelFromScore($score),
+        };
+    }
+
+    private function buildKeyPhrases(array $result): array
+    {
+        $staffMentions = [];
+        $staff = $result['staff_intelligence'] ?? null;
+
+        if (is_array($staff) && ($staff['mentioned_explicitly'] ?? false)) {
+            $staffMentions[] = [
+                'id' => $staff['staff_id'] ?? null,
+                'name' => $staff['staff_name'] ?? null,
+                'sentiment' => $staff['sentiment_towards_staff'] ?? null,
+                'risk_level' => $staff['risk_level'] ?? null,
+                'blame_detected' => $staff['blame_detected'] ?? false,
+            ];
+        }
+
+        $areasMentioned = [];
+        foreach (($result['area_insights'] ?? []) as $area) {
+            if (!is_array($area)) {
+                continue;
+            }
+
+            $areasMentioned[] = [
+                'id' => $area['area_id'] ?? null,
+                'name' => $area['area_name'] ?? null,
+                'sentiment' => $area['sentiment'] ?? null,
+                'issues' => $area['key_issues'] ?? [],
+                'strengths' => $area['strengths'] ?? [],
+            ];
+        }
+
+        return [
+            'tags' => $result['tags'] ?? [],
+            'staff_mentions' => $staffMentions,
+            'areas_mentioned' => $areasMentioned,
+        ];
+    }
+
 
     /**
      * Get business AI modules with fallback to defaults
@@ -588,8 +661,8 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
     "translated_text": "English translation if not English"
   },
   "sentiment": {
-    "label": "very_negative|negative|neutral|positive|very_positive",
-    "score": -1.0 to 1.0
+    "label": "negative|neutral|positive",
+    "score": 0.0 to 1.0
 },
   "emotion": {
     "primary": "joy|sadness|anger|fear|surprise|disgust|neutral",
@@ -611,7 +684,7 @@ You are an AI Experience Intelligence Engine. Analyze customer reviews and retur
 PROMPT;
 
         // Add optional modules based on enabledModules array
-        if ($enabledModules['category_analysis'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'category_analysis')) {
             $prompt .= <<<PROMPT
   "category_analysis": [
     {
@@ -629,7 +702,7 @@ PROMPT;
 PROMPT;
         }
 
-        if ($enabledModules['staff_intelligence'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'staff_intelligence')) {
             $prompt .= <<<PROMPT
   "staff_intelligence": {
     "staff_id": "staff id",
@@ -654,7 +727,7 @@ PROMPT;
 PROMPT;
         }
 
-        if ($enabledModules['service_unit_intelligence'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'service_unit_intelligence')) {
             $prompt .= <<<PROMPT
   "service_unit_intelligence": {
     "unit_type": "Room|Table|Equipment|Vehicle|Other",
@@ -670,8 +743,11 @@ PROMPT;
 PROMPT;
         }
 
-        // NEW: Add area-specific insights section
-        $prompt .= <<<PROMPT
+        if (
+            $this->moduleEnabled($enabledModules, 'area_insights') ||
+            $this->moduleEnabled($enabledModules, 'business_area_detection')
+        ) {
+            $prompt .= <<<PROMPT
   "area_insights": [
     {
       "area_id": "area identifier",
@@ -683,8 +759,13 @@ PROMPT;
     }
   ],
 PROMPT;
+        } else {
+            $prompt .= <<<PROMPT
+  "area_insights": [],
+PROMPT;
+        }
 
-        if ($enabledModules['business_recommendations'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'business_recommendations')) {
             $prompt .= <<<PROMPT
   "business_insights": {
     "root_cause": "main issue identified",
@@ -716,7 +797,7 @@ PROMPT;
 PROMPT;
         }
 
-        if ($enabledModules['alerts'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'alerts')) {
             $prompt .= <<<PROMPT
   "alerts": {
     "triggered": true|false,
@@ -777,7 +858,7 @@ CRITICAL ANALYSIS GUIDELINES:
 PROMPT;
 
         // Add analysis guidelines only for enabled modules
-        if ($enabledModules['sentiment_analysis'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'sentiment_analysis')) {
             $prompt .= <<<PROMPT
 2. SENTIMENT & RATING-COMMENT ALIGNMENT:
    - Check if numeric ratings match the tone of comments
@@ -792,15 +873,15 @@ PROMPT;
 PROMPT;
         }
 
-        if ($enabledModules['emotion_detection'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'emotion_detection')) {
             $prompt .= "\n3. EMOTION DETECTION:\n   - Angry words = anger\n   - Happy words = joy\n   - Disappointed words = sadness\n   - Fearful words = fear\n   - Frustrated words = anger/disgust";
         }
 
-        if ($enabledModules['abuse_detection'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'abuse_detection')) {
             $prompt .= "\n4. MODERATION: Mark as abusive for hate speech, threats, extreme profanity, personal attacks";
         }
 
-        if ($enabledModules['category_analysis'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'category_analysis')) {
             $prompt .= <<<PROMPT
 5. CATEGORY ANALYSIS:
    - Staff: Behavior, knowledge, attitude, professionalism
@@ -815,7 +896,7 @@ PROMPT;
 PROMPT;
         }
 
-        if ($enabledModules['staff_intelligence'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'staff_intelligence')) {
             $prompt .= <<<PROMPT
 6. STAFF INTELLIGENCE:
    - Distinguish between staff behavior vs process issues
@@ -838,7 +919,7 @@ PROMPT;
 
 PROMPT;
 
-        if ($enabledModules['business_recommendations'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'business_recommendations')) {
             $prompt .= <<<PROMPT
 8. RECOMMENDATIONS:
    - Be specific and actionable
@@ -849,7 +930,7 @@ PROMPT;
 PROMPT;
         }
 
-        if ($enabledModules['alerts'] ?? true) {
+        if ($this->moduleEnabled($enabledModules, 'alerts')) {
             $prompt .= <<<PROMPT
 9. ALERTS & FLAGS:
    - "insight" flag for: High ratings with negative comments
@@ -899,7 +980,7 @@ JSON OUTPUT FORMATTING RULES - CRITICAL:
 5. Do NOT add trailing commas: {"a": 1, "b": 2} not {"a": 1, "b": 2,}
 6. Ensure ALL strings are properly quoted: "label": "negative" not "label": negative
 7. Ensure ALL booleans are lowercase: true/false not True/False
-8. Ensure ALL numbers are not quoted: "score": -1.0 not "score": "-1.0"
+8. Ensure ALL numbers are not quoted: "score": 0.5 not "score": "0.5"
 9. Complete ALL JSON structures - don't truncate arrays or objects
 10. If the response is long, ensure max_tokens is sufficient to complete
 11. Ensure ALL special characters in strings are properly escaped
@@ -934,7 +1015,7 @@ PROMPT;
 PROMPT;
         }
 
-        if ($enabledModules['staff_intelligence'] ?? false) {
+        if ($this->moduleEnabled($enabledModules, 'staff_intelligence')) {
             $prompt .= <<<PROMPT
 - STAFF INTELLIGENCE: Include soft skill scores and specific recommendations if applicable. If staff is mentioned positively, highlight their strengths. If mentioned negatively, provide constructive feedback.
 
@@ -948,7 +1029,7 @@ PROMPT;
 PROMPT;
         }
 
-        if ($enabledModules['alerts'] ?? false) {
+        if ($this->moduleEnabled($enabledModules, 'alerts')) {
             $prompt .= <<<PROMPT
 - ALERTS: Trigger alerts only for significant issues. Use appropriate priority levels. Provide clear recommended actions.
 
@@ -1149,9 +1230,9 @@ PROMPT;
             return [
                 'status' => 'already_processed',
                 'sentiment_label' => $review->sentiment_label,
-                'sentiment_score' => $review->sentiment_score,
+                'sentiment_score' => $review->sentiment_score ?? (float) config('ai.topics.intensity_mapping.default', 0.5),
                 'emotion' => $review->emotion,
-                'ai_confidence' => $review->ai_confidence,
+                'ai_confidence' => $review->ai_confidence ?? ((float) config('ai.insights.opportunities.preview.base_precision', 85.0) / 100),
                 'is_abusive' => $review->is_abusive,
                 'message' => 'Review already processed. Use --force flag to reprocess.'
             ];
@@ -1219,7 +1300,10 @@ PROMPT;
 
     public function generateRecommendations(array $aiResult, array $enabledModules): array
     {
-        if (!in_array('recommendations', $enabledModules) && !in_array('business_recommendations', $enabledModules)) {
+        $enabled = $this->moduleEnabled($enabledModules, 'recommendations')
+            || $this->moduleEnabled($enabledModules, 'business_recommendations');
+
+        if (!$enabled) {
             return [];
         }
 
@@ -1276,39 +1360,51 @@ PROMPT;
     {
         $mismatchInsights = $this->extractMismatchInsights($result, $review);
 
-        $dbData = [
-            'sentiment_score' => $result['sentiment']['score'] ?? 0,
-            'sentiment_label' => strtolower($result['sentiment']['label'] ?? 'neutral'),
-            'emotion' => $result['emotion'] ?? ["primary" => "neutral", "intensity" => "low"],
-            'is_abusive' => $result['flagging']['is_abusive'] ?? false,
+        $sentimentScore = $this->normalizeSentimentScore($result['sentiment']['score'] ?? config('ai.topics.intensity_mapping.default', 0.5));
+        $sentimentLabel = $this->normalizeSentimentLabel($result['sentiment']['label'] ?? null, $sentimentScore);
+
+        $moderation = $result['moderation'] ?? [];
+        $explainability = $result['explainability'] ?? [];
+
+        return [
+            'sentiment_score' => $sentimentScore,
+            'sentiment_label' => $sentimentLabel,
+            'emotion' => $result['emotion'] ?? ['primary' => 'neutral', 'intensity' => 'low'],
+
+            // Correct key: prompt returns "moderation", not "flagging".
+            'is_abusive' => (bool) ($moderation['is_abusive'] ?? false),
+            'moderation_results' => $moderation,
+
             'is_ai_processed' => true,
-            'ai_confidence' => $result['confidence_score'] ?? 0.8,
-            'ai_processed_at' => \now(),
+
+            // Correct key: prompt returns explainability.confidence_score.
+            'ai_confidence' => (float) ($explainability['confidence_score'] ?? (config('ai.insights.opportunities.preview.base_precision', 85.0) / 100)),
+
+            'ai_processed_at' => now(),
             'ai_model' => Config::get('services.openai.model', 'gpt-4o-mini'),
 
-            // Mismatch data
-            'rating_comment_mismatch' => $mismatchInsights['has_mismatch'],
-            'mismatch_insights' => json_encode($mismatchInsights),
+            'rating_comment_mismatch' => (bool) ($mismatchInsights['has_mismatch'] ?? false),
 
-            // Store detailed insights and tags
+            // Do not json_encode because ReviewNew casts this field as array.
+            'mismatch_insights' => $mismatchInsights,
+
             'ai_insights' => $this->extractInsights($result, $enabledModules),
             'ai_recommendations' => $this->generateRecommendations($result, $enabledModules),
 
-            // Map additional fields for dashboard and reporting
             'language' => $result['language']['detected'] ?? 'en',
             'summary' => $result['summary']['one_line'] ?? ($result['summary']['manager_summary'] ?? ''),
             'openai_raw_response' => $result,
-            'key_phrases' => $result['tags'] ?? [],
+
+            // Store the real staff/area data where rules currently look for it.
+            'key_phrases' => $this->buildKeyPhrases($result),
+
             'topics' => $result['category_analysis'] ?? [],
             'service_analysis' => $result['category_analysis'] ?? [],
-            'moderation_results' => $result['flagging'] ?? [],
+
             'ai_suggestions' => $result['recommendations']['business_actions'] ?? [],
             'staff_suggestions' => $result['recommendations']['staff_actions'] ?? [],
             'review_type' => $review->review_type ?? ($review->is_voice_review ? 'voice' : 'text'),
         ];
-
-
-        return $dbData;
     }
 
 

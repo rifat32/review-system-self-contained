@@ -56,12 +56,12 @@ class BusinessProfileService
             $totalRating += $selectedCount;
         }
 
-        $average_rating = $totalCount > 0 ? $totalCount / $totalRating : 0;
+        $average_rating = $totalRating > 0 ? $totalCount / $totalRating : 0;
 
         $timing = $business->times()->with("timeSlots")->where('day', $dayOfWeek)->first();
 
-        $business->average_rating = $average_rating;
-        $business->total_rating_count = $totalCount;
+        $business->average_rating = round($average_rating, 1);
+        $business->total_rating_count = $totalRating;
         $business->out_of = 5;
         $business->timing = $timing;
 

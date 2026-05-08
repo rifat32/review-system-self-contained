@@ -32,6 +32,7 @@ return [
             'negative_score' => 0.4,
             'csat' => 4.0,
             'high_rating' => 4.0,
+            'neutral_rating' => 3.0,
             'low_rating' => 2.0,
             'default_label' => 'neutral',
             'min_praise_recommendation' => 2,

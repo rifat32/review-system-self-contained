@@ -26,10 +26,12 @@ class ReviewMetricsService
     ): array {
         $totalCount = $reviews->count();
 
-        // Get unified threshold from RuleEngineService
-        $positiveSentimentThreshold = RuleEngineService::getPositiveSentimentThreshold();
+        $business = Business::find($businessId);
+        $threshold = (float) ($business?->threshold_rating ?? RuleEngineService::getCsatThreshold());
 
-        $qualifyingCount = $reviews->where('sentiment_score', '>=', $positiveSentimentThreshold)->count();
+        $qualifyingCount = $reviews->filter(function ($review) use ($threshold) {
+            return (float) ($review->calculated_rating ?? 0) >= $threshold;
+        })->count();
 
         $score = $totalCount > 0 ? round(($qualifyingCount / $totalCount) * 100, 1) : 0;
 

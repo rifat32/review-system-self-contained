@@ -1392,51 +1392,68 @@ class AIProcessorService
      */
     public function calculateComplimentRatio($reviews)
     {
-        // Ensure we only process AI-analyzed reviews
-        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
-            $reviews = $reviews->where('is_ai_processed', 1);
-        } else {
-            $reviews = $reviews->filter(function ($review) {
-                return $review->is_ai_processed == 1;
-            });
-        }
-
-        $totalReviews = $reviews->count();
-
-        if ($totalReviews === 0) {
-            return [
-                'compliments_percentage' => 0,
-                'complaints_percentage' => 0,
-                'compliments_count' => 0,
-                'complaints_count' => 0
-            ];
-        }
-
-        // Calculate compliments and complaints
         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
-        // POSITIVE = compliment
-        $compliments = $reviews->where('sentiment_score', '>=', $positiveThreshold)->count();
+        if ($reviews instanceof \Illuminate\Database\Eloquent\Builder) {
+            $baseQuery = (clone $reviews)->where('is_ai_processed', 1);
 
-        // NEGATIVE = complaint
-        $complaints = $reviews->where('sentiment_score', '<', $negativeThreshold)->count();
+            $totalReviews = (clone $baseQuery)->count();
 
-        // NEUTRAL
-        $neutral = $reviews->where('sentiment_score', '>=', $negativeThreshold)
-            ->where('sentiment_score', '<', $positiveThreshold)->count();
+            if ($totalReviews === 0) {
+                return [
+                    'compliments_percentage' => 0,
+                    'complaints_percentage' => 0,
+                    'neutral_percentage' => 0,
+                    'compliments_count' => 0,
+                    'complaints_count' => 0,
+                    'neutral_count' => 0,
+                ];
+            }
 
-        $posPct = (int)round(($compliments / $totalReviews) * 100);
-        $neuPct = (int)round(($neutral / $totalReviews) * 100);
-        $negPct = (int)round(($complaints / $totalReviews) * 100);
+            $compliments = (clone $baseQuery)
+                ->where('sentiment_score', '>=', $positiveThreshold)
+                ->count();
+
+            $complaints = (clone $baseQuery)
+                ->where('sentiment_score', '<', $negativeThreshold)
+                ->count();
+
+            $neutral = (clone $baseQuery)
+                ->where('sentiment_score', '>=', $negativeThreshold)
+                ->where('sentiment_score', '<', $positiveThreshold)
+                ->count();
+        } else {
+            $filtered = $reviews->filter(fn ($review) => (int) $review->is_ai_processed === 1);
+
+            $totalReviews = $filtered->count();
+
+            if ($totalReviews === 0) {
+                return [
+                    'compliments_percentage' => 0,
+                    'complaints_percentage' => 0,
+                    'neutral_percentage' => 0,
+                    'compliments_count' => 0,
+                    'complaints_count' => 0,
+                    'neutral_count' => 0,
+                ];
+            }
+
+            $compliments = $filtered->where('sentiment_score', '>=', $positiveThreshold)->count();
+            $complaints = $filtered->where('sentiment_score', '<', $negativeThreshold)->count();
+            $neutral = $filtered
+                ->where('sentiment_score', '>=', $negativeThreshold)
+                ->where('sentiment_score', '<', $positiveThreshold)
+                ->count();
+        }
 
         return [
-            'compliments_percentage' => $posPct,
-            'complaints_percentage' => $negPct,
-            'neutral_percentage' => $neuPct,
+            'compliments_percentage' => (int) round(($compliments / $totalReviews) * 100),
+            'complaints_percentage' => (int) round(($complaints / $totalReviews) * 100),
+            'neutral_percentage' => (int) round(($neutral / $totalReviews) * 100),
             'compliments_count' => $compliments,
             'complaints_count' => $complaints,
-            'neutral_count' => $neutral
+            'neutral_count' => $neutral,
         ];
     }
 

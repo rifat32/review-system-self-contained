@@ -7,6 +7,7 @@ use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
 use App\Models\Tag;
 use App\Models\User;
+use App\Models\Star;
 use App\Services\Notification\NotificationService;
 use App\Services\Rule\RuleEngineService;
 use App\Services\Business\BusinessAnalyticsService;
@@ -351,16 +352,37 @@ class ReviewService
 
 
     /**
+     * Calculate average star value from review values
+     */
+    private function calculateAverageStarValue(array $values): ?float
+    {
+        $starIds = collect($values)
+            ->pluck('star_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($starIds->isEmpty()) {
+            return null;
+        }
+
+        $starValuesById = Star::whereIn('id', $starIds)->pluck('value', 'id');
+
+        $ratings = collect($values)
+            ->pluck('star_id')
+            ->filter()
+            ->map(fn($starId) => $starValuesById[$starId] ?? null)
+            ->filter();
+
+        return $ratings->isNotEmpty() ? round($ratings->avg(), 1) : null;
+    }
+
+    /**
      * Store review values (question/star)
      */
     public function storeReviewValues($review, $values, $business)
     {
-        $averageRating = collect($values)
-            ->pluck('star_id')
-            ->filter()
-            ->avg();
-
-        $averageRating = $averageRating ? round($averageRating, 1) : null;
+        $averageRating = $this->calculateAverageStarValue($values);
 
         foreach ($values as $value) {
             // Extract tag_ids before creating (it's not a database column, it's a many-to-many relationship)
@@ -697,7 +719,7 @@ class ReviewService
             ];
         })
             ->filter(function ($staff) {
-                return $staff && $staff['total_reviews'] >= 3;
+                return $staff && $staff['total_reviews'] >= RuleEngineService::getMinReviewsStaffAnalysis();
             })
             ->sortByDesc('avg_rating')
             ->take($limit)

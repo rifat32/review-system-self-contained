@@ -107,22 +107,68 @@ class RuleReportService
     {
         $rule = $this->getDefaultRule('EMOTION_INTENSITY', $businessId);
 
-        // This would query InsightRecords or AI analysis data
-        // For now, returning structure
+        $allReviewsQuery = ReviewNew::where('business_id', $businessId)->globalReviewFilters(0);
+
+        $query = ReviewNew::where('business_id', $businessId)
+            ->globalReviewFilters(0)
+            ->whereHas('rule_outcomes', function ($q) {
+                $q->where('is_high_emotion', true);
+            });
+
+        if ($startDate) {
+            $allReviewsQuery->where('created_at', '>=', $startDate);
+            $query->where('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $allReviewsQuery->where('created_at', '<=', $endDate);
+            $query->where('created_at', '<=', $endDate);
+        }
+
+        $totalReviews = (clone $allReviewsQuery)->count();
+        $highEmotionReviews = $query->get();
+
+        $intensityToScore = [
+            'low' => 0.3,
+            'medium' => 0.6,
+            'high' => 0.9,
+        ];
+
+        $averageIntensity = $highEmotionReviews->avg(function ($review) use ($intensityToScore) {
+            $raw = $review->emotion['intensity'] ?? 'low';
+
+            return is_numeric($raw)
+                ? (float) $raw
+                : ($intensityToScore[strtolower((string) $raw)] ?? 0);
+        });
+
         return [
             'rule_info' => [
                 'rule_id' => $rule->rule_id,
                 'rule_name' => $rule->rule_name,
-                'precision_rate' => $rule->precision_rate
+                'precision_rate' => $rule->precision_rate,
             ],
             'summary' => [
-                'total_high_intensity_reviews' => 0,
-                'percentage_of_total' => 0,
-                'average_intensity_score' => 0,
-                'emotions_detected' => []
+                'total_high_intensity_reviews' => $highEmotionReviews->count(),
+                'percentage_of_total' => $totalReviews > 0
+                    ? round(($highEmotionReviews->count() / $totalReviews) * 100, 2)
+                    : 0,
+                'average_intensity_score' => round((float) $averageIntensity, 2),
+                'emotions_detected' => $highEmotionReviews
+                    ->pluck('emotion.primary')
+                    ->filter()
+                    ->countBy()
+                    ->toArray(),
             ],
-            'trends' => [],
-            'sample_reviews' => []
+            'trends' => $highEmotionReviews
+                ->groupBy(fn ($review) => optional($review->created_at)->format('Y-m-d'))
+                ->map(fn ($items, $date) => [
+                    'date' => $date,
+                    'count' => $items->count(),
+                ])
+                ->values()
+                ->toArray(),
+            'sample_reviews' => $highEmotionReviews->take(10)->values(),
         ];
     }
 
@@ -181,7 +227,10 @@ class RuleReportService
                     'common_issues' => []
                 ]
             ],
-            'sample_reviews' => $highRatingNegativeComment->take(10)->values()
+            'sample_reviews' => $highRatingNegativeComment
+                ->merge($lowRatingPositiveComment)
+                ->take(10)
+                ->values()
         ];
     }
 
@@ -195,9 +244,9 @@ class RuleReportService
         $query = ReviewNew::where('business_id', $businessId)
             ->select(
                 DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(CASE WHEN sentiment_label = "positive" THEN 1 ELSE 0 END) as positive'),
+                DB::raw('SUM(CASE WHEN sentiment_label IN ("positive", "very_positive") THEN 1 ELSE 0 END) as positive'),
                 DB::raw('SUM(CASE WHEN sentiment_label = "neutral" THEN 1 ELSE 0 END) as neutral'),
-                DB::raw('SUM(CASE WHEN sentiment_label = "negative" THEN 1 ELSE 0 END) as negative')
+                DB::raw('SUM(CASE WHEN sentiment_label IN ("negative", "very_negative") THEN 1 ELSE 0 END) as negative')
             )
             ->groupBy('date')
             ->orderBy('date', 'desc')
@@ -333,29 +382,59 @@ class RuleReportService
      */
     private function getTopPerformerBox(int $businessId, string $period): ?array
     {
-        $topStaff = AiRuleTrigger::where('business_id', $businessId)
+        $dateRange = getDateRangeByPeriod($period);
+
+        $query = ReviewNew::where('business_id', $businessId)
             ->whereNotNull('staff_id')
-            ->select('staff_id', DB::raw('count(*) as mentions'))
+            ->globalReviewFilters(0)
+            ->withCalculatedRating();
+
+        if ($dateRange) {
+            $query->whereBetween('review_news.created_at', [
+                $startDate = $dateRange['start'],
+                $endDate = $dateRange['end'],
+            ]);
+        }
+
+        $reviews = $query->get();
+
+        $topStaff = $reviews
             ->groupBy('staff_id')
-            ->orderBy('mentions', 'desc')
+            ->map(function ($staffReviews, $staffId) {
+                return [
+                    'staff_id' => $staffId,
+                    'avg_rating' => round((float) $staffReviews->avg('calculated_rating'), 1),
+                    'total_reviews' => $staffReviews->count(),
+                    'positive_reviews' => $staffReviews
+                        ->filter(fn($review) => (float) $review->calculated_rating >= RuleEngineService::getHighRatingThreshold())
+                        ->count(),
+                ];
+            })
+            ->filter(fn($item) => $item['total_reviews'] > 0)
+            ->sortByDesc('avg_rating')
+            ->sortByDesc('positive_reviews')
             ->first();
 
-        if ($topStaff && $topStaff->staff_id) {
-            $user = User::find($topStaff->staff_id);
-            if ($user) {
-                return [
-                    'key' => 'TOP_PERFORMER',
-                    'label' => 'Top Performer',
-                    'value' => $user->name,
-                    'sub_value' => $topStaff->mentions . ' Mentions',
-                    'trend' => null,
-                    'icon' => '🏆',
-                    'color' => 'gold',
-                    'is_default_rule' => false
-                ];
-            }
+        if (!$topStaff) {
+            return null;
         }
-        return null;
+
+        $user = User::find($topStaff['staff_id']);
+
+        if (!$user) {
+            return null;
+        }
+
+        return [
+            'key' => 'TOP_PERFORMER',
+            'label' => 'Top Performer',
+            'value' => $user->name,
+            'sub_value' => "{$topStaff['avg_rating']} avg rating / {$topStaff['total_reviews']} reviews",
+            'trend' => null,
+            'icon' => '🏆',
+            'color' => 'gold',
+            'is_default_rule' => false,
+        ];
     }
 
     /**

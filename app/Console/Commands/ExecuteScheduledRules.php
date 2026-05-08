@@ -89,11 +89,11 @@ class ExecuteScheduledRules extends Command
                             'next_run_at' => $executionService->calculateNextRun($rule)
                         ]);
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     Log::error("Rule failed: " . $rule->rule_id . " - " . $e->getMessage());
-                    // Advance even on failure to prevent stuck state
+                    // Only move next_run_at so the scheduler can retry later.
+                    // DO NOT update last_run_at here as it would skip reviews in next run.
                     $rule->update([
-                        'last_run_at' => \now(),
                         'next_run_at' => $executionService->calculateNextRun($rule)
                     ]);
                 }

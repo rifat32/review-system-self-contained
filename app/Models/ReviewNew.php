@@ -240,7 +240,7 @@ class ReviewNew extends Model
             review_news.*,
             COALESCE(
                 (
-                    SELECT ROUND(AVG(DISTINCT s.value), 1)
+                    SELECT ROUND(AVG(s.value), 1)
                     FROM review_value_news rvn
                     INNER JOIN stars s ON rvn.star_id = s.id
                     WHERE rvn.review_id = review_news.id
@@ -255,10 +255,11 @@ class ReviewNew extends Model
     public function getCalculatedRatingAttribute()
     {
         return round(
-            $this->review_values()
-                ->join('stars', 'review_value_news.star_id', '=', 'stars.id')
-                ->distinct('stars.value')
-                ->avg('stars.value') ?? 0,
+            (float) (
+                $this->review_values()
+                    ->join('stars', 'review_value_news.star_id', '=', 'stars.id')
+                    ->avg('stars.value') ?? 0
+            ),
             1
         );
     }
@@ -282,7 +283,7 @@ class ReviewNew extends Model
                         $categoryQuery->select(DB::raw(1))
                             ->from('q_q_sub_categories as qqsc')
                             ->join('question_categories as qc_sub', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
-                            ->join('question_categories as qc_parent', 'qc_sub.parent_id', '=', 'qc_parent.id')
+                            ->join('question_categories as qc_parent', 'qc_sub.parent_question_category_id', '=', 'qc_parent.id')
                             ->whereColumn('qqsc.question_id', 'q.id')
                             ->where('qc_parent.title', 'Staff')
                             ->where('qc_parent.is_active', 1)
@@ -305,32 +306,31 @@ class ReviewNew extends Model
 
     public function scopeWhereDoesNotMeetsThreshold($query, $is_staff_review = 0)
     {
-        // Get global threshold rating from AI config
-        $thresholdRating = (float) config('ai.sentiment.thresholds.csat', 4.0);
+        $globalThreshold = (float) config('ai.sentiment.thresholds.csat', 4.0);
 
-        return $query->whereExists(function ($subQuery) use ($thresholdRating, $is_staff_review) {
+        return $query->whereExists(function ($subQuery) use ($globalThreshold, $is_staff_review) {
             $subQuery->select(DB::raw(1))
                 ->from('review_value_news as rvn')
                 ->join('questions as q', 'rvn.question_id', '=', 'q.id')
+                ->join('businesses as b', 'review_news.business_id', '=', 'b.id')
                 ->when((request()->has('staff_id') || $is_staff_review), function ($q) {
-                    $q->whereExists(function ($subQuery) {
-                        $subQuery->select(DB::raw(1))
+                    $q->whereExists(function ($categoryQuery) {
+                        $categoryQuery->select(DB::raw(1))
                             ->from('q_q_sub_categories as qqsc')
                             ->join('question_categories as qc_sub', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
-                            ->join('question_categories as qc_parent', 'qc_sub.parent_id', '=', 'qc_parent.id')
+                            ->join('question_categories as qc_parent', 'qc_sub.parent_question_category_id', '=', 'qc_parent.id')
                             ->whereColumn('qqsc.question_id', 'q.id')
-                            ->where('qc_parent.title', 'Staff') // Parent category is "Staff"
+                            ->where('qc_parent.title', 'Staff')
                             ->where('qc_parent.is_active', 1)
                             ->where('qc_parent.is_default', 1)
                             ->whereNull('qc_parent.business_id')
-                            // Also check subcategory if needed
                             ->where('qc_sub.is_active', 1);
                     });
                 })
                 ->join('stars as s', 'rvn.star_id', '=', 's.id')
                 ->whereColumn('rvn.review_id', 'review_news.id')
-                ->groupBy('rvn.review_id')
-                ->havingRaw('AVG(s.value) < ?', [$thresholdRating]);
+                ->groupBy('rvn.review_id', 'b.threshold_rating')
+                ->havingRaw('AVG(s.value) < COALESCE(b.threshold_rating, ?)', [$globalThreshold]);
         });
     }
 
@@ -414,7 +414,7 @@ class ReviewNew extends Model
                                 $q->where("question_categories.id", request()->input("question_sub_category_id"));
                             })
                             ->when(request()->filled("question_category_id"), function ($q) {
-                                $q->where("question_categories.parent_id", request()->input("question_category_id"));
+                                $q->where("question_categories.parent_question_category_id", request()->input("question_category_id"));
                             });
                     });
                 });

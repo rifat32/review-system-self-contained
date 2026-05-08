@@ -53,6 +53,39 @@ class RuleExecutionService
                     continue;
                 }
 
+                if ($rule->trigger_only_on_first_occurrence) {
+                    $alreadyTriggered = AiRuleTrigger::where('dedup_key', $dedupKey)
+                        ->where('was_suppressed', false)
+                        ->exists();
+
+                    if ($alreadyTriggered) {
+                        $summary['suppressed_count']++;
+                        $summary['suppressions'][] = [
+                            'review_id' => $review->id,
+                            'reason' => 'trigger_only_on_first_occurrence',
+                            'dedup_key' => $dedupKey,
+                        ];
+                        continue;
+                    }
+                }
+
+                if (!$rule->multi_tag_detection) {
+                    $alreadyTriggeredForReview = AiRuleTrigger::where('rule_id', $rule->rule_id)
+                        ->where('review_id', $review->id)
+                        ->where('was_suppressed', false)
+                        ->exists();
+
+                    if ($alreadyTriggeredForReview) {
+                        $summary['suppressed_count']++;
+                        $summary['suppressions'][] = [
+                            'review_id' => $review->id,
+                            'reason' => 'multi_tag_detection_disabled',
+                            'dedup_key' => $dedupKey,
+                        ];
+                        continue;
+                    }
+                }
+
                 Log::info("Conditions matched for review", ['rule_id' => $rule->rule_id, 'review_id' => $review->id, 'matched_count' => count($aiData['matched_conditions'] ?? [])]);
 
                 $triggeredCount = $this->executeActions($rule, $review, $aiData, $context);
@@ -98,7 +131,8 @@ class RuleExecutionService
 
             try {
                 $success = match ($action) {
-                    'flag_review', 'is_flagged', 'alert', 'tag' => $this->flagReview($review, $rule),
+                    'flag_review', 'is_flagged', 'alert' => $this->flagReview($review, $rule),
+                    'tag' => $this->tagReview($review, $rule),
                     'notify_email' => $this->notifyEmail($review, $rule, $context),
                     default => false
                 };
@@ -121,18 +155,61 @@ class RuleExecutionService
         return $triggeredCount;
     }
 
+    private function tagReview(ReviewNew $review, AiRule $rule): bool
+    {
+        if (!$rule->is_default) {
+            return false;
+        }
+
+        // SENTIMENT_ANALYSIS is categorization. Do not mark positive/neutral reviews as issues.
+        if (str_starts_with($rule->rule_id, 'SENTIMENT_ANALYSIS')) {
+            $label = $review->sentiment_label;
+
+            if ($label !== 'negative') {
+                return true;
+            }
+
+            // Negative sentiment can be marked as a sentiment issue,
+            // but it should not globally flag the review.
+            return $this->markRuleOutcome($review, $rule, false);
+        }
+
+        // Tag/detection outcome, but not globally flagged.
+        return $this->markRuleOutcome($review, $rule, false);
+    }
+
     private function flagReview(ReviewNew $review, AiRule $rule): bool
     {
-        if (!$rule->is_default) return false;
-        $column = $this->mapRuleToOutcomeColumn($rule->rule_id);
-        if ($column) {
-            ReviewRuleOutcome::updateOrCreate(
-                ['review_id' => $review->id],
-                ['business_id' => $review->business_id, 'is_flagged' => true, $column => true]
-            );
-            return true;
+        if (!$rule->is_default) {
+            return false;
         }
-        return false;
+
+        return $this->markRuleOutcome($review, $rule, true);
+    }
+
+    private function markRuleOutcome(ReviewNew $review, AiRule $rule, bool $isGloballyFlagged): bool
+    {
+        $column = $this->mapRuleToOutcomeColumn($rule->rule_id);
+
+        if (!$column) {
+            return false;
+        }
+
+        $data = [
+            'business_id' => $review->business_id,
+            $column => true,
+        ];
+
+        if ($isGloballyFlagged || $column === 'is_critical_alert') {
+            $data['is_flagged'] = true;
+        }
+
+        ReviewRuleOutcome::updateOrCreate(
+            ['review_id' => $review->id],
+            $data
+        );
+
+        return true;
     }
 
     private function trackCustomRuleTrigger(ReviewNew $review, AiRule $rule): void
@@ -185,16 +262,39 @@ class RuleExecutionService
 
     private function getReviewAIData(ReviewNew $review): array
     {
+        $keyPhrases = is_array($review->key_phrases) ? $review->key_phrases : [];
+        $aiInsights = is_array($review->ai_insights) ? $review->ai_insights : [];
+        $raw = is_array($review->openai_raw_response) ? $review->openai_raw_response : [];
+
+        $staffIntelligence = $aiInsights['staff_intelligence']
+            ?? $raw['staff_intelligence']
+            ?? null;
+
+        $areaInsights = $aiInsights['area_insights']
+            ?? $raw['area_insights']
+            ?? [];
+
         return [
-            'sentiment' => ['label' => $review->sentiment_label ?: 'neutral', 'score' => $review->sentiment_score ?? 0.5],
+            'sentiment' => [
+                'label' => $review->sentiment_label ?: 'neutral',
+                'score' => $review->sentiment_score ?? (float) config('ai.topics.intensity_mapping.default', 0.5),
+            ],
             'overall_sentiment' => $review->sentiment_label ?: 'neutral',
-            'emotion' => ['primary' => $review->emotion['primary'] ?? 'neutral', 'intensity' => $review->emotion['intensity'] ?? 'low'],
-            'staff_mentions' => $review->key_phrases['staff_mentions'] ?? [],
-            'areas' => $review->key_phrases['areas_mentioned'] ?? [],
-            'key_phrases' => $review->key_phrases ?? [],
+            'emotion' => [
+                'primary' => $review->emotion['primary'] ?? 'neutral',
+                'intensity' => $review->emotion['intensity'] ?? 'low',
+            ],
+
+            'staff_intelligence' => $staffIntelligence,
+            'area_insights' => $areaInsights,
+
+            'staff_mentions' => $keyPhrases['staff_mentions'] ?? [],
+            'areas' => $keyPhrases['areas_mentioned'] ?? [],
+
+            'key_phrases' => $keyPhrases,
             'topics' => $review->topics ?? [],
-            'confidence' => $review->ai_confidence ?? 85.0,
-            'matched_conditions' => []
+            'confidence' => $review->ai_confidence ?? ((float) config('ai.insights.opportunities.preview.base_precision', 85.0) / 100),
+            'matched_conditions' => [],
         ];
     }
 
@@ -259,11 +359,22 @@ class RuleExecutionService
     public function getReviewsForRule(AiRule $rule, ?int $limit = null)
     {
         $limit = $limit ?? 100;
-        $query = ReviewNew::where('business_id', $rule->business_id)->globalReviewFilters(0)->orderBy('created_at', 'desc');
-        if ($rule->run_frequency === 'real_time') return $query->limit(1)->get();
-        if ($rule->last_run_at) $query->where('created_at', '>', $rule->last_run_at);
-        else $query->limit($limit);
-        return $query->get();
+
+        $query = ReviewNew::where('business_id', $rule->business_id)
+            ->globalReviewFilters(0)
+            ->orderBy('created_at', 'desc');
+
+        if ($rule->run_frequency === 'real_time') {
+            return $query->limit(1)->get();
+        }
+
+        $appliesTo = $rule->applies_to ?? 'new_reviews_only';
+
+        if ($appliesTo !== 'all_reviews' && $rule->last_run_at) {
+            $query->where('created_at', '>', $rule->last_run_at);
+        }
+
+        return $query->limit($limit)->get();
     }
 
     public function getRulesToExecute(?string $frequency = 'all')

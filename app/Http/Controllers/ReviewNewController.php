@@ -42,6 +42,32 @@ class ReviewNewController extends Controller
     }
 
     /**
+     * Calculate average star value from request values
+     */
+    private function calculateAverageStarValueFromRequest(array $values): ?float
+    {
+        $starIds = collect($values)
+            ->pluck('star_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($starIds->isEmpty()) {
+            return null;
+        }
+
+        $starValuesById = Star::whereIn('id', $starIds)->pluck('value', 'id');
+
+        $ratings = collect($values)
+            ->pluck('star_id')
+            ->filter()
+            ->map(fn($starId) => $starValuesById[$starId] ?? null)
+            ->filter();
+
+        return $ratings->isNotEmpty() ? round($ratings->avg(), 1) : null;
+    }
+
+    /**
      * @OA\Put(
      *      path="/v1.0/reviews/{reviewId}/reply",
      *      operationId="updateReviewReply",
@@ -355,6 +381,7 @@ class ReviewNewController extends Controller
 
             "business_area_id" => $request->business_area_id ?? null,
             "business_service_id" => $request->business_service_id ?? null,
+            'source' => $request->input('source'),
         ];
 
         if ($request->hasFile('audio')) {
@@ -365,10 +392,7 @@ class ReviewNewController extends Controller
             $reviewData['audio'] = $filename;
         }
 
-        $averageRating = collect($request->values)
-            ->pluck('star_id')
-            ->filter()
-            ->avg();
+        $averageRating = $this->calculateAverageStarValueFromRequest($request->values);
 
         $review = ReviewNew::create($reviewData);
         $this->reviewService->storeReviewValues($review, $request->values, $business);
@@ -572,6 +596,7 @@ class ReviewNewController extends Controller
             "is_ai_processed" => 0,
             "business_area_id" => $request->business_area_id ?? null,
             "business_service_id" => $request->business_service_id ?? null,
+            'source' => $request->input('source'),
         ];
 
         if ($request->hasFile('audio')) {
@@ -598,10 +623,7 @@ class ReviewNewController extends Controller
             $review->business_services()->sync($businessServicesData);
         }
 
-        $average_rating = collect($request->values)
-            ->pluck('star_id')
-            ->filter()
-            ->avg();
+        $average_rating = $this->calculateAverageStarValueFromRequest($request->values);
 
         $responseData = [
             "message" => "created successfully",
@@ -1345,9 +1367,12 @@ class ReviewNewController extends Controller
                 }
 
                 // Count for sentiment analysis
-                if ($rating >= 4) {
+                $highThreshold = \App\Services\Rule\RuleEngineService::getCsatThreshold();
+                $neutralThreshold = \App\Services\Rule\RuleEngineService::getNeutralRatingThreshold();
+
+                if ($rating >= $highThreshold) {
                     $positiveReviews++;
-                } elseif ($rating == 3) {
+                } elseif ($rating >= $neutralThreshold) {
                     $neutralReviews++;
                 } else {
                     $negativeReviews++;

@@ -354,6 +354,11 @@ class RuleEngineService
         return (float) \config('ai.sentiment.thresholds.high_rating', 4.0);
     }
 
+    public static function getNeutralRatingThreshold(): float
+    {
+        return (float) \config('ai.sentiment.thresholds.neutral_rating', 3.0);
+    }
+
     public static function getLowRatingThreshold(): float
     {
         return (float) \config('ai.sentiment.thresholds.low_rating', 2.0);
@@ -841,5 +846,15 @@ class RuleEngineService
         }
 
         return $insights;
+    }
+
+    public static function getMinReviewsStaffAnalysis(): int
+    {
+        return (int) config('ai.sentiment.thresholds.min_reviews_staff_analysis', 3);
+    }
+
+    public static function getMinReviewsTopStaff(): int
+    {
+        return (int) config('ai.sentiment.thresholds.min_reviews_top_staff', 5);
     }
 }
