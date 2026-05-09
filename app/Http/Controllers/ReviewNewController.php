@@ -2220,7 +2220,6 @@ class ReviewNewController extends Controller
             "survey",
         ])->where("business_id", $businessId)
             ->globalReviewFilters(0)
-            ->reviewFilters()
             ->filterByDateRange()
             ->withCalculatedRating();
 

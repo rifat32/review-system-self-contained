@@ -364,7 +364,7 @@ class OpenAIProcessorService
             $businessId = $payload['business_id'] ?? null;
             if ($businessId) {
                 $activeRules = AiRule::where('business_id', $businessId)
-                    ->where('is_active', true)
+                    ->where('enabled', true)
                     ->get();
 
                 foreach ($activeRules as $rule) {
