@@ -381,6 +381,24 @@
                 </a>
                 <span class="status-badge">⚠ Use with caution</span>
             </div>
+
+            <!-- Rule Outcome Sync Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon icon-primary">
+                        🔄
+                    </div>
+                    <h2 class="card-title">Rule Outcome Sync</h2>
+                </div>
+                <p class="card-description">
+                    Sync old AI-processed reviews that are missing records in the new outcome system
+                </p>
+                <a href="{{ route('sync.outcomes') }}" class="btn btn-primary" target="_blank">
+                    <span class="btn-icon">🔗</span>
+                    <span>Sync Outcomes</span>
+                </a>
+                <span class="status-badge">Data Migration</span>
+            </div>
         </div>
 
         <!-- Footer -->

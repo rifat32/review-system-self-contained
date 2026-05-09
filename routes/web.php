@@ -143,6 +143,9 @@ Route::get('/roleRefresh', [SetupController::class, "roleRefresh"])->name("roleR
 // GET Activity Log
 Route::get('/activity-log', [SetupController::class, "getActivityLogs"])->name("activity-log");
 
+// SYNC OLD OUTCOMES
+Route::get('/sync-outcomes', [SetupController::class, "syncOldReviewOutcomes"])->name('sync.outcomes');
+
 // Custom API
 Route::get('/custom-test-api', function () {
     return view("test_api_custom");

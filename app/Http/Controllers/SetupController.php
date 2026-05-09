@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\File;
+use App\Models\ReviewNew;
+use App\Models\AiRule;
+use App\Services\Rule\RuleExecutionService;
 
 
 class SetupController extends Controller
@@ -261,5 +264,61 @@ class SetupController extends Controller
             ->paginate(20);
 
         return view('user-activity-log', compact('activity_logs'));
+    }
+
+    /**
+     * Sync old processed reviews that don't have rule outcomes yet.
+     */
+    public function syncOldReviewOutcomes(Request $request)
+    {
+        $this->storeActivity($request, "Data Sync", "Syncing old review outcomes");
+
+        $ruleExecutionService = app(RuleExecutionService::class);
+
+        $reviews = ReviewNew::where('is_ai_processed', 1)
+            ->whereDoesntHave('rule_outcomes')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        if ($reviews->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'No reviews found that need syncing.'
+            ]);
+        }
+
+        $syncedCount = 0;
+        $rulesTriggeredCount = 0;
+
+        foreach ($reviews as $review) {
+            $activeRules = AiRule::where('business_id', $review->business_id)
+                ->where('enabled', true)
+                ->get();
+
+            if ($activeRules->isEmpty()) {
+                continue;
+            }
+
+            $aiData = $ruleExecutionService->getReviewAIData($review);
+            $payload = ['review_id' => $review->id];
+
+            foreach ($activeRules as $rule) {
+                $outcome = $ruleExecutionService->evaluate($rule, $aiData, $payload);
+                if ($outcome) {
+                    $rulesTriggeredCount++;
+                }
+            }
+            
+            $syncedCount++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully synced outcomes for {$syncedCount} reviews.",
+            'details' => [
+                'reviews_processed' => $syncedCount,
+                'rule_outcomes_created' => $rulesTriggeredCount
+            ]
+        ]);
     }
 }

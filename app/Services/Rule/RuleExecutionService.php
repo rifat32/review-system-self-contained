@@ -114,6 +114,36 @@ class RuleExecutionService
         return $summary;
     }
 
+    /**
+     * Evaluate a single rule against a review and its AI data.
+     * This is used by OpenAIProcessorService and manual sync utilities.
+     */
+    public function evaluate(AiRule $rule, array $aiData, array $payload): ?string
+    {
+        $reviewId = $payload['review_id'] ?? $payload['id'] ?? null;
+        if (!$reviewId) return null;
+
+        $review = ReviewNew::find($reviewId);
+        if (!$review) return null;
+
+        if (ConditionBuilderService::evaluateConditions($rule->conditions, $review, $aiData)) {
+            // Default rules (system rules) generally flag reviews if they match.
+            // Custom rules might have specific actions, but for the outcome table, 
+            // we track that they were triggered.
+            $isGloballyFlagged = (bool) ($rule->is_default ?? false);
+            
+            $this->markRuleOutcome($review, $rule, $isGloballyFlagged);
+            
+            if (!$rule->is_default) {
+                $this->trackCustomRuleTrigger($review, $rule);
+            }
+
+            return $this->mapRuleToOutcomeColumn($rule->rule_id);
+        }
+
+        return null;
+    }
+
     public function resetRuleOutcomes(ReviewNew $review, ?int $ruleId = null): void
     {
         $outcomeQuery = ReviewRuleOutcome::where('review_id', $review->id);
@@ -282,11 +312,11 @@ class RuleExecutionService
         }
     }
 
-    private function getReviewAIData(ReviewNew $review): array
+    public function getReviewAIData(ReviewNew $review): array
     {
-        $keyPhrases = is_array($review->key_phrases) ? $review->key_phrases : [];
-        $aiInsights = is_array($review->ai_insights) ? $review->ai_insights : [];
-        $raw = is_array($review->openai_raw_response) ? $review->openai_raw_response : [];
+        $keyPhrases = $this->ensureArray($review->key_phrases);
+        $aiInsights = $this->ensureArray($review->ai_insights);
+        $raw = $this->ensureArray($review->openai_raw_response);
 
         $staffIntelligence = $aiInsights['staff_intelligence']
             ?? $raw['staff_intelligence']
@@ -318,6 +348,23 @@ class RuleExecutionService
             'confidence' => $review->ai_confidence ?? ((float) config('ai.insights.opportunities.preview.base_precision', 85.0) / 100),
             'matched_conditions' => [],
         ];
+    }
+
+    /**
+     * Ensure data is an array, decoding it if it's a JSON string.
+     */
+    private function ensureArray($data): array
+    {
+        if (is_array($data)) {
+            return $data;
+        }
+
+        if (is_string($data) && !empty($data)) {
+            $decoded = json_decode($data, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
     }
 
     private function extractContext(ReviewNew $review, array $aiData, AiRule $rule): array
