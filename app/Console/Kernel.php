@@ -24,14 +24,17 @@ class Kernel extends ConsoleKernel
 
         // 1. Process New Reviews (Data Preparation)
         // This is the entry point where raw reviews are analyzed by AI (sentiment, etc.)
-        $schedule->call(function () {
-            Artisan::call('reviews:process');
-        })->name('process-reviews')->everyFiveMinutes()->withoutOverlapping();
-        // 2. AI Rule Execution (Logic Evaluation)
-        // Evaluates the processed reviews/data against defined business rules
-        $schedule->call(function () {
-            Artisan::call('rules:execute-scheduled');
-        })->name('execute-rules')->everyMinute();
+        if (config('services.openai.enabled', true)) {
+            $schedule->call(function () {
+                Artisan::call('reviews:process');
+            })->name('process-reviews')->everyFiveMinutes()->withoutOverlapping();
+
+            // 2. AI Rule Execution (Logic Evaluation)
+            // Evaluates the processed reviews/data against defined business rules
+            $schedule->call(function () {
+                Artisan::call('rules:execute-scheduled');
+            })->name('execute-rules')->everyMinute();
+        }
         // 3. Generate Recommendations (Outcome Generation)
         // Uses rule results and processed data to generate actionable insights
         $schedule->call(function () {
