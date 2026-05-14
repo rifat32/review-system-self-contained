@@ -1188,7 +1188,7 @@ PROMPT;
 
         // Get business services with their areas
         $business_services = [];
-        foreach ($review->review_business_services as $review_business_service) {
+        foreach ($review->business_services as $review_business_service) {
             $business_services[] = [
                 'business_service_id' => $review_business_service->business_service_id,
                 'business_service_name' => $review_business_service->business_service->name ?? 'Unknown Service',

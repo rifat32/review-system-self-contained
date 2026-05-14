@@ -137,7 +137,7 @@ class ReviewNew extends Model
     /**
      * Relationship with business_services (many-to-many through pivot)
      */
-    public function review_business_services()
+    public function business_services()
     {
         return $this->belongsToMany(
             BusinessService::class,
