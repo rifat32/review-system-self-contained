@@ -197,7 +197,7 @@ return [
             'temperature' => 0.1,
             'max_tokens' => 2500,
             'debug_max_tokens' => 10,
-            'cache_ttl' => 3600,
+            'cache_ttl' => 86400, // 24 hours
             'retry_times' => 3,
             'retry_sleep' => 1000, // milliseconds
         ],

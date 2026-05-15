@@ -174,6 +174,10 @@ class OpenAIProcessorService
                 $cached = Cache::get($cacheKey);
                 // Only return if not fallback
                 if (!isset($cached['_fallback']) || !$cached['_fallback']) {
+                    Log::info('OpenAI Cache Hit', [
+                        'review_id' => $payload['review_id'] ?? 'unknown',
+                        'cache_key' => $cacheKey
+                    ]);
                     return $cached;
                 }
             }

@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Log;
 
 class ProcessAIReviews extends Command
 {
-    protected $signature = 'reviews:process';
+    protected $signature = 'reviews:process {--limit=100 : Maximum number of reviews to process in one run}';
 
-    protected $description = 'Process reviews with OpenAI AI analysis';
+    protected $description = 'Process reviews with OpenAI AI analysis with optional limit';
 
     private OpenAIProcessorService $processor;
 
@@ -90,7 +90,9 @@ class ProcessAIReviews extends Command
         $query = ReviewNew::whereNotNull('raw_text')
             ->where('is_ai_processed', 0);
 
+        $limit = $this->option('limit');
         $reviews = $query->orderBy('id', 'asc')
+            ->limit($limit)
             ->get();
 
         if ($reviews->isEmpty()) {
