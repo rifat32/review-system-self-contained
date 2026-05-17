@@ -143,6 +143,21 @@ return [
         ['rating' => 3, 'comment' => 'Average stay. Room was okay but could be improved in some areas.'],
         ['rating' => 2, 'comment' => 'Below expectations. Room cleanliness and noise levels were disappointing.'],
         ['rating' => 1, 'comment' => 'Terrible experience. Room was uncomfortable and poorly maintained.'],
+        // High Emotion (2 reviews)
+        ['rating' => 5, 'comment' => 'I am absolutely thrilled and overjoyed with my stay! Everything was spectacularly wonderful and made me so happy!'],
+        ['rating' => 1, 'comment' => 'I am extremely furious and outraged by the lack of care! This made me incredibly angry and frustrated beyond belief!'],
+        // Rating Mismatch (2 reviews)
+        ['rating' => 5, 'comment' => 'The room was terrible, dirty, and the staff was extremely rude. I hated every single minute of my stay here.'],
+        ['rating' => 5, 'comment' => 'Awful experience with noisy neighbors and uncomfortable beds. Would never recommend this place to anyone.'],
+        // Category Alerts (2 reviews)
+        ['rating' => 3, 'comment' => 'The price of the room was way too expensive for the quality of food provided.'],
+        ['rating' => 3, 'comment' => 'We had issues with the delivery of our extra towels and the overall quality of room service.'],
+        // Service Identified (2 reviews)
+        ['rating' => 4, 'comment' => 'The installation of the new air conditioning unit in our room was handled very professionally.'],
+        ['rating' => 4, 'comment' => 'The maintenance team was quick to fix the plumbing leak in the bathroom.'],
+        // Area Identified (2 reviews)
+        ['rating' => 5, 'comment' => 'The reception lobby was beautifully decorated and very welcoming.'],
+        ['rating' => 5, 'comment' => 'The dining area was clean, spacious, and had a wonderful atmosphere for breakfast.'],
     ],
 
     'question_categories' => [

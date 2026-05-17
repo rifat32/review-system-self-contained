@@ -98,7 +98,13 @@ class ConditionBuilderService
         if ($source === 'Rating' || $type === 'rating') return self::matchNumeric($review->calculated_rating ?? 0, $operator, $value);
 
         if ($source === 'Comment' || $source === 'Emotion' || in_array($type, ['sentiment', 'keyword', 'emotion', 'intensity'])) {
-            if ($type === 'sentiment') return self::matchSentiment($aiData['sentiment']['label'] ?? $aiData['overall_sentiment'] ?? 'neutral', $operator, $value);
+            if ($type === 'sentiment') {
+                if (in_array($operator, ['less_than', 'lt', 'greater_than', 'gt', 'less_than_or_equal', 'lte', 'greater_than_or_equal', 'gte', 'between'])) {
+                    $score = $aiData['sentiment']['score'] ?? (match(strtolower($aiData['sentiment']['label'] ?? $aiData['overall_sentiment'] ?? 'neutral')) { 'positive' => 0.8, 'negative' => 0.2, default => 0.5 });
+                    return self::matchNumeric($score, $operator, $value);
+                }
+                return self::matchSentiment($aiData['sentiment']['label'] ?? $aiData['overall_sentiment'] ?? 'neutral', $operator, $value);
+            }
             if ($type === 'keyword') return self::matchText($review->comment ?? $review->raw_text ?? '', $operator, $value);
             if ($type === 'emotion' || $type === 'intensity') {
                 $raw = $aiData['emotion']['intensity'] ?? 'low';

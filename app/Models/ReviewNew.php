@@ -332,17 +332,28 @@ class ReviewNew extends Model
         if ($isComparisonDateRange) {
             $query->when(request()->filled('period'), function ($query) {
                 $dateRange = getDateRangeByPeriod(request()->input('period'));
-                $startDate = $dateRange['start']->subDays($dateRange['daysOffset'])->startOfDay();
-                $endDate = $dateRange['end']->subDays($dateRange['daysOffset'])->endOfDay();
-                $query->whereBetween('created_at', [$startDate, $endDate]);
+                if ($dateRange) {
+                    $startDate = $dateRange['start']->subDays($dateRange['daysOffset'])->startOfDay();
+                    $endDate = $dateRange['end']->subDays($dateRange['daysOffset'])->endOfDay();
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                }
             });
         } else {
-            $query->when(request()->filled('start_date'), function ($q) {
-                $q->where('created_at', '>=', Carbon::parse(request()->input('start_date'))->startOfDay());
-            })
+            if (request()->filled('start_date') || request()->filled('end_date')) {
+                $query->when(request()->filled('start_date'), function ($q) {
+                    $q->where('created_at', '>=', \Carbon\Carbon::parse(request()->input('start_date'))->startOfDay());
+                })
                 ->when(request()->filled('end_date'), function ($q) {
-                    $q->where('created_at', '<=', Carbon::parse(request()->input('end_date'))->endOfDay());
+                    $q->where('created_at', '<=', \Carbon\Carbon::parse(request()->input('end_date'))->endOfDay());
                 });
+            } else {
+                $query->when(request()->filled('period'), function ($q) {
+                    $dateRange = getDateRangeByPeriod(request()->input('period'));
+                    if ($dateRange) {
+                        $q->whereBetween('created_at', [$dateRange['start']->startOfDay(), $dateRange['end']->endOfDay()]);
+                    }
+                });
+            }
         }
 
 
@@ -392,11 +403,20 @@ class ReviewNew extends Model
             ->filterByStar()
             ->filterByRating()
             ->filterByReviewIds()
+            ->filterByRuleOutcomes()
+            ->filterByCsatScore()
+            ->filterByInsightId()
             ->when($is_staff_review, function ($q) {
                 $q->whereMeetsThreshold(1);
             })
-            ->when($is_overall, function ($q) {
-                $q->where('review_news.is_overall', 1);
+            ->when(true, function ($q) use ($is_overall) {
+                if (request()->has('is_overall')) {
+                    if (request()->input('is_overall') !== null && request()->input('is_overall') !== '') {
+                        $q->where('review_news.is_overall', request()->input('is_overall'));
+                    }
+                } elseif ($is_overall !== null) {
+                    $q->where('review_news.is_overall', $is_overall);
+                }
             });
     }
 
@@ -424,6 +444,15 @@ class ReviewNew extends Model
                 if (!empty($staffIds)) {
                     $q->whereIn('review_news.staff_id', $staffIds);
                 }
+            })
+            // Apply has_staff filter
+            ->when(request()->has('has_staff') && request()->input('has_staff'), function ($q) {
+                $q->where(function ($sub) {
+                    $sub->whereNotNull('review_news.staff_id')
+                        ->orWhereHas('rule_outcomes', function ($rq) {
+                            $rq->where('is_staff_mentioned', true);
+                        });
+                });
             });
 
         return $query;
@@ -556,5 +585,66 @@ class ReviewNew extends Model
                 ->groupBy('rvn_rating.review_id')
                 ->havingRaw('ROUND(AVG(s_rating.value), 1) = ?', [$rating]);
         });
+    }
+
+    public function scopeFilterByRuleOutcomes($query)
+    {
+        $flags = [
+            'is_staff_mentioned',
+            'is_sentiment_flagged',
+            'is_category_detected',
+            'is_critical_alert',
+            'is_staff_risk',
+            'is_high_emotion',
+            'is_mismatch',
+            'is_service_identified',
+            'is_area_detected'
+        ];
+
+        $activeFlags = [];
+        foreach ($flags as $flag) {
+            if (request()->has($flag) && request()->input($flag)) {
+                $activeFlags[] = $flag;
+            }
+        }
+
+        if (!empty($activeFlags)) {
+            $query->whereHas('rule_outcomes', function ($q) use ($activeFlags) {
+                foreach ($activeFlags as $flag) {
+                    $q->where($flag, true);
+                }
+            });
+        }
+
+        if (request()->has('flagged_reviews') && request()->input('flagged_reviews') !== null && request()->input('flagged_reviews') !== '') {
+            $isFlagged = (bool) request()->input('flagged_reviews');
+            $query->whereHas('rule_outcomes', function ($q) use ($isFlagged) {
+                $q->where('is_flagged', $isFlagged);
+            });
+        }
+
+        return $query;
+    }
+
+    public function scopeFilterByCsatScore($query)
+    {
+        if (request()->has('csat_score') && request()->input('csat_score')) {
+            $query->whereMeetsThreshold(0);
+        }
+        return $query;
+    }
+
+    public function scopeFilterByInsightId($query)
+    {
+        if (request()->has('insight_id') && request()->input('insight_id')) {
+            $insightId = request()->input('insight_id');
+            $insight = \App\Models\InsightRecord::find($insightId);
+            if ($insight && !empty($insight->review_ids)) {
+                $query->whereIn('review_news.id', $insight->review_ids);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+        return $query;
     }
 }
