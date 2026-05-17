@@ -166,7 +166,7 @@ class DashboardService
             $csatChangeType = $csatPercentageChange >= 0 ? 'positive' : 'negative';
         }
 
-        $allReviews = ReviewNew::globalReviewFilters(0, 0, true)
+        $allReviews = ReviewNew::globalReviewFilters(0, 0, false)
             ->where('review_news.business_id', $businessId)
             ->count();
 
@@ -241,7 +241,7 @@ class DashboardService
             'csat_score' => [
                 'percentage' => (float) round($csatPercentage, 1),
                 'percentage_change' => $csatPercentageChange !== null
-                    ? ($csatPercentageChange != 0 ? sprintf('%+.1f%%', $csatPercentageChange) : '0%')
+                    ? (float) round($csatPercentageChange, 1)
                     : null,
                 'change_type' => $csatChangeType,
                 'previous_percentage' => $dateRange !== null ? (float) round($previousCSATPercentage, 1) : null,

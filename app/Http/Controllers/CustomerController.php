@@ -198,7 +198,7 @@ class CustomerController extends Controller
      *                  property="meta",
      *                  type="object",
      *                  description="Pagination metadata (only when per_page is provided)",
-     *                  @OA\Property(property="total", type="integer", example=150),
+     *                  @OA\Property(property="total", type="integer", example=0),
      *                  @OA\Property(property="per_page", type="integer", example=15),
      *                  @OA\Property(property="current_page", type="integer", example=1),
      *                  @OA\Property(property="skip", type="integer", example=0),

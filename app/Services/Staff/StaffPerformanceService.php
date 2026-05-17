@@ -34,7 +34,7 @@ class StaffPerformanceService
     {
         $query = ReviewNew::with('staff')
             ->where('review_news.business_id', $businessId)
-            ->globalReviewFilters(is_ai_processed: 1)
+            ->globalReviewFilters(is_ai_processed: 0)
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
                 return $query->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
@@ -47,18 +47,11 @@ class StaffPerformanceService
 
         $staffReviews = $query->get();
 
-        if ($staffId && $staffReviews->count() < 3) {
-            return null;
-        }
 
         $staffData = [];
         $groupedReviews = $staffReviews->groupBy('staff_id');
 
         foreach ($groupedReviews as $currentStaffId => $reviews) {
-            if ($reviews->count() < 3) {
-                continue;
-            }
-
             $staff = $reviews->first()->staff;
             if (!$staff) {
                 continue;
@@ -147,7 +140,7 @@ class StaffPerformanceService
     {
         $staffGroups = [];
         foreach ($reviews as $review) {
-            if ($review->staff_id && $review->is_ai_processed == 1) {
+            if ($review->staff_id) {
                 $staffGroups[$review->staff_id][] = $review;
             }
         }
@@ -181,15 +174,21 @@ class StaffPerformanceService
             foreach ($reviewsArray as $review) {
                 $totalRating += $review->calculated_rating ?? 0;
 
-                $sentimentScore = $review->sentiment_score ?? 0;
-                $totalSentiment += $sentimentScore;
+                $sentimentScore = is_numeric($review->sentiment_score) ? (float) $review->sentiment_score : null;
 
-                if ($sentimentScore >= $positiveThreshold) {
-                    $compliments++;
-                } elseif ($sentimentScore < $negativeThreshold) {
-                    $complaints++;
-                } else {
+                if ($sentimentScore === null) {
+                    $totalSentiment += 0.5;
                     $neutral++;
+                } else {
+                    $totalSentiment += $sentimentScore;
+
+                    if ($sentimentScore >= $positiveThreshold) {
+                        $compliments++;
+                    } elseif ($sentimentScore < $negativeThreshold) {
+                        $complaints++;
+                    } else {
+                        $neutral++;
+                    }
                 }
             }
 

@@ -501,7 +501,7 @@ class BranchMemberController extends Controller
      *                 @OA\Property(property="path", type="string", example="https://api.example.com/v1.0/branch-members"),
      *                 @OA\Property(property="per_page", type="integer", example=15),
      *                 @OA\Property(property="to", type="integer", example=15),
-     *                 @OA\Property(property="total", type="integer", example=150)
+     *                 @OA\Property(property="total", type="integer", example=0)
      *             )
      *         )
      *     ),

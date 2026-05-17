@@ -346,8 +346,12 @@ class ReviewNewController extends Controller
             'staff_id' => [
                 'nullable',
                 Rule::exists('users', 'id')->where(function ($query) use ($businessId) {
-                    $query->whereHas('branches', function ($q) use ($businessId) {
-                        $q->where('business_id', $businessId);
+                    $query->whereExists(function ($subQuery) use ($businessId) {
+                        $subQuery->select(DB::raw(1))
+                            ->from('branch_members')
+                            ->join('branches', 'branch_members.branch_id', '=', 'branches.id')
+                            ->whereColumn('branch_members.user_id', 'users.id')
+                            ->where('branches.business_id', $businessId);
                     });
                 })
             ],
@@ -512,8 +516,12 @@ class ReviewNewController extends Controller
             'staff_id' => [
                 'nullable',
                 Rule::exists('users', 'id')->where(function ($query) use ($businessId) {
-                    $query->whereHas('branches', function ($q) use ($businessId) {
-                        $q->where('business_id', $businessId);
+                    $query->whereExists(function ($subQuery) use ($businessId) {
+                        $subQuery->select(DB::raw(1))
+                            ->from('branch_members')
+                            ->join('branches', 'branch_members.branch_id', '=', 'branches.id')
+                            ->whereColumn('branch_members.user_id', 'users.id')
+                            ->where('branches.business_id', $businessId);
                     });
                 })
             ],

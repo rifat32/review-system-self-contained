@@ -63,7 +63,7 @@ class SuperAdminDashboardController extends Controller
      *                  @OA\Property(
      *                      property="total_business",
      *                      type="object",
-     *                      @OA\Property(property="current", type="integer", example=150, description="Total businesses created in current period"),
+     *                      @OA\Property(property="current", type="integer", example=0, description="Total businesses created in current period"),
      *                      @OA\Property(property="comparison", type="integer", example=120, description="Total businesses created in comparison period"),
      *                      @OA\Property(property="change_type", type="string", enum={"increase", "decrease", "no_change"}, example="increase"),
      *                      @OA\Property(property="value", type="number", format="float", example=25.0, description="Percentage change (absolute value)")
@@ -87,7 +87,7 @@ class SuperAdminDashboardController extends Controller
      *                  @OA\Property(
      *                      property="review",
      *                      type="object",
-     *                      @OA\Property(property="current", type="integer", example=1500, description="Reviews created in current period"),
+     *                      @OA\Property(property="current", type="integer", example=0, description="Reviews created in current period"),
      *                      @OA\Property(property="comparison", type="integer", example=1200, description="Reviews created in comparison period"),
      *                      @OA\Property(property="change_type", type="string", enum={"increase", "decrease", "no_change"}, example="increase"),
      *                      @OA\Property(property="value", type="number", format="float", example=25.0, description="Percentage change (absolute value)")

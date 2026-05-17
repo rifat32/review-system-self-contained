@@ -63,10 +63,10 @@ class OpenAITokenReportController extends Controller
      *              @OA\Property(property="success", type="boolean", example=true),
      *              @OA\Property(property="data", type="object",
      *                  @OA\Property(property="summary", type="object",
-     *                      @OA\Property(property="total_requests", type="integer", example=150),
+     *                      @OA\Property(property="total_requests", type="integer", example=0),
      *                      @OA\Property(property="total_tokens", type="integer", example=45000),
      *                      @OA\Property(property="prompt_tokens", type="integer", example=30000),
-     *                      @OA\Property(property="completion_tokens", type="integer", example=15000),
+     *                      @OA\Property(property="completion_tokens", type="integer", example=0),
      *                      @OA\Property(property="total_cost", type="number", format="float", example=12.75),
      *                      @OA\Property(property="avg_tokens_per_request", type="number", format="float", example=300),
      *                      @OA\Property(property="avg_cost_per_request", type="number", format="float", example=0.085),
@@ -78,7 +78,7 @@ class OpenAITokenReportController extends Controller
      *                          @OA\Property(property="business_id", type="integer", example=1),
      *                          @OA\Property(property="business_name", type="string", example="Acme Corp"),
      *                          @OA\Property(property="total_requests", type="integer", example=50),
-     *                          @OA\Property(property="total_tokens", type="integer", example=15000),
+     *                          @OA\Property(property="total_tokens", type="integer", example=0),
      *                          @OA\Property(property="total_cost", type="number", format="float", example=4.25),
      *                          @OA\Property(property="percentage_of_total", type="number", format="float", example=33.33)
      *                      )

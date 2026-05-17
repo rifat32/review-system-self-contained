@@ -41,6 +41,33 @@ class AIProcessorService
         $this->confidenceCalculatorService = $confidenceCalculatorService;
     }
 
+    /**
+     * Safely normalize AI/OpenAI JSON payloads to arrays.
+     * This preserves the existing payload contract while preventing malformed,
+     * empty, or legacy payloads from causing array-access/foreach fatals.
+     */
+    private function normalizeOpenAIResponse($payload): array
+    {
+        if (is_array($payload)) {
+            return $payload;
+        }
+
+        if (is_string($payload) && trim($payload) !== '') {
+            $decoded = json_decode($payload, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
+    }
+
+    /**
+     * Ensure a decoded payload child value is iterable before foreach usage.
+     */
+    private function normalizeArrayValue($value): array
+    {
+        return is_array($value) ? $value : [];
+    }
+
     // ========== CORE DYNAMIC METHODS ==========
 
     /**
@@ -428,7 +455,7 @@ class AIProcessorService
         // Analyze staff intelligence directly from AI payloads
         $staffPerformance = [];
         foreach ($positiveReviews as $review) {
-            $openaiData = $review->openai_raw_response ?: [];
+            $openaiData = $this->normalizeOpenAIResponse($review->openai_raw_response);
             $staffEvaluation = $openaiData['staff_intelligence']['performance_evaluation'] ?? null;
             if ($staffEvaluation) {
                 $staffPerformance[] = $staffEvaluation;
@@ -547,11 +574,9 @@ class AIProcessorService
         $topicCounts = [];
 
         foreach ($reviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
+            $openaiData = $this->normalizeOpenAIResponse($review->openai_raw_response);
 
-            $categories = $openaiData['category_analysis'] ?? [];
+            $categories = $this->normalizeArrayValue($openaiData['category_analysis'] ?? []);
             foreach ($categories as $cat) {
                 $topic = $cat['main_category'] ?? 'General';
                 $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
@@ -859,11 +884,9 @@ class AIProcessorService
         $topicCounts = [];
 
         foreach ($reviews as $review) {
-            $openaiData = is_string($review->openai_raw_response)
-                ? json_decode($review->openai_raw_response, true)
-                : ($review->openai_raw_response ?? []);
+            $openaiData = $this->normalizeOpenAIResponse($review->openai_raw_response);
 
-            $categories = $openaiData['category_analysis'] ?? [];
+            $categories = $this->normalizeArrayValue($openaiData['category_analysis'] ?? []);
             foreach ($categories as $cat) {
                 $topic = $cat['main_category'] ?? 'General';
                 $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
@@ -1117,7 +1140,7 @@ class AIProcessorService
             ->whereBetween('created_at', [$startDate, $endDate])
             ->whereNotNull('staff_id')
             ->with(['staff'])
-            ->globalReviewFilters(is_ai_processed: 1)
+            ->globalReviewFilters(is_ai_processed: 0)
             ->withCalculatedRating(); // Ensure metrics use calculated rating
 
         if ($branchId) {
@@ -1145,11 +1168,10 @@ class AIProcessorService
         $allTopics = [];
 
         foreach ($reviews as $review) {
-            if ($review->topics && is_array($review->topics)) {
-                foreach ($review->topics as $topic) {
-                    $topicName = is_array($topic) ? ($topic['main_category'] ?? 'General') : $topic;
-                    $allTopics[$topicName] = ($allTopics[$topicName] ?? 0) + 1;
-                }
+            $topics = $this->normalizeOpenAIResponse($review->topics ?? []);
+            foreach ($topics as $topic) {
+                $topicName = is_array($topic) ? ($topic['main_category'] ?? 'General') : $topic;
+                $allTopics[$topicName] = ($allTopics[$topicName] ?? 0) + 1;
             }
         }
 
@@ -1196,8 +1218,9 @@ class AIProcessorService
             $sentimentLabel = self::getSentimentLabel($sentimentScore);
             $sentiment = strtolower($sentimentLabel);
 
-            foreach ($review->topics ?? [] as $cat) {
-                $name = $cat['main_category'] ?? 'General';
+            $topics = $this->normalizeOpenAIResponse($review->topics ?? []);
+            foreach ($topics as $cat) {
+                $name = is_array($cat) ? ($cat['main_category'] ?? 'General') : (string) $cat;
 
                 // Map sentiment label to a score (0-100)
                 $score = match ($sentiment) {
@@ -1700,10 +1723,7 @@ class AIProcessorService
         $topicCounts = [];
 
         foreach ($reviews as $review) {
-            $topics = $review->topics ?? [];
-            if (is_string($topics)) {
-                $topics = json_decode($topics, true) ?? [];
-            }
+            $topics = $this->normalizeOpenAIResponse($review->topics ?? []);
 
             foreach ($topics as $topic) {
                 $topicName = is_array($topic) ? ($topic['main_category'] ?? 'General') : $topic;

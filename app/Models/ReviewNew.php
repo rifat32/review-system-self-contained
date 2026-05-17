@@ -356,17 +356,20 @@ class ReviewNew extends Model
         $positiveThreshold = RuleEngineService::getPositiveSentimentThreshold();
         $negativeThreshold = RuleEngineService::getNegativeSentimentThreshold();
 
-        $query->when(request()->has('sentiment_score') && !empty(request()->input('sentiment_score')), function ($q) use ($positiveThreshold, $negativeThreshold) {
-            // Apply AI Processed check (Review must be processed to have sentiment)
+        $sentimentScore = request()->input('sentiment_score', request()->input('sentiment'));
+
+        $query->when(!empty($sentimentScore), function ($q) use ($positiveThreshold, $negativeThreshold, $sentimentScore) {
+            // Apply AI processed check only when sentiment filtering is requested,
+            // because sentiment_score is populated by AI processing.
             $q->where('review_news.is_ai_processed', 1);
 
-            $sentimentScore = request()->input('sentiment_score');
-            if ($sentimentScore == 'positive') {
+            if ($sentimentScore === 'positive') {
                 $q->where('review_news.sentiment_score', '>=', $positiveThreshold);
-            } elseif ($sentimentScore == 'negative') {
+            } elseif ($sentimentScore === 'negative') {
                 $q->where('review_news.sentiment_score', '<', $negativeThreshold);
-            } elseif ($sentimentScore == 'neutral') {
-                $q->whereBetween('review_news.sentiment_score', [$negativeThreshold, $positiveThreshold]);
+            } elseif ($sentimentScore === 'neutral') {
+                $q->where('review_news.sentiment_score', '>=', $negativeThreshold)
+                    ->where('review_news.sentiment_score', '<', $positiveThreshold);
             }
         });
 
@@ -377,7 +380,7 @@ class ReviewNew extends Model
     public function scopeGlobalReviewFilters($query, $is_staff_review = 0, $is_overall = 1, $is_ai_processed = 0)
     {
         return $query
-            ->when($is_ai_processed || request()->has('sentiment_score') || request()->has('topics'), function ($q) {
+            ->when($is_ai_processed || request()->has('sentiment_score') || request()->has('sentiment') || request()->has('topics'), function ($q) {
                 $q->where('review_news.is_ai_processed', 1);
             })
             ->filterByDateRange()

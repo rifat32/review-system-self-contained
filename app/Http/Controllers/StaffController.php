@@ -39,12 +39,14 @@ class StaffController extends Controller
         AIProcessorService $aiProcessorService,
         StaffPerformanceService $staffPerformanceService,
         StaffService $staffService,
-        ReviewService $reviewService
+        ReviewService $reviewService,
+        ReviewMetricsService $reviewMetricsService
     ) {
         $this->aiProcessorService = $aiProcessorService;
         $this->staffPerformanceService = $staffPerformanceService;
         $this->staffService = $staffService;
         $this->reviewService = $reviewService;
+        $this->reviewMetricsService = $reviewMetricsService;
     }
     /**
      * @OA\Post(
@@ -460,7 +462,7 @@ class StaffController extends Controller
      *         @OA\Property(property="path", type="string", example="https://api.example.com/v1.0/staffs"),
      *         @OA\Property(property="per_page", type="integer", example=15),
      *         @OA\Property(property="to", type="integer", example=15),
-     *         @OA\Property(property="total", type="integer", example=150)
+     *         @OA\Property(property="total", type="integer", example=0)
      *       )
      *     )
      *   ),
@@ -677,7 +679,7 @@ class StaffController extends Controller
      *         @OA\Property(property="path", type="string", example="https://api.example.com/v1.0/staffs"),
      *         @OA\Property(property="per_page", type="integer", example=15),
      *         @OA\Property(property="to", type="integer", example=15),
-     *         @OA\Property(property="total", type="integer", example=150)
+     *         @OA\Property(property="total", type="integer", example=0)
      *       )
      *     )
      *   ),
@@ -1252,7 +1254,7 @@ class StaffController extends Controller
      *         @OA\Property(property="path", type="string", example="https://api.example.com/v1.0/staffs/12/reviews"),
      *         @OA\Property(property="per_page", type="integer", example=15),
      *         @OA\Property(property="to", type="integer", example=15),
-     *         @OA\Property(property="total", type="integer", example=150)
+     *         @OA\Property(property="total", type="integer", example=0)
      *       )
      *     )
      *   ),
@@ -1388,7 +1390,7 @@ class StaffController extends Controller
      *              @OA\Property(property="success", type="boolean", example=true),
      *              @OA\Property(property="message", type="string", example="Staff metrics retrieved successfully"),
      *              @OA\Property(property="data", type="object",
-     *                  @OA\Property(property="total_reviews", type="integer", example=150),
+     *                  @OA\Property(property="total_reviews", type="integer", example=0),
      *                  @OA\Property(property="average_rating", type="number", format="float", example=4.2),
      *                  @OA\Property(property="total_staff", type="integer", example=25),
      *                  @OA\Property(property="trend", type="object",
@@ -1471,7 +1473,7 @@ class StaffController extends Controller
      *              @OA\Property(property="success", type="boolean", example=true),
      *              @OA\Property(property="message", type="string", example="Compliment ratio retrieved successfully"),
      *              @OA\Property(property="data", type="object",
-     *                  @OA\Property(property="total_reviews", type="integer", example=150),
+     *                  @OA\Property(property="total_reviews", type="integer", example=0),
      *                  @OA\Property(property="positive_count", type="integer", example=120),
      *                  @OA\Property(property="negative_count", type="integer", example=30),
      *                  @OA\Property(property="compliment_ratio", type="number", format="float", example=80.0),
