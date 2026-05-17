@@ -146,6 +146,9 @@ Route::get('/activity-log', [SetupController::class, "getActivityLogs"])->name("
 // SYNC OLD OUTCOMES
 Route::get('/sync-outcomes', [SetupController::class, "syncOldReviewOutcomes"])->name('sync.outcomes');
 
+// BACKFILL DASHBOARD RULE OUTCOMES
+Route::get('/backfill-dashboard-rules', [SetupController::class, "backfillDashboardRules"])->name('backfill.dashboard.rules');
+
 // Custom API
 Route::get('/custom-test-api', function () {
     return view("test_api_custom");

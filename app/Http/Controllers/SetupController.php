@@ -308,7 +308,7 @@ class SetupController extends Controller
                     $rulesTriggeredCount++;
                 }
             }
-            
+
             $syncedCount++;
         }
 
@@ -320,5 +320,49 @@ class SetupController extends Controller
                 'rule_outcomes_created' => $rulesTriggeredCount
             ]
         ]);
+    }
+
+    /**
+     * Dedicated method to backfill dashboard rule outcomes via artisan command.
+     */
+    public function backfillDashboardRules(Request $request)
+    {
+        try {
+            Artisan::call('optimize:clear');
+            $optimizeOutput = Artisan::output();
+
+            $command = 'rules:backfill-outcomes';
+
+            if ($request->has('business_id')) {
+                $businessIds = explode(',', $request->query('business_id'));
+                foreach ($businessIds as $id) {
+                    if (is_numeric(trim($id))) {
+                        $command .= ' --business_id=' . trim($id);
+                    }
+                }
+            } else {
+                $command .= ' --all';
+            }
+
+            if ($request->boolean('dry_run')) {
+                $command .= ' --dry-run';
+            }
+
+            Artisan::call($command);
+            $backfillOutput = Artisan::output();
+
+            return response()->json([
+                'success' => true,
+                'command_run' => $command,
+                'message' => 'Dashboard rule outcomes backfilled successfully.',
+                'optimize_output' => trim($optimizeOutput),
+                'backfill_output' => trim($backfillOutput)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Backfill failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

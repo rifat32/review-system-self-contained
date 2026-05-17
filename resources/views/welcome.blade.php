@@ -399,6 +399,24 @@
                 </a>
                 <span class="status-badge">Data Migration</span>
             </div>
+
+            <!-- Dashboard Rule Backfill Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon icon-primary">
+                        📈
+                    </div>
+                    <h2 class="card-title">Dashboard Rule Backfill</h2>
+                </div>
+                <p class="card-description">
+                    Automatically backfill AI rule outcomes across all active businesses to populate dashboard boxes
+                </p>
+                <a href="{{ route('backfill.dashboard.rules') }}" class="btn btn-primary" target="_blank">
+                    <span class="btn-icon">⚡</span>
+                    <span>Run Backfill</span>
+                </a>
+                <span class="status-badge">Dashboard Fix</span>
+            </div>
         </div>
 
         <!-- Footer -->

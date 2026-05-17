@@ -78,8 +78,10 @@ class ExecuteScheduledRules extends Command
                     $reviews = $executionService->getReviewsForRule($rule);
 
                     if ($reviews->isEmpty()) {
+                        // Do not advance last_run_at when nothing was evaluated.
+                        // Advancing last_run_at here can permanently skip imported/historical
+                        // reviews if the rule timestamp is already newer than those reviews.
                         $rule->update([
-                            'last_run_at' => \now(),
                             'next_run_at' => $executionService->calculateNextRun($rule)
                         ]);
                     } else {
