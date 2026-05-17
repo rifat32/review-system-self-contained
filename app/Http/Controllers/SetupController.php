@@ -365,4 +365,266 @@ class SetupController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Add missing pre-computed reviews for testing business (owner email rifatbilal...)
+     * to populate remaining 0 dashboard values without calling OpenAI.
+     * Generates exactly 2 reviews per 0 value category (Total 10 reviews).
+     */
+    public function addMissingDashboardReviews(Request $request)
+    {
+        try {
+            // Find owner by exact email 'rifatbilalphilips@gmail.com'
+            $owner = \App\Models\User::where('email', 'rifatbilalphilips@gmail.com')->first();
+
+            if (!$owner || !$owner->business_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Could not find a business associated with owner exact email rifatbilalphilips@gmail.com'
+                ], 404);
+            }
+
+            $business = \App\Models\Business::find($owner->business_id);
+
+            if (!$business) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Business ID ' . $owner->business_id . ' not found.'
+                ], 404);
+            }
+
+            $createdCount = 0;
+
+            // Get required foreign keys
+            $branch = \App\Models\Branch::where('business_id', $business->id)->first();
+            $staff = \App\Models\User::where('business_id', $business->id)->where('type', 'staff')->first();
+            $customer = \App\Models\User::where('type', 'customer')->first();
+            $survey = \App\Models\Survey::where('business_id', $business->id)->first();
+            $question = \App\Models\Question::where('business_id', $business->id)->first();
+            
+            $star5 = \App\Models\Star::where('value', 5)->first();
+            $star4 = \App\Models\Star::where('value', 4)->first();
+            $star3 = \App\Models\Star::where('value', 3)->first();
+            $star1 = \App\Models\Star::where('value', 1)->first();
+
+            if (!$branch || !$staff || !$customer || !$survey || !$question || !$star5) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing required foreign key entities (branch, staff, customer, survey, question, or stars) for Business ID ' . $business->id
+                ], 422);
+            }
+
+            $staffIdStr = (string) $staff->id;
+            $staffName = $staff->first_Name . ' ' . $staff->last_Name;
+
+            // Exactly 2 reviews per category (Total 10 reviews)
+            $reviewConfigs = [
+                // Pair 1: High Emotion (2 reviews)
+                [
+                    'comment' => 'I am absolutely thrilled and overjoyed with my stay! Everything was spectacularly wonderful and made me so happy!',
+                    'star' => $star5,
+                    'sentiment_label' => 'positive', 'sentiment_score' => 0.9,
+                    'emotion' => ['primary' => 'joy', 'intensity' => 'high'],
+                    'tags' => [], 'areas' => [], 'topics' => [], 'mismatch' => 0, 'mismatch_type' => null
+                ],
+                [
+                    'comment' => 'I am extremely furious and outraged by the lack of care! This made me incredibly angry and frustrated beyond belief!',
+                    'star' => $star1,
+                    'sentiment_label' => 'negative', 'sentiment_score' => 0.1,
+                    'emotion' => ['primary' => 'anger', 'intensity' => 'high'],
+                    'tags' => [], 'areas' => [], 'topics' => [], 'mismatch' => 0, 'mismatch_type' => null
+                ],
+
+                // Pair 2: Rating Mismatch (2 reviews) - Requires Rating > 3 AND Sentiment == negative
+                [
+                    'comment' => 'The room was terrible, dirty, and the staff was extremely rude. I hated every single minute of my stay here.',
+                    'star' => $star5,
+                    'sentiment_label' => 'negative', 'sentiment_score' => 0.1,
+                    'emotion' => ['primary' => 'anger', 'intensity' => 'high'],
+                    'tags' => [], 'areas' => [], 'topics' => [], 'mismatch' => 1, 'mismatch_type' => 'rating_high_comment_negative'
+                ],
+                [
+                    'comment' => 'Awful experience with noisy neighbors and uncomfortable beds. Would never recommend this place to anyone.',
+                    'star' => $star5,
+                    'sentiment_label' => 'negative', 'sentiment_score' => 0.1,
+                    'emotion' => ['primary' => 'disgust', 'intensity' => 'high'],
+                    'tags' => [], 'areas' => [], 'topics' => [], 'mismatch' => 1, 'mismatch_type' => 'rating_high_comment_negative'
+                ],
+
+                // Pair 3: Category Alerts (2 reviews) - Requires keywords: price, quality, delivery
+                [
+                    'comment' => 'The price of the room was way too expensive for the quality of food provided.',
+                    'star' => $star3,
+                    'sentiment_label' => 'negative', 'sentiment_score' => 0.3,
+                    'emotion' => ['primary' => 'sadness', 'intensity' => 'medium'],
+                    'tags' => ['price', 'quality'], 'areas' => [],
+                    'topics' => [['main_category' => 'Pricing', 'sub_category' => 'Value', 'sentiment' => 'negative', 'severity' => 'medium', 'evidence_from_comment' => 'price of the room']],
+                    'mismatch' => 0, 'mismatch_type' => null
+                ],
+                [
+                    'comment' => 'We had issues with the delivery of our extra towels and the overall quality of room service.',
+                    'star' => $star3,
+                    'sentiment_label' => 'negative', 'sentiment_score' => 0.3,
+                    'emotion' => ['primary' => 'disappointment', 'intensity' => 'medium'],
+                    'tags' => ['delivery', 'quality'], 'areas' => [],
+                    'topics' => [['main_category' => 'Service', 'sub_category' => 'Delivery', 'sentiment' => 'negative', 'severity' => 'medium', 'evidence_from_comment' => 'delivery of our extra towels']],
+                    'mismatch' => 0, 'mismatch_type' => null
+                ],
+
+                // Pair 4: Service Identified (2 reviews) - Requires keywords: installation, maintenance
+                [
+                    'comment' => 'The installation of the new air conditioning unit in our room was handled very professionally.',
+                    'star' => $star4,
+                    'sentiment_label' => 'positive', 'sentiment_score' => 0.8,
+                    'emotion' => ['primary' => 'satisfaction', 'intensity' => 'medium'],
+                    'tags' => ['installation'], 'areas' => [], 'topics' => [], 'mismatch' => 0, 'mismatch_type' => null
+                ],
+                [
+                    'comment' => 'The maintenance team was quick to fix the plumbing leak in the bathroom.',
+                    'star' => $star4,
+                    'sentiment_label' => 'positive', 'sentiment_score' => 0.8,
+                    'emotion' => ['primary' => 'relief', 'intensity' => 'medium'],
+                    'tags' => ['maintenance'], 'areas' => [], 'topics' => [], 'mismatch' => 0, 'mismatch_type' => null
+                ],
+
+                // Pair 5: Area Identified (2 reviews) - Requires area_insights
+                [
+                    'comment' => 'The reception lobby was beautifully decorated and very welcoming.',
+                    'star' => $star5,
+                    'sentiment_label' => 'positive', 'sentiment_score' => 0.9,
+                    'emotion' => ['primary' => 'joy', 'intensity' => 'medium'],
+                    'tags' => [], 'areas' => ['Reception Lobby'], 'topics' => [], 'mismatch' => 0, 'mismatch_type' => null
+                ],
+                [
+                    'comment' => 'The dining area was clean, spacious, and had a wonderful atmosphere for breakfast.',
+                    'star' => $star5,
+                    'sentiment_label' => 'positive', 'sentiment_score' => 0.9,
+                    'emotion' => ['primary' => 'joy', 'intensity' => 'medium'],
+                    'tags' => [], 'areas' => ['Dining Area'], 'topics' => [], 'mismatch' => 0, 'mismatch_type' => null
+                ],
+            ];
+
+            foreach ($reviewConfigs as $cfg) {
+                $areaInsights = array_map(fn($area) => [
+                    'area_name' => $area,
+                    'sentiment' => $cfg['sentiment_label'],
+                    'mention_context' => strtolower($area)
+                ], $cfg['areas']);
+
+                $review = \App\Models\ReviewNew::create([
+                    'business_id' => $business->id,
+                    'description' => 'Customer feedback',
+                    'user_id' => $customer->id,
+                    'comment' => $cfg['comment'],
+                    'raw_text' => $cfg['comment'],
+                    'ip_address' => '192.168.1.' . rand(10, 99),
+                    'is_overall' => 1,
+                    'status' => 'pending',
+                    'order_no' => 0,
+                    'sentiment_score' => $cfg['sentiment_score'],
+                    'sentiment_label' => $cfg['sentiment_label'],
+                    'emotion' => json_encode($cfg['emotion']),
+                    'key_phrases' => json_encode([
+                        'tags' => $cfg['tags'],
+                        'staff_mentions' => [[
+                            'id' => $staffIdStr,
+                            'name' => $staffName,
+                            'sentiment' => $cfg['sentiment_label'],
+                            'risk_level' => $cfg['sentiment_label'] === 'negative' ? 'high' : 'low',
+                            'blame_detected' => $cfg['sentiment_label'] === 'negative'
+                        ]],
+                        'areas_mentioned' => $cfg['areas']
+                    ]),
+                    'topics' => json_encode($cfg['topics']),
+                    'ai_confidence' => 1.00,
+                    'is_ai_processed' => 1,
+                    'ai_processed_at' => now(),
+                    'ai_model' => 'gpt-4o-mini',
+                    'openai_raw_response' => json_encode([
+                        'sentiment' => ['label' => $cfg['sentiment_label'], 'score' => $cfg['sentiment_score']],
+                        'emotion' => $cfg['emotion'],
+                        'moderation' => ['is_abusive' => false, 'safe_for_public_display' => true, 'issues_found' => [], 'severity' => 'low'],
+                        'rating_comment_alignment' => [
+                            'is_aligned' => $cfg['mismatch'] === 0,
+                            'mismatch_type' => $cfg['mismatch_type'],
+                            'confidence' => 1,
+                            'explanation' => $cfg['mismatch'] ? 'Rating contradicts comment.' : 'Perfectly aligned.'
+                        ],
+                        'category_analysis' => $cfg['topics'],
+                        'staff_intelligence' => [
+                            'staff_id' => $staffIdStr,
+                            'staff_name' => $staffName,
+                            'mentioned_explicitly' => true,
+                            'sentiment_towards_staff' => $cfg['sentiment_label'],
+                            'risk_level' => $cfg['sentiment_label'] === 'negative' ? 'high' : 'low',
+                            'blame_detected' => $cfg['sentiment_label'] === 'negative'
+                        ],
+                        'service_unit_intelligence' => ['unit_type' => 'Other', 'unit_id' => '', 'issues_detected' => [], 'maintenance_required' => in_array('maintenance', $cfg['tags']), 'severity' => 'low'],
+                        'area_insights' => $areaInsights,
+                        'summary' => [
+                            'one_line' => 'Customer feedback provided.',
+                            'manager_summary' => $cfg['comment'],
+                            'customer_sentiment_summary' => 'Customer expressed ' . $cfg['sentiment_label'] . ' sentiment.',
+                            'overall_assessment' => $cfg['sentiment_label']
+                        ],
+                        'rule_outcomes' => ['is_sentiment_flagged', 'is_high_emotion', 'is_mismatch', 'is_category_detected', 'is_service_identified', 'is_area_detected', 'is_staff_mentioned', 'is_staff_risk', 'is_critical_alert']
+                    ]),
+                    'ai_insights' => json_encode([
+                        'staff_intelligence' => [
+                            'staff_id' => $staffIdStr,
+                            'staff_name' => $staffName,
+                            'mentioned_explicitly' => true,
+                            'sentiment_towards_staff' => $cfg['sentiment_label'],
+                            'risk_level' => $cfg['sentiment_label'] === 'negative' ? 'high' : 'low',
+                            'blame_detected' => $cfg['sentiment_label'] === 'negative'
+                        ],
+                        'area_insights' => $areaInsights,
+                    ]),
+                    'rating_comment_mismatch' => $cfg['mismatch'],
+                    'mismatch_insights' => $cfg['mismatch'] ? json_encode([
+                        'is_aligned' => false,
+                        'mismatch_type' => $cfg['mismatch_type']
+                    ]) : null,
+                    'branch_id' => $branch->id,
+                    'staff_id' => $staff->id,
+                    'survey_id' => $survey->id,
+                    'source' => 'web'
+                ]);
+
+                // Create ReviewValueNew to ensure calculated_rating matches star
+                if ($cfg['star']) {
+                    \App\Models\ReviewValueNew::create([
+                        'review_id' => $review->id,
+                        'question_id' => $question->id,
+                        'star_id' => $cfg['star']->id,
+                    ]);
+                }
+
+                $createdCount++;
+            }
+
+            // Run backfill for this business to populate review_rule_outcomes
+            \Illuminate\Support\Facades\Artisan::call('rules:backfill-outcomes', [
+                '--business_id' => $business->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully created {$createdCount} pre-computed reviews (exactly 2 per category) and populated all remaining 0 dashboard values for Business '{$business->Name}' (Owner: {$owner->email})!",
+                'details' => [
+                    'reviews_created' => $createdCount,
+                    'business_id' => $business->id,
+                    'business_name' => $business->Name,
+                    'owner_email' => $owner->email
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to add missing dashboard reviews", ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add missing dashboard reviews: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

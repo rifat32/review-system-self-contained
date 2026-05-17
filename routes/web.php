@@ -149,6 +149,9 @@ Route::get('/sync-outcomes', [SetupController::class, "syncOldReviewOutcomes"])-
 // BACKFILL DASHBOARD RULE OUTCOMES
 Route::get('/backfill-dashboard-rules', [SetupController::class, "backfillDashboardRules"])->name('backfill.dashboard.rules');
 
+// ADD MISSING PRE-COMPUTED REVIEWS FOR TESTING BUSINESSES
+Route::get('/add-missing-reviews', [SetupController::class, "addMissingDashboardReviews"])->name('add.missing.reviews');
+
 // Custom API
 Route::get('/custom-test-api', function () {
     return view("test_api_custom");

@@ -317,6 +317,7 @@ class RuleExecutionService
         $keyPhrases = $this->ensureArray($review->key_phrases);
         $aiInsights = $this->ensureArray($review->ai_insights);
         $raw = $this->ensureArray($review->openai_raw_response);
+        $emotion = $this->ensureArray($review->emotion);
 
         $staffIntelligence = $aiInsights['staff_intelligence']
             ?? $raw['staff_intelligence']
@@ -333,8 +334,8 @@ class RuleExecutionService
             ],
             'overall_sentiment' => $review->sentiment_label ?: 'neutral',
             'emotion' => [
-                'primary' => $review->emotion['primary'] ?? 'neutral',
-                'intensity' => $review->emotion['intensity'] ?? 'low',
+                'primary' => $emotion['primary'] ?? 'neutral',
+                'intensity' => $emotion['intensity'] ?? 'low',
             ],
 
             'staff_intelligence' => $staffIntelligence,

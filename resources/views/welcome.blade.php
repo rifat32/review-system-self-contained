@@ -417,6 +417,24 @@
                 </a>
                 <span class="status-badge">Dashboard Fix</span>
             </div>
+
+            <!-- Add Missing Reviews Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon icon-secondary">
+                        ✨
+                    </div>
+                    <h2 class="card-title">Add Missing Reviews</h2>
+                </div>
+                <p class="card-description">
+                    Instantly create pre-computed reviews for your active business (Owner: rifat...) to populate remaining 0 dashboard values without calling OpenAI.
+                </p>
+                <a href="{{ route('add.missing.reviews') }}" class="btn btn-secondary" target="_blank">
+                    <span class="btn-icon">➕</span>
+                    <span>Populate Zero Values</span>
+                </a>
+                <span class="status-badge">Test Data Fix</span>
+            </div>
         </div>
 
         <!-- Footer -->
