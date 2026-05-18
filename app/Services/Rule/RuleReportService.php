@@ -330,7 +330,7 @@ class RuleReportService
                 'key' => 'TOTAL_REVIEWS',
                 'label' => 'Total Reviews',
                 'value' => number_format($totalReviews),
-                'sub_value' => 'Total Volume',
+                'sub_value' => "Total Volume • {$totalReviews} reviews",
                 'trend' => null,
                 'icon' => '📝',
                 'color' => 'blue',
@@ -340,7 +340,7 @@ class RuleReportService
                 'key' => 'AVG_RATING',
                 'label' => 'Average Rating',
                 'value' => number_format($avgRating, 1),
-                'sub_value' => 'out of 5.0',
+                'sub_value' => "out of 5.0 • {$totalReviews} reviews",
                 'trend' => null,
                 'icon' => '⭐',
                 'color' => 'yellow',
@@ -350,7 +350,7 @@ class RuleReportService
                 'key' => 'CSAT_SCORE',
                 'label' => 'CSAT Score',
                 'value' => $csatPercentage . '%',
-                'sub_value' => 'Satisfaction Index',
+                'sub_value' => "Satisfaction Index • {$csatReviewsCount}/{$totalReviews} reviews",
                 'trend' => null,
                 'icon' => '📈',
                 'color' => 'cyan',
@@ -369,7 +369,7 @@ class RuleReportService
                 continue;
             }
 
-            $boxData = $this->calculateRuleBoxData($rule, $startDate, $endDate, $baseQuery);
+            $boxData = $this->calculateRuleBoxData($rule, $startDate, $endDate, $baseQuery, $totalReviews);
             if ($boxData) {
                 $boxes[] = $boxData;
             }
@@ -462,7 +462,7 @@ class RuleReportService
             'key' => 'RATING_UPSIDE',
             'label' => 'Rating Upside',
             'value' => '+' . number_format($upside, 1),
-            'sub_value' => 'Potential Points',
+            'sub_value' => "Potential Points • {$totalCount} reviews",
             'trend' => null,
             'icon' => '🚀',
             'color' => 'purple',
@@ -473,7 +473,7 @@ class RuleReportService
     /**
      * Calculate box data for a specific rule
      */
-    private function calculateRuleBoxData(AiRule $rule, Carbon $startDate, Carbon $endDate, $baseQuery): ?array
+    private function calculateRuleBoxData(AiRule $rule, Carbon $startDate, Carbon $endDate, $baseQuery, int $totalReviews): ?array
     {
         $label = $rule->rule_name;
         $query = clone $baseQuery;
@@ -487,7 +487,7 @@ class RuleReportService
                 $value = (clone $query)->whereHas('rule_outcomes', function($q) {
                     $q->where('is_sentiment_flagged', true);
                 })->count();
-                $subValue = 'Needs Attention';
+                $subValue = "Needs Attention • {$value}/{$totalReviews} reviews";
                 $icon = '😊';
                 $color = 'green';
                 break;
@@ -497,7 +497,7 @@ class RuleReportService
                 $value = (clone $query)->whereHas('rule_outcomes', function($q) {
                     $q->where('is_critical_alert', true);
                 })->count();
-                $subValue = 'Action Required';
+                $subValue = "Action Required • {$value}/{$totalReviews} reviews";
                 $icon = '🚩';
                 $color = 'orange';
                 break;
@@ -507,7 +507,7 @@ class RuleReportService
                 $value = (clone $query)->whereHas('rule_outcomes', function($q) {
                     $q->where('is_staff_mentioned', true);
                 })->count();
-                $subValue = 'AI Detected';
+                $subValue = "AI Detected • {$value}/{$totalReviews} reviews";
                 $icon = '👥';
                 $color = 'green';
                 break;
@@ -517,7 +517,7 @@ class RuleReportService
                 $value = (clone $query)->whereHas('rule_outcomes', function($q) {
                     $q->where('is_category_detected', true);
                 })->count();
-                $subValue = 'Issues Found';
+                $subValue = "Issues Found • {$value}/{$totalReviews} reviews";
                 $icon = '🏷️';
                 $color = 'indigo';
                 break;
@@ -527,7 +527,7 @@ class RuleReportService
                 $value = (clone $query)->whereHas('rule_outcomes', function($q) {
                     $q->where('is_staff_risk', true);
                 })->count();
-                $subValue = 'Care Required';
+                $subValue = "Care Required • {$value}/{$totalReviews} reviews";
                 $icon = '📉';
                 $color = 'red';
                 break;
@@ -537,7 +537,7 @@ class RuleReportService
                 $value = (clone $query)->whereHas('rule_outcomes', function($q) {
                     $q->where('is_high_emotion', true);
                 })->count();
-                $subValue = 'High Intensity';
+                $subValue = "High Intensity • {$value}/{$totalReviews} reviews";
                 $icon = '🔥';
                 $color = 'purple';
                 break;
@@ -547,7 +547,7 @@ class RuleReportService
                 $value = (clone $query)->whereHas('rule_outcomes', function($q) {
                     $q->where('is_mismatch', true);
                 })->count();
-                $subValue = 'Inconsistencies';
+                $subValue = "Inconsistencies • {$value}/{$totalReviews} reviews";
                 $icon = '🔄';
                 $color = 'blue';
                 break;
@@ -557,7 +557,7 @@ class RuleReportService
                 $value = (clone $query)->whereHas('rule_outcomes', function($q) {
                     $q->where('is_service_identified', true);
                 })->count();
-                $subValue = 'Dept Detection';
+                $subValue = "Dept Detection • {$value}/{$totalReviews} reviews";
                 $icon = '🏢';
                 $color = 'teal';
                 break;
@@ -567,7 +567,7 @@ class RuleReportService
                 $value = (clone $query)->whereHas('rule_outcomes', function($q) {
                     $q->where('is_area_detected', true);
                 })->count();
-                $subValue = 'Location Specific';
+                $subValue = "Location Specific • {$value}/{$totalReviews} reviews";
                 $icon = '🗺️';
                 $color = 'brown';
                 break;
@@ -576,7 +576,7 @@ class RuleReportService
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
-                $subValue = 'Triggers';
+                $subValue = "Triggers • {$value}/{$totalReviews} reviews";
                 $icon = '📋';
                 $color = 'gray';
         }

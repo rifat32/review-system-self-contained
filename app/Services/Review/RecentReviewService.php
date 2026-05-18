@@ -29,7 +29,7 @@ class RecentReviewService
                 $query->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
             }
 
-            $reviews = $query->with('rule_outcomes')->latest()->get();
+            $reviews = $query->with(['rule_outcomes', 'user', 'guest_user', 'staff', 'survey', 'value.question', 'value.tags'])->latest()->get();
         }
 
         // If second parameter was passed as limit (numeric and no third param), handle legacy calls
@@ -37,26 +37,34 @@ class RecentReviewService
             $limit = $dateRange;
         }
 
-        return $reviews->loadMissing('rule_outcomes')->sortByDesc('created_at')
+        return $reviews->loadMissing(['rule_outcomes', 'user', 'guest_user', 'staff', 'survey', 'value.question', 'value.tags'])->sortByDesc('created_at')
             ->take($limit)
             ->map(function ($review) {
                 $rating = $review->calculated_rating ?? 0;
+                $reviewArray = $review->toArray();
 
-                return [
+                return array_merge($reviewArray, [
                     'id' => $review->id,
                     'rating' => $rating,
+                    'calculated_rating' => $rating,
                     'stars' => str_repeat('★', (int) floor($rating)) . str_repeat('☆', 5 - (int) floor($rating)),
                     'review_text' => $review->comment ?? $review->raw_text ?? 'No comment',
+                    'comment' => $review->comment ?? $review->raw_text,
+                    'raw_text' => $review->raw_text,
                     'staff_name' => $review->staff ? $review->staff->name : 'Not assigned',
                     'staff_id' => $review->staff_id,
                     'sentiment' => $this->getSentimentLabel($review->sentiment_score),
+                    'sentiment_label' => $review->sentiment_label ?? strtolower($this->getSentimentLabel($review->sentiment_score)),
                     'date' => $review->created_at ? $review->created_at->diffForHumans() : 'Unknown',
                     'exact_date' => $review->created_at ? $review->created_at->format('Y-m-d H:i:s') : null,
                     'created_at' => $review->created_at ? $review->created_at->format('d-m-Y H:i:s') : null,
                     'is_flagged' => $review->is_flagged,
                     'has_actions' => true,
-                    'user_type' => $review->user_id ? 'Registered' : ($review->guest_id ? 'Guest' : 'Anonymous')
-                ];
+                    'user_type' => $review->user_id ? 'Registered' : ($review->guest_id ? 'Guest' : 'Anonymous'),
+                    'user' => $review->user,
+                    'guest_user' => $review->guest_user,
+                    'author' => $review->author ?? ($review->user ? $review->user->name : ($review->guest_user ? $review->guest_user->full_name : 'Anonymous')),
+                ]);
             })
             ->values()
             ->toArray();

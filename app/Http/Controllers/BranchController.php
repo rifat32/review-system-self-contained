@@ -470,6 +470,7 @@ class BranchController extends Controller
                     'previous_value' => round($previousAvgRating, 2),
                     'change_value' => $avgRatingChange,
                     'change_type' => $avgRatingChangeType,
+                    'review_count' => $currentReviews->count(),
                 ],
                 'overall_sentiment' => [
                     'value' => round($currentSentimentScore, 2),
@@ -478,6 +479,7 @@ class BranchController extends Controller
                     'change_type' => $sentimentScoreChangeType,
                     'label' => $currentSentimentLabel,
                     'previous_label' => $previousSentimentLabel,
+                    'review_count' => $currentReviews->count(),
                 ],
             ],
         ]);
