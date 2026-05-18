@@ -199,6 +199,10 @@ class DashboardService
                 'value' => $total,
                 'change' => $dateRange !== null ? $this->reviewService->calculatePercentageChange($total, $previousTotal) : null
             ],
+            'total_submissions' => [
+                'value' => $total,
+                'change' => $dateRange !== null ? $this->reviewService->calculatePercentageChange($total, $previousTotal) : null
+            ],
             'positive_negative_ratio' => [
                 'positive' => $total > 0 ? round(($positiveReviewsCount / $total) * 100) : 0,
                 'negative' => $total > 0 ? round(($negativeReviewsCount / $total) * 100) : 0,
@@ -207,6 +211,13 @@ class DashboardService
                 'review_count' => $total
             ],
             'staff_linked_reviews' => [
+                'percentage' => $total > 0 ? round(($reviews->whereNotNull('staff_id')->count() / $total) * 100) : 0,
+                'count' => $reviews->whereNotNull('staff_id')->count(),
+                'total' => $total,
+                'review_count' => $total
+            ],
+            'staff_link_reviews' => [
+                'value' => $reviews->whereNotNull('staff_id')->count(),
                 'percentage' => $total > 0 ? round(($reviews->whereNotNull('staff_id')->count() / $total) * 100) : 0,
                 'count' => $reviews->whereNotNull('staff_id')->count(),
                 'total' => $total,

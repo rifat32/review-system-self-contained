@@ -493,9 +493,13 @@ class DashboardController extends Controller
                 $staffPerformance[] = [
                     'staff_id' => $staffId,
                     'staff_name' => $staff->name,
+                    'name' => $staff->name,
                     'staff_image' => $staff->image,
+                    'image' => $staff->image,
                     'avg_rating' => round($avgRating, 2),
-                    'review_count' => $totalReviews
+                    'rating' => round($avgRating, 2),
+                    'review_count' => $totalReviews,
+                    'total_reviews' => $totalReviews
                 ];
             }
 
@@ -523,6 +527,7 @@ class DashboardController extends Controller
         return [
             'overall_sentiment' => $sentiment_status,
             'top_performer' => $topPerformer,
+            'top_staffs' => isset($staffPerformance) ? array_slice($staffPerformance, 0, 5) : [],
             'action_text' => 'Details'
         ];
     }
