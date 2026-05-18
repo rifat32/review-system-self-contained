@@ -627,4 +627,63 @@ class SetupController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Clean up older duplicate AI insight records across all businesses.
+     * Consolidates recommendation foreign keys to point to the latest insight record before deleting duplicates.
+     */
+    public function cleanupDuplicateInsights(Request $request)
+    {
+        try {
+            $businesses = \App\Models\InsightRecord::select('business_id')->distinct()->pluck('business_id');
+            $cleanedCount = 0;
+            $consolidatedRecsCount = 0;
+
+            foreach ($businesses as $businessId) {
+                // Group by main_category and sub_category
+                $categories = \App\Models\InsightRecord::where('business_id', $businessId)
+                    ->select('main_category', 'sub_category')
+                    ->distinct()
+                    ->get();
+
+                foreach ($categories as $cat) {
+                    $records = \App\Models\InsightRecord::where('business_id', $businessId)
+                        ->where('main_category', $cat->main_category)
+                        ->where('sub_category', $cat->sub_category)
+                        ->orderBy('time_window_end', 'desc')
+                        ->get();
+
+                    if ($records->count() > 1) {
+                        $latestRecord = $records->first();
+                        $duplicates = $records->slice(1);
+
+                        foreach ($duplicates as $duplicate) {
+                            // Update recommendations to point to the latest record
+                            $recsUpdated = \App\Models\Recommendation::where('insight_id', $duplicate->id)
+                                ->update(['insight_id' => $latestRecord->id]);
+                            $consolidatedRecsCount += $recsUpdated;
+
+                            $duplicate->delete();
+                            $cleanedCount++;
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully cleaned up {$cleanedCount} duplicate AI insight records and consolidated {$consolidatedRecsCount} recommendation references across all businesses!",
+                'details' => [
+                    'duplicate_insights_deleted' => $cleanedCount,
+                    'recommendations_consolidated' => $consolidatedRecsCount
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to clean up duplicate insights", ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to clean up duplicate insights: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

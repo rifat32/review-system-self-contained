@@ -138,10 +138,10 @@ class InsightAggregationService
                 'business_id' => $businessId,
                 'main_category' => $pattern['main_category'],
                 'sub_category' => $pattern['sub_category'],
-                'time_window_start' => $startDate,
-                'time_window_end' => $endDate
             ],
             [
+                'time_window_start' => $startDate,
+                'time_window_end' => $endDate,
                 'mentions_count' => $mentions,
                 'severity' => $severity,
                 'sentiment' => $sentiment,
@@ -199,7 +199,11 @@ class InsightAggregationService
     public function getDashboardInsights(int $businessId, ?int $limit = null, ?array $reviewIds = null, bool $onlyHighMedium = false): array
     {
         $limit = $limit ?? config('ai.insights.aggregation.dashboard_limit', 10);
-        $query = InsightRecord::where('business_id', $businessId);
+        $latestDate = InsightRecord::where('business_id', $businessId)->max('time_window_end');
+        $query = InsightRecord::where('business_id', $businessId)
+            ->when($latestDate, function ($q) use ($latestDate) {
+                $q->where('time_window_end', $latestDate);
+            });
 
         if ($reviewIds && !empty($reviewIds)) {
             $reviewIds = array_unique(array_map('intval', $reviewIds));

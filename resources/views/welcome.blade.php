@@ -435,6 +435,24 @@
                 </a>
                 <span class="status-badge">Test Data Fix</span>
             </div>
+
+            <!-- Cleanup Duplicate Insights Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon icon-primary">
+                        🧹
+                    </div>
+                    <h2 class="card-title">Cleanup Duplicate Insights</h2>
+                </div>
+                <p class="card-description">
+                    Clean up older duplicate AI insight records across all businesses and consolidate recommendation references.
+                </p>
+                <a href="{{ route('cleanup.duplicate.insights') }}" class="btn btn-primary" target="_blank">
+                    <span class="btn-icon">⚡</span>
+                    <span>Clean Duplicates</span>
+                </a>
+                <span class="status-badge">Database Cleanup</span>
+            </div>
         </div>
 
         <!-- Footer -->

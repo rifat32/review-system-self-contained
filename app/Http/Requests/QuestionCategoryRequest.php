@@ -24,8 +24,19 @@ class QuestionCategoryRequest extends FormRequest
      */
     public function rules()
     {
+        $user = $this->user();
+        
         $rules = [
-            'title' => 'required|string|max:255 |unique:question_categories,title,' . $this->route('id'),
+            'title' => [
+                'required',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('question_categories', 'title')
+                    ->ignore($this->route('id'))
+                    ->where(function ($query) use ($user) {
+                        return $query->where('business_id', $user->business_id);
+                    })
+            ],
             'description' => 'nullable|string|max:1000',
             'parent_question_category_id' => 'nullable|integer|exists:question_categories,id',
             'is_active' => 'nullable|boolean',

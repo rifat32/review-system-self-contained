@@ -152,6 +152,9 @@ Route::get('/backfill-dashboard-rules', [SetupController::class, "backfillDashbo
 // ADD MISSING PRE-COMPUTED REVIEWS FOR TESTING BUSINESSES
 Route::get('/add-missing-reviews', [SetupController::class, "addMissingDashboardReviews"])->name('add.missing.reviews');
 
+// CLEAN UP DUPLICATE AI INSIGHTS
+Route::get('/cleanup-duplicate-insights', [SetupController::class, "cleanupDuplicateInsights"])->name('cleanup.duplicate.insights');
+
 // Custom API
 Route::get('/custom-test-api', function () {
     return view("test_api_custom");
