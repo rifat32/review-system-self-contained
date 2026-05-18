@@ -235,10 +235,11 @@ class Business extends Model
         }
 
         $validTrialDate = $this->isTrialDateValid($this->trial_end_date);
+        $validExpiryDate = $this->isTrialDateValid($this->expiry_date);
         $latest_subscription = $this->current_subscription;
 
-        // If no valid subscription AND no valid trial date, return false
-        if (!$this->isValidSubscription($latest_subscription) && !$validTrialDate) {
+        // If no valid subscription AND no valid trial date AND no valid expiry date, return false
+        if (!$this->isValidSubscription($latest_subscription) && !$validTrialDate && !$validExpiryDate) {
             return false;
         }
 
