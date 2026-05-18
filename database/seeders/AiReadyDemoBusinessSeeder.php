@@ -176,25 +176,28 @@ class AiReadyDemoBusinessSeeder extends Seeder
     /**
      * Create owner user (new, never reuse)
      */
-    private function createOwner(string $email): void
-    {
-        $this->owner = User::updateOrCreate(
-            ['email' => $email],
-            [
-                'password' => Hash::make('12345678@We'),
-                'first_Name' => 'Demo',
-                'last_Name' => 'Owner',
-                'phone' => '+1234567890',
-                'type' => 'business_Owner',
-                'remember_token' => Str::random(10),
-                'is_active' => true,
-            ]
-        );
-        $this->owner->email_verified_at = now();
-        $this->owner->save();
-
-        $this->owner->assignRole('business_owner');
+   private function createOwner(string $email): void
+{
+    if (User::where('email', $email)->exists()) {
+        throw new \Exception("Owner email already exists: {$email}. Use a new email for a new demo business.");
     }
+
+    $this->owner = User::create([
+        'email' => $email,
+        'password' => Hash::make('12345678@We'),
+        'first_Name' => 'Demo',
+        'last_Name' => 'Owner',
+        'phone' => '+1234567890',
+        'type' => 'business_Owner',
+        'remember_token' => Str::random(10),
+        'is_active' => true,
+    ]);
+
+    $this->owner->email_verified_at = now();
+    $this->owner->save();
+
+    $this->owner->assignRole('business_owner');
+}
 
     /**
      * Update owner with business_id (after business is created)
@@ -296,9 +299,19 @@ class AiReadyDemoBusinessSeeder extends Seeder
                 $lastName = $lastNames[$nameIndex % count($lastNames)];
                 $nameIndex++;
 
-                $ownerPrefix = explode('@', $this->owner->email)[0];
+                // Keep seeded staff isolated per business.
+                // Email is usually unique in users table, so include business ID to avoid
+                // updating/reusing staff from another seeded business.
+                $staffEmail = strtolower(
+                    $firstName . '.' .
+                    $lastName . '.business' .
+                    $this->business->id . '.branch' .
+                    $branchIndex . '.staff' .
+                    $i . '@aidemo.com'
+                );
+
                 $staff = User::updateOrCreate(
-                    ['email' => strtolower($firstName . '.' . $lastName . '.' . $ownerPrefix . $branchIndex . '@aidemo.com')],
+                    ['email' => $staffEmail],
                     [
                         'password' => Hash::make('12345678@We'),
                         'first_Name' => $firstName,
@@ -541,7 +554,6 @@ class AiReadyDemoBusinessSeeder extends Seeder
         // Link questions to sub-categories
         $this->linkQuestionsToCategories();
     }
-
     private function createQuestionCategories(): void
     {
         echo "📂 Creating question categories and sub-categories...\n";
@@ -549,33 +561,43 @@ class AiReadyDemoBusinessSeeder extends Seeder
         $categories = $this->seederData['question_categories'];
 
         foreach ($categories as $parentTitle => $subTitles) {
-            // Special handling for "Staff" which is default
+            // Special handling for "Staff" which is default/global.
             if ($parentTitle === 'Staff') {
-                $parent = QuestionCategory::where('title', 'Staff')->where('is_default', true)->first();
+                $parent = QuestionCategory::where('title', 'Staff')
+                    ->where('is_default', true)
+                    ->whereNull('business_id')
+                    ->first();
             } else {
                 $parent = QuestionCategory::updateOrCreate(
-                    ['title' => $parentTitle],
                     [
+                        'title' => $parentTitle,
                         'business_id' => $this->business->id,
+                        'parent_question_category_id' => null,
+                        'is_default' => false,
+                    ],
+                    [
                         'description' => "{$parentTitle} category for {$this->business->Name}",
                         'is_active' => true,
-                        'is_default' => false,
                         'created_by' => $this->owner->id,
                     ]
                 );
             }
 
-            if (!$parent) continue;
+            if (!$parent) {
+                continue;
+            }
 
             foreach ($subTitles as $subTitle) {
                 $sub = QuestionCategory::updateOrCreate(
-                    ['title' => $subTitle],
                     [
-                        'parent_question_category_id' => $parent->id,
+                        'title' => $subTitle,
                         'business_id' => $this->business->id,
+                        'parent_question_category_id' => $parent->id,
+                        'is_default' => false,
+                    ],
+                    [
                         'description' => "{$subTitle} sub-category",
                         'is_active' => true,
-                        'is_default' => false,
                         'created_by' => $this->owner->id,
                     ]
                 );
