@@ -147,6 +147,16 @@ class ConditionBuilderService
 
     private static function matchNumeric($actual, $op, $val)
     {
+        if ($op !== 'exists') {
+            if (is_array($val)) {
+                foreach ($val as $item) {
+                    if ($item === '' || $item === null || !is_numeric($item)) return false;
+                }
+            } elseif ($val === '' || $val === null || !is_numeric($val)) {
+                return false;
+            }
+        }
+
         $actual = (float)$actual; $val = is_array($val) ? array_map('floatval', $val) : (float)$val;
         return match ($op) {
             'equals', 'eq' => abs($actual - (is_array($val) ? $val[0] : $val)) < 0.01,

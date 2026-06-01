@@ -82,6 +82,11 @@ class RuleWizardController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid condition structure', 'errors' => $errors], 422);
         }
 
+        $ratingErrors = $this->validateRatingConditionValues($validated['conditions']['conditions'] ?? []);
+        if (!empty($ratingErrors)) {
+            return response()->json(['success' => false, 'message' => 'Invalid rating condition value', 'errors' => $ratingErrors], 422);
+        }
+
         DB::beginTransaction();
         try {
             $rule = AiRule::create([
@@ -179,6 +184,9 @@ class RuleWizardController extends Controller
         if (isset($validated['conditions'])) {
             $errors = ConditionBuilderService::validateConditionTree($validated['conditions']);
             if (!empty($errors)) return response()->json(['success' => false, 'message' => 'Invalid condition structure', 'errors' => $errors], 422);
+
+            $ratingErrors = $this->validateRatingConditionValues($validated['conditions']['conditions'] ?? []);
+            if (!empty($ratingErrors)) return response()->json(['success' => false, 'message' => 'Invalid rating condition value', 'errors' => $ratingErrors], 422);
         }
 
         DB::beginTransaction();
@@ -195,6 +203,34 @@ class RuleWizardController extends Controller
             DB::rollBack();
             throw $e;
         }
+    }
+
+
+
+    private function validateRatingConditionValues(array $conditions): array
+    {
+        $errors = [];
+
+        foreach ($conditions as $index => $condition) {
+            if (isset($condition['group'])) {
+                $errors = array_merge($errors, $this->validateRatingConditionValues($condition['group']['conditions'] ?? []));
+                continue;
+            }
+
+            $isRatingCondition = ($condition['source'] ?? null) === 'Rating' || ($condition['type'] ?? null) === 'rating';
+            $operator = $condition['operator'] ?? null;
+
+            if (!$isRatingCondition || $operator === 'exists') {
+                continue;
+            }
+
+            $value = $condition['value'] ?? null;
+            if ($value === '' || $value === null || !is_numeric($value) || (float) $value < 1 || (float) $value > 5) {
+                $errors[] = "Rating condition at index {$index} must have a numeric value between 1 and 5";
+            }
+        }
+
+        return $errors;
     }
 
     // ==================== DELETE RULE ====================
