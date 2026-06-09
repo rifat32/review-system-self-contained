@@ -166,7 +166,7 @@ class DashboardService
             $csatChangeType = $csatPercentageChange >= 0 ? 'positive' : 'negative';
         }
 
-        $allReviews = ReviewNew::globalReviewFilters(0, 0, false)
+        $allReviews = ReviewNew::globalReviewFilters(0, 'ignore', false)
             ->where('review_news.business_id', $businessId)
             ->count();
 

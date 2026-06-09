@@ -388,7 +388,7 @@ class ReviewNew extends Model
     }
 
 
-    public function scopeGlobalReviewFilters($query, $is_staff_review = 0, $is_overall = 1, $is_ai_processed = 0)
+    public function scopeGlobalReviewFilters($query, $is_staff_review = 0, $is_overall = null, $is_ai_processed = 0)
     {
         return $query
             ->when($is_ai_processed || request()->has('sentiment_score') || request()->has('sentiment') || request()->has('topics'), function ($q) {
@@ -410,6 +410,9 @@ class ReviewNew extends Model
                 $q->whereMeetsThreshold(1);
             })
             ->when(true, function ($q) use ($is_overall) {
+                if ($is_overall === 'ignore') {
+                    return;
+                }
                 if (request()->has('is_overall')) {
                     $val = request()->input('is_overall');
                     if ($val !== null && $val !== '' && $val !== 'all') {
