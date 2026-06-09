@@ -648,7 +648,7 @@ class DashboardController extends Controller
         }
 
         $businessId = $user->business_id;
-        $period = $request->get('period', 'last_30_days');
+        $period = $request->get('period', 'all_time');
 
         // 1. Validate period and get date range
         $dateRange = $this->dashboardService->validateAndGetDateRange($period);

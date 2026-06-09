@@ -52,9 +52,9 @@ class DashboardService
      * @return array|null Returns date range array or null for 'all_time'
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function validateAndGetDateRange(?string $period = 'last_30_days'): ?array
+    public function validateAndGetDateRange(?string $period = 'all_time'): ?array
     {
-        $period = $period ?? 'last_30_days';
+        $period = $period ?? 'all_time';
 
         if (!in_array($period, self::FILTERABLE_FIELDS)) {
             throw ValidationException::withMessages([

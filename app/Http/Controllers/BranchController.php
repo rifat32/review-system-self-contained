@@ -396,7 +396,7 @@ class BranchController extends Controller
             throw new AuthorizationException('No business found for the authenticated user');
         }
         // Validate period and get date range (only for review filtering)
-        $dateRange = $this->branchService->validateAndGetDateRange($request->get('period', 'last_30_days'));
+        $dateRange = $this->branchService->validateAndGetDateRange($request->get('period', 'all_time'));
 
         // Get ALL branch IDs (no date filtering on branches themselves)
         $branchIds = Branch::where('business_id', $businessId)->pluck('id');
@@ -1132,7 +1132,7 @@ class BranchController extends Controller
         }
 
         // Validate period and get date range
-        $dateRange = $this->branchService->validateAndGetDateRange($request->get('period', 'last_30_days'));
+        $dateRange = $this->branchService->validateAndGetDateRange($request->get('period', 'all_time'));
 
         // Get metrics using BranchService with named arguments
         $metrics = $this->branchService->getBranchMetricsWithComparison(
@@ -1282,7 +1282,7 @@ class BranchController extends Controller
 
             // ==================== VALIDATE & GET DATE RANGE ====================
             $dateRange = $this->branchService->validateAndGetDateRange(
-                $request->get('period', 'last_30_days')
+                $request->get('period', 'all_time')
             );
 
             // ==================== GET REVIEWS ====================
@@ -1435,11 +1435,11 @@ class BranchController extends Controller
 
         // ==================== VALIDATE & GET DATE RANGE ====================
         $dateRange = $this->branchService->validateAndGetDateRange(
-            $request->get('period', 'last_30_days')
+            $request->get('period', 'all_time')
         );
 
-        $startDate = $dateRange['start'];
-        $endDate = $dateRange['end'];
+        $startDate = $dateRange ? $dateRange['start'] : null;
+        $endDate = $dateRange ? $dateRange['end'] : null;
 
         $staffPerformance = $this->aiProcessorService->getStaffPerformance(
             branchId: $branchId,
@@ -1582,7 +1582,7 @@ class BranchController extends Controller
 
         // ==================== VALIDATE & GET DATE RANGE ====================
         $dateRange = $this->branchService->validateAndGetDateRange(
-            $request->get('period', 'last_30_days')
+            $request->get('period', 'all_time')
         );
 
 
@@ -1724,7 +1724,7 @@ class BranchController extends Controller
 
         // ==================== VALIDATE & GET DATE RANGE ====================
         $dateRange = $this->branchService->validateAndGetDateRange(
-            $request->get('period', 'last_30_days')
+            $request->get('period', 'all_time')
         );
 
 

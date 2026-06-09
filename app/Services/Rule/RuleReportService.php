@@ -305,17 +305,23 @@ class RuleReportService
             'last_7_days' => $now->copy()->subDays(7)->startOfDay(),
             'this_month' => $now->copy()->startOfMonth(),
             'last_month' => $now->copy()->subMonth()->startOfMonth(),
+            'all_time' => null,
             default => $now->copy()->subDays(30)->startOfDay(), // last_30_days
         };
         $endDate = match ($period) {
             'last_month' => $now->copy()->subMonth()->endOfMonth(),
+            'all_time' => null,
             default => $now->copy()->endOfDay(),
         };
 
         // 2. Standard Metrics (Hardcoded/Core)
         $baseQuery = ReviewNew::where('business_id', $businessId)
-            ->where('created_at', '>=', $startDate)
-            ->where('created_at', '<=', $endDate)
+            ->when($startDate, function ($q) use ($startDate) {
+                $q->where('created_at', '>=', $startDate);
+            })
+            ->when($endDate, function ($q) use ($endDate) {
+                $q->where('created_at', '<=', $endDate);
+            })
             ->globalReviewFilters(0);
 
         $totalReviews = (clone $baseQuery)->count();
@@ -449,7 +455,7 @@ class RuleReportService
     /**
      * Premium Box: Rating Upside Potential
      */
-    private function getRatingUpsideBox(int $businessId, Carbon $startDate, Carbon $endDate, $baseQuery): array
+    private function getRatingUpsideBox(int $businessId, ?Carbon $startDate, ?Carbon $endDate, $baseQuery): array
     {
         $totalCount = (clone $baseQuery)->count();
         $negativeCount = (clone $baseQuery)->where('sentiment_label', 'negative')->count();
@@ -473,7 +479,7 @@ class RuleReportService
     /**
      * Calculate box data for a specific rule
      */
-    private function calculateRuleBoxData(AiRule $rule, Carbon $startDate, Carbon $endDate, $baseQuery, int $totalReviews): ?array
+    private function calculateRuleBoxData(AiRule $rule, ?Carbon $startDate, ?Carbon $endDate, $baseQuery, int $totalReviews): ?array
     {
         $label = $rule->rule_name;
         $query = clone $baseQuery;
@@ -574,7 +580,12 @@ class RuleReportService
 
             default:
                 $value = AiRuleTrigger::where('rule_id', $rule->rule_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->when($startDate, function ($q) use ($startDate) {
+                        $q->where('created_at', '>=', $startDate);
+                    })
+                    ->when($endDate, function ($q) use ($endDate) {
+                        $q->where('created_at', '<=', $endDate);
+                    })
                     ->count();
                 $subValue = "Triggers • {$value}/{$totalReviews} reviews";
                 $icon = '📋';
