@@ -411,8 +411,9 @@ class ReviewNew extends Model
             })
             ->when(true, function ($q) use ($is_overall) {
                 if (request()->has('is_overall')) {
-                    if (request()->input('is_overall') !== null && request()->input('is_overall') !== '') {
-                        $q->where('review_news.is_overall', request()->input('is_overall'));
+                    $val = request()->input('is_overall');
+                    if ($val !== null && $val !== '' && $val !== 'all') {
+                        $q->where('review_news.is_overall', $val);
                     }
                 } elseif ($is_overall !== null) {
                     $q->where('review_news.is_overall', $is_overall);
