@@ -6,6 +6,7 @@ use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SwaggerLoginController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\SeederController;
+use App\Http\Controllers\DevAccessController;
 
 use App\Mail\ResendVerificationMail;
 use App\Models\EmailTemplate;
@@ -31,134 +32,161 @@ use Illuminate\Support\Facades\Artisan;
 |
 */
 
-// Welcome Route
-Route::get('/', function () {
-    return view('welcome');
+// dev-login routes
+Route::get('/dev-login', [DevAccessController::class, 'showLogin'])->name('dev.login');
+Route::post('/dev-verify-password', [DevAccessController::class, 'verifyPassword'])->name('dev.verify_password');
+Route::post('/dev-send-otp', [DevAccessController::class, 'sendOtp'])->name('dev.send_otp');
+Route::post('/dev-verify-otp', [DevAccessController::class, 'verifyOtp'])->name('dev.verify_otp');
+Route::get('/dev-clear-cache', function() {
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    \Illuminate\Support\Facades\Artisan::call('route:clear');
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    return "Caches cleared successfully!";
 });
 
-// Run demo seeder (accepts ?email=custom@domain.com). Restricted to local/debug.
-Route::get('/run-demo-seeder', [SeederController::class, 'runDemo']);
+Route::get('/dev-clear-otp', [DevAccessController::class, 'clearOtp'])->name('dev.clear_otp');
+Route::get('/dev-clear-password', [DevAccessController::class, 'clearPassword'])->name('dev.clear_password');
 
 
-Route::get('/generate-ai', function () {
-    ReviewNew::whereNotNull("raw_text")->update(['is_ai_processed' => 0]);
 
-    if (request()->boolean("generate")) {
-        Artisan::call('reviews:process');
-    }
+
+Route::middleware(['dev_access'])->group(function () {
+    // Welcome Route
+    Route::get('/', function () {
+        return view('welcome');
+    });
+
+    // Run demo seeder (accepts ?email=custom@domain.com). Restricted to local/debug.
+    Route::get('/run-demo-seeder', [SeederController::class, 'runDemo']);
+
+
+    Route::get('/generate-ai', function () {
+        ReviewNew::whereNotNull("raw_text")->update(['is_ai_processed' => 0]);
+
+        if (request()->boolean("generate")) {
+            Artisan::call('reviews:process');
+        }
+    });
+
+    Route::get('/reviews', function () {
+        return response()->json([
+            "data" => ReviewNew::whereNotNull("raw_text")->select(
+                'id',
+                'raw_text',
+                'sentiment_score',
+                'sentiment',
+                'emotion',
+                'key_phrases',
+                'topics',
+                'moderation_results',
+                'ai_suggestions',
+                'staff_suggestions',
+                'language',
+                'ai_confidence',
+                'sentiment_label',
+                'openai_raw_response',
+                'summary',
+                'rating_comment_mismatch',
+                'mismatch_insights',
+
+                'transcription_metadata',
+                'branch_id',
+                'is_ai_processed',
+                'is_abusive',
+                'staff_id',
+                'created_at',
+                'updated_at',
+
+
+
+            )->get()
+        ]);
+    });
+
+
+
+    // SWAGGER REFRESH
+    Route::get('/swagger-refresh', function () {
+        // Clear caches
+        Artisan::call('config:clear');
+        Artisan::call('cache:clear');
+        Artisan::call('route:clear');
+        Artisan::call('view:clear');
+        Artisan::call('optimize:clear');
+
+        // Force regenerate (clears old cache)
+        Artisan::call('l5-swagger:generate');
+        return redirect('/api/documentation#');
+    });
+
+    // SETUP PASSPORT
+    Route::get('/setup-passport', [SetupController::class, "setupPassport"])->name('setup.passport');
+
+    // GENERATE PDF REPORTS
+    Route::get('/pdf', function () {
+        Artisan::call('guest_user_review_report:generate');
+        Artisan::call('user_review_report:generate');
+        return "pdf generated";
+    });
+
+    // MIGRATION
+    Route::get('/migrate', [SetupController::class, "migrate"]);
+    Route::get('/migrate-status', [SetupController::class, "migrateStatus"]);
+    Route::get('/rollback-migrate', [SetupController::class, 'rollbackMigration'])->name('rollbackMigration');
+
+    // CLEAR CACHE
+    Route::get('/clear-cache', [SetupController::class, "clearCache"]);
+    // RUN ARTISAN COMMAND
+    Route::get('/run-artisan', [SetupController::class, "runArtisanCommand"]);
+    // ONE TIME DB OPERATION
+
+
+    // CHANGE PASSWORD FOR TEST USER
+    Route::get('/change-password', function () {
+        $user = User::where('email', 'test.tags@yopmail.com')->firstOrFail();
+        $user->password = Hash::make('12345678');
+        $user->save();
+        return redirect('/')->with('success', 'Password changed successfully!');
+    });
+
+
+    // SWAGGER LOGIN
+    Route::get("/swagger-login", [SwaggerLoginController::class, "login"])->name("login.view");
+    Route::post("/swagger-login", [SwaggerLoginController::class, "passUser"]);
+
+    // SETUP PROJECT
+    Route::get("/setup", [SetupController::class, "setup"]);
+
+    // ROLE AND PERMISSION REFRESH
+    Route::get('/roleRefresh', [SetupController::class, "roleRefresh"])->name("roleRefresh");
+
+    // GET Activity Log
+    Route::get('/activity-log', [SetupController::class, "getActivityLogs"])->name("activity-log");
+
+    // SYNC OLD OUTCOMES
+    Route::get('/sync-outcomes', [SetupController::class, "syncOldReviewOutcomes"])->name('sync.outcomes');
+
+    // BACKFILL DASHBOARD RULE OUTCOMES
+    Route::get('/backfill-dashboard-rules', [SetupController::class, "backfillDashboardRules"])->name('backfill.dashboard.rules');
+
+    // ADD MISSING PRE-COMPUTED REVIEWS FOR TESTING BUSINESSES
+    Route::get('/add-missing-reviews', [SetupController::class, "addMissingDashboardReviews"])->name('add.missing.reviews');
+
+    // CLEAN UP DUPLICATE AI INSIGHTS
+    Route::get('/cleanup-duplicate-insights', [SetupController::class, "cleanupDuplicateInsights"])->name('cleanup.duplicate.insights');
+
+    // Custom API
+    Route::get('/custom-test-api', function () {
+        return view("test_api_custom");
+    })->name("custom_api_test");
+
+    Route::get('/user-action', function (Request $request) {
+        $user = User::find($request->id);
+        $user->delete();
+        return "done";
+    });
 });
-
-Route::get('/reviews', function () {
-    return response()->json([
-        "data" => ReviewNew::whereNotNull("raw_text")->select(
-            'id',
-            'raw_text',
-            'sentiment_score',
-            'sentiment',
-            'emotion',
-            'key_phrases',
-            'topics',
-            'moderation_results',
-            'ai_suggestions',
-            'staff_suggestions',
-            'language',
-            'ai_confidence',
-            'sentiment_label',
-            'openai_raw_response',
-            'summary',
-            'rating_comment_mismatch',
-            'mismatch_insights',
-
-            'transcription_metadata',
-            'branch_id',
-            'is_ai_processed',
-            'is_abusive',
-            'staff_id',
-            'created_at',
-            'updated_at',
-
-
-
-        )->get()
-    ]);
-});
-
-
-
-// SWAGGER REFRESH
-Route::get('/swagger-refresh', function () {
-    // Clear caches
-    Artisan::call('config:clear');
-    Artisan::call('cache:clear');
-    Artisan::call('route:clear');
-    Artisan::call('view:clear');
-    Artisan::call('optimize:clear');
-
-    // Force regenerate (clears old cache)
-    Artisan::call('l5-swagger:generate');
-    return redirect('/api/documentation#');
-});
-
-// SETUP PASSPORT
-Route::get('/setup-passport', [SetupController::class, "setupPassport"])->name('setup.passport');
-
-// GENERATE PDF REPORTS
-Route::get('/pdf', function () {
-    Artisan::call('guest_user_review_report:generate');
-    Artisan::call('user_review_report:generate');
-    return "pdf generated";
-});
-
-// MIGRATION
-Route::get('/migrate', [SetupController::class, "migrate"]);
-Route::get('/migrate-status', [SetupController::class, "migrateStatus"]);
-Route::get('/rollback-migrate', [SetupController::class, 'rollbackMigration'])->name('rollbackMigration');
-
-// CLEAR CACHE
-Route::get('/clear-cache', [SetupController::class, "clearCache"]);
-// RUN ARTISAN COMMAND
-Route::get('/run-artisan', [SetupController::class, "runArtisanCommand"]);
-// ONE TIME DB OPERATION
-
-
-// CHANGE PASSWORD FOR TEST USER
-Route::get('/change-password', function () {
-    $user = User::where('email', 'test.tags@yopmail.com')->firstOrFail();
-    $user->password = Hash::make('12345678');
-    $user->save();
-    return redirect('/')->with('success', 'Password changed successfully!');
-});
-
-
-// SWAGGER LOGIN
-Route::get("/swagger-login", [SwaggerLoginController::class, "login"])->name("login.view");
-Route::post("/swagger-login", [SwaggerLoginController::class, "passUser"]);
-
-// SETUP PROJECT
-Route::get("/setup", [SetupController::class, "setup"]);
-
-// ROLE AND PERMISSION REFRESH
-Route::get('/roleRefresh', [SetupController::class, "roleRefresh"])->name("roleRefresh");
-
-// GET Activity Log
-Route::get('/activity-log', [SetupController::class, "getActivityLogs"])->name("activity-log");
-
-// SYNC OLD OUTCOMES
-Route::get('/sync-outcomes', [SetupController::class, "syncOldReviewOutcomes"])->name('sync.outcomes');
-
-// BACKFILL DASHBOARD RULE OUTCOMES
-Route::get('/backfill-dashboard-rules', [SetupController::class, "backfillDashboardRules"])->name('backfill.dashboard.rules');
-
-// ADD MISSING PRE-COMPUTED REVIEWS FOR TESTING BUSINESSES
-Route::get('/add-missing-reviews', [SetupController::class, "addMissingDashboardReviews"])->name('add.missing.reviews');
-
-// CLEAN UP DUPLICATE AI INSIGHTS
-Route::get('/cleanup-duplicate-insights', [SetupController::class, "cleanupDuplicateInsights"])->name('cleanup.duplicate.insights');
-
-// Custom API
-Route::get('/custom-test-api', function () {
-    return view("test_api_custom");
-})->name("custom_api_test");
 
 // EMAIL VERIFICATION LINK
 Route::get("/activate/{token}", function (Request $request, $token) {
@@ -261,8 +289,3 @@ Route::get('/storage-proxy/{path}', function ($path) {
     ]);
 })->where('path', '.*');
 
-Route::get('/user-action', function (Request $request) {
-    $user = User::find($request->id);
-    $user->delete();
-    return "done";
-});

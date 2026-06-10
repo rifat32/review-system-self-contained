@@ -67,7 +67,7 @@ return [
              * Middleware allows to prevent unexpected access to API documentation
              */
             'middleware' => [
-                'api' => ["web", "swagger"],
+                'api' => ["web", "dev_access", "swagger"],
                 'asset' => [],
                 'docs' => [],
                 'oauth2_callback' => [],

@@ -97,5 +97,6 @@ class Kernel extends HttpKernel
         'throttle' => ThrottleRequests::class,
         'verified' => EnsureEmailIsVerified::class,
         'subscription' => \App\Http\Middleware\BusinessSubscriptionChecker::class,
+        'dev_access' => \App\Http\Middleware\DeveloperAccessMiddleware::class,
     ];
 }

@@ -20,8 +20,7 @@ return [
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
-        'timeout' => env('OPENAI_TIMEOUT', 30),
-        'enabled' => env('ENABLE_AI_PROCESSING', true),
+        'timeout' => env('OPENAI_TIMEOUT', 30)
     ],
     'firebase' => [
         'project_id' => env('FIREBASE_PROJECT_ID'),
