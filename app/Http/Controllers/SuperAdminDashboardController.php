@@ -127,9 +127,14 @@ class SuperAdminDashboardController extends Controller
         // ENSURE SUPER ADMIN ACCESS
         $this->ensureSuperAdmin();
 
-        $period = $request->get("period", "last_30_days");
+        $period = $request->get("period");
+        if (is_null($period)) {
+            $period = "last_30_days";
+        } elseif ($period === "") {
+            $period = "all_time";
+        }
 
-        $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+        $dateRange = ($period === 'all_time' || $period === '') ? null : getDateRangeByPeriod($period);
 
         // ==================== BUSINESS METRICS ====================
         $currentBusinessCount = Business::withTrashed()->when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))->count();

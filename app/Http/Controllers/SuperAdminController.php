@@ -427,8 +427,13 @@ class SuperAdminController extends Controller
     public function customerMetrics(Request $request): JsonResponse
     {
         try {
-            $period = $request->get("period", "last_30_days");
-            $dateRange = $period === 'all_time' ? null : getDateRangeByPeriod($period);
+            $period = $request->get("period");
+            if (is_null($period)) {
+                $period = "last_30_days";
+            } elseif ($period === "") {
+                $period = "all_time";
+            }
+            $dateRange = ($period === 'all_time' || $period === '') ? null : getDateRangeByPeriod($period);
 
             // ==================== CUSTOMER BASE QUERY ====================
             $customerQuery = fn() => User::whereHas("roles", fn($q) => $q->where("name", User::USER_ROLE['CUSTOMER']));
