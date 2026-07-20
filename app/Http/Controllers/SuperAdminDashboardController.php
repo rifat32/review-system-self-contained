@@ -128,13 +128,11 @@ class SuperAdminDashboardController extends Controller
         $this->ensureSuperAdmin();
 
         $period = $request->get("period");
-        if (is_null($period)) {
-            $period = "last_30_days";
-        } elseif ($period === "") {
+        if (is_null($period) || $period === "") {
             $period = "all_time";
         }
 
-        $dateRange = ($period === 'all_time' || $period === '') ? null : getDateRangeByPeriod($period);
+        $dateRange = ($period === 'all_time') ? null : getDateRangeByPeriod($period);
 
         // ==================== BUSINESS METRICS ====================
         $currentBusinessCount = Business::withTrashed()->when($dateRange, fn($query) => $query->whereBetween("created_at", [$dateRange["start"], $dateRange["end"]]))->count();

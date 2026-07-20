@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 trait ErrorUtil
 {
     // this function do all the task and returns transaction id or -1
-    public function sendError(Exception $e, $statusCode, Request $request)
+    public function sendError(Exception $e, $statusCode = 500, Request $request = null)
     {
 
         $errorData = [

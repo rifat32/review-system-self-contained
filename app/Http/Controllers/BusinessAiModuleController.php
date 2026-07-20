@@ -289,29 +289,17 @@ class BusinessAiModuleController extends Controller
 
         // VALIDATE REQUEST
         $validated = $request->validate([
+            'language_translation' => 'nullable|boolean',
+            'sentiment_analysis' => 'nullable|boolean',
+            'emotion_detection' => 'nullable|boolean',
+            'abuse_detection' => 'nullable|boolean',
+            'explainability' => 'nullable|boolean',
             'category_analysis' => 'nullable|boolean',
             'staff_intelligence' => 'nullable|boolean',
             'service_unit_intelligence' => 'nullable|boolean',
             'business_recommendations' => 'nullable|boolean',
             'alerts' => 'nullable|boolean',
         ]);
-
-        // CHECK FOR INVALID MODULE NAMES (TRYING TO UPDATE REQUIRED MODULES)
-        $requiredModules = [
-            'language_translation',
-            'sentiment_analysis',
-            'emotion_detection',
-            'abuse_detection',
-            'explainability'
-        ];
-
-        $invalidModules = array_intersect($requiredModules, array_keys($request->all()));
-        if (!empty($invalidModules)) {
-            return response()->json([
-                "success" => false,
-                "message" => "Cannot update required modules: " . implode(', ', $invalidModules)
-            ], 400);
-        }
 
         try {
             // UPDATE BUSINESS AI MODULES USING HELPER

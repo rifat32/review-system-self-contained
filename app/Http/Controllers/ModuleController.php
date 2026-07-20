@@ -106,7 +106,11 @@ class ModuleController extends Controller
 
             return response()->json(['message' => 'Module status updated successfully'], 200);
         } catch (Exception $e) {
-            return $this->sendError($e);
+            return response()->json([
+                "message" => $e->getMessage(),
+                "file" => $e->getFile(),
+                "line" => $e->getLine()
+            ], 500);
         }
     }
 
@@ -232,7 +236,11 @@ class ModuleController extends Controller
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->sendError($e);
+            return response()->json([
+                "message" => $e->getMessage(),
+                "file" => $e->getFile(),
+                "line" => $e->getLine()
+            ], 500);
         }
     }
 
@@ -337,7 +345,11 @@ class ModuleController extends Controller
 
             return response()->json(['message' => 'Module status updated successfully'], 200);
         } catch (Exception $e) {
-            return $this->sendError($e);
+            return response()->json([
+                "message" => $e->getMessage(),
+                "file" => $e->getFile(),
+                "line" => $e->getLine()
+            ], 500);
         }
     }
 
@@ -437,14 +449,14 @@ class ModuleController extends Controller
     {
         try {
 
-            if (!$request->user()->hasPermissionTo('business_create')) {
+            if (!$request->user()->hasRole('superadmin') && !$request->user()->hasPermissionTo('business_create')) {
                 return response()->json([
                     "message" => "You can not perform this action"
                 ], 401);
             }
 
             $modulesQuery = Module::where('modules.is_enabled', 1)
-                ->when(!$request->user()->hasPermissionTo('module_update'), function ($query) use ($request) {
+                ->when(!$request->user()->hasRole('superadmin') && !$request->user()->hasPermissionTo('module_update'), function ($query) use ($request) {
                     return $query->where('modules.is_enabled', 1);
                 })
 
@@ -468,8 +480,11 @@ class ModuleController extends Controller
 
             return response()->json($modules, 200);
         } catch (Exception $e) {
-
-            return $this->sendError($e);
+            return response()->json([
+                "message" => $e->getMessage(),
+                "file" => $e->getFile(),
+                "line" => $e->getLine()
+            ], 500);
         }
     }
 
@@ -578,8 +593,11 @@ class ModuleController extends Controller
 
             return response()->json($modules, 200);
         } catch (Exception $e) {
-
-            return $this->sendError($e);
+            return response()->json([
+                "message" => $e->getMessage(),
+                "file" => $e->getFile(),
+                "line" => $e->getLine()
+            ], 500);
         }
     }
 }
