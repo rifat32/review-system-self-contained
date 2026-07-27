@@ -407,8 +407,15 @@ class ReviewService
             }
 
             // Prepare dynamic title and user details
-            $surveyTitle = $review->survey ? $review->survey->title : 'New';
-            $notificationTitle = "{$surveyTitle} Survey response submitted";
+            // log_message([
+            //     'review_id' => $review->id,
+            //     'survey_id_on_review' => $review->survey_id,
+            //     'survey_relation_loaded' => $review->survey ? 'Yes' : 'No',
+            //     'survey_name' => $review->survey?->name ?? 'null',
+            // ], 'debug_survey.log');
+
+            $surveyTitle = $review->survey?->name ?? 'New Survey';
+            $notificationTitle = "{$surveyTitle} response submitted";
 
             $customerName = 'A user';
             if ($review->user) {

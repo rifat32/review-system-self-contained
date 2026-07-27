@@ -6,10 +6,8 @@ use App\Models\GuestUser;
 use App\Models\Question;
 use App\Models\Business;
 use App\Models\ReviewNew;
-use App\Models\ReviewValue;
 use App\Models\Survey;
 use App\Models\Star;
-use App\Models\User;
 use App\Services\Dashboard\DashboardService;
 use App\Services\Review\ReviewService;
 use App\Services\AIProcessor\AIProcessorService;
@@ -26,6 +24,10 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 class ReviewNewController extends Controller
 {
     private OpenAIProcessorService $openAIProcessorService;
+    private AIProcessorService $aiProcessorService;
+    private ReviewService $reviewService;
+    private ReviewMetricsService $reviewMetricsService;
+    private DashboardService $dashboardService;
 
     public function __construct(
         AIProcessorService $aiProcessorService,
@@ -361,6 +363,7 @@ class ReviewNewController extends Controller
             ],
             'comment' => 'nullable|string',
             'is_overall' => 'required|boolean',
+            'survey_id' => 'required_if:is_overall,0,false|nullable|integer|exists:surveys,id',
             'values' => 'required|array',
             'values.*.question_id' => 'required|integer|exists:questions,id',
             'values.*.tag_ids' => 'present|array',
@@ -531,6 +534,7 @@ class ReviewNewController extends Controller
             ],
             'comment' => 'nullable|string',
             'is_overall' => 'required|boolean',
+            'survey_id' => 'required_if:is_overall,0,false|nullable|integer|exists:surveys,id',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'values' => 'required|array',
