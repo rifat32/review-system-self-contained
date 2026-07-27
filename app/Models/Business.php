@@ -436,4 +436,42 @@ class Business extends Model
             });
         });
     }
+
+    public function isModuleEnabled(string $moduleName): bool
+    {
+        $module = \App\Models\Module::where('name', $moduleName)->first();
+        if (!$module || !$module->is_enabled) {
+            return false;
+        }
+
+        // Check business specific module override first
+        $businessModule = $this->businessModules()->where('module_id', $module->id)->first();
+        if ($businessModule !== null) {
+            return (bool)$businessModule->is_enabled;
+        }
+
+        // Fallback to service plan modules
+        if ($this->service_plan_id) {
+            $servicePlanModule = \App\Models\ServicePlanModule::where([
+                'service_plan_id' => $this->service_plan_id,
+                'module_id' => $module->id,
+            ])->first();
+            if ($servicePlanModule) {
+                return (bool)$servicePlanModule->is_enabled;
+            }
+        }
+
+        return false;
+    }
+
+    public function getIsBranchAttribute($value)
+    {
+        return $this->isModuleEnabled('multi_branch');
+    }
+
+    public function setTimeZoneAttribute($value)
+    {
+        $this->attributes['time_zone'] = $value ?: ($this->time_zone ?? 'UTC');
+    }
 }
+

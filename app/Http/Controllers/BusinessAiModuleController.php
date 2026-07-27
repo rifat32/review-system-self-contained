@@ -299,6 +299,7 @@ class BusinessAiModuleController extends Controller
             'service_unit_intelligence' => 'nullable|boolean',
             'business_recommendations' => 'nullable|boolean',
             'alerts' => 'nullable|boolean',
+            'multi_branch' => 'nullable|boolean',
         ]);
 
         try {
