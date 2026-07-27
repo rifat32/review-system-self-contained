@@ -119,13 +119,23 @@ class BusinessAiModuleController extends Controller
             // GET ALL AVAILABLE MODULES
             $modules = \App\Models\Module::all();
             $businessModules = \App\Models\BusinessModule::where('business_id', $businessId)->get()->keyBy('module_id');
+            $servicePlanModules = \App\Models\ServicePlanModule::where('service_plan_id', $business->service_plan_id)->get()->keyBy('module_id');
 
-            $data = $modules->map(function ($module) use ($businessModules) {
+            $data = $modules->map(function ($module) use ($businessModules, $servicePlanModules) {
                 $bm = $businessModules->get($module->id);
+                $spm = $servicePlanModules->get($module->id);
+                
+                $is_enabled = false;
+                if ($bm) {
+                    $is_enabled = (bool)$bm->is_enabled;
+                } elseif ($spm) {
+                    $is_enabled = (bool)$spm->is_enabled;
+                }
+
                 return [
                     'id' => $module->id,
                     'name' => $module->name,
-                    'is_enabled' => $bm ? (bool)$bm->is_enabled : false,
+                    'is_enabled' => $is_enabled,
                     'business_module_id' => $bm ? $bm->id : null
                 ];
             });
