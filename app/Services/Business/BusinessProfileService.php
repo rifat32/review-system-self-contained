@@ -685,6 +685,7 @@ class BusinessProfileService
                         'business_id' => $business->id,
                         'name' => ucwords(str_replace('_', ' ', $serviceName)),
                         'is_active' => true,
+                        'question_title' => 'How was your experience with our ' . str_replace('_', ' ', $serviceName) . '?',
                     ]);
 
                     foreach ($areas as $areaName) {
@@ -751,7 +752,7 @@ class BusinessProfileService
             if (isset($data['labels'])) {
                 foreach ($data['labels'] as $label) {
                     Tag::create([
-                        'Name' => ucwords($label),
+                        'tag' => ucwords($label),
                         'business_id' => $business->id,
                     ]);
                 }

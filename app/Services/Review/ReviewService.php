@@ -5,12 +5,10 @@ namespace App\Services\Review;
 use App\Models\Branch;
 use App\Models\ReviewNew;
 use App\Models\ReviewValueNew;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Star;
 use App\Services\Notification\NotificationService;
 use App\Services\Rule\RuleEngineService;
-use App\Services\Business\BusinessAnalyticsService;
 use Carbon\Carbon;
 use DB;
 
@@ -391,7 +389,7 @@ class ReviewService
         }
 
 
-        if ($business && $review->guest_id) {
+        if ($business) {
             $review->save();
 
             // Do not classify comment-only/no-star reviews as low-rating reviews.
@@ -408,6 +406,25 @@ class ReviewService
                 $branchManagerId = $branch?->manager_id;
             }
 
+            // Prepare dynamic title and user details
+            // log_message([
+            //     'review_id' => $review->id,
+            //     'survey_id_on_review' => $review->survey_id,
+            //     'survey_relation_loaded' => $review->survey ? 'Yes' : 'No',
+            //     'survey_name' => $review->survey?->name ?? 'null',
+            // ], 'debug_survey.log');
+
+            $surveyTitle = $review->survey?->name ?? 'New Survey';
+            $notificationTitle = "{$surveyTitle} response submitted";
+
+            $customerName = 'A user';
+            if ($review->user) {
+                $customerName = trim(($review->user->first_Name ?? '') . ' ' . ($review->user->last_Name ?? '')) ?: ($review->user->name ?? 'A user');
+            } elseif ($review->guest_user) {
+                $customerName = $review->guest_user->name ?? 'Guest user';
+            }
+            $notificationMessage = "{$customerName} submitted a review with rating {$averageRating}.";
+
             if ($averageRating >= $thresholdRating) {
                 // Send notification only to branch manager
                 if ($branchManagerId) {
@@ -416,8 +433,8 @@ class ReviewService
                         'receiver_id' => $branchManagerId,
                         'business_id' => $business->id,
                         'type' => 'new_review',
-                        'title' => 'New Review Received',
-                        'message' => "A new review with rating {$averageRating} has been submitted.",
+                        'title' => $notificationTitle,
+                        'message' => $notificationMessage,
                         'entity_id' => $review->id,
                         'priority' => 'normal',
                     ]);
@@ -428,8 +445,8 @@ class ReviewService
                         try {
                             \Illuminate\Support\Facades\Mail::to($manager->email)
                                 ->send(new \App\Mail\ReviewNotificationMail(
-                                    'New Review Received',
-                                    "A new review with rating {$averageRating} has been submitted.",
+                                    $notificationTitle,
+                                    $notificationMessage,
                                     $averageRating,
                                     $business->name ?? null,
                                     $manager->first_Name ?? $manager->name ?? 'Manager'
@@ -443,8 +460,8 @@ class ReviewService
                     try {
                         $this->notificationService->sendNotificationToFirebaseUser(
                             userId: $branchManagerId,
-                            title: 'New Review Received',
-                            body: "A new review with rating {$averageRating} has been submitted.",
+                            title: $notificationTitle,
+                            body: $notificationMessage,
                             data: [
                                 'type' => 'new_review',
                                 'entity_id' => (string) $review->id,
@@ -467,8 +484,8 @@ class ReviewService
                         'receiver_id' => $ownerId,
                         'business_id' => $business->id,
                         'type' => 'new_review',
-                        'title' => 'New Review Received',
-                        'message' => "A new review with rating {$averageRating} has been submitted.",
+                        'title' => $notificationTitle,
+                        'message' => $notificationMessage,
                         'entity_id' => $review->id,
                         'priority' => 'normal',
                     ]);
@@ -479,8 +496,8 @@ class ReviewService
                         try {
                             \Illuminate\Support\Facades\Mail::to($owner->email)
                                 ->send(new \App\Mail\ReviewNotificationMail(
-                                    'New Review Received',
-                                    "A new review with rating {$averageRating} has been submitted.",
+                                    $notificationTitle,
+                                    $notificationMessage,
                                     $averageRating,
                                     $business->name ?? null,
                                     $owner->first_Name ?? $owner->name ?? 'Owner'
@@ -494,8 +511,8 @@ class ReviewService
                     try {
                         $this->notificationService->sendNotificationToFirebaseUser(
                             userId: $ownerId,
-                            title: 'New Review Received',
-                            body: "A new review with rating {$averageRating} has been submitted.",
+                            title: $notificationTitle,
+                            body: $notificationMessage,
                             data: [
                                 'type' => 'new_review',
                                 'entity_id' => (string) $review->id,
@@ -512,6 +529,10 @@ class ReviewService
                     }
                 }
             } else {
+                // Low Rating Review
+                $lowRatingTitle = "Low Rating: " . $notificationTitle;
+                $lowRatingMessage = "{$customerName} submitted a review with rating {$averageRating} (below threshold {$thresholdRating}).";
+
                 // Send notification to both business owner and branch manager
                 $receiverIds = [];
 
@@ -529,8 +550,8 @@ class ReviewService
                         'receiver_id' => $receiverId,
                         'business_id' => $business->id,
                         'type' => 'low_rating_review',
-                        'title' => 'Low Rating Review Alert',
-                        'message' => "A review with rating {$averageRating} (below threshold {$thresholdRating}) has been submitted.",
+                        'title' => $lowRatingTitle,
+                        'message' => $lowRatingMessage,
                         'entity_id' => $review->id,
                         'priority' => 'high',
                     ]);
@@ -541,8 +562,8 @@ class ReviewService
                         try {
                             \Illuminate\Support\Facades\Mail::to($user->email)
                                 ->send(new \App\Mail\ReviewNotificationMail(
-                                    'Low Rating Review Alert',
-                                    "A review with rating {$averageRating} (below threshold {$thresholdRating}) has been submitted.",
+                                    $lowRatingTitle,
+                                    $lowRatingMessage,
                                     $averageRating,
                                     $business->name ?? null,
                                     $user->first_Name ?? $user->name ?? 'User'
@@ -556,8 +577,8 @@ class ReviewService
                     try {
                         $this->notificationService->sendNotificationToFirebaseUser(
                             userId: $receiverId,
-                            title: 'Low Rating Review Alert',
-                            body: "A review with rating {$averageRating} (below threshold {$thresholdRating}) has been submitted.",
+                            title: $lowRatingTitle,
+                            body: $lowRatingMessage,
                             data: [
                                 'type' => 'low_rating_review',
                                 'entity_id' => (string) $review->id,

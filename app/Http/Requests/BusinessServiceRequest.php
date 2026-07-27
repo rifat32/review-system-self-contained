@@ -26,7 +26,7 @@ class BusinessServiceRequest extends FormRequest
         $rules = [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'question_title' => 'nullable|string|max:255',
+            'question_title' => 'required|string|max:255',
             'is_active' => 'nullable|boolean',
         ];
 
@@ -49,6 +49,7 @@ class BusinessServiceRequest extends FormRequest
             'name.required' => 'Service name is required.',
             'name.max' => 'Service name cannot exceed 255 characters.',
             'description.max' => 'Description cannot exceed 1000 characters.',
+            'question_title.required' => 'Question title is required.',
             'question_title.max' => 'Question title cannot exceed 255 characters.',
             'id.required' => 'Service ID is required for updates.',
             'id.exists' => 'Selected service does not exist.',
@@ -65,5 +66,17 @@ class BusinessServiceRequest extends FormRequest
         return [
             'question_title' => 'question title',
         ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     *
+     * @return void
+     */
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            'is_active' => $this->input('is_active', true),
+        ]);
     }
 }

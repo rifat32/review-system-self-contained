@@ -4,22 +4,17 @@
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\SwaggerLoginController;
-use App\Http\Controllers\TestController;
 use App\Http\Controllers\SeederController;
 use App\Http\Controllers\DevAccessController;
 
 use App\Mail\ResendVerificationMail;
-use App\Models\EmailTemplate;
-use App\Models\EmailTemplateWrapper;
-use App\Models\Review;
 use App\Models\ReviewNew;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Artisan;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -37,7 +32,7 @@ Route::get('/dev-login', [DevAccessController::class, 'showLogin'])->name('dev.l
 Route::post('/dev-verify-password', [DevAccessController::class, 'verifyPassword'])->name('dev.verify_password');
 Route::post('/dev-send-otp', [DevAccessController::class, 'sendOtp'])->name('dev.send_otp');
 Route::post('/dev-verify-otp', [DevAccessController::class, 'verifyOtp'])->name('dev.verify_otp');
-Route::get('/dev-clear-cache', function() {
+Route::get('/dev-clear-cache', function () {
     \Illuminate\Support\Facades\Artisan::call('config:clear');
     \Illuminate\Support\Facades\Artisan::call('cache:clear');
     \Illuminate\Support\Facades\Artisan::call('route:clear');
@@ -60,6 +55,14 @@ Route::middleware(['dev_access'])->group(function () {
     // Run demo seeder (accepts ?email=custom@domain.com). Restricted to local/debug.
     Route::get('/run-demo-seeder', [SeederController::class, 'runDemo']);
 
+    Route::get('/module-sync', function () {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'ModuleSeeder']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Modules synced successfully!',
+            'data' => []
+        ], Response::HTTP_OK);
+    });
 
     Route::get('/generate-ai', function () {
         ReviewNew::whereNotNull("raw_text")->update(['is_ai_processed' => 0]);
@@ -288,4 +291,3 @@ Route::get('/storage-proxy/{path}', function ($path) {
         'Access-Control-Allow-Origin' => '*',
     ]);
 })->where('path', '.*');
-

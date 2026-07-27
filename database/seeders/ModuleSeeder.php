@@ -50,6 +50,10 @@ class ModuleSeeder extends Seeder
                 'name' => 'alerts',
                 'description' => 'Send alerts for critical or highly negative reviews.',
             ],
+            [
+                'name' => 'multi_branch',
+                'description' => 'Manage and analyze reviews across multiple branches or locations.',
+            ],
         ];
 
         foreach ($modules as $module) {
