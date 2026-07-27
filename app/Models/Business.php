@@ -145,7 +145,7 @@ class Business extends Model
         });
 
         static::updating(function ($business) {
-            if ($business->isDirty('service_plan_id')) {
+            if ($business->isDirty('service_plan_id') || $business->getOriginal('service_plan_id') != $business->service_plan_id) {
                 // Delete custom overrides so it inherits modules from the new service plan
                 \App\Models\BusinessModule::where('business_id', $business->id)->delete();
             }
