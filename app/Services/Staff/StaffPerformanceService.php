@@ -7,8 +7,6 @@ use App\Models\User;
 use App\Services\Rule\RuleEngineService;
 use App\Services\Review\ReviewService;
 use App\Services\Review\ReviewMetricsService;
-use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 class StaffPerformanceService
 {
@@ -34,7 +32,7 @@ class StaffPerformanceService
     {
         $query = ReviewNew::with('staff')
             ->where('review_news.business_id', $businessId)
-            ->globalReviewFilters(is_ai_processed: 0)
+            ->globalReviewFilters(0, null, 1)
             ->whereNotNull('staff_id')
             ->when($dateRange, function ($query) use ($dateRange) {
                 return $query->whereBetween('review_news.created_at', [$dateRange['start'], $dateRange['end']]);
@@ -129,7 +127,7 @@ class StaffPerformanceService
         ];
     }
 
-  
+
 
     // ==================== STAFF METRICS ====================
 

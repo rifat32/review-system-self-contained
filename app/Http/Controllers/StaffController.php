@@ -962,11 +962,13 @@ class StaffController extends Controller
             ->findOrFail($staff_id);
 
 
-        // Date range is now handled internally if null
+        // GET DATE RANGE BASED ON PERIOD
+        $dateRange = getDateRangeByPeriod($request->get('period', 'last_30_days'));
+
         $data = [
             'staff' => $staff,
             'staff_performance' => $this->staffPerformanceService
-                ->getStaffPerformanceSnapshot($business_id, null, $staff_id),
+                ->getStaffPerformanceSnapshot($business_id, $dateRange, $staff_id),
         ];
 
         return response()->json([

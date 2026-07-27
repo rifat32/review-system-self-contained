@@ -259,6 +259,32 @@ class ReviewService
             $bindings[] = $userBranchId;
         }
 
+        // Apply survey_id or survey_ids filter from request
+        $surveyIdsInput = request()->input('survey_ids');
+        $surveyIdInput = request()->input('survey_id');
+
+        $allSurveyIds = [];
+
+        if (!empty($surveyIdsInput)) {
+            $allSurveyIds = is_string($surveyIdsInput) ? explode(',', $surveyIdsInput) : (array) $surveyIdsInput;
+        }
+
+        if (!empty($surveyIdInput)) {
+            $singleIds = is_string($surveyIdInput) ? explode(',', $surveyIdInput) : (array) $surveyIdInput;
+            $allSurveyIds = array_merge($allSurveyIds, $singleIds);
+        }
+
+        $surveyIds = array_filter(array_map('intval', array_map('trim', $allSurveyIds)), function ($id) {
+            return $id > 0;
+        });
+
+        if (!empty($surveyIds)) {
+            $uniqueSurveyIds = array_unique($surveyIds);
+            $placeholders = implode(',', array_fill(0, count($uniqueSurveyIds), '?'));
+            $whereConditions[] = "r.survey_id IN ($placeholders)";
+            $bindings = array_merge($bindings, $uniqueSurveyIds);
+        }
+
         $whereClause = implode(' AND ', $whereConditions);
 
         // OPTIMIZED: Single query with JOIN and GROUP BY

@@ -161,8 +161,8 @@ class RuleReportService
                     ->toArray(),
             ],
             'trends' => $highEmotionReviews
-                ->groupBy(fn ($review) => optional($review->created_at)->format('Y-m-d'))
-                ->map(fn ($items, $date) => [
+                ->groupBy(fn($review) => optional($review->created_at)->format('Y-m-d'))
+                ->map(fn($items, $date) => [
                     'date' => $date,
                     'count' => $items->count(),
                 ])
@@ -355,7 +355,7 @@ class RuleReportService
             [
                 'key' => 'CSAT_SCORE',
                 'label' => 'CSAT Score',
-                'value' => $csatPercentage . '%',
+                'value' => $csatPercentage,
                 'sub_value' => "Satisfaction Index • {$csatReviewsCount}/{$totalReviews} reviews",
                 'trend' => null,
                 'icon' => '📈',
@@ -490,7 +490,7 @@ class RuleReportService
         switch ($this->getBaseRuleKey($rule->rule_id)) {
             case 'SENTIMENT_ANALYSIS':
                 $label = 'Sentiment Issues';
-                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                $value = (clone $query)->whereHas('rule_outcomes', function ($q) {
                     $q->where('is_sentiment_flagged', true);
                 })->count();
                 $subValue = "Needs Attention • {$value}/{$totalReviews} reviews";
@@ -500,7 +500,7 @@ class RuleReportService
 
             case 'FLAG_AND_ALERT':
                 $label = 'Critical Alerts';
-                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                $value = (clone $query)->whereHas('rule_outcomes', function ($q) {
                     $q->where('is_critical_alert', true);
                 })->count();
                 $subValue = "Action Required • {$value}/{$totalReviews} reviews";
@@ -510,7 +510,7 @@ class RuleReportService
 
             case 'STAFF_MENTION_DETECTION':
                 $label = 'Staff Mentions';
-                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                $value = (clone $query)->whereHas('rule_outcomes', function ($q) {
                     $q->where('is_staff_mentioned', true);
                 })->count();
                 $subValue = "AI Detected • {$value}/{$totalReviews} reviews";
@@ -520,7 +520,7 @@ class RuleReportService
 
             case 'CATEGORY_ISSUE_DETECTION':
                 $label = 'Category Alerts';
-                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                $value = (clone $query)->whereHas('rule_outcomes', function ($q) {
                     $q->where('is_category_detected', true);
                 })->count();
                 $subValue = "Issues Found • {$value}/{$totalReviews} reviews";
@@ -530,7 +530,7 @@ class RuleReportService
 
             case 'STAFF_PERFORMANCE_RISK':
                 $label = 'Performance Risks';
-                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                $value = (clone $query)->whereHas('rule_outcomes', function ($q) {
                     $q->where('is_staff_risk', true);
                 })->count();
                 $subValue = "Care Required • {$value}/{$totalReviews} reviews";
@@ -540,7 +540,7 @@ class RuleReportService
 
             case 'EMOTION_INTENSITY':
                 $label = 'High Emotion';
-                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                $value = (clone $query)->whereHas('rule_outcomes', function ($q) {
                     $q->where('is_high_emotion', true);
                 })->count();
                 $subValue = "High Intensity • {$value}/{$totalReviews} reviews";
@@ -550,7 +550,7 @@ class RuleReportService
 
             case 'RATING_COMMENT_MISMATCH':
                 $label = 'Rating Mismatch';
-                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                $value = (clone $query)->whereHas('rule_outcomes', function ($q) {
                     $q->where('is_mismatch', true);
                 })->count();
                 $subValue = "Inconsistencies • {$value}/{$totalReviews} reviews";
@@ -560,7 +560,7 @@ class RuleReportService
 
             case 'SERVICE_TYPE_DETECTION':
                 $label = 'Service Identified';
-                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                $value = (clone $query)->whereHas('rule_outcomes', function ($q) {
                     $q->where('is_service_identified', true);
                 })->count();
                 $subValue = "Dept Detection • {$value}/{$totalReviews} reviews";
@@ -570,7 +570,7 @@ class RuleReportService
 
             case 'BUSINESS_AREA_DETECTION':
                 $label = 'Area Identified';
-                $value = (clone $query)->whereHas('rule_outcomes', function($q) {
+                $value = (clone $query)->whereHas('rule_outcomes', function ($q) {
                     $q->where('is_area_detected', true);
                 })->count();
                 $subValue = "Location Specific • {$value}/{$totalReviews} reviews";

@@ -496,21 +496,31 @@ class ReviewNew extends Model
 
     public function scopeFilterBySurvey($query)
     {
-        $query->when(request()->has('survey_ids') && !empty(request()->input('survey_ids')), function ($q) {
-            $surveyIds = request()->input('survey_ids');
+        $hasSurveyIds = request()->has('survey_ids') && !empty(request()->input('survey_ids'));
+        $hasSurveyId = request()->has('survey_id') && !empty(request()->input('survey_id'));
 
-            // Handle both array and comma-separated string
-            if (is_string($surveyIds)) {
-                $surveyIds = array_map('trim', explode(',', $surveyIds));
+        $query->when($hasSurveyIds || $hasSurveyId, function ($q) {
+            $surveyIdsInput = request()->input('survey_ids');
+            $surveyIdInput = request()->input('survey_id');
+
+            $allSurveyIds = [];
+
+            if (!empty($surveyIdsInput)) {
+                $allSurveyIds = is_string($surveyIdsInput) ? explode(',', $surveyIdsInput) : (array) $surveyIdsInput;
             }
 
-            // Filter out non-numeric values and convert to integers
-            $surveyIds = array_filter(array_map('intval', $surveyIds), function ($id) {
+            if (!empty($surveyIdInput)) {
+                $singleIds = is_string($surveyIdInput) ? explode(',', $surveyIdInput) : (array) $surveyIdInput;
+                $allSurveyIds = array_merge($allSurveyIds, $singleIds);
+            }
+
+            // Clean up and convert to integers
+            $surveyIds = array_filter(array_map('intval', array_map('trim', $allSurveyIds)), function ($id) {
                 return $id > 0;
             });
 
             if (!empty($surveyIds)) {
-                $q->whereIn('review_news.survey_id', $surveyIds);
+                $q->whereIn('review_news.survey_id', array_unique($surveyIds));
             }
         });
 
