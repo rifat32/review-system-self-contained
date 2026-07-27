@@ -685,6 +685,7 @@ class BusinessProfileService
                         'business_id' => $business->id,
                         'name' => ucwords(str_replace('_', ' ', $serviceName)),
                         'is_active' => true,
+                        'question_title' => 'How was your experience with our ' . str_replace('_', ' ', $serviceName) . '?',
                     ]);
 
                     foreach ($areas as $areaName) {
