@@ -144,6 +144,13 @@ class Business extends Model
             }
         });
 
+        static::updating(function ($business) {
+            if ($business->isDirty('service_plan_id')) {
+                // Delete custom overrides so it inherits modules from the new service plan
+                \App\Models\BusinessModule::where('business_id', $business->id)->delete();
+            }
+        });
+
         static::deleting(function ($business) {
             $folder_path = "business_{$business->OwnerID}/business_{$business->id}";
             if (\Illuminate\Support\Facades\Storage::disk('public')->exists($folder_path)) {
