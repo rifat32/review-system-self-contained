@@ -751,7 +751,7 @@ class BusinessProfileService
             if (isset($data['labels'])) {
                 foreach ($data['labels'] as $label) {
                     Tag::create([
-                        'Name' => ucwords($label),
+                        'tag' => ucwords($label),
                         'business_id' => $business->id,
                     ]);
                 }
