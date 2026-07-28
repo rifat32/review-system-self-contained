@@ -637,7 +637,14 @@ class SurveyController extends Controller
             // Get all surveys belonging to the business with related data
             $query = Survey::with('questions', "business_services.business_areas")
                 ->withCount([
-                    "reviews", // Count total reviews for each survey
+                    'reviews' => function ($q) use ($request) {
+                        if ($request->filled('start_date')) {
+                            $q->whereDate('created_at', '>=', $request->start_date);
+                        }
+                        if ($request->filled('end_date')) {
+                            $q->whereDate('created_at', '<=', $request->end_date);
+                        }
+                    }
                 ])
                 ->where([
                     "business_id" => $business_id,

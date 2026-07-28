@@ -87,13 +87,13 @@ class Survey extends Model
             $query->where('name', 'like', '%' . $search_key . '%');
         }
 
-        if (request()->filled('start_date')) {
-            $query->whereDate('created_at', '>=', request()->start_date);
-        }
+        // if (request()->filled('start_date')) {
+        //     $query->whereDate('created_at', '>=', request()->start_date);
+        // }
 
-        if (request()->filled('end_date')) {
-            $query->whereDate('created_at', '<=', request()->end_date);
-        }
+        // if (request()->filled('end_date')) {
+        //     $query->whereDate('created_at', '<=', request()->end_date);
+        // }
 
 
         if (request()->filled('is_active') && request()->is_active !== '') {
