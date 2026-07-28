@@ -11,7 +11,9 @@ use App\Models\AiRule;
 use App\Models\BusinessService;
 use App\Models\Question;
 use App\Models\QuestionCategory;
+use App\Models\QuestionStar;
 use App\Models\Star;
+use App\Models\StarTag;
 use App\Models\ReviewValueNew;
 use App\Models\Tag;
 use App\Models\User;
@@ -486,10 +488,10 @@ class BusinessProfileService
                     "food" => ["Taste", "Quality", "Presentation"]
                 ],
                 "questions" => [
-                    ["text" => "How would you rate your overall stay?", "type" => "rating", "category" => "service"],
-                    ["text" => "How clean was your room?", "type" => "rating", "category" => "cleanliness"],
-                    ["text" => "How comfortable was your room?", "type" => "rating", "category" => "comfort"],
-                    ["text" => "How was the quality of food and beverages?", "type" => "rating", "category" => "food"],
+                    ["text" => "How would you rate your overall stay?", "type" => "star", "category" => "service"],
+                    ["text" => "How clean was your room?", "type" => "emoji", "category" => "cleanliness"],
+                    ["text" => "How comfortable was your room?", "type" => "numbers", "category" => "comfort"],
+                    ["text" => "How was the quality of food and beverages?", "type" => "heart", "category" => "food"],
                     ["text" => "What could we improve for your next stay?", "type" => "comment", "category" => "service"]
                 ],
                 "labels" => ["staff", "room", "cleanliness", "food", "delay"]
@@ -506,10 +508,10 @@ class BusinessProfileService
                     "ambience" => ["Cleanliness", "Comfort"]
                 ],
                 "questions" => [
-                    ["text" => "How was the quality of food or drinks?", "type" => "rating", "category" => "food"],
-                    ["text" => "How fast was the service?", "type" => "rating", "category" => "service"],
-                    ["text" => "How friendly was our staff?", "type" => "rating", "category" => "service"],
-                    ["text" => "How would you rate the ambience?", "type" => "rating", "category" => "ambience"],
+                    ["text" => "How was the quality of food or drinks?", "type" => "emoji", "category" => "food"],
+                    ["text" => "How fast was the service?", "type" => "numbers", "category" => "service"],
+                    ["text" => "How friendly was our staff?", "type" => "heart", "category" => "service"],
+                    ["text" => "How would you rate the ambience?", "type" => "star", "category" => "ambience"],
                     ["text" => "Any suggestions or comments?", "type" => "comment", "category" => "ambience"]
                 ],
                 "labels" => ["coffee", "staff", "delay", "cleanliness"]
@@ -526,10 +528,10 @@ class BusinessProfileService
                     "ambience" => ["Cleanliness", "Noise"]
                 ],
                 "questions" => [
-                    ["text" => "How was the taste of the food?", "type" => "rating", "category" => "food"],
-                    ["text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service"],
-                    ["text" => "Was your order accurate?", "type" => "rating", "category" => "service"],
-                    ["text" => "How would you rate the ambience?", "type" => "rating", "category" => "ambience"],
+                    ["text" => "How was the taste of the food?", "type" => "numbers", "category" => "food"],
+                    ["text" => "How satisfied were you with the service?", "type" => "heart", "category" => "service"],
+                    ["text" => "Was your order accurate?", "type" => "star", "category" => "service"],
+                    ["text" => "How would you rate the ambience?", "type" => "emoji", "category" => "ambience"],
                     ["text" => "Any feedback for our team?", "type" => "comment", "category" => "service"]
                 ],
                 "labels" => ["food", "service", "delay", "staff"]
@@ -545,10 +547,10 @@ class BusinessProfileService
                     "staff" => ["Knowledge", "Courtesy"]
                 ],
                 "questions" => [
-                    ["text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service"],
-                    ["text" => "Was the staff helpful and knowledgeable?", "type" => "rating", "category" => "staff"],
-                    ["text" => "How fast was the billing process?", "type" => "rating", "category" => "service"],
-                    ["text" => "Was your prescription handled accurately?", "type" => "rating", "category" => "service"],
+                    ["text" => "How satisfied were you with the service?", "type" => "heart", "category" => "service"],
+                    ["text" => "Was the staff helpful and knowledgeable?", "type" => "star", "category" => "staff"],
+                    ["text" => "How fast was the billing process?", "type" => "emoji", "category" => "service"],
+                    ["text" => "Was your prescription handled accurately?", "type" => "numbers", "category" => "service"],
                     ["text" => "Any suggestions for improvement?", "type" => "comment", "category" => "staff"]
                 ],
                 "labels" => ["staff", "medicine", "waiting"]
@@ -566,10 +568,10 @@ class BusinessProfileService
                     "hygiene" => ["Cleanliness", "Sanitation"]
                 ],
                 "questions" => [
-                    ["text" => "How would you rate the medical care?", "type" => "rating", "category" => "medical_care"],
-                    ["text" => "How was the waiting time?", "type" => "rating", "category" => "service"],
-                    ["text" => "How clean were the facilities?", "type" => "rating", "category" => "hygiene"],
-                    ["text" => "How supportive was the staff?", "type" => "rating", "category" => "medical_care"],
+                    ["text" => "How would you rate the medical care?", "type" => "star", "category" => "medical_care"],
+                    ["text" => "How was the waiting time?", "type" => "numbers", "category" => "service"],
+                    ["text" => "How clean were the facilities?", "type" => "emoji", "category" => "hygiene"],
+                    ["text" => "How supportive was the staff?", "type" => "heart", "category" => "medical_care"],
                     ["text" => "Any comments or concerns?", "type" => "comment", "category" => "service"]
                 ],
                 "labels" => ["doctor", "nurse", "cleanliness", "delay"]
@@ -586,10 +588,10 @@ class BusinessProfileService
                     "facility" => ["Cleanliness", "Crowding"]
                 ],
                 "questions" => [
-                    ["text" => "How satisfied are you with the equipment?", "type" => "rating", "category" => "equipment"],
-                    ["text" => "How helpful were the trainers?", "type" => "rating", "category" => "staff"],
-                    ["text" => "How clean are the facilities?", "type" => "rating", "category" => "facility"],
-                    ["text" => "Is the gym overcrowded during your visit?", "type" => "rating", "category" => "facility"],
+                    ["text" => "How satisfied are you with the equipment?", "type" => "emoji", "category" => "equipment"],
+                    ["text" => "How helpful were the trainers?", "type" => "heart", "category" => "staff"],
+                    ["text" => "How clean are the facilities?", "type" => "star", "category" => "facility"],
+                    ["text" => "Is the gym overcrowded during your visit?", "type" => "numbers", "category" => "facility"],
                     ["text" => "Any suggestions for improvement?", "type" => "comment", "category" => "facility"]
                 ],
                 "labels" => ["trainer", "equipment", "cleanliness"]
@@ -606,10 +608,10 @@ class BusinessProfileService
                     "experience" => ["Comfort", "Ambience"]
                 ],
                 "questions" => [
-                    ["text" => "How satisfied were you with the service?", "type" => "rating", "category" => "service"],
-                    ["text" => "How skilled was the stylist?", "type" => "rating", "category" => "service"],
-                    ["text" => "Was the salon clean and hygienic?", "type" => "rating", "category" => "hygiene"],
-                    ["text" => "How comfortable was your experience?", "type" => "rating", "category" => "experience"],
+                    ["text" => "How satisfied were you with the service?", "type" => "numbers", "category" => "service"],
+                    ["text" => "How skilled was the stylist?", "type" => "star", "category" => "service"],
+                    ["text" => "Was the salon clean and hygienic?", "type" => "heart", "category" => "hygiene"],
+                    ["text" => "How comfortable was your experience?", "type" => "emoji", "category" => "experience"],
                     ["text" => "Any comments or suggestions?", "type" => "comment", "category" => "experience"]
                 ],
                 "labels" => ["stylist", "cleanliness", "service"]
@@ -627,10 +629,10 @@ class BusinessProfileService
                     "pricing" => ["Fairness", "Clarity"]
                 ],
                 "questions" => [
-                    ["text" => "How satisfied were you with the service?", "type" => "rating", "category" => "quality"],
-                    ["text" => "Was the issue explained clearly?", "type" => "rating", "category" => "service"],
-                    ["text" => "Was the pricing fair?", "type" => "rating", "category" => "pricing"],
-                    ["text" => "Was the work completed on time?", "type" => "rating", "category" => "service"],
+                    ["text" => "How satisfied were you with the service?", "type" => "heart", "category" => "quality"],
+                    ["text" => "Was the issue explained clearly?", "type" => "emoji", "category" => "service"],
+                    ["text" => "Was the pricing fair?", "type" => "numbers", "category" => "pricing"],
+                    ["text" => "Was the work completed on time?", "type" => "star", "category" => "service"],
                     ["text" => "Any feedback or suggestions?", "type" => "comment", "category" => "service"]
                 ],
                 "labels" => ["repair", "delay", "cost"]
@@ -647,10 +649,10 @@ class BusinessProfileService
                     "service" => ["Timeliness", "Reliability"]
                 ],
                 "questions" => [
-                    ["text" => "How satisfied were you with the professional advice?", "type" => "rating", "category" => "expertise"],
-                    ["text" => "How clear was the communication?", "type" => "rating", "category" => "communication"],
-                    ["text" => "Was the service delivered on time?", "type" => "rating", "category" => "service"],
-                    ["text" => "How confident are you in the outcome?", "type" => "rating", "category" => "expertise"],
+                    ["text" => "How satisfied were you with the professional advice?", "type" => "star", "category" => "expertise"],
+                    ["text" => "How clear was the communication?", "type" => "heart", "category" => "communication"],
+                    ["text" => "Was the service delivered on time?", "type" => "emoji", "category" => "service"],
+                    ["text" => "How confident are you in the outcome?", "type" => "numbers", "category" => "expertise"],
                     ["text" => "Any comments or improvement suggestions?", "type" => "comment", "category" => "communication"]
                 ],
                 "labels" => ["expertise", "communication", "delay"]
@@ -665,10 +667,10 @@ class BusinessProfileService
                     "experience" => ["Satisfaction", "Ease"]
                 ],
                 "questions" => [
-                    ["text" => "How satisfied were you with our service?", "type" => "rating", "category" => "service"],
-                    ["text" => "How easy was it to interact with us?", "type" => "rating", "category" => "experience"],
-                    ["text" => "Did we meet your expectations?", "type" => "rating", "category" => "experience"],
-                    ["text" => "Would you recommend us to others?", "type" => "rating", "category" => "service"],
+                    ["text" => "How satisfied were you with our service?", "type" => "numbers", "category" => "service"],
+                    ["text" => "How easy was it to interact with us?", "type" => "star", "category" => "experience"],
+                    ["text" => "Did we meet your expectations?", "type" => "heart", "category" => "experience"],
+                    ["text" => "Would you recommend us to others?", "type" => "emoji", "category" => "service"],
                     ["text" => "Any feedback or suggestions?", "type" => "comment", "category" => "experience"]
                 ],
                 "labels" => ["general", "feedback", "service"]
@@ -729,30 +731,87 @@ class BusinessProfileService
             }
 
             // 3. Create Questions
+            $createdQuestions = [];
+
             if (isset($data['questions'])) {
                 foreach ($data['questions'] as $index => $qParams) {
-                    // Create the base question
+                    // DETERMINE QUESTION TYPE — use data type if valid, otherwise pick randomly from QUESTION_TYPES
+                    $validTypes   = array_values(Question::QUESTION_TYPES); // ['star', 'emoji', 'numbers', 'heart']
+                    $questionType = ($qParams['type'] === 'comment' || in_array($qParams['type'], $validTypes))
+                        ? $qParams['type']
+                        : $validTypes[array_rand($validTypes)];
+
+                    // CREATE THE BASE QUESTION
                     $question = Question::create([
-                        'question' => $qParams['text'],
+                        'question'   => $qParams['text'],
                         'business_id' => $business->id,
-                        'is_active' => true,
+                        'is_active'  => true,
                         'is_default' => false,
-                        'type' => $qParams['type'] === 'comment' ? 'comment' : 'star', // Adjust depending on schemas
-                        'order_no' => $index + 1,
+                        'type'       => $questionType,
+                        'order_no'   => $index + 1,
                     ]);
 
-                    // Attach the child sub-category IDs (array) to the question via pivot table
+                    // ATTACH THE CHILD SUB-CATEGORY IDS TO THE QUESTION VIA PIVOT TABLE
                     if (isset($qParams['category']) && isset($categoryMap[$qParams['category']])) {
                         $question->question_sub_categories()->sync($categoryMap[$qParams['category']]);
+                    }
+
+                    $createdQuestions[] = $question;
+                }
+            }
+
+            // 4. Create QuestionStar + StarTag using existing global default tags
+            $stars = Star::orderBy('value')->get();
+
+            // LOAD DEFAULT TAGS GROUPED BY SENTIMENT (is_default=true, business_id=null)
+            $defaultTagsBySentiment = Tag::where('is_default', true)
+                ->where('is_active', true)
+                ->whereNull('business_id')
+                ->get()
+                ->groupBy('sentiment');
+
+            // MAP STAR VALUE → SENTIMENT
+            $starSentimentMap = [
+                1 => 'negative',
+                2 => 'negative',
+                3 => 'neutral',
+                4 => 'positive',
+                5 => 'positive',
+            ];
+
+            foreach ($createdQuestions as $question) {
+                // SKIP COMMENT QUESTIONS — no star options needed
+                if ($question->type === 'comment') {
+                    continue;
+                }
+
+                foreach ($stars as $star) {
+                    // CREATE QUESTION-STAR RELATIONSHIP
+                    QuestionStar::firstOrCreate([
+                        'question_id' => $question->id,
+                        'star_id'     => $star->id,
+                    ]);
+
+                    // GET TAGS FOR THIS STAR'S SENTIMENT
+                    $sentiment   = $starSentimentMap[$star->value] ?? 'neutral';
+                    $tagsForStar = $defaultTagsBySentiment->get($sentiment, collect());
+
+                    // CREATE STAR-TAG RELATIONSHIPS USING EXISTING DEFAULT TAGS
+                    foreach ($tagsForStar as $tag) {
+                        StarTag::firstOrCreate([
+                            'question_id' => $question->id,
+                            'star_id'     => $star->id,
+                            'tag_id'      => $tag->id,
+                        ]);
                     }
                 }
             }
 
-            // 4. Create Tags/Labels
+            // 5. Create Business-Scoped Tags/Labels
             if (isset($data['labels'])) {
                 foreach ($data['labels'] as $label) {
                     Tag::create([
-                        'tag' => ucwords($label),
+                        'tag'         => ucwords($label),
                         'business_id' => $business->id,
                     ]);
                 }

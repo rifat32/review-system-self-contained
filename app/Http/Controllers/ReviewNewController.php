@@ -1350,7 +1350,6 @@ class ReviewNewController extends Controller
     {
         $query = ReviewNew::where('business_id', $businessId)
             ->globalReviewFilters(1)
-            ->filterByDateRange()
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating();
 
