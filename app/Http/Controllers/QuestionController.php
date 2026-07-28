@@ -162,6 +162,14 @@ class QuestionController extends Controller
      *          @OA\Schema(type="string", enum={"star", "emoji", "numbers", "heart", "comment"})
      *      ),
      *      @OA\Parameter(
+     *          name="questionCategoryIds",
+     *          in="query",
+     *          required=false,
+     *          description="Filter questions by a comma-separated list of question category IDs",
+     *          example="1,2,5",
+     *          @OA\Schema(type="string")
+     *      ),
+     *      @OA\Parameter(
      *          name="ids",
      *          in="query",
      *          required=false,
@@ -249,6 +257,11 @@ class QuestionController extends Controller
             ->when($request->filled('survey_id'), fn($q) => $q->whereHas('surveys', fn($sq) => $sq->where('id', $request->survey_id)))
             ->when($request->filled('survey_name'), fn($q) => $q->whereHas('surveys', fn($sq) => $sq->where('name', 'like', "%{$request->survey_name}%")))
             ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
+            ->when($request->filled('questionCategoryIds'), function ($q) use ($request) {
+                $q->whereHas('question_sub_categories', function ($sq) use ($request) {
+                    $sq->whereIn('question_categories.id', array_filter(explode(',', $request->questionCategoryIds), 'is_numeric'));
+                });
+            })
             ->when($request->filled('ids'), fn($q) => $q->whereIn('id', array_filter(explode(',', $request->ids), 'is_numeric')));
 
         return response()->json([
