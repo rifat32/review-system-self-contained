@@ -65,11 +65,26 @@ Route::middleware(['dev_access'])->group(function () {
     });
 
     Route::get('/generate-ai', function () {
-        ReviewNew::whereNotNull("raw_text")->update(['is_ai_processed' => 0]);
-
-        if (request()->boolean("generate")) {
-            Artisan::call('reviews:process');
+        // RESET ALL REVIEWS TO UNPROCESSED — only when explicitly requested
+        if (request()->boolean('reset')) {
+            ReviewNew::whereNotNull('raw_text')->update(['is_ai_processed' => 0]);
         }
+
+        // RUN AI PROCESSING — only when explicitly requested
+        if (request()->boolean('generate')) {
+            Artisan::call('reviews:process');
+            return response()->json([
+                'success' => true,
+                'message' => 'AI processing triggered successfully.',
+                'data'    => []
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'No action taken. Pass ?generate=true to run AI, ?reset=true to reset all reviews.',
+            'data'    => []
+        ]);
     });
 
     Route::get('/reviews', function () {
