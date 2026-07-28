@@ -251,6 +251,14 @@ class BranchController extends Controller
         }
 
 
+        $business = Business::find($businessId);
+        $multiBranchEnabled = $business ? $business->isModuleEnabled('multi_branch') : false;
+
+        $defaultBranchId = null;
+        if ($business && !$multiBranchEnabled) {
+            $defaultBranchId = $business->default_branch_id ?: Branch::where('business_id', $business->id)->orderBy('id', 'asc')->value('id');
+        }
+
         // BRANCH QUERY
         $query = Branch::withCount([
                 'reviews as overall_review_count' => function ($query) {
@@ -262,6 +270,9 @@ class BranchController extends Controller
                 },
             ])
             ->where('business_id', $businessId)
+            ->when($defaultBranchId, function ($query) use ($defaultBranchId) {
+                $query->where('id', $defaultBranchId);
+            })
             ->when($userBranchId, function ($query) use ($userBranchId) {
                 $query->where('id', $userBranchId);
             })
@@ -271,7 +282,11 @@ class BranchController extends Controller
         $branches = retrieve_data($query);
 
         // GET SUMMARY DATA
-        $branchIds = Branch::where('business_id', $businessId)->pluck('id');
+        $branchIds = Branch::where('business_id', $businessId)
+            ->when($defaultBranchId, function ($query) use ($defaultBranchId) {
+                $query->where('id', $defaultBranchId);
+            })
+            ->pluck('id');
 
 
 
@@ -589,6 +604,14 @@ class BranchController extends Controller
                 throw new AccessDeniedHttpException('Only business owners can create branches.');
             }
 
+            $business = Business::find($user->business_id);
+            if ($business && !$business->isModuleEnabled('multi_branch')) {
+                $branchCount = Branch::where('business_id', $business->id)->count();
+                if ($branchCount >= 1) {
+                    throw new AccessDeniedHttpException('Multi-branch management is not enabled for your plan. You cannot create more than one branch.');
+                }
+            }
+
             return DB::transaction(function () use ($request, $user) {
                 $validatedData = $request->validated();
 
@@ -853,9 +876,12 @@ class BranchController extends Controller
                 }
 
                 // ==================== PREVENT UPDATING DEFAULT BRANCH ====================
-                if ($branch->is_default) {
-                    throw new AccessDeniedHttpException('Cannot update default branch.');
+                $business = Business::find($user->business_id);
+                $defaultBranchId = $business ? ($business->default_branch_id ?: Branch::where('business_id', $business->id)->orderBy('id', 'asc')->value('id')) : null;
+                if ($branch->is_default || ($defaultBranchId && $branch->id == $defaultBranchId)) {
+                    throw new AccessDeniedHttpException('You cannot edit the default branch.');
                 }
+
 
                 // ==================== UPDATE BRANCH ====================
                 $branch->update($validatedData);
@@ -946,7 +972,9 @@ class BranchController extends Controller
             }
 
             // ==================== PREVENT DELETING DEFAULT BRANCH ====================
-            if ($branch->is_default) {
+            $business = Business::find($user->business_id);
+            $defaultBranchId = $business ? ($business->default_branch_id ?: Branch::where('business_id', $business->id)->orderBy('id', 'asc')->value('id')) : null;
+            if ($branch->is_default || ($defaultBranchId && $branch->id == $defaultBranchId)) {
                 throw new AccessDeniedHttpException('Cannot delete default branch.');
             }
 
@@ -1742,7 +1770,6 @@ class BranchController extends Controller
             branchId: $branchId,
         );
 
-        // ==================== RETURN RESPONSE ====================
         return response()->json([
             'success' => true,
             'message' => 'Branch recommendations generated successfully',

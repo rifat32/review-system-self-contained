@@ -1570,31 +1570,48 @@ PROMPT;
      */
     public static function estimateTokensPerReview(array $moduleNames): int
     {
-        $estimate = 800; // Base completion tokens
+        $promptBase = 1800;
+        $completionBase = 400;
 
-        if (in_array('category_analysis', $moduleNames)) {
-            $estimate += 300;
-        }
-        if (in_array('staff_intelligence', $moduleNames)) {
-            $estimate += 400;
-        }
-        if (in_array('business_recommendations', $moduleNames)) {
-            $estimate += 500;
+        $promptCosts = [
+            'category_analysis' => 220,
+            'staff_intelligence' => 280,
+            'service_unit_intelligence' => 80,
+            'business_recommendations' => 260,
+            'alerts' => 180,
+            'sentiment_analysis' => 120,
+            'emotion_detection' => 60,
+            'abuse_detection' => 40,
+            'explainability' => 0,
+            'language_translation' => 0,
+            'multi_branch' => 0,
+            'rules_management' => 0,
+        ];
+
+        $completionCosts = [
+            'category_analysis' => 350,
+            'staff_intelligence' => 250,
+            'service_unit_intelligence' => 80,
+            'business_recommendations' => 300,
+            'alerts' => 120,
+            'sentiment_analysis' => 0,
+            'emotion_detection' => 0,
+            'abuse_detection' => 0,
+            'explainability' => 120,
+            'language_translation' => 80,
+            'multi_branch' => 0,
+            'rules_management' => 0,
+        ];
+
+        $promptTokens = $promptBase;
+        $completionTokens = $completionBase;
+
+        foreach ($moduleNames as $moduleName) {
+            $promptTokens += $promptCosts[$moduleName] ?? 0;
+            $completionTokens += $completionCosts[$moduleName] ?? 0;
         }
 
-        // Base prompt tokens (system + user prompt overhead)
-        $promptEstimate = 2200;
-        if (in_array('category_analysis', $moduleNames)) {
-            $promptEstimate += 100;
-        }
-        if (in_array('staff_intelligence', $moduleNames)) {
-            $promptEstimate += 150;
-        }
-        if (in_array('business_recommendations', $moduleNames)) {
-            $promptEstimate += 200;
-        }
-
-        return $promptEstimate + $estimate;
+        return $promptTokens + $completionTokens;
     }
 
 
