@@ -154,6 +154,14 @@ class QuestionController extends Controller
      *          @OA\Schema(type="string")
      *      ),
      *      @OA\Parameter(
+     *          name="type",
+     *          in="query",
+     *          required=false,
+     *          description="Filter questions by type",
+     *          example="star",
+     *          @OA\Schema(type="string", enum={"star", "emoji", "numbers", "heart", "comment"})
+     *      ),
+     *      @OA\Parameter(
      *          name="ids",
      *          in="query",
      *          required=false,
@@ -240,6 +248,7 @@ class QuestionController extends Controller
             ->when($request->boolean('exclude_guest_user'), fn($q) => $q->where('show_in_guest_user', false))
             ->when($request->filled('survey_id'), fn($q) => $q->whereHas('surveys', fn($sq) => $sq->where('id', $request->survey_id)))
             ->when($request->filled('survey_name'), fn($q) => $q->whereHas('surveys', fn($sq) => $sq->where('name', 'like', "%{$request->survey_name}%")))
+            ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
             ->when($request->filled('ids'), fn($q) => $q->whereIn('id', array_filter(explode(',', $request->ids), 'is_numeric')));
 
         return response()->json([
