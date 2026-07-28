@@ -286,6 +286,9 @@ class Business extends Model
 
     public function getEstimatedTokensPerReviewAttribute(): int
     {
+        if (!$this->id) {
+            return 0;
+        }
         $processor = resolve(\App\Services\AIProcessor\OpenAIProcessorService::class);
         $enabledModulesMap = $processor->getBusinessAiModules($this->id);
         $activeModules = array_keys(array_filter($enabledModulesMap));
