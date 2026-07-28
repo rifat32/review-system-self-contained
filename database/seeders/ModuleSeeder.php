@@ -54,6 +54,10 @@ class ModuleSeeder extends Seeder
                 'name' => 'multi_branch',
                 'description' => 'Manage and analyze reviews across multiple branches or locations.',
             ],
+            [
+                'name' => 'rules_management',
+                'description' => 'Create and manage automated rules for review analysis and actions.',
+            ],
         ];
 
         foreach ($modules as $module) {
