@@ -325,4 +325,6 @@ return [
             ['min' => 0.0, 'max' => 2.99, 'label' => 'Below Expectations'],
         ],
     ],
+
+    'process_empty_reviews_locally' => env('PROCESS_EMPTY_REVIEWS_LOCALLY', false),
 ];
