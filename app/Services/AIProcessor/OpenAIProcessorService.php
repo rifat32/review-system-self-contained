@@ -1090,6 +1090,9 @@ PROMPT;
     private function createUserMessage(array $payload, array $enabledModules): string
     {
         $text = $payload['review_text'] ?? '';
+        if (trim($text) === '') {
+            $text = '(No written comment was provided by the customer. Please analyze based on the numerical star ratings and survey question scores only.)';
+        }
         $rating = $payload['rating'] ?? 0;
         $staffInfo = $payload['staff_info'] ?? null;
 
@@ -1285,6 +1288,13 @@ PROMPT;
                 'is_abusive' => $review->is_abusive,
                 'message' => 'Review already processed. Use --force flag to reprocess.'
             ];
+        }
+
+        $text = $review->raw_text ?? $review->comment ?? '';
+        if (trim($text) === '') {
+            if (config('ai.process_empty_reviews_locally', false)) {
+                return $this->analyzeReviewLocally($review);
+            }
         }
 
         try {
@@ -1625,4 +1635,113 @@ PROMPT;
             return false;
         }
     }
+
+    /**
+     * Local processing fallback for rating-only reviews (no comments)
+     */
+    public function analyzeReviewLocally(ReviewNew $review): array
+    {
+        $rating = $review->calculated_rating;
+        
+        $sentimentLabel = 'neutral';
+        $sentimentScore = 0.5;
+        $primaryEmotion = 'neutral';
+        
+        if ($rating >= 4.0) {
+            $sentimentLabel = 'positive';
+            $sentimentScore = 0.8;
+            $primaryEmotion = 'joy';
+        } elseif ($rating <= 2.0) {
+            $sentimentLabel = 'negative';
+            $sentimentScore = 0.2;
+            $primaryEmotion = 'sadness';
+        }
+        
+        $mockResult = [
+            'language' => [
+                'detected' => $review->language ?? 'en',
+                'translated_text' => ''
+            ],
+            'sentiment' => [
+                'label' => $sentimentLabel,
+                'score' => $sentimentScore
+            ],
+            'emotion' => [
+                'primary' => $primaryEmotion,
+                'intensity' => 'medium'
+            ],
+            'moderation' => [
+                'is_abusive' => false,
+                'safe_for_public_display' => true,
+                'issues_found' => [],
+                'severity' => 'low'
+            ],
+            'rating_comment_alignment' => [
+                'is_aligned' => true,
+                'mismatch_type' => 'none',
+                'confidence' => 1.0,
+                'explanation' => 'Rating-only review, auto-aligned.',
+                'key_contradiction' => 'none'
+            ],
+            'category_analysis' => [],
+            'staff_intelligence' => null,
+            'service_unit_intelligence' => null,
+            'area_insights' => [],
+            'business_insights' => [
+                'root_cause' => 'N/A',
+                'repeat_issue_likelihood' => 'low',
+                'impact_level' => 'low',
+                'affected_areas' => []
+            ],
+            'recommendations' => [
+                'business_actions' => [],
+                'staff_actions' => [],
+                'immediate_actions' => [],
+                'priority' => 'low'
+            ],
+            'alerts' => [
+                'triggered' => false,
+                'type' => 'info',
+                'priority' => 'low',
+                'message' => 'Rating-only review processed locally.'
+            ],
+            'flags' => [],
+            'staff_impact' => [
+                'staff_blame_detected' => false,
+                'note' => 'Rating-only review.'
+            ],
+            'explainability' => [
+                'decision_basis' => ['numeric rating'],
+                'confidence_score' => 1.0,
+                'key_factors' => ['rating'],
+                'why_flagged' => '',
+                'how_decision_was_made' => 'Determined sentiment locally from rating.'
+            ],
+            'summary' => [
+                'one_line' => "Rating-only review with score {$rating}.",
+                'manager_summary' => "This is a rating-only review with a score of {$rating} out of 5.",
+                'customer_sentiment_summary' => "Rating-only review.",
+                'overall_assessment' => $sentimentLabel
+            ]
+        ];
+
+        $dbData = $this->convertForDatabase($mockResult, $review);
+        $dbData['ai_model'] = 'local_auto_processor';
+        
+        $review->fill($dbData);
+        $this->ruleExecutionService->resetRuleOutcomes($review);
+        $review->save();
+        
+        Log::info('Review locally analyzed (rating-only)', [
+            'review_id' => $review->id,
+            'rating' => $rating,
+            'sentiment' => $sentimentLabel
+        ]);
+        
+        return array_merge($dbData, [
+            'status' => 'success',
+            'message' => 'Processed rating-only review locally successfully.'
+        ]);
+    }
 }
+

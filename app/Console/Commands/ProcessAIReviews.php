@@ -87,8 +87,7 @@ class ProcessAIReviews extends Command
 
     protected function processBatch()
     {
-        $query = ReviewNew::whereNotNull('raw_text')
-            ->where('is_ai_processed', 0);
+        $query = ReviewNew::where('is_ai_processed', 0);
 
         $limit = $this->option('limit');
         $reviews = $query->orderBy('id', 'asc')

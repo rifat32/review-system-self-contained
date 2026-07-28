@@ -65,9 +65,8 @@ Route::middleware(['dev_access'])->group(function () {
     });
 
     Route::get('/generate-ai', function () {
-        // RESET ALL REVIEWS TO UNPROCESSED — only when explicitly requested
         if (request()->boolean('reset')) {
-            ReviewNew::whereNotNull('raw_text')->update(['is_ai_processed' => 0]);
+            ReviewNew::query()->update(['is_ai_processed' => 0]);
         }
 
         // RUN AI PROCESSING — only when explicitly requested
