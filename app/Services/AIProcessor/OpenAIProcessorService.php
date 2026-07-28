@@ -1565,6 +1565,38 @@ PROMPT;
         return round($inputCost + $outputCost, 6); // Round to 6 decimal places for cents
     }
 
+    /**
+     * Estimate token footprint per review based on enabled modules
+     */
+    public static function estimateTokensPerReview(array $moduleNames): int
+    {
+        $estimate = 800; // Base completion tokens
+
+        if (in_array('category_analysis', $moduleNames)) {
+            $estimate += 300;
+        }
+        if (in_array('staff_intelligence', $moduleNames)) {
+            $estimate += 400;
+        }
+        if (in_array('business_recommendations', $moduleNames)) {
+            $estimate += 500;
+        }
+
+        // Base prompt tokens (system + user prompt overhead)
+        $promptEstimate = 2200;
+        if (in_array('category_analysis', $moduleNames)) {
+            $promptEstimate += 100;
+        }
+        if (in_array('staff_intelligence', $moduleNames)) {
+            $promptEstimate += 150;
+        }
+        if (in_array('business_recommendations', $moduleNames)) {
+            $promptEstimate += 200;
+        }
+
+        return $promptEstimate + $estimate;
+    }
+
 
     /**
      * Get token usage statistics for a business
@@ -1593,6 +1625,19 @@ PROMPT;
             AVG(total_tokens) as avg_tokens_per_request
         ')->first();
 
+        // Get estimation metrics
+        $enabledModulesMap = $this->getBusinessAiModules($businessId);
+        $activeModules = array_keys(array_filter($enabledModulesMap));
+        $estimatedTokensPerReview = self::estimateTokensPerReview($activeModules);
+
+        $business = \App\Models\Business::find($businessId);
+        $tokenLimit = $business ? $business->openai_token_limit : -1;
+        $estimatedReviewsLimit = $tokenLimit === -1 ? -1 : (int)floor($tokenLimit / $estimatedTokensPerReview);
+
+        // Count of actually processed reviews during this period
+        $processedReviewsCount = (int)($stats->total_requests ?? 0);
+        $remainingReviewsCount = $estimatedReviewsLimit === -1 ? -1 : max(0, $estimatedReviewsLimit - $processedReviewsCount);
+
         return [
             'period' => $period,
             'total_prompt_tokens' => $stats->total_prompt_tokens ?? 0,
@@ -1601,6 +1646,10 @@ PROMPT;
             'total_cost' => $stats->total_cost ?? 0,
             'total_requests' => $stats->total_requests ?? 0,
             'avg_tokens_per_request' => $stats->avg_tokens_per_request ?? 0,
+            'estimated_tokens_per_review' => $estimatedTokensPerReview,
+            'estimated_reviews_limit' => $estimatedReviewsLimit,
+            'processed_reviews_count' => $processedReviewsCount,
+            'remaining_reviews_count' => $remainingReviewsCount,
         ];
     }
 

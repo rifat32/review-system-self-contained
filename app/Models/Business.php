@@ -11,7 +11,13 @@ class Business extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $appends = ['is_subscribed'];
+    protected $appends = [
+        'is_subscribed',
+        'estimated_tokens_per_review',
+        'estimated_reviews_limit',
+        'processed_reviews_this_month',
+        'remaining_reviews_this_month'
+    ];
 
     protected $table = "businesses";
 
@@ -276,6 +282,43 @@ class Business extends Model
             ->sum('total_tokens');
 
         return $used >= $limit;
+    }
+
+    public function getEstimatedTokensPerReviewAttribute(): int
+    {
+        $processor = resolve(\App\Services\AIProcessor\OpenAIProcessorService::class);
+        $enabledModulesMap = $processor->getBusinessAiModules($this->id);
+        $activeModules = array_keys(array_filter($enabledModulesMap));
+        return \App\Services\AIProcessor\OpenAIProcessorService::estimateTokensPerReview($activeModules);
+    }
+
+    public function getEstimatedReviewsLimitAttribute(): int
+    {
+        $limit = $this->openai_token_limit;
+        if ($limit === -1) {
+            return -1;
+        }
+        if ($limit === 0 || $limit === null) {
+            return 0;
+        }
+        $estPerReview = $this->estimated_tokens_per_review;
+        return (int)floor($limit / $estPerReview);
+    }
+
+    public function getProcessedReviewsThisMonthAttribute(): int
+    {
+        return \App\Models\OpenAITokenUsage::where('business_id', $this->id)
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->count();
+    }
+
+    public function getRemainingReviewsThisMonthAttribute(): int
+    {
+        $limit = $this->estimated_reviews_limit;
+        if ($limit === -1) {
+            return -1;
+        }
+        return max(0, $limit - $this->processed_reviews_this_month);
     }
 
     public function getIsSelfRegisteredBusinessesAttribute()
