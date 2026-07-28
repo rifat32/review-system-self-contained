@@ -494,6 +494,14 @@ class SurveyController extends Controller
      *   ),
      *
      *   @OA\Parameter(
+     *     name="service_ids",
+     *     in="query",
+     *     required=false,
+     *     description="Filter surveys by a comma-separated list of business service IDs",
+     *     @OA\Schema(type="string", example="1,2,5")
+     *   ),
+     *
+     *   @OA\Parameter(
      *     name="page",
      *     in="query",
      *     required=false,

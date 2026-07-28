@@ -197,7 +197,7 @@ class BusinessServiceController extends Controller
         try {
             $user = $request->user();
 
-            $query = BusinessService::with('business_areas');
+            $query = BusinessService::with('business_areas')->withCount('surveys');
             $businessId = $user->business_id;
 
             if (!$businessId) {

@@ -107,6 +107,13 @@ class Survey extends Model
             ]);
         }
 
+        if (request()->filled('service_ids')) {
+            $serviceIds = explode(',', request()->service_ids);
+            $query->whereHas('business_services', function ($q) use ($serviceIds) {
+                $q->whereIn('business_services.id', $serviceIds);
+            });
+        }
+
         return $query;
     }
 }
