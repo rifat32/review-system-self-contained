@@ -406,6 +406,7 @@ class ReviewNew extends Model
             ->filterByRuleOutcomes()
             ->filterByCsatScore()
             ->filterByInsightId()
+            ->filterByIsPrivate()
             ->when($is_staff_review, function ($q) {
                 $q->whereMeetsThreshold(1);
             })
@@ -422,6 +423,21 @@ class ReviewNew extends Model
                     $q->where('review_news.is_overall', $is_overall);
                 }
             });
+    }
+
+    public function scopeFilterByIsPrivate($query)
+    {
+        $query->when(request()->has('is_private'), function ($q) {
+            $isPrivate = filter_var(request()->input('is_private'), FILTER_VALIDATE_BOOLEAN);
+            if ($isPrivate) {
+                $q->where('review_news.is_private', 1);
+            } else {
+                $q->where(function ($sub) {
+                    $sub->where('review_news.is_private', 0)
+                        ->orWhereNull('review_news.is_private');
+                });
+            }
+        });
     }
 
     public function scopeFilterByStaff($query)
