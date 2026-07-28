@@ -258,7 +258,7 @@ class QuestionCategoryController extends Controller
                     ]);
                 },
 
-            ])->filters(auth()->user()->business_id);
+            ])->filters(auth()->user()->business_id)->withCount('questions');
 
             $questionCategories = retrieve_data($query);
 
