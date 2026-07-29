@@ -635,8 +635,48 @@ class BusinessController extends Controller
         // SET ROLE AS SINGLE OBJECT
         $user->setAttribute('role', $user->roles->first());
 
-        // Update
-        $business->update($request_payload);
+        // Update and handle subscription history tracking
+        \Illuminate\Support\Facades\DB::transaction(function () use ($business, $request_payload) {
+            $newPlanId = $request_payload['service_plan_id'] ?? null;
+            $currentPlanId = $business->service_plan_id;
+
+            if ($newPlanId && $newPlanId != $currentPlanId) {
+                // 1. Mark previous active entries as canceled (History)
+                \App\Models\BusinessSubscription::where('business_id', $business->id)
+                    ->where('status', 'active')
+                    ->update(['status' => 'canceled']);
+
+                // 2. Fetch the new plan details
+                $newPlan = \App\Models\ServicePlan::find($newPlanId);
+
+                if ($newPlan) {
+                    // 3. Determine end date. Prioritize the passed trial_end_date, otherwise use duration.
+                    $endDate = null;
+                    if (!empty($request_payload['trial_end_date'])) {
+                        $endDate = \Carbon\Carbon::parse($request_payload['trial_end_date']);
+                    } else {
+                        $durationMonths = $newPlan->duration_months ?: 1;
+                        $endDate = now()->addMonths($durationMonths);
+                    }
+
+                    // 4. Create new subscription entry
+                    \App\Models\BusinessSubscription::create([
+                        'business_id' => $business->id,
+                        'service_plan_id' => $newPlan->id,
+                        'start_date' => now(),
+                        'end_date' => $endDate,
+                        'status' => 'active',
+                        'amount' => 0, 
+                        'paid_at' => null,
+                        'stripe_status' => 'manual', 
+                        'openai_token_limit' => $newPlan->openai_token_limit,
+                    ]);
+                }
+            }
+
+            // Update the business record
+            $business->update($request_payload);
+        });
 
         // Return
         return response()->json([

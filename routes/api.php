@@ -34,6 +34,7 @@ use App\Http\Controllers\QrCodeSettingController;
 use App\Http\Controllers\BusinessAiModuleController;
 use App\Http\Controllers\RuleReportController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\BusinessSubscriptionController;
 use App\Http\Controllers\ServicePlanController;
 use App\Http\Controllers\LogoColorController;
 use App\Http\Controllers\ModuleController;
@@ -96,6 +97,11 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     Route::post('/v1.0/register-device-token', [DeviceTokenController::class, 'createDeviceToken']);
+
+    // Subscription Management
+    Route::controller(BusinessSubscriptionController::class)->group(function () {
+        Route::get('/v1.0/my-subscription', 'getMySubscription');
+    });
 
     // modules  management section
     Route::put('/v1.0/modules/toggle-active', [ModuleController::class, "toggleActiveModule"]);

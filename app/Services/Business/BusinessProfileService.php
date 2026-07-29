@@ -99,8 +99,24 @@ class BusinessProfileService
     public function createBusiness(User $user, array $payloadData): Business
     {
         $discountAmount = $this->getDiscountAmount($payloadData);
+        $startDate = now();
 
-        return Business::create([
+        // Dynamic Trial End Date Calculation
+        $trialEndDateStr = $payloadData['trial_end_date'] ?? null;
+        $servicePlan = null;
+
+        if (!empty($payloadData['service_plan_id'])) {
+            $servicePlan = \App\Models\ServicePlan::find($payloadData['service_plan_id']);
+        }
+
+        if (!$trialEndDateStr) {
+            $trialDays = $servicePlan ? (int) $servicePlan->free_trial_duration_date : 14;
+            $trialEndDateStr = now()->addDays($trialDays)->toDateString();
+        }
+
+        $trialEndDate = \Carbon\Carbon::parse($trialEndDateStr);
+
+        $business = Business::create([
             'business_type' => $payloadData['business_type'],
             'OwnerID' => $user->id,
             'Status' => 'pending',
@@ -149,9 +165,25 @@ class BusinessProfileService
             'service_plan_id' => $payloadData['service_plan_id'] ?? null,
             'service_plan_discount_code' => $payloadData['service_plan_discount_code'] ?? null,
             'service_plan_discount_amount' => $discountAmount,
-            'start_date' => now()->toDateString(),
-            'trial_end_date' => now()->addDays(14)->toDateString(),
+            'start_date' => $startDate->toDateString(),
+            'trial_end_date' => $trialEndDate->toDateString(),
         ]);
+
+        if ($servicePlan) {
+            \App\Models\BusinessSubscription::create([
+                'business_id' => $business->id,
+                'service_plan_id' => $servicePlan->id,
+                'start_date' => $startDate,
+                'end_date' => $trialEndDate,
+                'status' => 'active',
+                'amount' => 0,
+                'paid_at' => null,
+                'stripe_status' => 'trialing',
+                'openai_token_limit' => $servicePlan->openai_token_limit,
+            ]);
+        }
+
+        return $business;
     }
 
     /**
