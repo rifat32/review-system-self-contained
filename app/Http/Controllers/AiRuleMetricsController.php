@@ -20,6 +20,17 @@ class AiRuleMetricsController extends Controller
     {
         $this->metricsService = $metricsService;
         $this->reportService = $reportService;
+
+        $this->middleware(function ($request, $next) {
+            $user = $request->user();
+            if ($user && $user->business_id) {
+                $business = \App\Models\Business::find($user->business_id);
+                if (!$business || !$business->isModuleEnabled('rules_management')) {
+                    throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('Rule management is not enabled for your plan.');
+                }
+            }
+            return $next($request);
+        });
     }
 
     // ==================== DASHBOARD & REPORTING ====================

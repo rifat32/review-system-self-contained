@@ -533,6 +533,11 @@ class Business extends Model
         return $this->isModuleEnabled('multi_branch');
     }
 
+    public function getHasRuleManagementAttribute($value)
+    {
+        return $this->isModuleEnabled('rules_management');
+    }
+
     public function setTimeZoneAttribute($value)
     {
         $this->attributes['time_zone'] = $value ?: ($this->time_zone ?? 'UTC');
