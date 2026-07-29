@@ -25,7 +25,7 @@ class BusinessSubscriptionController extends Controller
     {
         // GET AUTHENTICATED USER
         $user = Auth::user();
-        
+
         $business = Business::with([
             'service_plan.modules',
             'current_subscription.service_plan',
@@ -54,6 +54,13 @@ class BusinessSubscriptionController extends Controller
             $status = $trialEndDate ? 'expired' : 'none';
         }
 
+        $usage = \App\Utils\TokenUsageUtil::calculateUsage(
+            business: $business,
+            currentSubscription: $currentSubscription,
+            isOnTrial: $isOnTrial,
+            trialEndDate: $trialEndDate
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Subscription retrieved successfully',
@@ -62,6 +69,7 @@ class BusinessSubscriptionController extends Controller
                 'is_on_trial'          => $isOnTrial,
                 'trial_end_date'       => $trialEndDate,
                 'trial_days_remaining' => $trialDaysLeft,
+                'usage'                => $usage,
                 'current_plan'         => $business->service_plan,
                 'current_subscription' => $currentSubscription,
                 'subscription_history' => $business->subscriptions()

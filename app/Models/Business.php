@@ -276,12 +276,12 @@ class Business extends Model
             return true;
         }
 
-        // Calculate usage for current month (standard fallback)
-        $used = \App\Models\OpenAITokenUsage::where('business_id', $this->id)
-            ->where('created_at', '>=', now()->startOfMonth())
-            ->sum('total_tokens');
-
-        return $used >= $limit;
+        // Calculate usage for current billing cycle
+        $usage = \App\Utils\TokenUsageUtil::calculateUsage(
+            business: $this
+        );
+        
+        return $usage['tokens_used'] >= $limit;
     }
 
     public function getEstimatedTokensPerReviewAttribute(): int
@@ -310,9 +310,20 @@ class Business extends Model
 
     public function getProcessedReviewsThisMonthAttribute(): int
     {
-        return \App\Models\OpenAITokenUsage::where('business_id', $this->id)
-            ->where('created_at', '>=', now()->startOfMonth())
-            ->count();
+        $usage = \App\Utils\TokenUsageUtil::calculateUsage(
+            business: $this
+        );
+        $startDate = $usage['billing_cycle_start'] ?? now()->startOfMonth();
+        $endDate = $usage['billing_cycle_end'];
+
+        $query = \App\Models\OpenAITokenUsage::where('business_id', $this->id)
+            ->where('created_at', '>=', $startDate);
+        
+        if ($endDate) {
+            $query->where('created_at', '<=', $endDate);
+        }
+
+        return $query->count();
     }
 
     public function getRemainingReviewsThisMonthAttribute(): int

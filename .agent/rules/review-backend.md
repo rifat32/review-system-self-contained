@@ -11,3 +11,4 @@ trigger: always_on
 3. **Route Versioning**: All API routes must include a version prefix (e.g., `v1.0/`) in their paths.
 4. **Inline Comments**: Use inline uppercase comments (e.g., `// GET AUTHENTICATED USER`, `// TOTAL MENU COUNT`) before logical code blocks and database queries inside controller methods to clarify what is being fetched or calculated.
 5. **PHP Laravel Response Pattern**: All API JSON responses must follow a standard format containing `success` (boolean), `message` (string), and `data` (array/object). Furthermore, always use the `Symfony\Component\HttpFoundation\Response` class constants (e.g., `Response::HTTP_OK`) for HTTP status codes instead of raw integers.
+6. **Named Arguments**: Always use PHP 8 named arguments when calling methods or functions that take multiple arguments (e.g., `business: $business`) for better readability and to prevent argument order errors.
