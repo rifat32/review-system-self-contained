@@ -6,9 +6,12 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Services\AIProcessor\InsightAggregationService;
 use App\Services\AIProcessor\RecommendationGeneratorService;
+use App\Services\AIProcessor\OpenAIProcessorService;
 use App\Models\Business;
+use App\Models\ReviewNew;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class GenerateRecommendations extends Command
 {
@@ -22,15 +25,18 @@ class GenerateRecommendations extends Command
 
     protected $insightAggregationService;
     protected $recommendationGeneratorService;
+    protected $openaiProcessorService;
 
     public function __construct(
         InsightAggregationService $insightAggregationService,
-        RecommendationGeneratorService $recommendationGeneratorService
+        RecommendationGeneratorService $recommendationGeneratorService,
+        OpenAIProcessorService $openaiProcessorService
     ) {
         parent::__construct();
 
         $this->insightAggregationService = $insightAggregationService;
         $this->recommendationGeneratorService = $recommendationGeneratorService;
+        $this->openaiProcessorService = $openaiProcessorService;
     }
 
     public function handle()
@@ -97,6 +103,89 @@ class GenerateRecommendations extends Command
                             'other information' => 'AI Process Logging'
                         ], 'ai_process.log');
                         continue;
+                    }
+
+                    // Check for new reviews for rolling AI insights
+                    $newReviews = ReviewNew::where('business_id', $business->id)
+                        ->where('is_ai_processed', true)
+                        ->where('is_rolling_aggregated', false)
+                        ->orderBy('id', 'asc')
+                        ->limit(50)
+                        ->get();
+
+                    $isFallbackRun = false;
+                    if ($newReviews->isEmpty() && $this->option('force')) {
+                        // Fallback: Fetch last 5 processed reviews for forced runs when no new reviews exist
+                        $newReviews = ReviewNew::where('business_id', $business->id)
+                            ->where('is_ai_processed', true)
+                            ->orderBy('id', 'desc')
+                            ->limit(5)
+                            ->get()
+                            ->reverse();
+                        $isFallbackRun = true;
+                    }
+
+                    $canRunRollingInsight = $newReviews->count() >= 5 || $this->option('force');
+
+                    if (!$canRunRollingInsight) {
+                        $this->line("  → Skipping rolling AI insights (Only {$newReviews->count()} new reviews, need at least 5)");
+                        Log::channel('daily')->info("  → Skipping rolling AI insights for Business {$business->id} (Only {$newReviews->count()} new reviews)");
+                    } else if ($newReviews->isNotEmpty()) {
+                        // Proceed to run rolling AI update
+                        $latestInsightText = "";
+                        foreach ($newReviews as $index => $rev) {
+                            $openaiData = $rev->openai_raw_response ?? [];
+                            $oneLineSummary = $openaiData['summary']['one_line'] 
+                                ?? ($openaiData['summary']['manager_summary'] 
+                                ?? ($rev->comment ?? 'No comment provided.'));
+                            $latestInsightText .= ($index + 1) . ". " . $oneLineSummary . "\n";
+                        }
+
+                        $previousInsight = $business->rolling_ai_insight;
+                        $prevTotalReviews = is_array($previousInsight) ? ($previousInsight['totalReviews'] ?? 0) : 0;
+                        
+                        // Prevent double-counting if it is a fallback/forced run with no actual new reviews
+                        $totalReviewsCount = $prevTotalReviews + ($isFallbackRun ? 0 : $newReviews->count());
+
+                        $latestInsight = [
+                            'time' => now()->toIso8601String(),
+                            'totalReviews' => $totalReviewsCount,
+                            'insight' => trim($latestInsightText)
+                        ];
+
+                        $this->line("  → Generating rolling AI insights...");
+                        Log::channel('daily')->info("  → Generating rolling AI insights for Business {$business->id}...");
+                        log_message([
+                            'message' => "Generating rolling AI insights for Business {$business->id}",
+                            'path' => __FILE__,
+                            'other information' => 'AI Process Logging'
+                        ], 'ai_process.log');
+
+                        try {
+                            $updatedInsight = $this->openaiProcessorService->generateRollingInsight($previousInsight, $latestInsight);
+
+                            if ($updatedInsight && !empty($updatedInsight['updatedInsight']) && is_string($updatedInsight['updatedInsight'])) {
+                                // Overwrite the totalReviews from AI response with our database count to ensure integrity
+                                $updatedInsight['totalReviews'] = $totalReviewsCount;
+
+                                DB::transaction(function () use ($business, $updatedInsight, $isFallbackRun, $newReviews) {
+                                    $business->update([
+                                        'rolling_ai_insight' => $updatedInsight
+                                    ]);
+
+                                    // Mark reviews as aggregated
+                                    if (!$isFallbackRun) {
+                                        ReviewNew::whereIn('id', $newReviews->pluck('id'))->update(['is_rolling_aggregated' => true]);
+                                    }
+                                });
+                            } else {
+                                $this->line("  → Failed: OpenAI returned empty or invalid rolling insight");
+                                Log::channel('daily')->warning("  → OpenAI returned empty or invalid rolling insight for Business {$business->id}");
+                            }
+                        } catch (\Exception $e) {
+                            $this->line("  → Failed to generate rolling insight: " . $e->getMessage());
+                            Log::channel('daily')->error("  → Failed to generate rolling insight for Business {$business->id}: " . $e->getMessage());
+                        }
                     }
 
                     // 1. Aggregate insights (last 30 days)
@@ -199,11 +288,14 @@ class GenerateRecommendations extends Command
         }
 
         if (!$this->option('business') && !$this->option('all')) {
-            // Default: process businesses not updated in last 12 hours
-            $query->where(function ($q) {
-                $q->whereNull('last_recommendation_at')
-                    ->orWhere('last_recommendation_at', '<', Carbon::now()->subHours(12));
-            })->limit(50); // Process max 50 per run
+            // Default: process businesses not updated in last 12 hours (unless on local)
+            if (!app()->environment('local')) {
+                $query->where(function ($q) {
+                    $q->whereNull('last_recommendation_at')
+                        ->orWhere('last_recommendation_at', '<', Carbon::now()->subHours(12));
+                });
+            }
+            $query->limit(50); // Process max 50 per run
         }
 
         return $query->get();
@@ -211,8 +303,9 @@ class GenerateRecommendations extends Command
 
     private function shouldProcess($business)
     {
-        if ($this->option('force'))
+        if ($this->option('force') || app()->environment('local')) {
             return true;
+        }
 
         // Skip if processed in last 6 hours
         if (

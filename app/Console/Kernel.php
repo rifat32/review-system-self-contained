@@ -39,7 +39,7 @@ class Kernel extends ConsoleKernel
         // Uses rule results and processed data to generate actionable insights
         $schedule->call(function () {
             Artisan::call('recommendations:generate');
-        })->name('generate-recommendations')->dailyAt('03:00');
+        })->name('generate-recommendations')->everyTenMinutes()->withoutOverlapping()->onOneServer();
 
         // 5. Cleanup Old Recommendations (Housekeeping)
         // Final cleanup of legacy data

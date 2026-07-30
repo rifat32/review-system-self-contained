@@ -59,7 +59,8 @@ class ReviewNew extends Model
         'source',
         "rating_comment_mismatch",
         'ai_processed_at',
-        'ai_model'
+        'ai_model',
+        'is_rolling_aggregated',
     ];
 
     protected $casts = [
@@ -69,6 +70,7 @@ class ReviewNew extends Model
         'is_overall' => 'boolean',
         'is_abusive' => 'boolean',
         'rating_comment_mismatch' => 'boolean',
+        'is_rolling_aggregated' => 'boolean',
         'sentiment_score' => 'float',
         'ai_insights' => 'array',
         'ai_recommendations' => 'array',

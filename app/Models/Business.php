@@ -98,6 +98,7 @@ class Business extends Model
         'start_date',
         'is_setup_complete',
         'step_no',
+        'rolling_ai_insight',
     ];
 
     protected $casts = [
@@ -105,6 +106,7 @@ class Business extends Model
         'default_color_threshold' => 'array',
         'is_treat_manager_as_staff' => 'boolean',
         'last_recommendation_at' => 'datetime',
+        'rolling_ai_insight' => 'array',
     ];
 
     protected $hidden = [

@@ -4,6 +4,7 @@ namespace App\Services\Business;
 
 use App\Models\BusinessService;
 use App\Models\ReviewNew;
+use App\Models\Business;
 use App\Services\AIProcessor\AIProcessorService;
 use App\Services\AIProcessor\InsightAggregationService;
 use App\Services\AIProcessor\RecommendationGeneratorService;
@@ -191,7 +192,7 @@ class BusinessAnalyticsService
             ]);
         })->toArray();
 
-        $summary = $this->generateAiSummaryFromRuleEngine($businessId, $reviews);
+        $summary = $this->generateAiSummaryFromRuleEngine($businessId, $reviews, $dateRange);
         $issues = $this->extractIssuesFromRuleEngine($businessId, $reviews);
         $opportunities = $this->aiProcessorService->extractOpportunities($businessId, $insights, $suggestions, $issues);
         $predictions = $this->aiProcessorService->generatePredictions($reviews);
@@ -209,8 +210,16 @@ class BusinessAnalyticsService
     /**
      * Generate AI summary using rule engine insights
      */
-    public function generateAiSummaryFromRuleEngine(int $businessId, $reviews): string
+    public function generateAiSummaryFromRuleEngine(int $businessId, $reviews, $dateRange = null): string
     {
+        // Only return the all-time rolling AI summary if no specific date range is applied
+        if (empty($dateRange)) {
+            $business = Business::find($businessId);
+            if ($business && !empty($business->rolling_ai_insight) && isset($business->rolling_ai_insight['updatedInsight'])) {
+                return $business->rolling_ai_insight['updatedInsight'];
+            }
+        }
+
         $reviewIds = $reviews->pluck('id')->toArray();
         $insights = $this->insightAggregationService->getDashboardInsights($businessId, 10, $reviewIds);
 
