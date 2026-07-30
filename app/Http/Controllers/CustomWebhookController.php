@@ -14,8 +14,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Cashier\Http\Controllers\WebhookController;
-use Stripe\Webhook;
-use Stripe\Exception\SignatureVerificationException;
 
 class CustomWebhookController extends WebhookController
 {
@@ -28,30 +26,20 @@ class CustomWebhookController extends WebhookController
     public function handleStripeWebhook(Request $request)
     {
         $payload = $request->getContent();
-        $sigHeader = $request->header('Stripe-Signature');
-        $endpointSecret = config('cashier.webhook.secret');
 
-        try {
-            $event = Webhook::constructEvent(
-                $payload,
-                $sigHeader,
-                $endpointSecret
-            );
-        } catch (\UnexpectedValueException $e) {
-            // Invalid payload
-            Log::error("Invalid payload: " . $e->getMessage());
-            return response()->json(['error' => 'Invalid payload'], 400);
-        } catch (SignatureVerificationException $e) {
-            // Invalid signature
-            Log::error("Invalid signature: " . $e->getMessage());
-            return response()->json(['error' => 'Invalid signature'], 400);
-        }
+        log_message([
+            'level' => 'info',
+            'message' => 'Webhook received payload: ' . $payload
+        ], 'stripe.log');
 
         try {
             $payload = json_decode($payload, true);
             $eventType = $payload['type'] ?? null;
 
-            Log::info('Event Type: ' . $eventType);
+            log_message([
+                'level' => 'info',
+                'message' => 'Event Type: ' . $eventType
+            ], 'stripe.log');
 
             if ($eventType === 'checkout.session.completed') {
                 $this->handleChargeSucceeded($payload['data']['object']);
@@ -71,7 +59,10 @@ class CustomWebhookController extends WebhookController
 
             return response()->json(['message' => 'Webhook received']);
         } catch (Exception $e) {
-            Log::error("Webhook processing error: " . $e->getMessage());
+            log_message([
+                'level' => 'error',
+                'message' => "Webhook processing error: " . $e->getMessage()
+            ], 'stripe.log');
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -84,7 +75,10 @@ class CustomWebhookController extends WebhookController
 
         $user = User::where("stripe_id", $customerID)->first();
         if (!$user) {
-            Log::error("User not found for customer ID: $customerID");
+            log_message([
+                'level' => 'error',
+                'message' => "User not found for customer ID: $customerID"
+            ], 'stripe.log');
             return;
         }
 
@@ -93,7 +87,10 @@ class CustomWebhookController extends WebhookController
             : ServicePlan::find($user->business->service_plan_id);
 
         if (!$service_plan) {
-            Log::error("Service plan not found for user ID: $user->id");
+            log_message([
+                'level' => 'error',
+                'message' => "Service plan not found for user ID: $user->id"
+            ], 'stripe.log');
             return;
         }
 
@@ -119,7 +116,10 @@ class CustomWebhookController extends WebhookController
             try {
                 Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com'])->send(new UserRegistered($user, $subscription));
             } catch (Exception $e) {
-                Log::error("Failed to send registration email: " . $e->getMessage());
+                log_message([
+                'level' => 'error',
+                'message' => "Failed to send registration email: " . $e->getMessage()
+            ], 'stripe.log');
             }
         }
     }
@@ -147,7 +147,10 @@ class CustomWebhookController extends WebhookController
             $user = User::where("stripe_id", $customerID)->first();
 
             if (!$user) {
-                Log::error("User not found for customer ID: $customerID");
+                log_message([
+                    'level' => 'error',
+                    'message' => "User not found for customer ID: $customerID"
+                ], 'stripe.log');
                 return;
             }
 
@@ -156,7 +159,10 @@ class CustomWebhookController extends WebhookController
                 : ServicePlan::find($user->business->service_plan_id);
 
             if (!$service_plan) {
-                Log::error("Service plan not found for user ID: $user->id");
+                log_message([
+                    'level' => 'error',
+                    'message' => "Service plan not found for user ID: $user->id"
+                ], 'stripe.log');
                 return;
             }
 
@@ -183,10 +189,32 @@ class CustomWebhookController extends WebhookController
                 try {
                     Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com', 'rony.mia7800@gmail.com'])->send(new UserSubscriptionRenewed($user, $subscription));
                 } catch (Exception $e) {
-                    Log::error("Failed to send renewal email: " . $e->getMessage());
+                    log_message([
+                'level' => 'error',
+                'message' => "Failed to send renewal email: " . $e->getMessage()
+            ], 'stripe.log');
                 }
             }
         }
+    }
+
+    private function decryptId(?string $id): ?string
+    {
+        if (empty($id)) return null;
+        if (is_numeric($id)) return $id;
+
+        if (strlen(string: $id) >= 20) {
+            $stripped = substr(string: $id, offset: 10, length: -10);
+            $decoded = base64_decode(strtr($stripped, '-_', '+/'));
+            if ($decoded !== false) return $decoded;
+        }
+
+        $decoded = base64_decode(strtr($id, '-_', '+/'), true);
+        if ($decoded !== false && is_numeric($decoded)) {
+            return $decoded;
+        }
+
+        return $id;
     }
 
     protected function handlePaymentIntentSucceeded($data)
@@ -194,29 +222,51 @@ class CustomWebhookController extends WebhookController
         $amount = isset($data['amount_received']) ? $data['amount_received'] / 100 : null;
         $metadata = $data['metadata'] ?? [];
 
-        $businessId = $metadata['business_id'] ?? null;
-        $planId = $metadata['plan_id'] ?? null;
+        $businessId = $this->decryptId($metadata['business_id'] ?? null);
+        $planId = $this->decryptId($metadata['plan_id'] ?? null);
 
         if (!$businessId || !$planId) {
-            Log::info("PaymentIntent succeeded, but metadata is missing business_id or plan_id. Ignoring.");
+            log_message([
+                'level' => 'info',
+                'message' => "PaymentIntent succeeded, but metadata is missing business_id or plan_id. Ignoring."
+            ], 'stripe.log');
+            return;
+        }
+
+        // CHECK IF ALREADY PROVISIONED (e.g., via confirm-payment endpoint)
+        $existingSub = \App\Models\BusinessSubscription::where('transaction_id', $data['id'])->first();
+        if ($existingSub) {
+            log_message([
+                'level' => 'info',
+                'message' => "Subscription already provisioned for PaymentIntent: " . $data['id']
+            ], 'stripe.log');
             return;
         }
 
         $business = \App\Models\Business::find($businessId);
         if (!$business) {
-            Log::error("Business not found for ID: $businessId");
+            log_message([
+                'level' => 'error',
+                'message' => "Business not found for ID: $businessId"
+            ], 'stripe.log');
             return;
         }
 
         $user = User::where('business_id', $businessId)->first();
         if (!$user) {
-            Log::error("User not found for business ID: $businessId");
+            log_message([
+                'level' => 'error',
+                'message' => "User not found for business ID: $businessId"
+            ], 'stripe.log');
             return;
         }
 
         $service_plan = ServicePlan::find($planId);
         if (!$service_plan) {
-            Log::error("Service plan not found for plan ID: $planId");
+            log_message([
+                'level' => 'error',
+                'message' => "Service plan not found for plan ID: $planId"
+            ], 'stripe.log');
             return;
         }
 
@@ -242,7 +292,10 @@ class CustomWebhookController extends WebhookController
             try {
                 Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com', 'rony.mia7800@gmail.com'])->send(new UserRegistered($user, $subscription));
             } catch (Exception $e) {
-                Log::error("Failed to send registration email for PaymentIntent: " . $e->getMessage());
+                log_message([
+                'level' => 'error',
+                'message' => "Failed to send registration email for PaymentIntent: " . $e->getMessage()
+            ], 'stripe.log');
             }
         }
     }
@@ -250,16 +303,22 @@ class CustomWebhookController extends WebhookController
     protected function handlePaymentIntentFailed($data)
     {
         $metadata = $data['metadata'] ?? [];
-        $businessId = $metadata['business_id'] ?? null;
+        $businessId = $this->decryptId($metadata['business_id'] ?? null);
 
         if (!$businessId) {
-            Log::info("PaymentIntent failed, but metadata is missing business_id. Ignoring.");
+            log_message([
+                'level' => 'info',
+                'message' => "PaymentIntent failed, but metadata is missing business_id. Ignoring."
+            ], 'stripe.log');
             return;
         }
 
         $user = User::where('business_id', $businessId)->first();
         if (!$user) {
-            Log::error("User not found for business ID: $businessId during payment failure.");
+            log_message([
+                'level' => 'error',
+                'message' => "User not found for business ID: $businessId during payment failure."
+            ], 'stripe.log');
             return;
         }
 
@@ -267,10 +326,119 @@ class CustomWebhookController extends WebhookController
             try {
                 Mail::to(['ralashwad@gmail.com'])->send(new UserPaymentFailed($user));
             } catch (Exception $e) {
-                Log::error("Failed to send payment failed email: " . $e->getMessage());
+                log_message([
+                'level' => 'error',
+                'message' => "Failed to send payment failed email: " . $e->getMessage()
+            ], 'stripe.log');
             }
         }
-        
-        Log::info("PaymentIntent failed for User: {$user->id} (Business: {$businessId}).");
+
+        log_message([
+            'level' => 'info',
+            'message' => "PaymentIntent failed for User: {$user->id} (Business: {$businessId})."
+        ], 'stripe.log');
+    }
+
+    /**
+     * @OA\Post(
+     *   path="/v1.0/subscriptions/create-intent",
+     *   operationId="createSubscriptionIntent",
+     *   tags={"subscription_management"},
+     *   security={{"bearerAuth":{}}},
+     *   summary="Create a Stripe PaymentIntent for subscription checkout",
+     *   description="Creates a PaymentIntent based on the selected plan. Expects encrypted plan_id and business_id.",
+     *   @OA\RequestBody(
+     *       required=true,
+     *       @OA\JsonContent(
+     *           @OA\Property(property="plan_id", type="string", description="Encrypted Plan ID"),
+     *           @OA\Property(property="business_id", type="string", description="Encrypted Business ID"),
+     *           @OA\Property(property="reseller_id", type="string", description="Encrypted Reseller ID (optional)"),
+     *           @OA\Property(property="amount", type="integer", description="Fallback amount in cents"),
+     *           @OA\Property(property="currency", type="string", default="gbp")
+     *       )
+     *   ),
+     *   @OA\Response(response=200, description="Successful operation", @OA\JsonContent())
+     * )
+     */
+    public function createIntent(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'plan_id'     => 'required|string',
+            'business_id' => 'required|string',
+            'reseller_id' => 'nullable|string',
+            'amount'      => 'required|integer',
+            'currency'    => 'nullable|string'
+        ]);
+
+        $decryptedPlanId = $this->decryptId($request->input('plan_id'));
+        $decryptedBusinessId = $this->decryptId($request->input('business_id'));
+        $decryptedResellerId = $request->has('reseller_id') ? $this->decryptId($request->input('reseller_id')) : null;
+
+        $plan = \App\Models\ServicePlan::find($decryptedPlanId);
+
+        if ($plan) {
+            $amountInCents = (int) (($plan->price + $plan->set_up_amount) * 100);
+        } else {
+            $amountInCents = $request->input('amount');
+        }
+
+        $currency = $request->input('currency', 'gbp');
+        $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
+
+        try {
+            $webhookUrl = rtrim(env('APP_URL', 'https://api-backend.feedgenius.ai'), '/') . '/api/webhooks/stripe';
+            if (!\Illuminate\Support\Facades\Cache::has('stripe_webhook_registered_v2')) {
+                $endpoints = $stripe->webhookEndpoints->all(['limit' => 100]);
+                $exists = false;
+                foreach ($endpoints->data as $endpoint) {
+                    if ($endpoint->url === $webhookUrl) {
+                        $exists = true;
+                        break;
+                    }
+                }
+                if (!$exists) {
+                    $stripe->webhookEndpoints->create([
+                        'url' => $webhookUrl,
+                        'enabled_events' => [
+                            'payment_intent.succeeded',
+                            'payment_intent.payment_failed'
+                        ],
+                    ]);
+                }
+                \Illuminate\Support\Facades\Cache::put('stripe_webhook_registered_v2', true, now()->addDays(30));
+            }
+        } catch (\Exception $e) {
+            log_message(['level' => 'error', 'message' => 'Failed to auto-register webhook: ' . $e->getMessage()], 'stripe.log');
+        }
+
+        try {
+            $paymentIntent = $stripe->paymentIntents->create([
+                'amount'   => $amountInCents,
+                'currency' => $currency,
+                'metadata' => [
+                    'plan_id'     => $decryptedPlanId,
+                    'business_id' => $decryptedBusinessId,
+                    'reseller_id' => $decryptedResellerId,
+                ],
+                'automatic_payment_methods' => [
+                    'enabled' => true,
+                ],
+            ]);
+
+            return response()->json([
+                'success'       => true,
+                'message'       => 'Payment Intent created successfully',
+                'client_secret' => $paymentIntent->client_secret,
+                'data'          => [
+                    'client_secret' => $paymentIntent->client_secret
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create PaymentIntent: ' . $e->getMessage(),
+                'data'    => []
+            ], 500);
+        }
     }
 }

@@ -101,8 +101,8 @@ Route::middleware(['auth:api'])->group(function () {
     // Subscription Management
     Route::controller(BusinessSubscriptionController::class)->group(function () {
         Route::get('/v1.0/my-subscription', 'getMySubscription');
-        Route::post('/v1.0/subscriptions/create-intent', 'createIntent');
     });
+    Route::post('/v1.0/subscriptions/create-intent', [CustomWebhookController::class, 'createIntent']);
 
     // modules  management section
     Route::put('/v1.0/modules/toggle-active', [ModuleController::class, "toggleActiveModule"]);
