@@ -33,16 +33,18 @@ class TokenUsageUtil
                 'used' => 0,
                 'limit' => 0,
                 'remaining' => 0,
+                'percentage' => 0,
             ],
             'billing_cycle_start' => null,
             'billing_cycle_end' => null,
         ];
 
-        if (!$business->service_plan) {
+        if (!$business->service_plan && $business->openai_token_limit === null) {
             return $usage;
         }
 
-        $usage['ai_tokens']['limit'] = $business->service_plan->openai_token_limit;
+        // Use the business's overridden limit (or fallback limit), rather than the plan's default
+        $usage['ai_tokens']['limit'] = $business->openai_token_limit;
         $usage['reviews']['limit'] = $business->estimated_reviews_limit;
 
         // Resolve dependencies if not provided
@@ -80,13 +82,18 @@ class TokenUsageUtil
             $usage['reviews']['used'] = (int) $query->count();
 
             if ($usage['ai_tokens']['limit'] > 0) {
-                $usage['ai_tokens']['percentage'] = round(($usage['ai_tokens']['used'] / $usage['ai_tokens']['limit']) * 100, 1);
+                $percentage = ($usage['ai_tokens']['used'] / $usage['ai_tokens']['limit']) * 100;
+                $usage['ai_tokens']['percentage'] = (float) number_format($percentage, 1, '.', '');
             }
 
             if ($usage['reviews']['limit'] === -1) {
                 $usage['reviews']['remaining'] = -1; // Unlimited
             } else {
                 $usage['reviews']['remaining'] = max(0, $usage['reviews']['limit'] - $usage['reviews']['used']);
+                if ($usage['reviews']['limit'] > 0) {
+                    $percentage = ($usage['reviews']['used'] / $usage['reviews']['limit']) * 100;
+                    $usage['reviews']['percentage'] = (float) number_format($percentage, 1, '.', '');
+                }
             }
         }
 
