@@ -101,6 +101,7 @@ Route::middleware(['auth:api'])->group(function () {
     // Subscription Management
     Route::controller(BusinessSubscriptionController::class)->group(function () {
         Route::get('/v1.0/my-subscription', 'getMySubscription');
+        Route::post('/v1.0/subscriptions/create-intent', 'createIntent');
     });
 
     // modules  management section

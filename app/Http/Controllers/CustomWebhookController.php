@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\UserPaymentFailed;
 use App\Mail\UserRegistered;
 use App\Mail\UserSubscriptionRenewed;
 use App\Models\ServicePlan;
@@ -10,7 +11,6 @@ use App\Models\User;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Cashier\Http\Controllers\WebhookController;
@@ -59,6 +59,14 @@ class CustomWebhookController extends WebhookController
 
             if ($eventType === 'invoice.payment_succeeded') {
                 $this->handleSubscriptionPaymentSucceeded($payload['data']['object']);
+            }
+
+            if ($eventType === 'payment_intent.succeeded') {
+                $this->handlePaymentIntentSucceeded($payload['data']['object']);
+            }
+
+            if ($eventType === 'payment_intent.payment_failed') {
+                $this->handlePaymentIntentFailed($payload['data']['object']);
             }
 
             return response()->json(['message' => 'Webhook received']);
@@ -173,11 +181,96 @@ class CustomWebhookController extends WebhookController
 
             if (env("SEND_EMAIL") == true) {
                 try {
-                    Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com'])->send(new UserSubscriptionRenewed($user, $subscription));
+                    Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com', 'rony.mia7800@gmail.com'])->send(new UserSubscriptionRenewed($user, $subscription));
                 } catch (Exception $e) {
                     Log::error("Failed to send renewal email: " . $e->getMessage());
                 }
             }
         }
+    }
+
+    protected function handlePaymentIntentSucceeded($data)
+    {
+        $amount = isset($data['amount_received']) ? $data['amount_received'] / 100 : null;
+        $metadata = $data['metadata'] ?? [];
+
+        $businessId = $metadata['business_id'] ?? null;
+        $planId = $metadata['plan_id'] ?? null;
+
+        if (!$businessId || !$planId) {
+            Log::info("PaymentIntent succeeded, but metadata is missing business_id or plan_id. Ignoring.");
+            return;
+        }
+
+        $business = \App\Models\Business::find($businessId);
+        if (!$business) {
+            Log::error("Business not found for ID: $businessId");
+            return;
+        }
+
+        $user = User::where('business_id', $businessId)->first();
+        if (!$user) {
+            Log::error("User not found for business ID: $businessId");
+            return;
+        }
+
+        $service_plan = ServicePlan::find($planId);
+        if (!$service_plan) {
+            Log::error("Service plan not found for plan ID: $planId");
+            return;
+        }
+
+        $subscription = BusinessSubscription::create([
+            'business_id' => $businessId,
+            'service_plan_id' => $service_plan->id,
+            'start_date' => now(),
+            'end_date' => now()->addMonths($service_plan->duration_months ?: 1),
+            'amount' => $amount,
+            'paid_at' => now(),
+            'transaction_id' => $data['id'],
+            'openai_token_limit' => $service_plan->openai_token_limit,
+            'status' => 'active'
+        ]);
+
+        // Synchronize limit to business table
+        $business->update([
+            'openai_token_limit' => $service_plan->openai_token_limit,
+            'service_plan_id' => $service_plan->id
+        ]);
+
+        if (env("SEND_EMAIL") == true) {
+            try {
+                Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com', 'rony.mia7800@gmail.com'])->send(new UserRegistered($user, $subscription));
+            } catch (Exception $e) {
+                Log::error("Failed to send registration email for PaymentIntent: " . $e->getMessage());
+            }
+        }
+    }
+
+    protected function handlePaymentIntentFailed($data)
+    {
+        $metadata = $data['metadata'] ?? [];
+        $businessId = $metadata['business_id'] ?? null;
+
+        if (!$businessId) {
+            Log::info("PaymentIntent failed, but metadata is missing business_id. Ignoring.");
+            return;
+        }
+
+        $user = User::where('business_id', $businessId)->first();
+        if (!$user) {
+            Log::error("User not found for business ID: $businessId during payment failure.");
+            return;
+        }
+
+        if (env("SEND_EMAIL") == true) {
+            try {
+                Mail::to(['ralashwad@gmail.com'])->send(new UserPaymentFailed($user));
+            } catch (Exception $e) {
+                Log::error("Failed to send payment failed email: " . $e->getMessage());
+            }
+        }
+        
+        Log::info("PaymentIntent failed for User: {$user->id} (Business: {$businessId}).");
     }
 }
