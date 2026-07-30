@@ -281,7 +281,7 @@ class Business extends Model
             business: $this
         );
         
-        return $usage['tokens_used'] >= $limit;
+        return $usage['ai_tokens']['used'] >= $limit;
     }
 
     public function getEstimatedTokensPerReviewAttribute(): int

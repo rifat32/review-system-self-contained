@@ -24,9 +24,16 @@ class TokenUsageUtil
         $trialEndDate = null
     ): array {
         $usage = [
-            'tokens_used' => 0,
-            'tokens_limit' => 0,
-            'usage_percentage' => 0,
+            'ai_tokens' => [
+                'used' => 0,
+                'limit' => 0,
+                'percentage' => 0,
+            ],
+            'reviews' => [
+                'used' => 0,
+                'limit' => 0,
+                'remaining' => 0,
+            ],
             'billing_cycle_start' => null,
             'billing_cycle_end' => null,
         ];
@@ -35,7 +42,8 @@ class TokenUsageUtil
             return $usage;
         }
 
-        $usage['tokens_limit'] = $business->service_plan->openai_token_limit;
+        $usage['ai_tokens']['limit'] = $business->service_plan->openai_token_limit;
+        $usage['reviews']['limit'] = $business->estimated_reviews_limit;
 
         // Resolve dependencies if not provided
         $currentSubscription = $currentSubscription ?? $business->current_subscription;
@@ -68,10 +76,17 @@ class TokenUsageUtil
                 $query->where('created_at', '<=', $endDate);
             }
 
-            $usage['tokens_used'] = (int) $query->sum('total_tokens');
+            $usage['ai_tokens']['used'] = (int) $query->sum('total_tokens');
+            $usage['reviews']['used'] = (int) $query->count();
 
-            if ($usage['tokens_limit'] > 0) {
-                $usage['usage_percentage'] = round(($usage['tokens_used'] / $usage['tokens_limit']) * 100, 1);
+            if ($usage['ai_tokens']['limit'] > 0) {
+                $usage['ai_tokens']['percentage'] = round(($usage['ai_tokens']['used'] / $usage['ai_tokens']['limit']) * 100, 1);
+            }
+
+            if ($usage['reviews']['limit'] === -1) {
+                $usage['reviews']['remaining'] = -1; // Unlimited
+            } else {
+                $usage['reviews']['remaining'] = max(0, $usage['reviews']['limit'] - $usage['reviews']['used']);
             }
         }
 
