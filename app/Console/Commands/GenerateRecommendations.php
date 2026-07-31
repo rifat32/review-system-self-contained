@@ -139,23 +139,17 @@ class GenerateRecommendations extends Command
                                 ?? ($openaiData['summary']['manager_summary'] 
                                 ?? ($rev->comment ?? 'No comment provided.'));
 
-                            $strengths = [];
-                            $weaknesses = [];
-                            if (!empty($openaiData['category_analysis'])) {
-                                foreach ($openaiData['category_analysis'] as $cat) {
-                                    if (($cat['sentiment'] ?? '') === 'positive') {
-                                        $strengths[] = $cat['main_category'] ?? ($cat['sub_category'] ?? '');
-                                    } elseif (($cat['sentiment'] ?? '') === 'negative') {
-                                        $weaknesses[] = $cat['main_category'] ?? ($cat['sub_category'] ?? '');
-                                    }
-                                }
-                            }
-
                             $latestInsight[] = [
-                                'summary' => $oneLineSummary,
-                                'strengths' => array_values(array_unique(array_filter($strengths))),
-                                'weaknesses' => array_values(array_unique(array_filter($weaknesses))),
+                                'review_id' => $rev->id,
                                 'rating' => $rev->calculated_rating ?? 5,
+                                'sentiment' => $rev->sentiment_label ?? 'neutral',
+                                'emotion' => $openaiData['emotion']['primary'] ?? 'neutral',
+                                'topics' => $openaiData['topics'] ?? [],
+                                'positive_aspects' => $openaiData['positive_aspects'] ?? [],
+                                'negative_aspects' => $openaiData['negative_aspects'] ?? [],
+                                'issues' => $openaiData['issues'] ?? [],
+                                'summary' => $oneLineSummary,
+                                'confidence' => (float) ($openaiData['explainability']['confidence_score'] ?? ($openaiData['sentiment']['confidence'] ?? 0.85))
                             ];
                         }
 
@@ -166,6 +160,23 @@ class GenerateRecommendations extends Command
                         
                         // Prevent double-counting if it is a fallback/forced run with no actual new reviews
                         $totalReviewsCount = $prevTotalReviews + ($isFallbackRun ? 0 : $newReviews->count());
+                        
+                        $startReviewNum = $prevTotalReviews + 1;
+                        $endReviewNum = $totalReviewsCount;
+
+                        $currentMetrics = [
+                            'total_reviews' => ReviewNew::where('business_id', $business->id)->count(),
+                            'average_rating' => round(ReviewNew::where('business_id', $business->id)->avg('calculated_rating') ?? 0, 2),
+                            'sentiment_counts' => [
+                                'positive' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'positive')->count(),
+                                'neutral' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'neutral')->count(),
+                                'negative' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'negative')->count(),
+                            ],
+                            'rule_trigger_counts' => \App\Models\AiRuleTrigger::where('was_suppressed', false)
+                                ->whereHas('review', function($q) use ($business) {
+                                    $q->where('business_id', $business->id);
+                                })->count()
+                        ];
 
                         $this->line("  → Generating rolling AI insights...");
                         Log::channel('daily')->info("  → Generating rolling AI insights for Business {$business->id}...");
@@ -176,13 +187,16 @@ class GenerateRecommendations extends Command
                         ], 'ai_process.log');
 
                         try {
-                            $updatedInsight = $this->openaiProcessorService->generateRollingInsight($previousInsight, $latestInsight);
+                            $updatedInsight = $this->openaiProcessorService->generateRollingInsight($previousInsight, $latestInsight, $currentMetrics);
 
                             if ($updatedInsight && !empty($updatedInsight['summary']) && is_string($updatedInsight['summary'])) {
-                                // Overwrite metadata to ensure integrity
+                                // Overwrite metadata to ensure integrity and backward compatibility
                                 $updatedInsight['version'] = $nextVersion;
+                                $updatedInsight['summary_version'] = $nextVersion;
                                 $updatedInsight['totalReviews'] = $totalReviewsCount;
                                 $updatedInsight['time'] = now()->toIso8601String();
+                                $updatedInsight['generated_at'] = now()->toIso8601String();
+                                $updatedInsight['covers_reviews'] = "{$startReviewNum}-{$endReviewNum}";
 
                                 DB::transaction(function () use ($business, $updatedInsight, $isFallbackRun, $newReviews, $totalReviewsCount, $nextVersion) {
                                     $business->update([

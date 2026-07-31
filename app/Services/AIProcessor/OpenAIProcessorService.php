@@ -696,443 +696,82 @@ Your job is to analyse ONE customer review and return ONLY valid JSON in this ex
 Do NOT return markdown.
 Do NOT explain your reasoning.
 Do NOT return additional text.
-Your responsibilities are ONLY to perform language understanding.
-DO NOT calculate business metrics.
-DO NOT calculate averages.
-DO NOT calculate trends.
-DO NOT calculate dashboard statistics.
-DO NOT determine if rating and sentiment align.
-DO NOT trigger business rules.
-Those are handled by the application.
+Your responsibilities are:
+1. Detect language.
+2. Translate to English if required.
+3. Analyse customer sentiment.
+4. Detect customer emotion.
+5. Extract topics mentioned.
+6. Extract positive aspects.
+7. Extract negative aspects.
+8. Identify business issues.
+9. Estimate issue severity.
+10. Detect abusive language.
+11. Detect sarcasm where reasonably confident.
+12. Estimate spam/fake probability.
+13. Generate a concise review summary.
+14. Suggest practical improvements.
+15. Return confidence scores.
+
 Use ONLY the review provided.
 Never invent information.
 If something is not mentioned, return an empty array or null.
 Return JSON ONLY.
 
-JSON Structure:
+Expected JSON Structure:
 {
   "language": {
-    "detected": "language code",
-    "translated_text": "English translation if not English"
+    "detected": "en",
+    "translated_text": null
   },
   "sentiment": {
     "label": "negative|neutral|positive",
-    "score": 0.0 to 1.0
-},
+    "confidence": 0.0 to 1.0
+  },
   "emotion": {
-    "primary": "joy|sadness|anger|fear|surprise|disgust|neutral",
-    "intensity": "low|medium|high"
+    "primary": "joy|sadness|anger|fear|surprise|disgust|frustration|satisfaction|neutral",
+    "intensity": "low|medium|high",
+    "confidence": 0.0 to 1.0
   },
-  "moderation": {
-    "is_abusive": true|false,
-    "safe_for_public_display": true|false,
-    "issues_found": ["list", "of", "issues"],
-    "severity": "low|medium|high"
-  },
-  "rating_comment_alignment": {
-    "is_aligned": true|false,
-    "mismatch_type": "positive_rating_negative_comment|negative_rating_positive_comment|neutral_mismatch|none",
-    "confidence": 0.0 to 1.0,
-    "explanation": "Why ratings and comments don't match",
-    "key_contradiction": "specific contradiction found"
-  },
-PROMPT;
-
-        // Add optional modules based on enabledModules array
-        if ($this->moduleEnabled($enabledModules, 'category_analysis')) {
-            $prompt .= <<<PROMPT
-  "category_analysis": [
+  "topics": ["list", "of", "topics"],
+  "positive_aspects": ["list", "of", "positive", "aspects"],
+  "negative_aspects": ["list", "of", "negative", "aspects"],
+  "issues": [
     {
-      "main_category": "Staff|Service|Food|Ambiance|Cleanliness|Price|Location|Others",
-      "sub_category": "specific aspect",
-      "sentiment": "negative|neutral|positive",
-      "severity": "low|medium|high",
-      "evidence_from_comment": "specific phrase from comment"
+      "category": "category name",
+      "severity": "low|medium|high"
     }
   ],
-PROMPT;
-        } else {
-            $prompt .= <<<PROMPT
-  "category_analysis": [],
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'staff_intelligence')) {
-            $prompt .= <<<PROMPT
-  "staff_intelligence": {
-    "staff_id": "staff id",
-    "staff_name": "staff name",
-    "mentioned_explicitly": true|false,
-    "sentiment_towards_staff": "negative|neutral|positive",
-    "soft_skill_scores": {
-      "politeness": 1-5,
-      "communication": 1-5,
-      "empathy": 1-5,
-      "professionalism": 1-5
-    },
-    "training_recommendations": ["list", "of", "trainings"],
-    "risk_level": "low|medium|high",
-    "blame_detected": true|false,
-    "staff_context": "staff vs process issue"
+  "abusive_language": {
+    "detected": true|false
   },
-PROMPT;
-        } else {
-            $prompt .= <<<PROMPT
-  "staff_intelligence": null,
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'service_unit_intelligence')) {
-            $prompt .= <<<PROMPT
-  "service_unit_intelligence": {
-    "unit_type": "Room|Table|Equipment|Vehicle|Other",
-    "unit_id": "id if available",
-    "issues_detected": [],
-    "maintenance_required": false,
-    "severity": "low|medium|high"
+  "sarcasm": {
+    "detected": true|false
   },
-PROMPT;
-        } else {
-            $prompt .= <<<PROMPT
-  "service_unit_intelligence": null,
-PROMPT;
-        }
-
-        if (
-            $this->moduleEnabled($enabledModules, 'area_insights') ||
-            $this->moduleEnabled($enabledModules, 'business_area_detection')
-        ) {
-            $prompt .= <<<PROMPT
-  "area_insights": [
-    {
-      "area_id": "area identifier",
-      "area_name": "area name",
-      "sentiment": "positive|mixed|negative",
-      "key_issues": ["list", "of", "issues"],
-      "strengths": ["list", "of", "strengths"],
-      "supporting_evidence": "text from comment that supports this"
-    }
-  ],
-PROMPT;
-        } else {
-            $prompt .= <<<PROMPT
-  "area_insights": [],
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'business_recommendations')) {
-            $prompt .= <<<PROMPT
-  "business_insights": {
-    "root_cause": "main issue identified",
-    "repeat_issue_likelihood": "low|medium|high",
-    "impact_level": "low|medium|high",
-    "affected_areas": ["list", "of", "areas"]
-  },
-  "recommendations": {
-    "business_actions": ["action items"],
-    "staff_actions": ["action items"],
-    "immediate_actions": ["urgent actions if needed"],
-    "priority": "high|medium|low"
-  },
-PROMPT;
-        } else {
-            $prompt .= <<<PROMPT
-  "business_insights": {
-    "root_cause": "N/A",
-    "repeat_issue_likelihood": "N/A",
-    "impact_level": "N/A",
-    "affected_areas": []
-  },
-  "recommendations": {
-    "business_actions": [],
-    "staff_actions": [],
-    "immediate_actions": [],
-    "priority": "low"
-  },
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'alerts')) {
-            $prompt .= <<<PROMPT
-  "alerts": {
-    "triggered": true|false,
-    "type": "critical|warning|insight|info",
-    "priority": "high|medium|low",
-    "message": "alert message",
-    "reason": "why this alert was triggered",
-    "recommended_action": "what should be done"
-  },
-PROMPT;
-        } else {
-            $prompt .= <<<PROMPT
-  "alerts": {
-    "triggered": false,
-    "type": "info",
-    "priority": "low",
-    "message": "Alerts module disabled"
-  },
-PROMPT;
-        }
-
-        // NEW: Add flags section for dashboard insights
-        $prompt .= <<<PROMPT
-  "flags": [
-    {
-      "flag_type": "INSIGHT|WARNING|CRITICAL",
-      "severity": "low|medium|high",
-      "reason": "why this is flagged",
-      "recommended_action": "action to take"
-    }
-  ],
-  "staff_impact": {
-    "staff_blame_detected": false,
-    "note": "clarify if issue is about staff or process"
-  },
-PROMPT;
-
-        $prompt .= <<<PROMPT
-  "explainability": {
-    "decision_basis": ["key factors"],
-    "confidence_score": 0.0 to 1.0,
-    "key_factors": ["important elements"],
-    "why_flagged": "explanation for any flags",
-    "how_decision_was_made": "decision logic explanation"
-  },
-  "summary": {
-    "one_line": "brief summary",
-    "manager_summary": "detailed summary for managers",
-    "customer_sentiment_summary": "sentiment summary",
-    "overall_assessment": "positive_with_concerns|positive|mixed|negative_with_positives|negative"
-  }
+  "spam_probability": 0.0 to 1.0,
+  "summary": "concise review summary",
+  "recommendations": ["list", "of", "practical", "improvements"]
 }
 
-CRITICAL ANALYSIS GUIDELINES:
-
-1. LANGUAGE: Detect language, translate to English if needed
-
-PROMPT;
-
-        // Add analysis guidelines only for enabled modules
-        if ($this->moduleEnabled($enabledModules, 'sentiment_analysis')) {
-            $prompt .= <<<PROMPT
-2. SENTIMENT & RATING-COMMENT ALIGNMENT:
-   - Check if numeric ratings match the tone of comments
-   - High ratings (4-5) with negative words = "positive_rating_negative_comment"
-   - Low ratings (1-2) with positive words = "negative_rating_positive_comment"
-   - Examples of mismatch detection:
-     * Rating 5, comment "terrible service" = MISMATCH
-     * Rating 1, comment "amazing experience" = MISMATCH
-     * Rating 4, comment "good but could be better" = ALIGNED (constructive feedback)
-   - Provide clear explanation in "rating_comment_alignment.explanation"
-
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'emotion_detection')) {
-            $prompt .= "\n3. EMOTION DETECTION:\n   - Angry words = anger\n   - Happy words = joy\n   - Disappointed words = sadness\n   - Fearful words = fear\n   - Frustrated words = anger/disgust";
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'abuse_detection')) {
-            $prompt .= "\n4. MODERATION: Mark as abusive for hate speech, threats, extreme profanity, personal attacks";
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'category_analysis')) {
-            $prompt .= <<<PROMPT
-5. CATEGORY ANALYSIS:
-   - Staff: Behavior, knowledge, attitude, professionalism
-   - Service: Speed, efficiency, wait time, process
-   - Food: Quality, taste, presentation, temperature
-   - Ambiance: Noise, lighting, music, comfort
-   - Cleanliness: Clean, dirty, hygiene, maintenance
-   - Price: Value, expensive, affordable, worth it
-   - Location: Convenience, parking, accessibility
-   - Others: Booking, reservation, website, app
-
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'staff_intelligence')) {
-            $prompt .= <<<PROMPT
-6. STAFF INTELLIGENCE:
-   - Distinguish between staff behavior vs process issues
-   - Staff blame: "rude staff" = staff issue
-   - Process blame: "slow service" = process issue
-   - If staff mentioned negatively but rating is high, note the contradiction
-   - Set "staff_blame_detected": true only if criticism is directed at staff personally
-
-PROMPT;
-        }
-
-        if (
-            $this->moduleEnabled($enabledModules, 'area_insights') ||
-            $this->moduleEnabled($enabledModules, 'business_area_detection')
-        ) {
-            $prompt .= <<<PROMPT
-7. AREA INSIGHTS:
-   - Map comments to specific areas mentioned (reception, room, kitchen, etc.)
-   - If multiple areas mentioned, analyze each separately
-   - Example: "reception was great but room was dirty" → two areas with different sentiments
-   - Use "supporting_evidence" to quote specific text from comment
-   - Identify which area is most impacted by negative feedback
-
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'business_recommendations')) {
-            $prompt .= <<<PROMPT
-8. RECOMMENDATIONS:
-   - Be specific and actionable
-   - Link recommendations to specific areas/issues
-   - For rating-comment mismatches: Suggest investigating hidden issues
-   - Example: "Review reception staffing during peak hours"
-
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'alerts')) {
-            $prompt .= <<<PROMPT
-9. ALERTS & FLAGS:
-   - "insight" flag for: High ratings with negative comments
-   - "warning" flag for: Repeated issues in same area
-   - "critical" flag for: Safety issues, abusive content
-   - For mismatches: Use "INSIGHT" flag type with "medium" severity
-   - Include clear "reason" and "recommended_action"
-
-PROMPT;
-        }
-
-        $prompt .= <<<PROMPT
-
-BUSINESS-SPECIFIC ANALYSIS RULES:
-
-1. RATING-COMMENT CONTRADICTIONS:
-   - Always check if the comment contradicts the numeric rating
-   - A rating of 4/5 with words like "terrible", "awful", "unacceptable" = MISMATCH
-   - Explain the contradiction clearly for business owners
-
-2. AREA-SPECIFIC FEEDBACK:
-   - Identify which business area is being discussed
-   - Separate staff performance from area/process issues
-   - Example: "Staff were polite but wait time was long" → Staff: positive, Process: negative
-
-3. FAIR STAFF ASSESSMENT:
-   - Don't blame staff for process issues
-   - "Long wait time" = process issue, not staff issue
-   - "Rude staff" = staff issue
-   - Set "staff_blame_detected" accordingly
-
-4. ACTIONABLE INSIGHTS:
-   - Provide insights that managers can act on
-   - If mismatch found, suggest investigating the specific issue mentioned
-   - Example: "Customer rated 5 stars but mentioned long wait time → Investigate reception staffing"
-
-5. DASHBOARD-FRIENDLY OUTPUT:
-   - Structure data so it can be displayed in dashboards
-   - Use clear categories and labels
-   - Include evidence from comments to support decisions
-
-JSON OUTPUT FORMATTING RULES - CRITICAL:
-1. Return ONLY valid JSON, no additional text before or after
-2. Do NOT wrap JSON in markdown code blocks (no \`\`\`json or \`\`\`)
-3. Use ONLY straight double quotes (") for property names and string values
-4. Escape ALL double quotes within strings: "staff said \"hello\"" not "staff said "hello""
-5. Do NOT add trailing commas: {"a": 1, "b": 2} not {"a": 1, "b": 2,}
-6. Ensure ALL strings are properly quoted: "label": "negative" not "label": negative
-7. Ensure ALL booleans are lowercase: true/false not True/False
-8. Ensure ALL numbers are not quoted: "score": 0.5 not "score": "0.5"
-9. Complete ALL JSON structures - don't truncate arrays or objects
-10. If the response is long, ensure max_tokens is sufficient to complete
-11. Ensure ALL special characters in strings are properly escaped
-12. Make sure to close ALL brackets and braces properly
-13. Do not leave any JSON structures incomplete
-14. If you reach token limit, prioritize completing the JSON structure over adding more detail
-
-IMPORTANT: If your response gets cut off due to token limits, reduce detail but keep valid JSON structure.
-Return COMPLETE JSON even if you need to omit some details. A complete but less detailed JSON is better than truncated JSON.
-
-SPECIAL CHARACTER HANDLING:
-- Escape backslashes: "path\\to\\file" becomes "path\\\\to\\\\file"
-- Escape double quotes within strings: He said "hello" becomes "He said \\"hello\\""
-- Escape newlines: Use \\\\n instead of actual newline in JSON strings
-- Escape tabs: Use \\\\t instead of actual tab in JSON strings
-
-TOKEN LIMIT MANAGEMENT:
-- If the JSON structure is large, prioritize completing the structure
-- You can shorten explanations if needed
-- You can reduce the number of items in arrays if needed
-- But ALWAYS return valid, complete JSON
-
-TOKEN MANAGEMENT GUIDANCE FOR ENABLED MODULES:
-
-PROMPT;
-
-        // Add token guidance for each enabled module
-        if ($enabledModules['category_analysis'] ?? false) {
-            $prompt .= <<<PROMPT
-- CATEGORY ANALYSIS: Include 2-3 main categories with evidence. Focus on the most significant categories mentioned in the review. For each category, provide specific evidence from the comment.
-
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'staff_intelligence')) {
-            $prompt .= <<<PROMPT
-- STAFF INTELLIGENCE: Include soft skill scores and specific recommendations if applicable. If staff is mentioned positively, highlight their strengths. If mentioned negatively, provide constructive feedback.
-
-PROMPT;
-        }
-
-        if ($enabledModules['business_recommendations'] ?? false) {
-            $prompt .= <<<PROMPT
-- BUSINESS RECOMMENDATIONS: Provide 2-3 actionable recommendations per area. Focus on the most critical issues first. Make recommendations specific and implementable.
-
-PROMPT;
-        }
-
-        if ($this->moduleEnabled($enabledModules, 'alerts')) {
-            $prompt .= <<<PROMPT
-- ALERTS: Trigger alerts only for significant issues. Use appropriate priority levels. Provide clear recommended actions.
-
-PROMPT;
-        }
-
-        $prompt .= <<<PROMPT
-
-EFFICIENT TOKEN USAGE STRATEGIES:
-1. Keep explanations concise but meaningful
-2. Limit arrays to 3-5 items maximum unless more are critical
-3. Use brief but descriptive text in evidence fields
-4. For long reviews, focus on the most impactful points
-5. Balance detail with completeness - it's better to have complete JSON with moderate detail than detailed but truncated JSON
-
-MODULE PRIORITY ORDER (if token constrained):
-1. Required modules (language, sentiment, emotion, moderation, rating_comment_alignment)
-2. Category analysis
-3. Staff intelligence (if staff mentioned)
-4. Business recommendations
-5. Alerts and flags
-6. Area insights
-7. Service unit intelligence
-
-You have been allocated sufficient tokens for all enabled modules based on the review length and complexity. Provide complete analysis for all enabled modules while maintaining valid JSON structure.
-
-IMPORTANT REMINDER: The system has calculated appropriate token allocation for all your enabled modules. You do not need to worry about token limits - just provide complete, high-quality analysis for all enabled modules.
-
-Return ONLY the JSON object. Be accurate, fair, and business-focused. For disabled modules, return minimal/empty data as specified.
+BUSINESS CONFIGURATION ENFORCEMENT RULES:
+1. Only classify issue categories under the "issues" array into the configured business areas and services passed in the user prompt.
+2. If none of the configured business areas or services match the issue, default the category to "Others".
 PROMPT;
 
         return $prompt;
     }
+
     /**
      * Create user message for OpenAI
      */
-
     private function createUserMessage(array $payload, array $enabledModules): string
     {
         $text = $payload['review_text'] ?? '';
         $rating = $payload['rating'] ?? 0;
         $staffInfo = $payload['staff_info'] ?? null;
+        $analysisType = trim($text) === '' ? 'questionnaire_only' : 'comment';
 
-        $message = "Analysis Type:\ncomment\n\n";
+        $message = "Analysis Type:\n{$analysisType}\n\n";
         $message .= "Business Type:\n" . ($payload['business_type'] ?? 'Restaurant') . "\n\n";
         
         $message .= "Business Configuration\n";
@@ -1150,7 +789,9 @@ PROMPT;
         }
         $message .= "\n";
         
-        $message .= "Review Comment:\n\"{$text}\"\n\n";
+        if ($analysisType === 'comment') {
+            $message .= "Review Comment:\n\"{$text}\"\n\n";
+        }
         $message .= "Overall Rating:\n{$rating}\n\n";
         
         if (!empty($payload['question_ratings'])) {
@@ -1161,6 +802,14 @@ PROMPT;
             $message .= "\n";
         }
         
+        if (!empty($payload['selected_labels'])) {
+            $message .= "Selected Labels:\n";
+            foreach ($payload['selected_labels'] as $label) {
+                $message .= "- {$label}\n";
+            }
+            $message .= "\n";
+        }
+
         if ($this->moduleEnabled($enabledModules, 'staff_intelligence') && $staffInfo) {
             $message .= "Staff Mentioned:\n- Name: " . ($staffInfo['staff_name'] ?? 'Unknown') . " (ID: " . ($staffInfo['staff_id'] ?? '') . ")\n\n";
         }
@@ -1178,13 +827,14 @@ PROMPT;
     {
         $text = $review->raw_text ?? $review->comment ?? '';
 
-        // Get question ratings if this is a survey review
+        // Get question ratings and selected labels if this is a survey review
         $questionRatings = [];
+        $selectedLabels = [];
 
         if ($review->survey_id) {
             $values = $review->relationLoaded('value')
                 ? $review->value
-                : $review->value()->with('question')->get();
+                : $review->value()->with(['question', 'tags'])->get();
 
             $starIds = $values
                 ->pluck('star_id')
@@ -1209,6 +859,12 @@ PROMPT;
                         'scale' => 5,
                         'category' => $value->question->category ?? 'General',
                     ];
+                }
+
+                if ($value->relationLoaded('tags') || $value->tags()->exists()) {
+                    foreach ($value->tags as $tag) {
+                        $selectedLabels[] = $tag->name;
+                    }
                 }
             }
         }
@@ -1256,6 +912,7 @@ PROMPT;
             'review_text' => $text,
             'rating' => $avgRating,
             'question_ratings' => $questionRatings, // Added this
+            'selected_labels' => array_unique($selectedLabels),
             'staff_info' => $staffInfo,
             'business_services' => $business_services,
             'review_id' => $review->id,
@@ -1316,12 +973,148 @@ PROMPT;
             'average_rating' => $avgRating
         ];
     }
+    private function normalizeOpenAIResult(array $result, ReviewNew $review): array
+    {
+        $confidence = $result['sentiment']['confidence'] ?? 0.85;
+        $label = strtolower($result['sentiment']['label'] ?? 'neutral');
+        
+        // Calculate sentiment score
+        $sentimentScore = 0.5;
+        if ($label === 'positive') {
+            $sentimentScore = 0.5 + ($confidence / 2);
+        } elseif ($label === 'negative') {
+            $sentimentScore = 0.5 - ($confidence / 2);
+        }
+
+        // Build category_analysis from issues and positive/negative aspects
+        $categoryAnalysis = [];
+        $issues = $result['issues'] ?? [];
+        foreach ($issues as $issue) {
+            $categoryAnalysis[] = [
+                'main_category' => $issue['category'] ?? 'Others',
+                'sub_category' => '',
+                'sentiment' => 'negative',
+                'severity' => $issue['severity'] ?? 'medium',
+                'evidence_from_comment' => ''
+            ];
+        }
+
+        $positives = $result['positive_aspects'] ?? [];
+        foreach ($positives as $pos) {
+            $categoryAnalysis[] = [
+                'main_category' => $pos,
+                'sub_category' => '',
+                'sentiment' => 'positive',
+                'severity' => 'low',
+                'evidence_from_comment' => ''
+            ];
+        }
+
+        // Build moderation
+        $abusive = $result['abusive_language']['detected'] ?? false;
+        $moderation = [
+            'is_abusive' => $abusive,
+            'safe_for_public_display' => !$abusive,
+            'issues_found' => $abusive ? ['abusive language'] : [],
+            'severity' => $abusive ? 'high' : 'low'
+        ];
+
+        // Build explainability
+        $explainability = [
+            'decision_basis' => $result['topics'] ?? [],
+            'confidence_score' => $confidence,
+            'key_factors' => $result['topics'] ?? [],
+            'why_flagged' => '',
+            'how_decision_was_made' => 'AI classification'
+        ];
+
+        // Build summary
+        $summary = [
+            'one_line' => $result['summary'] ?? '',
+            'manager_summary' => $result['summary'] ?? '',
+            'customer_sentiment_summary' => $result['summary'] ?? '',
+            'overall_assessment' => $label
+        ];
+
+        // Build recommendations
+        $recommendations = [
+            'business_actions' => $result['recommendations'] ?? [],
+            'staff_actions' => [],
+            'immediate_actions' => [],
+            'priority' => count($issues) > 0 ? 'medium' : 'low'
+        ];
+
+        // Calculate rating comment mismatch deterministically
+        $rating = $review->calculated_rating;
+        $isAligned = true;
+        $mismatchType = 'none';
+        $explanation = 'Rating and sentiment are aligned.';
+        $keyContradiction = 'none';
+
+        if ($rating >= 4.0 && $label === 'negative') {
+            $isAligned = false;
+            $mismatchType = 'positive_rating_negative_comment';
+            $explanation = "Customer rated the review high ({$rating}) but the review text was analyzed as negative.";
+            $keyContradiction = "High rating vs Negative comment sentiment.";
+        } elseif ($rating <= 2.0 && $label === 'positive') {
+            $isAligned = false;
+            $mismatchType = 'negative_rating_positive_comment';
+            $explanation = "Customer rated the review low ({$rating}) but the review text was analyzed as positive.";
+            $keyContradiction = "Low rating vs Positive comment sentiment.";
+        }
+
+        $ratingCommentAlignment = [
+            'is_aligned' => $isAligned,
+            'mismatch_type' => $mismatchType,
+            'confidence' => $confidence,
+            'explanation' => $explanation,
+            'key_contradiction' => $keyContradiction
+        ];
+
+        return [
+            'language' => $result['language'] ?? ['detected' => 'en', 'translated_text' => null],
+            'sentiment' => [
+                'label' => $label,
+                'score' => $sentimentScore
+            ],
+            'emotion' => [
+                'primary' => $result['emotion']['primary'] ?? 'neutral',
+                'intensity' => $result['emotion']['intensity'] ?? 'medium'
+            ],
+            'moderation' => $moderation,
+            'rating_comment_alignment' => $ratingCommentAlignment,
+            'category_analysis' => $categoryAnalysis,
+            'staff_intelligence' => null,
+            'service_unit_intelligence' => null,
+            'area_insights' => [],
+            'business_insights' => [
+                'root_cause' => $result['summary'] ?? '',
+                'repeat_issue_likelihood' => 'medium',
+                'impact_level' => 'medium',
+                'affected_areas' => $result['topics'] ?? []
+            ],
+            'recommendations' => $recommendations,
+            'alerts' => [
+                'triggered' => !$isAligned,
+                'type' => !$isAligned ? 'insight' : 'info',
+                'priority' => !$isAligned ? 'medium' : 'low',
+                'message' => $explanation
+            ],
+            'flags' => [],
+            'staff_impact' => [
+                'staff_blame_detected' => false,
+                'note' => ''
+            ],
+            'explainability' => $explainability,
+            'summary' => $summary,
+            'sarcasm' => $result['sarcasm'] ?? ['detected' => false],
+            'spam_probability' => $result['spam_probability'] ?? 0.0
+        ];
+    }
+
     /**
      * Analyze a review and save results to database
      */
-
-    // In analyzeReview method, add debugging:
-
     public function analyzeReview(ReviewNew $review, bool $forceReprocess = false): array
     {
         if ($review->is_ai_processed && !$forceReprocess) {
@@ -1343,16 +1136,13 @@ PROMPT;
 
         try {
             $payload = $this->createPayloadFromReview($review);
-            // Log the payload for debugging
             Log::debug('Review payload for OpenAI', [
                 'review_id' => $review->id,
                 'text_preview' => substr($payload['review_text'] ?? '', 0, 100),
-                'text_length' => strlen($payload['review_text'] ?? ''),
-                'has_special_chars' => preg_match('/[^\x20-\x7E]/', $payload['review_text'] ?? '') ? 'yes' : 'no'
+                'text_length' => strlen($payload['review_text'] ?? '')
             ]);
             $businessId = $review->business_id;
 
-            // Get enabled modules for this business
             $enabledModules = $this->getBusinessAiModules($businessId);
 
             Log::debug('Analyzing review with modules', [
@@ -1362,20 +1152,14 @@ PROMPT;
             ]);
 
             $openAIResult = $this->processReviewWithOpenAI($payload, $enabledModules);
+            $normalizedResult = $this->normalizeOpenAIResult($openAIResult, $review);
 
-            // Convert to database format
-            $dbData = $this->convertForDatabase($openAIResult, $review, $enabledModules);
+            $dbData = $this->convertForDatabase($normalizedResult, $review, $enabledModules);
 
-            // Update the review model BEFORE rule evaluation so rules can access the data
             $review->fill($dbData);
-
-            // Reset old rule outcomes before re-processing
             $this->ruleExecutionService->resetRuleOutcomes($review);
-
-            // Save the updated review
             $review->save();
 
-            // Trigger real-time rules
             $realTimeRules = AiRule::where('business_id', $businessId)
                 ->where('enabled', true)
                 ->where('run_frequency', 'real_time')
@@ -1403,7 +1187,6 @@ PROMPT;
                 'trace' => $e->getTraceAsString()
             ]);
 
-            // Re-throw exception to allow caller to handle failure
             throw $e;
         }
     }
@@ -1754,88 +1537,90 @@ PROMPT;
         $rating = $review->calculated_rating;
         
         $sentimentLabel = 'neutral';
-        $sentimentScore = 0.5;
+        $sentimentConfidence = 0.5;
         $primaryEmotion = 'neutral';
         
         if ($rating >= 4.0) {
             $sentimentLabel = 'positive';
-            $sentimentScore = 0.8;
-            $primaryEmotion = 'joy';
+            $sentimentConfidence = 0.9;
+            $primaryEmotion = 'satisfaction';
         } elseif ($rating <= 2.0) {
             $sentimentLabel = 'negative';
-            $sentimentScore = 0.2;
-            $primaryEmotion = 'sadness';
+            $sentimentConfidence = 0.9;
+            $primaryEmotion = 'frustration';
         }
-        
+
+        // Gather survey details to generate list of topics, positive aspects, and negative aspects
+        $topics = [];
+        $positiveAspects = [];
+        $negativeAspects = [];
+        $issues = [];
+
+        if ($review->survey_id) {
+            $values = $review->relationLoaded('value')
+                ? $review->value
+                : $review->value()->with(['question', 'tags'])->get();
+
+            $starIds = $values->pluck('star_id')->filter()->unique()->values();
+            $starValuesById = $starIds->isEmpty()
+                ? collect()
+                : \App\Models\Star::whereIn('id', $starIds)->pluck('value', 'id');
+
+            foreach ($values as $value) {
+                if ($value->question_id) {
+                    $category = $value->question->category ?? 'General';
+                    $topics[] = $category;
+
+                    $val = $value->star_id ? ($starValuesById[$value->star_id] ?? 0) : 0;
+                    if ($val >= 4) {
+                        $positiveAspects[] = $value->question->question_text;
+                    } elseif ($val <= 2) {
+                        $negativeAspects[] = $value->question->question_text;
+                        $issues[] = [
+                            'category' => $category,
+                            'severity' => $val <= 1 ? 'high' : 'medium'
+                        ];
+                    }
+                }
+                
+                // Get selected tags / labels
+                foreach ($value->tags as $tag) {
+                    $positiveAspects[] = $tag->name;
+                }
+            }
+        }
+
         $mockResult = [
             'language' => [
                 'detected' => $review->language ?? 'en',
-                'translated_text' => ''
+                'translated_text' => null
             ],
             'sentiment' => [
                 'label' => $sentimentLabel,
-                'score' => $sentimentScore
+                'confidence' => $sentimentConfidence
             ],
             'emotion' => [
                 'primary' => $primaryEmotion,
-                'intensity' => 'medium'
+                'intensity' => 'medium',
+                'confidence' => 0.8
             ],
-            'moderation' => [
-                'is_abusive' => false,
-                'safe_for_public_display' => true,
-                'issues_found' => [],
-                'severity' => 'low'
+            'topics' => array_unique($topics),
+            'positive_aspects' => array_unique($positiveAspects),
+            'negative_aspects' => array_unique($negativeAspects),
+            'issues' => $issues,
+            'abusive_language' => [
+                'detected' => false
             ],
-            'rating_comment_alignment' => [
-                'is_aligned' => true,
-                'mismatch_type' => 'none',
-                'confidence' => 1.0,
-                'explanation' => 'Rating-only review, auto-aligned.',
-                'key_contradiction' => 'none'
+            'sarcasm' => [
+                'detected' => false
             ],
-            'category_analysis' => [],
-            'staff_intelligence' => null,
-            'service_unit_intelligence' => null,
-            'area_insights' => [],
-            'business_insights' => [
-                'root_cause' => 'N/A',
-                'repeat_issue_likelihood' => 'low',
-                'impact_level' => 'low',
-                'affected_areas' => []
-            ],
-            'recommendations' => [
-                'business_actions' => [],
-                'staff_actions' => [],
-                'immediate_actions' => [],
-                'priority' => 'low'
-            ],
-            'alerts' => [
-                'triggered' => false,
-                'type' => 'info',
-                'priority' => 'low',
-                'message' => 'Rating-only review processed locally.'
-            ],
-            'flags' => [],
-            'staff_impact' => [
-                'staff_blame_detected' => false,
-                'note' => 'Rating-only review.'
-            ],
-            'explainability' => [
-                'decision_basis' => ['numeric rating'],
-                'confidence_score' => 1.0,
-                'key_factors' => ['rating'],
-                'why_flagged' => '',
-                'how_decision_was_made' => 'Determined sentiment locally from rating.'
-            ],
-            'summary' => [
-                'one_line' => "Rating-only review with score {$rating}.",
-                'manager_summary' => "This is a rating-only review with a score of {$rating} out of 5.",
-                'customer_sentiment_summary' => "Rating-only review.",
-                'overall_assessment' => $sentimentLabel
-            ]
+            'spam_probability' => 0.0,
+            'summary' => "Customer selected ratings indicating a {$sentimentLabel} experience (Overall rating: {$rating}).",
+            'recommendations' => []
         ];
 
-        $dbData = $this->convertForDatabase($mockResult, $review);
+        $normalizedResult = $this->normalizeOpenAIResult($mockResult, $review);
+        $dbData = $this->convertForDatabase($normalizedResult, $review);
         $dbData['ai_model'] = 'local_auto_processor';
         
         $review->fill($dbData);
@@ -1865,7 +1650,7 @@ PROMPT;
     /**
      * Generate rolling AI insight by merging previous and latest insights
      */
-    public function generateRollingInsight(?array $previousInsight, array $latestInsight): array
+    public function generateRollingInsight(?array $previousInsight, array $latestInsight, array $currentMetrics = []): array
     {
         $apiKey = \config('services.openai.api_key');
         $model = \config('services.openai.model', 'gpt-4o-mini');
@@ -1877,17 +1662,18 @@ PROMPT;
         $systemPrompt = "You are an AI that updates an existing structured business intelligence report.\n\n"
             . "Do NOT regenerate everything from scratch.\n"
             . "The first input represents the current business intelligence state (JSON).\n"
-            . "The second input contains ONLY new reviews received since the last update (JSON array of standardized reviews).\n"
+            . "The second input contains ONLY new reviews received since the last update (JSON array of standardized reviews containing rating, sentiment, emotion, topics, positive_aspects, negative_aspects, issues, and summary).\n"
             . "Update the business intelligence state.\n"
             . "- If trends are changing, explain why in the summary and update the trend direction.\n"
             . "- If previous weaknesses are improving, reduce their importance or remove them.\n"
             . "- If new recurring strengths appear, include them.\n"
             . "- If recommendations should change, update them.\n"
+            . "- Use the provided local business metrics to ground your narrative summary with actual numbers (such as total reviews, average ratings, and counts).\n"
             . "- Preserve useful historical context.\n"
             . "Return ONLY a complete, valid JSON object matching the following structure:\n"
             . "{\n"
-            . "  \"summary\": \"Executive summary of business performance (evolve the narrative naturally)\",\n"
-            . "  \"strengths\": [\"list of top strengths\"],\n"
+            . "  \"summary\": \"Executive summary of business performance (evolve the narrative naturally, incorporating the current metrics where helpful)\",\n"
+            . "  \"strengths\": [\"list of top strengths/positive aspects\"],\n"
             . "  \"weaknesses\": [\"list of top weaknesses/issues\"],\n"
             . "  \"top_topics\": [\"list of top topics\"],\n"
             . "  \"trend\": \"Improving|Declining|Stable\",\n"
@@ -1912,8 +1698,14 @@ PROMPT;
             . "\n\nNew Reviews:\n"
             . "<new_reviews>\n"
             . json_encode($latestInsight, JSON_PRETTY_PRINT)
-            . "\n</new_reviews>"
-            . "\n\nUpdate the business intelligence state based on the new reviews and return only the updated JSON matching the schema.";
+            . "\n</new_reviews>";
+
+        if (!empty($currentMetrics)) {
+            $userMessage .= "\n\nCurrent Business Metrics (Calculated locally from backend, use these for context in summary):\n"
+                . json_encode($currentMetrics, JSON_PRETTY_PRINT);
+        }
+
+        $userMessage .= "\n\nUpdate the business intelligence state based on the new reviews and return only the updated JSON matching the schema.";
 
         $requestPayload = [
             'model' => $model,
