@@ -222,6 +222,13 @@ class BusinessAnalyticsService
             $nextRun = $now->copy()->addMinutes($minutesToNextRun)->startOfMinute()->toIso8601String();
         }
 
+        $rollingSummary = null;
+        if (empty($dateRange) && !$this->hasActiveFilters()) {
+            if ($business && !empty($business->rolling_ai_insight)) {
+                $rollingSummary = $business->rolling_ai_insight;
+            }
+        }
+
         return [
             'summary' => $summary,
             'detected_issues' => $issues,
@@ -232,7 +239,13 @@ class BusinessAnalyticsService
                 'pending_reviews' => $pendingReviewsCount,
                 'required_reviews' => $requiredReviews,
                 'next_run' => $nextRun,
-            ]
+            ],
+            'rolling_strengths' => $rollingSummary['strengths'] ?? null,
+            'rolling_weaknesses' => $rollingSummary['weaknesses'] ?? null,
+            'rolling_recommendations' => $rollingSummary['recommendations'] ?? null,
+            'rolling_trend' => $rollingSummary['trend'] ?? null,
+            'rolling_confidence' => $rollingSummary['confidence'] ?? null,
+            'rolling_top_topics' => $rollingSummary['top_topics'] ?? null,
         ];
     }
 
@@ -301,8 +314,13 @@ class BusinessAnalyticsService
         // Only return the all-time rolling AI summary if no specific date range or filter is applied
         if (empty($dateRange) && !$this->hasActiveFilters()) {
             $business = Business::find($businessId);
-            if ($business && !empty($business->rolling_ai_insight) && isset($business->rolling_ai_insight['updatedInsight'])) {
-                return $business->rolling_ai_insight['updatedInsight'];
+            if ($business && !empty($business->rolling_ai_insight)) {
+                if (isset($business->rolling_ai_insight['summary'])) {
+                    return $business->rolling_ai_insight['summary'];
+                }
+                if (isset($business->rolling_ai_insight['updatedInsight'])) {
+                    return $business->rolling_ai_insight['updatedInsight'];
+                }
             }
         }
 

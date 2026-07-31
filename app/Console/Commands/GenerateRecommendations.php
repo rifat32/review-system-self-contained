@@ -132,26 +132,40 @@ class GenerateRecommendations extends Command
                         Log::channel('daily')->info("  → Skipping rolling AI insights for Business {$business->id} (Only {$newReviews->count()} new reviews)");
                     } else if ($newReviews->isNotEmpty()) {
                         // Proceed to run rolling AI update
-                        $latestInsightText = "";
-                        foreach ($newReviews as $index => $rev) {
+                        $latestInsight = [];
+                        foreach ($newReviews as $rev) {
                             $openaiData = $rev->openai_raw_response ?? [];
                             $oneLineSummary = $openaiData['summary']['one_line'] 
                                 ?? ($openaiData['summary']['manager_summary'] 
                                 ?? ($rev->comment ?? 'No comment provided.'));
-                            $latestInsightText .= ($index + 1) . ". " . $oneLineSummary . "\n";
+
+                            $strengths = [];
+                            $weaknesses = [];
+                            if (!empty($openaiData['category_analysis'])) {
+                                foreach ($openaiData['category_analysis'] as $cat) {
+                                    if (($cat['sentiment'] ?? '') === 'positive') {
+                                        $strengths[] = $cat['main_category'] ?? ($cat['sub_category'] ?? '');
+                                    } elseif (($cat['sentiment'] ?? '') === 'negative') {
+                                        $weaknesses[] = $cat['main_category'] ?? ($cat['sub_category'] ?? '');
+                                    }
+                                }
+                            }
+
+                            $latestInsight[] = [
+                                'summary' => $oneLineSummary,
+                                'strengths' => array_values(array_unique(array_filter($strengths))),
+                                'weaknesses' => array_values(array_unique(array_filter($weaknesses))),
+                                'rating' => $rev->calculated_rating ?? 5,
+                            ];
                         }
 
                         $previousInsight = $business->rolling_ai_insight;
+                        $currentVersion = is_array($previousInsight) ? ($previousInsight['version'] ?? 0) : 0;
+                        $nextVersion = $currentVersion + 1;
                         $prevTotalReviews = is_array($previousInsight) ? ($previousInsight['totalReviews'] ?? 0) : 0;
                         
                         // Prevent double-counting if it is a fallback/forced run with no actual new reviews
                         $totalReviewsCount = $prevTotalReviews + ($isFallbackRun ? 0 : $newReviews->count());
-
-                        $latestInsight = [
-                            'time' => now()->toIso8601String(),
-                            'totalReviews' => $totalReviewsCount,
-                            'insight' => trim($latestInsightText)
-                        ];
 
                         $this->line("  → Generating rolling AI insights...");
                         Log::channel('daily')->info("  → Generating rolling AI insights for Business {$business->id}...");
@@ -164,13 +178,29 @@ class GenerateRecommendations extends Command
                         try {
                             $updatedInsight = $this->openaiProcessorService->generateRollingInsight($previousInsight, $latestInsight);
 
-                            if ($updatedInsight && !empty($updatedInsight['updatedInsight']) && is_string($updatedInsight['updatedInsight'])) {
-                                // Overwrite the totalReviews from AI response with our database count to ensure integrity
+                            if ($updatedInsight && !empty($updatedInsight['summary']) && is_string($updatedInsight['summary'])) {
+                                // Overwrite metadata to ensure integrity
+                                $updatedInsight['version'] = $nextVersion;
                                 $updatedInsight['totalReviews'] = $totalReviewsCount;
+                                $updatedInsight['time'] = now()->toIso8601String();
 
-                                DB::transaction(function () use ($business, $updatedInsight, $isFallbackRun, $newReviews) {
+                                DB::transaction(function () use ($business, $updatedInsight, $isFallbackRun, $newReviews, $totalReviewsCount, $nextVersion) {
                                     $business->update([
                                         'rolling_ai_insight' => $updatedInsight
+                                    ]);
+
+                                    // Save new version snapshot
+                                    \App\Models\BusinessAiSummary::create([
+                                        'business_id' => $business->id,
+                                        'version' => $nextVersion,
+                                        'summary' => $updatedInsight['summary'],
+                                        'strengths' => $updatedInsight['strengths'] ?? [],
+                                        'weaknesses' => $updatedInsight['weaknesses'] ?? [],
+                                        'top_topics' => $updatedInsight['top_topics'] ?? [],
+                                        'recommendations' => $updatedInsight['recommendations'] ?? [],
+                                        'trend' => $updatedInsight['trend'] ?? 'Stable',
+                                        'confidence' => $updatedInsight['confidence'] ?? 1.0,
+                                        'total_reviews' => $totalReviewsCount,
                                     ]);
 
                                     // Mark reviews as aggregated
