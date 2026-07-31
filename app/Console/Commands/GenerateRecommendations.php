@@ -149,7 +149,11 @@ class GenerateRecommendations extends Command
                                 'negative_aspects' => $openaiData['negative_aspects'] ?? [],
                                 'issues' => $openaiData['issues'] ?? [],
                                 'summary' => $oneLineSummary,
-                                'confidence' => (float) ($openaiData['explainability']['confidence_score'] ?? ($openaiData['sentiment']['confidence'] ?? 0.85))
+                                'confidence' => (float) ($openaiData['explainability']['confidence_score'] ?? ($openaiData['sentiment']['confidence'] ?? 0.85)),
+                                'recommendations' => $openaiData['recommendations'] ?? [],
+                                'abusive_language' => $openaiData['abusive_language'] ?? [],
+                                'spam_probability' => $openaiData['spam_probability'] ?? 0.0,
+                                'sarcasm' => $openaiData['sarcasm'] ?? []
                             ];
                         }
 
@@ -169,20 +173,81 @@ class GenerateRecommendations extends Command
                         $batchAvgRating = $batchRatings->count() > 0 ? round($batchRatings->avg(), 2) : 0;
                         $batchSentiments = $newReviews->pluck('sentiment_label')->filter()->countBy()->all();
                         
-                        // Count issue frequencies from this batch
+                        // Count frequencies from this batch
                         $batchIssueFrequency = [];
+                        $batchTopicFrequency = [];
+                        $batchEmotionFrequency = [];
+                        $batchRuleStatistics = [
+                            'critical_alerts' => 0,
+                            'staff_alerts' => 0,
+                            'category_alerts' => 0,
+                            'mismatch_alerts' => 0,
+                            'total_triggers' => 0
+                        ];
+
                         foreach ($latestInsight as $reviewObj) {
+                            // Issues
                             foreach ($reviewObj['issues'] ?? [] as $issue) {
                                 $cat = $issue['category'] ?? 'Others';
                                 $batchIssueFrequency[$cat] = ($batchIssueFrequency[$cat] ?? 0) + 1;
                             }
+                            // Topics
+                            foreach ($reviewObj['topics'] ?? [] as $topic) {
+                                $batchTopicFrequency[$topic] = ($batchTopicFrequency[$topic] ?? 0) + 1;
+                            }
+                            // Emotions
+                            $emotion = $reviewObj['emotion'] ?? 'neutral';
+                            $batchEmotionFrequency[$emotion] = ($batchEmotionFrequency[$emotion] ?? 0) + 1;
+
+                            // Local rules triggers
+                            $triggers = \App\Models\AiRuleTrigger::where('review_id', $reviewObj['review_id'])->where('was_suppressed', false)->get();
+                            foreach ($triggers as $trigger) {
+                                $batchRuleStatistics['total_triggers']++;
+                                if (str_contains($trigger->rule_id, 'FLAG_AND_ALERT')) {
+                                    $batchRuleStatistics['critical_alerts']++;
+                                }
+                                if (str_contains($trigger->rule_id, 'STAFF_PERFORMANCE_RISK')) {
+                                    $batchRuleStatistics['staff_alerts']++;
+                                }
+                                if (str_contains($trigger->rule_id, 'CATEGORY_ISSUE_DETECTION')) {
+                                    $batchRuleStatistics['category_alerts']++;
+                                }
+                                if (str_contains($trigger->rule_id, 'RATING_COMMENT_MISMATCH')) {
+                                    $batchRuleStatistics['mismatch_alerts']++;
+                                }
+                            }
                         }
                         arsort($batchIssueFrequency);
+                        arsort($batchTopicFrequency);
+                        arsort($batchEmotionFrequency);
+
+                        // Delta comparison metrics
+                        $aggregatedQuery = ReviewNew::where('business_id', $business->id)->where('is_rolling_aggregated', true);
+                        $aggregatedCount = (clone $aggregatedQuery)->count();
+                        $previousAvgRating = $aggregatedCount > 0 
+                            ? round((float) ((clone $aggregatedQuery)->withCalculatedRating()->get()->avg('calculated_rating') ?? 0), 2)
+                            : 0;
+
+                        $allQuery = ReviewNew::where('business_id', $business->id);
+                        $allCount = (clone $allQuery)->count();
+                        $currentAvgRating = $allCount > 0
+                            ? round((float) ((clone $allQuery)->withCalculatedRating()->get()->avg('calculated_rating') ?? 0), 2)
+                            : 0;
+
+                        $ratingDifference = round($currentAvgRating - $previousAvgRating, 2);
+
+                        $prevNegativeCount = (clone $aggregatedQuery)->where('sentiment_label', 'negative')->count();
+                        $prevNegativePercent = $aggregatedCount > 0 ? round(($prevNegativeCount / $aggregatedCount) * 100, 1) : 0;
+
+                        $currentNegativeCount = (clone $allQuery)->where('sentiment_label', 'negative')->count();
+                        $currentNegativePercent = $allCount > 0 ? round(($currentNegativeCount / $allCount) * 100, 1) : 0;
+
+                        $negativePercentDifference = round($currentNegativePercent - $prevNegativePercent, 1);
 
                         $currentMetrics = [
                             'overall_metrics' => [
-                                'total_reviews' => ReviewNew::where('business_id', $business->id)->count(),
-                                'average_rating' => round((float) (ReviewNew::where('business_id', $business->id)->withCalculatedRating()->get()->avg('calculated_rating') ?? 0), 2),
+                                'total_reviews' => $allCount,
+                                'average_rating' => $currentAvgRating,
                                 'sentiment_counts' => [
                                     'positive' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'positive')->count(),
                                     'neutral' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'neutral')->count(),
@@ -193,12 +258,23 @@ class GenerateRecommendations extends Command
                                         $q->where('business_id', $business->id);
                                     })->count()
                             ],
+                            'trend_inputs' => [
+                                'previous_average_rating' => $previousAvgRating,
+                                'current_average_rating' => $currentAvgRating,
+                                'rating_difference' => $ratingDifference,
+                                'previous_negative_percentage' => "{$prevNegativePercent}%",
+                                'current_negative_percentage' => "{$currentNegativePercent}%",
+                                'negative_percentage_difference' => "{$negativePercentDifference}%",
+                            ],
                             'batch_statistics' => [
                                 'batch_review_count' => $newReviews->count(),
                                 'average_rating' => $batchAvgRating,
                                 'rating_distribution' => $batchRatings->countBy()->all(),
                                 'sentiment_distribution' => $batchSentiments,
                                 'issue_frequency' => $batchIssueFrequency,
+                                'topic_frequency' => $batchTopicFrequency,
+                                'emotion_frequency' => $batchEmotionFrequency,
+                                'rule_statistics' => $batchRuleStatistics,
                             ]
                         ];
 
@@ -237,6 +313,7 @@ class GenerateRecommendations extends Command
                                         'top_topics' => $updatedInsight['top_topics'] ?? [],
                                         'recommendations' => $updatedInsight['recommendations'] ?? [],
                                         'trend' => $updatedInsight['trend'] ?? 'Stable',
+                                        'trend_reasons' => $updatedInsight['trend_reasons'] ?? [],
                                         'confidence' => $updatedInsight['confidence'] ?? 1.0,
                                         'total_reviews' => $totalReviewsCount,
                                     ]);

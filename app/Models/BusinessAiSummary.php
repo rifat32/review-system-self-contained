@@ -18,6 +18,7 @@ class BusinessAiSummary extends Model
         'top_topics',
         'recommendations',
         'trend',
+        'trend_reasons',
         'confidence',
         'total_reviews',
     ];
@@ -27,6 +28,7 @@ class BusinessAiSummary extends Model
         'weaknesses' => 'array',
         'top_topics' => 'array',
         'recommendations' => 'array',
+        'trend_reasons' => 'array',
         'confidence' => 'float',
     ];
 
