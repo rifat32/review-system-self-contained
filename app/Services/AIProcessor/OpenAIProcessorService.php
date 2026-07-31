@@ -197,30 +197,45 @@ class OpenAIProcessorService
                 'estimated_completion_tokens' => $this->estimateCompletionTokens($enabledModules, $payload)
             ]);
 
+            $requestPayload = [
+                'model' => $model,
+                'temperature' => config('ai.openai.request.temperature') ?? 0.1,
+                'max_tokens' => $dynamicMaxTokens, // Dynamic based on modules
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => $systemPrompt
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $userMessage
+                    ]
+                ]
+            ];
+
+            log_message([
+                'type' => 'REQUEST',
+                'action' => 'analyzeReview',
+                'payload' => $requestPayload
+            ], 'openai_calls.log');
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(config('ai.openai.request.process_timeout') ?? 60)
                 ->retry(config('ai.openai.request.retry_times') ?? 3, config('ai.openai.request.retry_sleep') ?? 1000)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => $model,
-                    'temperature' => config('ai.openai.request.temperature') ?? 0.1,
-                    'max_tokens' => $dynamicMaxTokens, // Dynamic based on modules
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => $systemPrompt
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $userMessage
-                        ]
-                    ]
-                ]);
+                ->post('https://api.openai.com/v1/chat/completions', $requestPayload);
 
             if ($response->failed()) {
+                log_message([
+                    'type' => 'RESPONSE_ERROR',
+                    'action' => 'analyzeReview',
+                    'status' => $response->status(),
+                    'error' => $response->body()
+                ], 'openai_calls.log');
+
                 Log::error('OpenAI API failed', [
                     'status' => $response->status(),
                     'error' => $response->body(),
@@ -230,6 +245,13 @@ class OpenAIProcessorService
             }
 
             $data = $response->json();
+
+            log_message([
+                'type' => 'RESPONSE_SUCCESS',
+                'action' => 'analyzeReview',
+                'status' => $response->status(),
+                'response' => $data
+            ], 'openai_calls.log');
 
 
             // Log the full response structure for debugging
@@ -1845,29 +1867,44 @@ PROMPT;
             . "  \"updatedInsight\": \"...\"\n"
             . "}";
 
+        $requestPayload = [
+            'model' => $model,
+            'temperature' => 0.2,
+            'response_format' => ['type' => 'json_object'],
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => $systemPrompt
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $userMessage
+                ]
+            ]
+        ];
+
         try {
+            log_message([
+                'type' => 'REQUEST',
+                'action' => 'generateRollingInsight',
+                'payload' => $requestPayload
+            ], 'openai_calls.log');
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(60)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => $model,
-                    'temperature' => 0.2,
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => $systemPrompt
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $userMessage
-                        ]
-                    ]
-                ]);
+                ->post('https://api.openai.com/v1/chat/completions', $requestPayload);
 
             if ($response->failed()) {
+                log_message([
+                    'type' => 'RESPONSE_ERROR',
+                    'action' => 'generateRollingInsight',
+                    'status' => $response->status(),
+                    'error' => $response->body()
+                ], 'openai_calls.log');
+
                 Log::error('OpenAI API failed during rolling insight generation', [
                     'status' => $response->status(),
                     'error' => $response->body()
@@ -1876,8 +1913,16 @@ PROMPT;
             }
 
             $data = $response->json();
+
+            log_message([
+                'type' => 'RESPONSE_SUCCESS',
+                'action' => 'generateRollingInsight',
+                'status' => $response->status(),
+                'response' => $data
+            ], 'openai_calls.log');
+
             $content = $data['choices'][0]['message']['content'] ?? '{}';
-            
+
             Log::info('Rolling insight generated from OpenAI', [
                 'content' => $content
             ]);
