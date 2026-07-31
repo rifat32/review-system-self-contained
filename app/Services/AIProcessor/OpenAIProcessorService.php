@@ -1182,7 +1182,7 @@ PROMPT;
             $openAIResult = $this->processReviewWithOpenAI($payload, $enabledModules);
             $normalizedResult = $this->normalizeOpenAIResult($openAIResult, $review);
 
-            $dbData = $this->convertForDatabase($normalizedResult, $review, $enabledModules);
+            $dbData = $this->convertForDatabase($normalizedResult, $review, $enabledModules, $openAIResult);
 
             $review->fill($dbData);
             $this->ruleExecutionService->resetRuleOutcomes($review);
@@ -1281,7 +1281,7 @@ PROMPT;
     /**
      * Convert OpenAI result to database format
      */
-    public function convertForDatabase(array $result, ReviewNew $review, array $enabledModules = []): array
+    public function convertForDatabase(array $result, ReviewNew $review, array $enabledModules = [], array $rawResponse = []): array
     {
         $mismatchInsights = $this->extractMismatchInsights($result, $review);
 
@@ -1318,7 +1318,7 @@ PROMPT;
 
             'language' => $result['language']['detected'] ?? 'en',
             'summary' => $result['summary']['one_line'] ?? ($result['summary']['manager_summary'] ?? ''),
-            'openai_raw_response' => $result,
+            'openai_raw_response' => !empty($rawResponse) ? $rawResponse : $result,
 
             // Store the real staff/area data where rules currently look for it.
             'key_phrases' => $this->buildKeyPhrases($result),
@@ -1704,7 +1704,7 @@ PROMPT;
             . "- Preserve useful historical context.\n"
             . "Return ONLY a complete, valid JSON object matching the following structure:\n"
             . "{\n"
-            . "  \"summary\": \"Executive summary of business performance\",\n"
+            . "  \"summary\": \"Executive summary of business performance (cohesive rewriting, strictly between 120 and 150 words maximum)\",\n"
             . "  \"strengths\": [\"list of top strengths/positive aspects\"],\n"
             . "  \"weaknesses\": [\"list of top weaknesses/issues\"],\n"
             . "  \"top_topics\": [\"list of top topics\"],\n"

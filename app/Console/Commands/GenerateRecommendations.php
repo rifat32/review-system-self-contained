@@ -200,20 +200,23 @@ class GenerateRecommendations extends Command
                             $batchEmotionFrequency[$emotion] = ($batchEmotionFrequency[$emotion] ?? 0) + 1;
 
                             // Local rules triggers
-                            $triggers = \App\Models\AiRuleTrigger::where('review_id', $reviewObj['review_id'])->where('was_suppressed', false)->get();
-                            foreach ($triggers as $trigger) {
-                                $batchRuleStatistics['total_triggers']++;
-                                if (str_contains($trigger->rule_id, 'FLAG_AND_ALERT')) {
+                            $outcome = \App\Models\ReviewRuleOutcome::where('review_id', $reviewObj['review_id'])->first();
+                            if ($outcome) {
+                                if ($outcome->is_critical_alert) {
                                     $batchRuleStatistics['critical_alerts']++;
+                                    $batchRuleStatistics['total_triggers']++;
                                 }
-                                if (str_contains($trigger->rule_id, 'STAFF_PERFORMANCE_RISK')) {
+                                if ($outcome->is_staff_alert) {
                                     $batchRuleStatistics['staff_alerts']++;
+                                    $batchRuleStatistics['total_triggers']++;
                                 }
-                                if (str_contains($trigger->rule_id, 'CATEGORY_ISSUE_DETECTION')) {
+                                if ($outcome->is_category_detected) {
                                     $batchRuleStatistics['category_alerts']++;
+                                    $batchRuleStatistics['total_triggers']++;
                                 }
-                                if (str_contains($trigger->rule_id, 'RATING_COMMENT_MISMATCH')) {
+                                if ($outcome->is_mismatch) {
                                     $batchRuleStatistics['mismatch_alerts']++;
+                                    $batchRuleStatistics['total_triggers']++;
                                 }
                             }
                         }
