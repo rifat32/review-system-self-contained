@@ -691,4 +691,30 @@ class DashboardController extends Controller
             'data' => $data
         ], 200);
     }
+
+    /**
+     * Get separate AI Insights Panel data
+     * GET /v1.0/dashboard/ai-insights
+     */
+    public function getAiInsightsData(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->business_id) {
+            throw new AuthorizationException('User does not have an associated business');
+        }
+
+        $businessId = $user->business_id;
+        $period = $request->get('period', 'all_time');
+
+        // Validate period and get date range
+        $dateRange = $this->dashboardService->validateAndGetDateRange($period);
+
+        $aiInsights = $this->businessAnalyticsService->getAiInsightsPanel($businessId, $dateRange);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'AI Insights retrieved successfully',
+            'data' => $aiInsights
+        ], 200);
+    }
 }

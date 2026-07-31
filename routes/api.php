@@ -443,6 +443,7 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     Route::get('/v1.0/dashboard/unified', [DashboardController::class, 'getUnifiedDashboardData']);
+    Route::get('/v1.0/dashboard/ai-insights', [DashboardController::class, 'getAiInsightsData']);
 
 
 
