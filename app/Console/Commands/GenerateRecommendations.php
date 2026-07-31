@@ -164,18 +164,42 @@ class GenerateRecommendations extends Command
                         $startReviewNum = $prevTotalReviews + 1;
                         $endReviewNum = $totalReviewsCount;
 
+                        // Calculate batch statistics for this specific batch of new reviews
+                        $batchRatings = $newReviews->pluck('calculated_rating')->filter()->values();
+                        $batchAvgRating = $batchRatings->count() > 0 ? round($batchRatings->avg(), 2) : 0;
+                        $batchSentiments = $newReviews->pluck('sentiment_label')->filter()->countBy()->all();
+                        
+                        // Count issue frequencies from this batch
+                        $batchIssueFrequency = [];
+                        foreach ($latestInsight as $reviewObj) {
+                            foreach ($reviewObj['issues'] ?? [] as $issue) {
+                                $cat = $issue['category'] ?? 'Others';
+                                $batchIssueFrequency[$cat] = ($batchIssueFrequency[$cat] ?? 0) + 1;
+                            }
+                        }
+                        arsort($batchIssueFrequency);
+
                         $currentMetrics = [
-                            'total_reviews' => ReviewNew::where('business_id', $business->id)->count(),
-                            'average_rating' => round(ReviewNew::where('business_id', $business->id)->avg('calculated_rating') ?? 0, 2),
-                            'sentiment_counts' => [
-                                'positive' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'positive')->count(),
-                                'neutral' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'neutral')->count(),
-                                'negative' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'negative')->count(),
+                            'overall_metrics' => [
+                                'total_reviews' => ReviewNew::where('business_id', $business->id)->count(),
+                                'average_rating' => round(ReviewNew::where('business_id', $business->id)->avg('calculated_rating') ?? 0, 2),
+                                'sentiment_counts' => [
+                                    'positive' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'positive')->count(),
+                                    'neutral' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'neutral')->count(),
+                                    'negative' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'negative')->count(),
+                                ],
+                                'rule_trigger_counts' => \App\Models\AiRuleTrigger::where('was_suppressed', false)
+                                    ->whereHas('review', function($q) use ($business) {
+                                        $q->where('business_id', $business->id);
+                                    })->count()
                             ],
-                            'rule_trigger_counts' => \App\Models\AiRuleTrigger::where('was_suppressed', false)
-                                ->whereHas('review', function($q) use ($business) {
-                                    $q->where('business_id', $business->id);
-                                })->count()
+                            'batch_statistics' => [
+                                'batch_review_count' => $newReviews->count(),
+                                'average_rating' => $batchAvgRating,
+                                'rating_distribution' => $batchRatings->countBy()->all(),
+                                'sentiment_distribution' => $batchSentiments,
+                                'issue_frequency' => $batchIssueFrequency,
+                            ]
                         ];
 
                         $this->line("  → Generating rolling AI insights...");

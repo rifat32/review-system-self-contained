@@ -267,6 +267,33 @@ class OpenAIProcessorService
                 'max_tokens_used_percentage' => $dynamicMaxTokens > 0 ? round(($data['usage']['completion_tokens'] ?? 0) / $dynamicMaxTokens * 100, 1) : 0
             ]);
 
+            // Save token usage to DB against this business
+            if (!empty($data['usage'])) {
+                try {
+                    $promptTokens = $data['usage']['prompt_tokens'] ?? 0;
+                    $completionTokens = $data['usage']['completion_tokens'] ?? 0;
+                    $totalTokens = $data['usage']['total_tokens'] ?? 0;
+                    \App\Models\OpenAITokenUsage::create([
+                        'business_id' => $payload['business_id'] ?? null,
+                        'review_id' => $payload['review_id'] ?? null,
+                        'branch_id' => $payload['branch_id'] ?? null,
+                        'model' => $data['model'] ?? $requestPayload['model'],
+                        'prompt_tokens' => $promptTokens,
+                        'completion_tokens' => $completionTokens,
+                        'total_tokens' => $totalTokens,
+                        'estimated_cost' => \App\Models\OpenAITokenUsage::calculateCost(
+                            $data['model'] ?? $requestPayload['model'],
+                            $promptTokens,
+                            $completionTokens
+                        ),
+                        'metadata' => ['action' => 'analyzeReview'],
+                        'created_at' => now(),
+                    ]);
+                } catch (\Exception $tokenEx) {
+                    Log::warning('Failed to save OpenAI token usage', ['error' => $tokenEx->getMessage()]);
+                }
+            }
+
             $content = $data['choices'][0]['message']['content'] ?? '';
 
             if (empty($content)) {
@@ -756,6 +783,7 @@ Expected JSON Structure:
 BUSINESS CONFIGURATION ENFORCEMENT RULES:
 1. Only classify issue categories under the "issues" array into the configured business areas and services passed in the user prompt.
 2. If none of the configured business areas or services match the issue, default the category to "Others".
+3. If multiple configured areas or services are mentioned in the same review, return ALL matching categories in the issues array. Do not force a single category when multiple valid matches exist.
 PROMPT;
 
         return $prompt;
@@ -1662,13 +1690,16 @@ PROMPT;
         $systemPrompt = "You are an AI that updates an existing structured business intelligence report.\n\n"
             . "Do NOT regenerate everything from scratch.\n"
             . "The first input represents the current business intelligence state (JSON).\n"
-            . "The second input contains ONLY new reviews received since the last update (JSON array of standardized reviews containing rating, sentiment, emotion, topics, positive_aspects, negative_aspects, issues, and summary).\n"
-            . "Update the business intelligence state.\n"
-            . "- If trends are changing, explain why in the summary and update the trend direction.\n"
-            . "- If previous weaknesses are improving, reduce their importance or remove them.\n"
-            . "- If new recurring strengths appear, include them.\n"
-            . "- If recommendations should change, update them.\n"
-            . "- Use the provided local business metrics to ground your narrative summary with actual numbers (such as total reviews, average ratings, and counts).\n"
+            . "The second input contains ONLY new reviews received since the last update. Each review includes: rating, sentiment, emotion, topics, positive_aspects, negative_aspects, issues (with categories and severity), summary, confidence, and moderation flags.\n"
+            . "The third input is a batch summary with pre-calculated statistics (average rating, sentiment distribution, issue frequency counts).\n"
+            . "Update the business intelligence state using ALL three inputs.\n"
+            . "- Use issue frequency counts from the batch summary to detect recurring issues rather than guessing from summaries alone.\n"
+            . "- Use the provided business metrics and batch statistics to ground your narrative with actual numbers.\n"
+            . "- When updating the trend direction, consider both the previous review count and the new batch size. Avoid drastic trend changes caused by only a small number of new reviews. Trend should evolve gradually unless there is overwhelming evidence of change.\n"
+            . "- If trends are genuinely changing, explain why in the summary and update the trend direction.\n"
+            . "- If previous weaknesses are improving based on new data, reduce their importance or remove them.\n"
+            . "- If new recurring strengths appear in multiple reviews, include them.\n"
+            . "- If recommendations should change based on new patterns, update them.\n"
             . "- Preserve useful historical context.\n"
             . "Return ONLY a complete, valid JSON object matching the following structure:\n"
             . "{\n"
@@ -1766,6 +1797,32 @@ PROMPT;
             Log::info('Rolling insight generated from OpenAI', [
                 'content' => $content
             ]);
+
+            // Save token usage for the rolling insight call
+            if (!empty($data['usage'])) {
+                try {
+                    $promptTokens = $data['usage']['prompt_tokens'] ?? 0;
+                    $completionTokens = $data['usage']['completion_tokens'] ?? 0;
+                    \App\Models\OpenAITokenUsage::create([
+                        'business_id' => null,
+                        'review_id' => null,
+                        'branch_id' => null,
+                        'model' => $data['model'] ?? $model,
+                        'prompt_tokens' => $promptTokens,
+                        'completion_tokens' => $completionTokens,
+                        'total_tokens' => $data['usage']['total_tokens'] ?? 0,
+                        'estimated_cost' => \App\Models\OpenAITokenUsage::calculateCost(
+                            $data['model'] ?? $model,
+                            $promptTokens,
+                            $completionTokens
+                        ),
+                        'metadata' => ['action' => 'generateRollingInsight'],
+                        'created_at' => now(),
+                    ]);
+                } catch (\Exception $tokenEx) {
+                    Log::warning('Failed to save rolling insight token usage', ['error' => $tokenEx->getMessage()]);
+                }
+            }
 
             return json_decode($content, true) ?: [];
 
