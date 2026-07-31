@@ -86,6 +86,16 @@ Route::middleware(['dev_access'])->group(function () {
         ]);
     });
 
+    Route::get('/dev-run-recommendations', function () {
+        Artisan::call('recommendations:generate', ['--force' => true]);
+        $output = Artisan::output();
+        return response()->json([
+            'success' => true,
+            'message' => 'Recommendations generation triggered with --force.',
+            'output' => $output
+        ]);
+    });
+
     Route::get('/reviews', function () {
         return response()->json([
             "data" => ReviewNew::whereNotNull("raw_text")->select(

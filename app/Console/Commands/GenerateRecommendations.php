@@ -182,7 +182,7 @@ class GenerateRecommendations extends Command
                         $currentMetrics = [
                             'overall_metrics' => [
                                 'total_reviews' => ReviewNew::where('business_id', $business->id)->count(),
-                                'average_rating' => round(ReviewNew::where('business_id', $business->id)->avg('calculated_rating') ?? 0, 2),
+                                'average_rating' => round((float) (ReviewNew::where('business_id', $business->id)->withCalculatedRating()->get()->avg('calculated_rating') ?? 0), 2),
                                 'sentiment_counts' => [
                                     'positive' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'positive')->count(),
                                     'neutral' => ReviewNew::where('business_id', $business->id)->where('sentiment_label', 'neutral')->count(),
