@@ -691,8 +691,25 @@ class OpenAIProcessorService
     private function getSystemPrompt(array $enabledModules): string
     {
         $prompt = <<<PROMPT
-You are an AI Experience Intelligence Engine. Analyze customer reviews and return ONLY valid JSON in this exact structure:
+You are FeedGenius AI, an AI-powered Customer Experience Intelligence Engine.
+Your job is to analyse ONE customer review and return ONLY valid JSON in this exact structure.
+Do NOT return markdown.
+Do NOT explain your reasoning.
+Do NOT return additional text.
+Your responsibilities are ONLY to perform language understanding.
+DO NOT calculate business metrics.
+DO NOT calculate averages.
+DO NOT calculate trends.
+DO NOT calculate dashboard statistics.
+DO NOT determine if rating and sentiment align.
+DO NOT trigger business rules.
+Those are handled by the application.
+Use ONLY the review provided.
+Never invent information.
+If something is not mentioned, return an empty array or null.
+Return JSON ONLY.
 
+JSON Structure:
 {
   "language": {
     "detected": "language code",
@@ -1112,49 +1129,43 @@ PROMPT;
     private function createUserMessage(array $payload, array $enabledModules): string
     {
         $text = $payload['review_text'] ?? '';
-        if (trim($text) === '') {
-            $text = '(No written comment was provided by the customer. Please analyze based on the numerical star ratings and survey question scores only.)';
-        }
         $rating = $payload['rating'] ?? 0;
         $staffInfo = $payload['staff_info'] ?? null;
 
-        $message = "REVIEW TO ANALYZE:\n";
-        $message .= "Text: \"{$text}\"\n";
-        $message .= "Overall Rating: {$rating}/5\n";
-
-        // Include question ratings if available
+        $message = "Analysis Type:\ncomment\n\n";
+        $message .= "Business Type:\n" . ($payload['business_type'] ?? 'Restaurant') . "\n\n";
+        
+        $message .= "Business Configuration\n";
+        if (!empty($payload['all_areas'])) {
+            $message .= "Areas:\n";
+            foreach ($payload['all_areas'] as $area) {
+                $message .= "- {$area}\n";
+            }
+        }
+        if (!empty($payload['all_services'])) {
+            $message .= "Services:\n";
+            foreach ($payload['all_services'] as $srv) {
+                $message .= "- {$srv}\n";
+            }
+        }
+        $message .= "\n";
+        
+        $message .= "Review Comment:\n\"{$text}\"\n\n";
+        $message .= "Overall Rating:\n{$rating}\n\n";
+        
         if (!empty($payload['question_ratings'])) {
-            $message .= "\nQUESTION RATINGS:\n";
+            $message .= "Survey Answers:\n";
             foreach ($payload['question_ratings'] as $qRating) {
-                $message .= "- {$qRating['question_text']}: {$qRating['rating']}/{$qRating['scale']}\n";
+                $message .= "- {$qRating['question_text']} = {$qRating['rating']}/{$qRating['scale']}\n";
             }
+            $message .= "\n";
         }
-
-        // Only include staff info if staff_intelligence module is enabled
+        
         if ($this->moduleEnabled($enabledModules, 'staff_intelligence') && $staffInfo) {
-            $message .= "\nStaff Mentioned: " . ($staffInfo['staff_name'] ?? 'Unknown') . " (ID: " . ($staffInfo['staff_id'] ?? '') . ")\n";
+            $message .= "Staff Mentioned:\n- Name: " . ($staffInfo['staff_name'] ?? 'Unknown') . " (ID: " . ($staffInfo['staff_id'] ?? '') . ")\n\n";
         }
-
-        // Add business services/areas if available (Gated by area/service modules)
-        if (
-            !empty($payload['business_services']) &&
-            (
-                $this->moduleEnabled($enabledModules, 'area_insights') ||
-                $this->moduleEnabled($enabledModules, 'business_area_detection') ||
-                $this->moduleEnabled($enabledModules, 'service_unit_intelligence')
-            )
-        ) {
-            $message .= "\nBUSINESS AREAS/SERVICES MENTIONED:\n";
-            foreach ($payload['business_services'] as $service) {
-                $message .= "- {$service['business_service_name']} (Area: {$service['business_area_name']})\n";
-            }
-        }
-
-        $message .= "\nANALYSIS INSTRUCTIONS:\n";
-        $message .= "1. Check if ratings and comments align\n";
-        $message .= "2. High ratings (4-5) with negative comments should be flagged as misaligned\n";
-        $message .= "3. Provide explanation for any mismatch\n";
-        $message .= "4. Identify which specific area/issue is mentioned negatively\n";
+        
+        $message .= "Return JSON only.";
 
         return $message;
     }
@@ -1226,9 +1237,22 @@ PROMPT;
             ];
         }
 
+        $business = \App\Models\Business::find($review->business_id);
+        $businessType = $business ? ($business->business_type ?? 'Restaurant') : 'Restaurant';
+        
+        $allAreas = [];
+        $allServices = [];
+        if ($business) {
+            $allAreas = \App\Models\BusinessArea::where('business_id', $business->id)->active()->pluck('area_name')->toArray();
+            $allServices = \App\Models\BusinessService::where('business_id', $business->id)->active()->pluck('name')->toArray();
+        }
+
         $avgRating = $review->calculated_rating;
 
         return [
+            'business_type' => $businessType,
+            'all_areas' => $allAreas,
+            'all_services' => $allServices,
             'review_text' => $text,
             'rating' => $avgRating,
             'question_ratings' => $questionRatings, // Added this
@@ -1314,9 +1338,7 @@ PROMPT;
 
         $text = $review->raw_text ?? $review->comment ?? '';
         if (trim($text) === '') {
-            if (config('ai.process_empty_reviews_locally', false)) {
-                return $this->analyzeReviewLocally($review);
-            }
+            return $this->analyzeReviewLocally($review);
         }
 
         try {
@@ -1825,6 +1847,14 @@ PROMPT;
             'rating' => $rating,
             'sentiment' => $sentimentLabel
         ]);
+
+        log_message([
+            'event' => 'Local Review Analysis (No Comment)',
+            'review_id' => $review->id,
+            'rating' => $rating,
+            'sentiment' => $sentimentLabel,
+            'results' => $mockResult
+        ], 'local_rules.log');
         
         return array_merge($dbData, [
             'status' => 'success',

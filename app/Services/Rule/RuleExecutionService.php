@@ -25,6 +25,13 @@ class RuleExecutionService
             }
         }
         Log::info("Rule Execution Started", ['rule_id' => $rule->rule_id, 'rule_name' => $rule->rule_name, 'review_count' => count($reviews)]);
+        log_message([
+            'event' => 'Rule Execution Started',
+            'rule_id' => $rule->rule_id,
+            'rule_name' => $rule->rule_name,
+            'reviews_count' => count($reviews)
+        ], 'local_rules.log');
+
 
         $summary = [
             'rule_id' => $rule->rule_id,
@@ -110,6 +117,10 @@ class RuleExecutionService
         ]);
 
         Log::info("Rule Execution Completed", $summary);
+        log_message([
+            'event' => 'Rule Execution Completed',
+            'summary' => $summary
+        ], 'local_rules.log');
 
         return $summary;
     }
@@ -138,8 +149,23 @@ class RuleExecutionService
                 $this->trackCustomRuleTrigger($review, $rule);
             }
 
-            return $this->mapRuleToOutcomeColumn($rule->rule_id);
+            $outcome = $this->mapRuleToOutcomeColumn($rule->rule_id);
+            log_message([
+                'event' => 'Rule Evaluation Match',
+                'rule_id' => $rule->rule_id,
+                'rule_name' => $rule->rule_name,
+                'review_id' => $review->id,
+                'outcome' => $outcome
+            ], 'local_rules.log');
+            return $outcome;
         }
+
+        log_message([
+            'event' => 'Rule Evaluation No Match',
+            'rule_id' => $rule->rule_id,
+            'rule_name' => $rule->rule_name,
+            'review_id' => $review->id
+        ], 'local_rules.log');
 
         return null;
     }
