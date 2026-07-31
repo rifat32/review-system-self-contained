@@ -197,23 +197,109 @@ class BusinessAnalyticsService
         $opportunities = $this->aiProcessorService->extractOpportunities($businessId, $insights, $suggestions, $issues);
         $predictions = $this->aiProcessorService->generatePredictions($reviews);
 
+        // Calculate rolling AI metadata
+        $pendingReviewsCount = ReviewNew::where('business_id', $businessId)
+            ->where('is_ai_processed', true)
+            ->where('is_rolling_aggregated', false)
+            ->count();
+
+        $business = Business::find($businessId);
+        $lastUpdated = null;
+        if ($business && !empty($business->rolling_ai_insight) && isset($business->rolling_ai_insight['time'])) {
+            $lastUpdated = $business->rolling_ai_insight['time'];
+        }
+
+        $requiredReviews = max(0, 5 - $pendingReviewsCount);
+
+        $nextRun = null;
+        if ($requiredReviews === 0) {
+            $now = now();
+            $minute = (int) $now->format('i');
+            $minutesToNextRun = 10 - ($minute % 10);
+            if ($minutesToNextRun === 0) {
+                $minutesToNextRun = 10;
+            }
+            $nextRun = $now->copy()->addMinutes($minutesToNextRun)->startOfMinute()->toIso8601String();
+        }
+
         return [
             'summary' => $summary,
             'detected_issues' => $issues,
             'opportunities' => $opportunities,
-            'predictions' => $predictions
+            'predictions' => $predictions,
+            'rolling_metadata' => [
+                'last_updated' => $lastUpdated,
+                'pending_reviews' => $pendingReviewsCount,
+                'required_reviews' => $requiredReviews,
+                'next_run' => $nextRun,
+            ]
         ];
     }
 
     // ==================== AI SUMMARY GENERATION ====================
 
     /**
+     * Check if request has active filters that should prevent returning cached overall rolling summary
+     */
+    private function hasActiveFilters(): bool
+    {
+        $filterKeys = [
+            'staff_id',
+            'staff_ids',
+            'has_staff',
+            'is_overall',
+            'sentiment_score',
+            'sentiment',
+            'topics',
+            'survey_id',
+            'survey_ids',
+            'tag_ids',
+            'star_ids',
+            'rating',
+            'csat_score',
+            'insight_id',
+            'is_private',
+            'review_ids',
+            'flagged_reviews',
+            'branch_id',
+            // Rule outcome flags
+            'is_staff_mentioned',
+            'is_sentiment_flagged',
+            'is_category_detected',
+            'is_critical_alert',
+            'is_staff_risk',
+            'is_high_emotion',
+            'is_mismatch',
+            'is_service_identified',
+            'is_area_detected',
+        ];
+
+        foreach ($filterKeys as $key) {
+            if (request()->has($key)) {
+                $val = request()->input($key);
+
+                if ($val === null || $val === '' || $val === 'all') {
+                    continue;
+                }
+
+                if (is_array($val) && empty($val)) {
+                    continue;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Generate AI summary using rule engine insights
      */
     public function generateAiSummaryFromRuleEngine(int $businessId, $reviews, $dateRange = null): string
     {
-        // Only return the all-time rolling AI summary if no specific date range is applied
-        if (empty($dateRange)) {
+        // Only return the all-time rolling AI summary if no specific date range or filter is applied
+        if (empty($dateRange) && !$this->hasActiveFilters()) {
             $business = Business::find($businessId);
             if ($business && !empty($business->rolling_ai_insight) && isset($business->rolling_ai_insight['updatedInsight'])) {
                 return $business->rolling_ai_insight['updatedInsight'];
