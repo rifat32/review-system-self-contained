@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\UserPaymentFailed;
+use App\Mail\UserPaymentSuccess;
 use App\Mail\UserRegistered;
 use App\Mail\UserSubscriptionRenewed;
 use App\Models\ServicePlan;
@@ -187,12 +188,14 @@ class CustomWebhookController extends WebhookController
 
             if (env("SEND_EMAIL") == true) {
                 try {
-                    Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com', 'rony.mia7800@gmail.com'])->send(new UserSubscriptionRenewed($user, $subscription));
+                    // SEND SUBSCRIPTION RENEWED EMAIL TO BUSINESS OWNER AND ADMINS
+                    $recipients = array_filter(array_unique([$user->email, 'kids20acc@gmail.com', 'ralashwad@gmail.com', 'rony.mia7800@gmail.com']));
+                    Mail::to(users: $recipients)->send(mailable: new UserSubscriptionRenewed(user: $user, subscription: $subscription));
                 } catch (Exception $e) {
                     log_message([
-                'level' => 'error',
-                'message' => "Failed to send renewal email: " . $e->getMessage()
-            ], 'stripe.log');
+                        'level' => 'error',
+                        'message' => "Failed to send renewal email: " . $e->getMessage()
+                    ], 'stripe.log');
                 }
             }
         }
@@ -290,12 +293,24 @@ class CustomWebhookController extends WebhookController
 
         if (env("SEND_EMAIL") == true) {
             try {
-                Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com', 'rony.mia7800@gmail.com'])->send(new UserRegistered($user, $subscription));
+                // PREPARE PAYMENT SUCCESS DETAILS
+                $payment_details = [
+                    'amount' => $amount,
+                    'currency' => strtoupper(string: $data['currency'] ?? 'usd'),
+                    'plan_name' => $service_plan->name ?? null,
+                    'transaction_id' => $data['id'],
+                    'dashboard_url' => env(key: 'FRONT_END_DASHBOARD_URL', default: env(key: 'FRONT_END_URL', default: 'http://localhost:3000')) . '/dashboard'
+                ];
+
+                // SEND PAYMENT SUCCESS EMAIL TO USER
+                $recipients = array_filter(array_unique([$user->email, 'ralashwad@gmail.com']));
+                Mail::to(users: $recipients)->send(mailable: new UserPaymentSuccess(user: $user, paymentDetails: $payment_details));
+                Mail::to(users: ['kids20acc@gmail.com', 'ralashwad@gmail.com', 'rony.mia7800@gmail.com'])->send(mailable: new UserRegistered(user: $user, subscription: $subscription));
             } catch (Exception $e) {
                 log_message([
-                'level' => 'error',
-                'message' => "Failed to send registration email for PaymentIntent: " . $e->getMessage()
-            ], 'stripe.log');
+                    'level' => 'error',
+                    'message' => "Failed to send registration/payment email for PaymentIntent: " . $e->getMessage()
+                ], 'stripe.log');
             }
         }
     }
@@ -313,6 +328,7 @@ class CustomWebhookController extends WebhookController
             return;
         }
 
+        // FIND USER BY BUSINESS ID
         $user = User::where('business_id', $businessId)->first();
         if (!$user) {
             log_message([
@@ -322,14 +338,31 @@ class CustomWebhookController extends WebhookController
             return;
         }
 
+        // EXTRACT PAYMENT FAILURE DETAILS FROM STRIPE WEBHOOK EVENT
+        $amount_cents = $data['amount'] ?? null;
+        $amount = $amount_cents ? ($amount_cents / 100) : null;
+        $currency = strtoupper($data['currency'] ?? 'usd');
+        $failure_reason = $data['last_payment_error']['message'] ?? 'The payment attempt was declined by your card issuer or bank.';
+        $plan_name = $metadata['plan_name'] ?? null;
+
+        $payment_details = [
+            'amount' => $amount,
+            'currency' => $currency,
+            'failure_reason' => $failure_reason,
+            'plan_name' => $plan_name,
+            'retry_url' => env('FRONT_END_DASHBOARD_URL', env('FRONT_END_URL', 'http://localhost:3000')) . '/billing'
+        ];
+
         if (env("SEND_EMAIL") == true) {
             try {
-                Mail::to(['ralashwad@gmail.com'])->send(new UserPaymentFailed($user));
+                // SEND NOTIFICATION EMAIL TO USER AND ADMIN
+                $recipients = array_filter(array_unique([$user->email, 'ralashwad@gmail.com']));
+                Mail::to(users: $recipients)->send(mailable: new UserPaymentFailed(user: $user, paymentDetails: $payment_details));
             } catch (Exception $e) {
                 log_message([
-                'level' => 'error',
-                'message' => "Failed to send payment failed email: " . $e->getMessage()
-            ], 'stripe.log');
+                    'level' => 'error',
+                    'message' => "Failed to send payment failed email: " . $e->getMessage()
+                ], 'stripe.log');
             }
         }
 

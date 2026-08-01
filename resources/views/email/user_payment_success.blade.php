@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Subscription Renewed - {{ $appName ?? config('app.name', 'FeedGenius') }}</title>
+    <title>Payment Successful - {{ $appName ?? config('app.name', 'FeedGenius') }}</title>
     <style type="text/css">
         body, table, td, a {
             -webkit-text-size-adjust: 100%;
@@ -57,14 +57,14 @@
                                 <!-- Card Body -->
                                 <tr>
                                     <td class="card-padding" align="center" style="padding: 44px 36px; text-align: center;">
-                                        <!-- Renewal Icon Badge -->
+                                        <!-- Success Checkmark Badge -->
                                         <div style="width: 64px; height: 64px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.12); border: 2px solid rgba(16, 185, 129, 0.3); margin: 0 auto 24px auto;">
                                             <table border="0" cellpadding="0" cellspacing="0" width="100%" height="100%">
                                                 <tr>
                                                     <td align="center" valign="middle" style="height: 64px;">
                                                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: 0 auto;">
-                                                            <path d="M21.5 2v6h-6"></path>
-                                                            <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                                         </svg>
                                                     </td>
                                                 </tr>
@@ -73,31 +73,33 @@
 
                                         <!-- Title -->
                                         <h2 style="margin: 0 0 16px 0; font-size: 26px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px;">
-                                            Subscription Renewed Successfully
+                                            Payment Successful!
                                         </h2>
 
                                         <!-- Subtitle / Greeting -->
                                         <p style="margin: 0 0 28px 0; font-size: 15px; line-height: 1.625; color: #94a3b8; max-width: 480px;">
-                                            Hi <strong style="color: #f1f5f9;">{{ $userName }}</strong>, your subscription for <strong style="color: #f1f5f9;">{{ $businessName }}</strong> has been renewed successfully.
+                                            Hi <strong style="color: #f1f5f9;">{{ $userName }}</strong>, thank you for your payment! Your transaction for <strong style="color: #f1f5f9;">{{ $appName ?? 'FeedGenius' }}</strong> has been completed successfully.
                                         </p>
 
-                                        <!-- Renewal Details Summary Card -->
+                                        <!-- Payment Details Summary Card -->
                                         <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0f172a; border: 1px solid #334155; border-radius: 12px; margin-bottom: 32px; overflow: hidden;">
                                             <tr>
                                                 <td style="padding: 20px; text-align: left;">
                                                     <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                                         <tr>
-                                                            <td style="padding-bottom: 10px; font-size: 13px; color: #94a3b8; width: 40%;">Business Name:</td>
-                                                            <td style="padding-bottom: 10px; font-size: 13px; color: #f1f5f9; font-weight: 600; text-align: right;">{{ $businessName }}</td>
+                                                            <td style="padding-bottom: 10px; font-size: 13px; color: #94a3b8; width: 40%;">Account Email:</td>
+                                                            <td style="padding-bottom: 10px; font-size: 13px; color: #f1f5f9; font-weight: 600; text-align: right;">{{ $userEmail }}</td>
                                                         </tr>
+                                                        @if(!empty($planName))
                                                         <tr>
                                                             <td style="padding-bottom: 10px; font-size: 13px; color: #94a3b8;">Subscription Plan:</td>
                                                             <td style="padding-bottom: 10px; font-size: 13px; color: #f1f5f9; font-weight: 600; text-align: right;">{{ $planName }}</td>
                                                         </tr>
+                                                        @endif
                                                         @if(!empty($amount))
                                                         <tr>
                                                             <td style="padding-bottom: 10px; font-size: 13px; color: #94a3b8;">Amount Paid:</td>
-                                                            <td style="padding-bottom: 10px; font-size: 13px; color: #34d399; font-weight: 700; text-align: right;">{{ is_numeric($amount) ? ('$' . number_format($amount, 2)) : $amount }}</td>
+                                                            <td style="padding-bottom: 10px; font-size: 13px; color: #34d399; font-weight: 700; text-align: right;">{{ $currency ?? 'USD' }} {{ is_numeric($amount) ? number_format($amount, 2) : $amount }}</td>
                                                         </tr>
                                                         @endif
                                                         @if(!empty($transactionId))
@@ -107,8 +109,12 @@
                                                         </tr>
                                                         @endif
                                                         <tr>
-                                                            <td style="font-size: 13px; color: #94a3b8;">Current Period Ends:</td>
-                                                            <td style="font-size: 13px; color: #34d399; font-weight: 600; text-align: right;">{{ $endDate }}</td>
+                                                            <td style="padding-bottom: 10px; font-size: 13px; color: #94a3b8;">Payment Date:</td>
+                                                            <td style="padding-bottom: 10px; font-size: 13px; color: #f1f5f9; font-weight: 500; text-align: right;">{{ $paymentDate ?? date('F j, Y') }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="font-size: 13px; color: #94a3b8;">Status:</td>
+                                                            <td style="font-size: 13px; color: #34d399; font-weight: 600; text-align: right;">Paid (Successful)</td>
                                                         </tr>
                                                     </table>
                                                 </td>
@@ -149,7 +155,7 @@
                     <tr>
                         <td align="center" style="padding-top: 24px;">
                             <p style="margin: 0; font-size: 14px; color: #94a3b8; line-height: 1.5; max-width: 520px;">
-                                Thank you for your continued support! If you have any questions, feel free to contact our support team.
+                                Thank you for choosing {{ $appName ?? 'FeedGenius' }}. If you have any questions regarding your invoice or account, please contact our support team.
                             </p>
                         </td>
                     </tr>

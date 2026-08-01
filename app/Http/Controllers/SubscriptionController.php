@@ -221,12 +221,19 @@ class SubscriptionController extends Controller
 
     public function stripePaymentFailed(Request $request)
     {
+        // FIND USER BY ID FROM REQUEST QUERY
         $user_id = base64_decode($request->query('user_id'));
         $user = User::find($user_id);
 
         if ($user && env("SEND_EMAIL") == true) {
             try {
-                Mail::to(['ralashwad@gmail.com'])->send(new UserPaymentFailed($user));
+                // PREPARE PAYMENT FAILURE DETAILS
+                $payment_details = [
+                    'failure_reason' => 'Payment authorization or checkout failed.',
+                    'retry_url' => env('FRONT_END_DASHBOARD_URL', env('FRONT_END_URL', 'http://localhost:3000')) . '/billing'
+                ];
+                $recipients = array_filter(array_unique([$user->email, 'ralashwad@gmail.com']));
+                Mail::to(users: $recipients)->send(mailable: new UserPaymentFailed(user: $user, paymentDetails: $payment_details));
             } catch (\Exception $e) {
                 Log::error("Failed to send payment failed email: " . $e->getMessage());
             }
