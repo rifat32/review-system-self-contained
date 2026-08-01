@@ -2,10 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\EmailTemplate;
-use App\Models\EmailTemplateWrapper;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
@@ -13,20 +10,19 @@ class ForgetPasswordMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public $user;
+    public $token;
+
     /**
      * Create a new message instance.
      *
      * @return void
      */
-    private $user;
-    private $token;
-
     public function __construct($user, $token)
     {
         $this->user = $user;
         $this->token = $token;
     }
-
 
     /**
      * Build the message.
@@ -35,40 +31,36 @@ class ForgetPasswordMail extends Mailable
      */
     public function build()
     {
-        $email_content = EmailTemplate::where([
-            "type" => "forget_password_mail",
-            "is_active" => 1
+        // GENERATE FORGOT PASSWORD RESET LINK
+        $reset_url = env('FRONT_END_DASHBOARD_URL', 'http://localhost:3000') . '/auth/change-password?token=' . $this->token;
 
-        ])->first();
+        // RESOLVE APPLICATION AND USER DISPLAY NAMES
+        $app_name = config('app.name', 'FeedGenius');
+        $user_name = trim(($this->user->first_Name ?? '') . ' ' . ($this->user->last_Name ?? '')) ?: 'User';
 
+        // RESOLVE BUSINESS LOGO FULL URL USING APP_URL
+        $logo_url = null;
+        $raw_logo = $this->user->business->Logo ?? $this->user->business->logo ?? $this->user->logo ?? null;
 
-        $html_content = json_decode($email_content->template);
-        $html_content =  str_replace("[FirstName]", $this->user->first_Name, $html_content );
-        $html_content =  str_replace("[LastName]", $this->user->last_Name, $html_content );
-        $html_content =  str_replace("[FullName]", ($this->user->first_Name. " " .$this->user->last_Name), $html_content );
-
-
-        $html_content =  str_replace("[AccountVerificationLink]", (env('APP_URL').'/activate/'.$this->user->email_verify_token), $html_content);
-
-
-        $html_content =  str_replace("[ForgotPasswordLink]", (env('FRONT_END_URL').'/auth/change-password?token='.$this->token), $html_content );
-
-
-
-        $email_template_wrapper = EmailTemplateWrapper::where([
-            "id" => 1
-        ])
-        ->first();
+        if (!empty($raw_logo)) {
+            if (preg_match('/^https?:\/\//i', $raw_logo)) {
+                $logo_url = $raw_logo;
+            } else {
+                $app_url = rtrim(env('APP_URL', config('app.url', 'http://localhost')), '/');
+                $logo_url = $app_url . '/' . ltrim($raw_logo, '/');
+            }
+        }
 
 
-
-
-        $html_final = json_decode($email_template_wrapper->template);
-        $html_final =  str_replace("[content]", $html_content, $html_final);
-
-
-
-
-        return $this->view('mail.dynamic_mail',["html_content"=>$html_final]);
+        // RETURN BLADE RESET PASSWORD MAIL VIEW WITH PREPARED DATA
+        return $this->subject(subject: 'Reset Your Password')
+            ->view(view: 'mail.reset_password', data: [
+                "user" => $this->user,
+                "token" => $this->token,
+                "user_name" => $user_name,
+                "app_name" => $app_name,
+                "reset_url" => $reset_url,
+                "logo_url" => $logo_url
+            ]);
     }
 }
