@@ -260,15 +260,15 @@ class BranchController extends Controller
         }
 
         // BRANCH QUERY
-        $query = Branch::withCount([
-                'reviews as overall_review_count' => function ($query) {
-                    $query->where('is_overall', 1);
-                },
-                'reviews as survey_review_count' => function ($query) {
-                    $query->where('is_overall', 0)
-                        ->whereNotNull("survey_id");
-                },
-            ])
+        $query = Branch::with('manager')->withCount([
+            'reviews as overall_review_count' => function ($query) {
+                $query->where('is_overall', 1);
+            },
+            'reviews as survey_review_count' => function ($query) {
+                $query->where('is_overall', 0)
+                    ->whereNotNull("survey_id");
+            },
+        ])
             ->where('business_id', $businessId)
             ->when($defaultBranchId, function ($query) use ($defaultBranchId) {
                 $query->where('id', $defaultBranchId);
