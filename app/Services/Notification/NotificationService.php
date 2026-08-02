@@ -221,6 +221,7 @@ class NotificationService
             'status' => 'unread',
             'entity_id' => $data['entity_id'] ?? null,
             'entity_ids' => $data['entity_ids'] ?? null,
+            'metadata' => $data['metadata'] ?? null,
         ]);
     }
 

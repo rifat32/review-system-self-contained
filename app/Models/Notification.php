@@ -23,10 +23,12 @@ class Notification extends Model
         "priority",
         "entity_id",
         "entity_ids",
+        "metadata",
     ];
 
     protected $casts = [
         "entity_ids" => "array",
+        "metadata" => "array",
         "read_at" => "datetime",
     ];
 

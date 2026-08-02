@@ -451,6 +451,14 @@ class ReviewService
             }
             $notificationMessage = "{$customerName} submitted a review with rating {$averageRating}.";
 
+            $reviewMetadata = [
+                'review_id' => $review->id,
+                'rating' => $averageRating,
+                'reviewer_name' => $customerName,
+                'survey_name' => $surveyTitle,
+                'threshold_rating' => $thresholdRating
+            ];
+
             if ($averageRating >= $thresholdRating) {
                 // Send notification only to branch manager
                 if ($branchManagerId) {
@@ -463,6 +471,7 @@ class ReviewService
                         'message' => $notificationMessage,
                         'entity_id' => $review->id,
                         'priority' => 'normal',
+                        'metadata' => $reviewMetadata,
                     ]);
 
                     // Mail notification
@@ -514,6 +523,7 @@ class ReviewService
                         'message' => $notificationMessage,
                         'entity_id' => $review->id,
                         'priority' => 'normal',
+                        'metadata' => $reviewMetadata,
                     ]);
 
                     // Mail notification
@@ -580,6 +590,7 @@ class ReviewService
                         'message' => $lowRatingMessage,
                         'entity_id' => $review->id,
                         'priority' => 'high',
+                        'metadata' => $reviewMetadata,
                     ]);
 
                     // Mail notification
