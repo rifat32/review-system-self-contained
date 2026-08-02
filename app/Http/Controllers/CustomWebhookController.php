@@ -12,7 +12,6 @@ use App\Models\User;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Cashier\Http\Controllers\WebhookController;
 
@@ -118,9 +117,9 @@ class CustomWebhookController extends WebhookController
                 Mail::to(['kids20acc@gmail.com', 'ralashwad@gmail.com'])->send(new UserRegistered($user, $subscription));
             } catch (Exception $e) {
                 log_message([
-                'level' => 'error',
-                'message' => "Failed to send registration email: " . $e->getMessage()
-            ], 'stripe.log');
+                    'level' => 'error',
+                    'message' => "Failed to send registration email: " . $e->getMessage()
+                ], 'stripe.log');
             }
         }
     }
@@ -273,11 +272,30 @@ class CustomWebhookController extends WebhookController
             return;
         }
 
-        $subscription = BusinessSubscription::create([
+        // 1. FIND THE EXISTING ACTIVE SUBSCRIPTION TO GET THE END DATE
+        $latestSubscription = \App\Models\BusinessSubscription::where('business_id', $businessId)
+            ->where('status', 'active')
+            ->orderBy('end_date', 'desc')
+            ->first();
+
+        // 2. DETERMINE THE NEW START DATE
+        // If they have an active plan that hasn't expired yet, start the new one when it ends.
+        // Otherwise, start it right now.
+        if ($latestSubscription && $latestSubscription->end_date > now()) {
+            $newStartDate = clone $latestSubscription->end_date;
+        } else {
+            $newStartDate = now();
+        }
+
+        // 3. CREATE THE NEW SUBSCRIPTION RECORD
+        $durationEndDate = (clone $newStartDate)->addMonths($service_plan->duration_months ?: 1);
+        $finalEndDate = !empty($metadata['end_date']) ? \Carbon\Carbon::parse($metadata['end_date']) : $durationEndDate;
+
+        $subscription = \App\Models\BusinessSubscription::create([
             'business_id' => $businessId,
             'service_plan_id' => $service_plan->id,
-            'start_date' => now(),
-            'end_date' => now()->addMonths($service_plan->duration_months ?: 1),
+            'start_date' => $newStartDate,
+            'end_date' => $finalEndDate,
             'amount' => $amount,
             'paid_at' => now(),
             'transaction_id' => $data['id'],
@@ -285,10 +303,14 @@ class CustomWebhookController extends WebhookController
             'status' => 'active'
         ]);
 
-        // Synchronize limit to business table
+        // 4. SYNCHRONIZE LIMITS AND RESET DISCOUNTS IN THE BUSINESS TABLE
         $business->update([
             'openai_token_limit' => $service_plan->openai_token_limit,
-            'service_plan_id' => $service_plan->id
+            'service_plan_id' => $service_plan->id,
+            'service_plan_discount_code' => null,
+            'service_plan_discount_amount' => 0,
+            'trial_end_date' => null,
+            'start_date' => $newStartDate
         ]);
 
         if (env("SEND_EMAIL") == true) {
@@ -296,10 +318,10 @@ class CustomWebhookController extends WebhookController
                 // PREPARE PAYMENT SUCCESS DETAILS
                 $payment_details = [
                     'amount' => $amount,
-                    'currency' => strtoupper(string: $data['currency'] ?? 'usd'),
+                    'currency' => strtoupper(string: $data['currency']),
                     'plan_name' => $service_plan->name ?? null,
                     'transaction_id' => $data['id'],
-                    'dashboard_url' => env(key: 'FRONT_END_DASHBOARD_URL', default: env(key: 'FRONT_END_URL', default: 'http://localhost:3000')) . '/dashboard'
+                    'dashboard_url' => env(key: 'FRONT_END_DASHBOARD_URL') . '/'
                 ];
 
                 // SEND PAYMENT SUCCESS EMAIL TO USER
@@ -341,7 +363,7 @@ class CustomWebhookController extends WebhookController
         // EXTRACT PAYMENT FAILURE DETAILS FROM STRIPE WEBHOOK EVENT
         $amount_cents = $data['amount'] ?? null;
         $amount = $amount_cents ? ($amount_cents / 100) : null;
-        $currency = strtoupper($data['currency'] ?? 'usd');
+        $currency = strtoupper($data['currency']);
         $failure_reason = $data['last_payment_error']['message'] ?? 'The payment attempt was declined by your card issuer or bank.';
         $plan_name = $metadata['plan_name'] ?? null;
 
@@ -356,7 +378,7 @@ class CustomWebhookController extends WebhookController
         if (env("SEND_EMAIL") == true) {
             try {
                 // SEND NOTIFICATION EMAIL TO USER AND ADMIN
-                $recipients = array_filter(array_unique([$user->email, 'ralashwad@gmail.com']));
+                $recipients = array_filter(array_unique([$user->email, 'ralashwad@gmail.com', 'kids20acc@gmail.com', 'rony.mia7800@gmail.com']));
                 Mail::to(users: $recipients)->send(mailable: new UserPaymentFailed(user: $user, paymentDetails: $payment_details));
             } catch (Exception $e) {
                 log_message([
@@ -396,11 +418,12 @@ class CustomWebhookController extends WebhookController
     public function createIntent(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
-            'plan_id'     => 'required|string',
-            'business_id' => 'required|string',
+            'plan_id'     => 'required|string|exists:service_plans,id',
+            'business_id' => 'required|string|exists:businesses,id',
             'reseller_id' => 'nullable|string',
             'amount'      => 'required|integer',
-            'currency'    => 'nullable|string'
+            'currency'    => 'nullable|string',
+            'end_date'    => 'nullable|date'
         ]);
 
         $decryptedPlanId = $this->decryptId($request->input('plan_id'));
@@ -415,7 +438,7 @@ class CustomWebhookController extends WebhookController
             $amountInCents = $request->input('amount');
         }
 
-        $currency = $request->input('currency', 'gbp');
+        $currency = 'GBP';
         $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
 
         try {
@@ -445,14 +468,20 @@ class CustomWebhookController extends WebhookController
         }
 
         try {
+            $metadata = [
+                'plan_id'     => $decryptedPlanId,
+                'business_id' => $decryptedBusinessId,
+                'reseller_id' => $decryptedResellerId,
+            ];
+
+            if ($request->has('end_date')) {
+                $metadata['end_date'] = \Carbon\Carbon::parse($request->input('end_date'))->toDateTimeString();
+            }
+
             $paymentIntent = $stripe->paymentIntents->create([
                 'amount'   => $amountInCents,
                 'currency' => $currency,
-                'metadata' => [
-                    'plan_id'     => $decryptedPlanId,
-                    'business_id' => $decryptedBusinessId,
-                    'reseller_id' => $decryptedResellerId,
-                ],
+                'metadata' => $metadata,
                 'automatic_payment_methods' => [
                     'enabled' => true,
                 ],
@@ -461,9 +490,9 @@ class CustomWebhookController extends WebhookController
             return response()->json([
                 'success'       => true,
                 'message'       => 'Payment Intent created successfully',
-                'client_secret' => $paymentIntent->client_secret,
                 'data'          => [
-                    'client_secret' => $paymentIntent->client_secret
+                    'client_secret' => $paymentIntent->client_secret,
+                    'payment_intent_id' => $paymentIntent->id,
                 ]
             ], 200);
         } catch (\Exception $e) {

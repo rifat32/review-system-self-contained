@@ -55,6 +55,12 @@ class Kernel extends ConsoleKernel
         $schedule->call(function () {
             Artisan::call('businesses:delete-permanently');
         })->name('delete-permanently-businesses')->dailyAt('00:00')->timezone('UTC');
+
+        // 7. Process Subscription Expirations and Stacked Plan Activations
+        // Ensure businesses have the correct limits applied based on current active plans
+        $schedule->call(function () {
+            Artisan::call('subscriptions:process');
+        })->name('process-subscriptions')->dailyAt('00:05')->timezone('UTC');
     }
 
     protected function commands()
