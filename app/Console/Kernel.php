@@ -61,6 +61,11 @@ class Kernel extends ConsoleKernel
         $schedule->call(function () {
             Artisan::call('subscriptions:process');
         })->name('process-subscriptions')->dailyAt('00:05')->timezone('UTC');
+
+        // 8. Notify Admins about Subscriptions Expiring in exactly 15 days
+        $schedule->call(function () {
+            Artisan::call('subscriptions:notify-expiring');
+        })->name('notify-expiring-subscriptions')->dailyAt('00:00')->timezone('Europe/London');
     }
 
     protected function commands()

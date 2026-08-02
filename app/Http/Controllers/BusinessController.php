@@ -705,8 +705,10 @@ class BusinessController extends Controller
                     }
                 }
             }
-            // We allow the business table's trial_end_date to natively update to the new end date
-            // so it stays perfectly in sync with the subscription plan.
+            // Nullify trial_end_date for the business table since it is now managed via subscriptions
+            if (array_key_exists('trial_end_date', $request_payload)) {
+                $request_payload['trial_end_date'] = null;
+            }
 
             // Update the business record
             $business->update($request_payload);

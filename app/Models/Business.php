@@ -113,6 +113,19 @@ class Business extends Model
         "pin"
     ];
 
+    /**
+     * Dynamically retrieve the trial end date.
+     * If the column is empty or 0000-00-00, it safely falls back to the current subscription's end date.
+     */
+    public function getTrialEndDateAttribute($value)
+    {
+        if (empty($value) || $value === '0000-00-00') {
+            return $this->current_subscription?->end_date;
+        }
+        
+        return $value;
+    }
+
 
 
     protected static function boot()

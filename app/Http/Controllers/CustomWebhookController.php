@@ -309,7 +309,7 @@ class CustomWebhookController extends WebhookController
             'service_plan_id' => $service_plan->id,
             'service_plan_discount_code' => null,
             'service_plan_discount_amount' => 0,
-            'trial_end_date' => $finalEndDate,
+            'trial_end_date' => null,
             'start_date' => $newStartDate
         ]);
 
