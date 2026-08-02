@@ -299,7 +299,7 @@ class BusinessController extends Controller
         ], 200);
     }
 
- 
+
 
 
     // ##################################################
@@ -666,12 +666,48 @@ class BusinessController extends Controller
                         'start_date' => now(),
                         'end_date' => $endDate,
                         'status' => 'active',
-                        'amount' => 0, 
+                        'amount' => 0,
                         'paid_at' => null,
-                        'stripe_status' => 'manual', 
+                        'stripe_status' => 'manual',
                         'openai_token_limit' => $newPlan->openai_token_limit,
                     ]);
                 }
+            } else {
+                // Plan is the SAME (or not provided in payload). If trial_end_date is provided, we just extend the current subscription.
+                if (!empty($request_payload['trial_end_date'])) {
+                    $latestSub = \App\Models\BusinessSubscription::where('business_id', $business->id)
+                        ->where('service_plan_id', $currentPlanId)
+                        ->whereIn('status', ['active', 'expired', 'canceled'])
+                        ->orderByDesc('end_date')
+                        ->first();
+
+                    if ($latestSub) {
+                        $latestSub->update([
+                            'end_date' => \Carbon\Carbon::parse($request_payload['trial_end_date']),
+                            'status' => 'active'
+                        ]);
+                    } else {
+                        // If they literally have no subscription history for this plan, create a manual one
+                        $currentPlan = \App\Models\ServicePlan::find($currentPlanId);
+                        if ($currentPlan) {
+                            \App\Models\BusinessSubscription::create([
+                                'business_id' => $business->id,
+                                'service_plan_id' => $currentPlan->id,
+                                'start_date' => now(),
+                                'end_date' => \Carbon\Carbon::parse($request_payload['trial_end_date']),
+                                'status' => 'active',
+                                'amount' => 0,
+                                'paid_at' => null,
+                                'stripe_status' => 'manual',
+                                'openai_token_limit' => $currentPlan->openai_token_limit,
+                            ]);
+                        }
+                    }
+                }
+            }
+            // Nullify trial_end_date for the business table since it is now managed via subscriptions
+            if (array_key_exists('trial_end_date', $request_payload)) {
+                $request_payload['trial_end_date'] = null;
             }
 
             // Update the business record
