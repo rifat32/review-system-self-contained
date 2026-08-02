@@ -51,7 +51,7 @@ class TokenUsageUtil
         $currentSubscription = $currentSubscription ?? $business->current_subscription;
         $trialEndDate = $trialEndDate ?? $business->trial_end_date;
         
-        if ($isOnTrial === null && $trialEndDate) {
+        if ($isOnTrial === null && !empty($trialEndDate) && $trialEndDate !== '0000-00-00') {
             $parsed = Carbon::parse($trialEndDate);
             $isOnTrial = !$parsed->isPast() || $parsed->isToday();
         }

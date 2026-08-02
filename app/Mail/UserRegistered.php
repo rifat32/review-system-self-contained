@@ -38,7 +38,8 @@ class UserRegistered extends Mailable
                 'registrationDate' => $this->user->created_at->format('Y-m-d'),
                 'businessName' => $business->Name ?? 'N/A',
                 'subscriptionName' => $this->subscription->service_plan->name ?? 'N/A',
-                'subscription' => $this->subscription
+                'subscription' => $this->subscription,
+                'loginUrl' => env('FRONT_END_DASHBOARD_URL', env('FRONT_END_URL', 'http://localhost')) . '/user/login'
             ]);
     }
 }

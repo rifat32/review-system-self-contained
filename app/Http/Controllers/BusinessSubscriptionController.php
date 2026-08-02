@@ -36,10 +36,10 @@ class BusinessSubscriptionController extends Controller
         $isOnTrial     = false;
         $trialDaysLeft = 0;
 
-        if ($trialEndDate) {
+        if (!empty($trialEndDate) && $trialEndDate !== '0000-00-00') {
             $parsed    = \Carbon\Carbon::parse($trialEndDate);
             $isOnTrial = !$parsed->isPast() || $parsed->isToday();
-            $trialDaysLeft = max(0, (int) now()->diffInDays($parsed, false));
+            $trialDaysLeft = max(0, (int) now()->startOfDay()->diffInDays($parsed->startOfDay(), false));
         }
 
         $latestSubscription = $business->subscriptions()

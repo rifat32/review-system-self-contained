@@ -1,148 +1,65 @@
-<!DOCTYPE html>
-<html>
+<x-mail-layout 
+    title="Verify Your Email Address" 
+    :app-name="config('app.name', 'FeedGenius')" 
+    security-notice="If you did not make this request, you can safely ignore this email."
+>
+    <!-- Title -->
+    <h2 style="margin: 0 0 16px 0; font-size: 26px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px;">
+        Verify Your Email Address
+    </h2>
 
-<head>
-    <title>Verify Email Address - {{ config('app.name') }}</title>
-    <style>
-        body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
-            margin: 0;
-            padding: 0;
-            color: #334155;
-        }
+    <p style="margin: 0 0 16px 0; font-size: 18px; font-weight: 500; color: #f1f5f9;">
+        Hello,
+    </p>
 
-        .container {
-            max-width: 600px;
-            margin: 40px auto;
-            background: #ffffff;
-            padding: 0;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
+    <p style="margin: 0 0 12px 0; font-size: 15px; color: #94a3b8; line-height: 1.625;">
+        We received a request to resend the verification email for your account associated with:
+    </p>
 
-        .header {
-            background-color: #0A4B67;
-            /* Secondary Color */
-            color: #ffffff;
-            text-align: center;
-            padding: 40px 20px;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .content {
-            padding: 40px;
-            line-height: 1.7;
-        }
-
-        .welcome-text {
-            font-size: 18px;
-            margin-bottom: 24px;
-            color: #1e293b;
-        }
-
-        .email-display {
-            background-color: #f1f5f9;
-            padding: 12px 20px;
-            border-radius: 8px;
-            display: inline-block;
-            margin-bottom: 24px;
-            font-weight: 600;
-            color: #0A4B67;
-            border-left: 4px solid #32CD32;
-        }
-
-        .btn-container {
-            text-align: center;
-            margin: 32px 0;
-        }
-
-        .btn {
-            display: inline-block;
-            background-color: #32CD32;
-            /* Primary Color */
-            color: #ffffff !important;
-            padding: 14px 32px;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 16px;
-            transition: opacity 0.2s;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-        }
-
-        .help-section {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid #e2e8f0;
-            font-size: 14px;
-            color: #64748b;
-        }
-
-        .help-section a {
-            color: #0A4B67;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .footer {
-            padding: 24px;
-            font-size: 12px;
-            text-align: center;
-            color: #94a3b8;
-            background-color: #f8fafc;
-        }
-
-        .footer a {
-            color: #94a3b8;
-            text-decoration: underline;
-        }
-    </style>
-</head>
-
-<body>
-
-    <div class="container">
-        <div class="header">
-            <h1>Verify Your Email Address</h1>
-        </div>
-
-        <div class="content">
-            <p class="welcome-text">Hello,</p>
-            <p>We received a request to resend the verification email for your account associated with:</p>
-            <div class="email-display">{{ $user_email }}</div>
-
-            <p>Please click the button below to verify your email address and complete your setup:</p>
-
-            <div class="btn-container">
-                <a href="{{ $verification_url }}" class="btn">Verify Email Address</a>
-            </div>
-
-            <p>If you did not make this request, you can safely ignore this email.</p>
-
-            <div class="help-section">
-                <p><strong>Still stuck?</strong> We're here to help! <a
-                        href="{{ env('FRONT_END_URL') }}/contact">Contact Support</a>.</p>
-            </div>
-        </div>
-
-        <div class="footer">
-            &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.<br>
-            If you're having trouble clicking the "Verify Email Address" button, copy and paste the URL below into your
-            web browser:<br>
-            <a href="{{ $verification_url }}">{{ $verification_url }}</a>
-        </div>
+    <!-- Email Box -->
+    <div style="background-color: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 14px; margin-bottom: 24px; font-size: 15px; font-weight: 600; color: #34d399; text-align: center;">
+        {{ $user_email }}
     </div>
 
-</body>
+    <p style="margin: 0 0 32px 0; font-size: 15px; color: #94a3b8; line-height: 1.625;">
+        Please click the button below to verify your email address and complete your setup:
+    </p>
 
-</html>
+    <!-- Primary CTA Button (Emerald Green Gradient) -->
+    <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 32px auto;">
+        <tr>
+            <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); background-color: #10b981; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);">
+                <a href="{{ $verification_url }}" target="_blank" style="display: inline-block; padding: 14px 36px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 10px; letter-spacing: 0.2px;">
+                    Verify Email Address
+                </a>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Help Section -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top: 1px solid #334155; padding-top: 24px;">
+        <tr>
+            <td align="left">
+                <p style="margin: 0; font-size: 14px; color: #94a3b8; line-height: 1.5;">
+                    <strong style="color: #f1f5f9;">Still stuck?</strong> We're here to help! 
+                    <a href="{{ env('FRONT_END_URL', 'http://localhost:3000') }}/contact" style="color: #34d399; text-decoration: underline;">Contact Support</a>.
+                </p>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Fallback Link Section -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="padding-top: 16px;">
+        <tr>
+            <td align="left">
+                <p style="margin: 0 0 10px 0; font-size: 13px; color: #94a3b8; line-height: 1.5;">
+                    If you're having trouble clicking the "Verify Email Address" button, copy and paste the URL below into your web browser:
+                </p>
+                <div style="background-color: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 14px; word-break: break-all; font-size: 13px; line-height: 1.5;">
+                    <a href="{{ $verification_url }}" target="_blank" style="color: #34d399; text-decoration: underline; font-weight: 500;">{{ $verification_url }}</a>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+</x-mail-layout>
