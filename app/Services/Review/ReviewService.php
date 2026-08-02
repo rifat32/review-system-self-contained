@@ -447,7 +447,7 @@ class ReviewService
             if ($review->user) {
                 $customerName = trim(($review->user->first_Name ?? '') . ' ' . ($review->user->last_Name ?? '')) ?: ($review->user->name ?? 'A user');
             } elseif ($review->guest_user) {
-                $customerName = $review->guest_user->name ?? 'Guest user';
+                $customerName = $review->guest_user->full_name ?? 'Guest user';
             }
             $notificationMessage = "{$customerName} submitted a review with rating {$averageRating}.";
 

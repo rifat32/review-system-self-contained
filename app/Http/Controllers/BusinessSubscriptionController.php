@@ -44,6 +44,8 @@ class BusinessSubscriptionController extends Controller
 
         $latestSubscription = $business->subscriptions()
             ->where('status', 'active')
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
             ->orderByDesc('end_date')
             ->first();
 

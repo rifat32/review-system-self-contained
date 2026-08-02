@@ -281,8 +281,8 @@ class CustomWebhookController extends WebhookController
         // 2. DETERMINE THE NEW START DATE
         // If they have an active plan that hasn't expired yet, start the new one when it ends.
         // Otherwise, start it right now.
-        if ($latestSubscription && $latestSubscription->end_date > now()) {
-            $newStartDate = clone $latestSubscription->end_date;
+        if ($latestSubscription && \Carbon\Carbon::parse($latestSubscription->end_date) > now()) {
+            $newStartDate = clone \Carbon\Carbon::parse($latestSubscription->end_date);
         } else {
             $newStartDate = now();
         }
@@ -418,8 +418,8 @@ class CustomWebhookController extends WebhookController
     public function createIntent(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
-            'plan_id'     => 'required|string|exists:service_plans,id',
-            'business_id' => 'required|string|exists:businesses,id',
+            'plan_id'     => 'required|string',
+            'business_id' => 'required|string',
             'reseller_id' => 'nullable|string',
             'amount'      => 'required|integer',
             'currency'    => 'nullable|string',
@@ -430,6 +430,22 @@ class CustomWebhookController extends WebhookController
         $decryptedBusinessId = $this->decryptId($request->input('business_id'));
         $decryptedResellerId = $request->has('reseller_id') ? $this->decryptId($request->input('reseller_id')) : null;
 
+        if (!$decryptedPlanId || !\App\Models\ServicePlan::where('id', $decryptedPlanId)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The selected plan is invalid or does not exist.',
+                'data' => []
+            ], \Symfony\Component\HttpFoundation\Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (!$decryptedBusinessId || !\App\Models\Business::where('id', $decryptedBusinessId)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The selected business is invalid or does not exist.',
+                'data' => []
+            ], \Symfony\Component\HttpFoundation\Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $plan = \App\Models\ServicePlan::find($decryptedPlanId);
 
         if ($plan) {
@@ -438,7 +454,7 @@ class CustomWebhookController extends WebhookController
             $amountInCents = $request->input('amount');
         }
 
-        $currency = 'GBP';
+        $currency = strtolower($request->input('currency', 'gbp'));
         $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
 
         try {
