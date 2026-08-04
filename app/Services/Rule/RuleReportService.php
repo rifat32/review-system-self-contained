@@ -322,7 +322,7 @@ class RuleReportService
             ->when($endDate, function ($q) use ($endDate) {
                 $q->where('created_at', '<=', $endDate);
             })
-            ->globalReviewFilters(0);
+            ->globalReviewFilters();
 
         $totalReviews = (clone $baseQuery)->count();
         $avgRating = (clone $baseQuery)->withCalculatedRating()->get()->avg('calculated_rating') ?? 0;
@@ -330,6 +330,12 @@ class RuleReportService
         // CSAT Score calculation (logic from DashboardController)
         $csatReviewsCount = (clone $baseQuery)->whereMeetsThreshold()->count();
         $csatPercentage = $totalReviews > 0 ? round(($csatReviewsCount / $totalReviews) * 100) : 0;
+
+        // Satisfied Reviews calculation
+        $criticalAlertsCount = (clone $baseQuery)->whereHas('rule_outcomes', function ($q) {
+            $q->where('is_critical_alert', true);
+        })->count();
+        $satisfiedReviewsCount = max(0, $totalReviews - $criticalAlertsCount);
 
         $boxes = [
             [
@@ -340,6 +346,16 @@ class RuleReportService
                 'trend' => null,
                 'icon' => '📝',
                 'color' => 'blue',
+                'is_default_rule' => false
+            ],
+            [
+                'key' => 'SATISFIED_REVIEWS',
+                'label' => 'Satisfied Reviews',
+                'value' => number_format($satisfiedReviewsCount),
+                'sub_value' => "No Critical Alerts • {$satisfiedReviewsCount}/{$totalReviews} reviews",
+                'trend' => null,
+                'icon' => '✅',
+                'color' => 'emerald',
                 'is_default_rule' => false
             ],
             [
@@ -388,6 +404,36 @@ class RuleReportService
         }
 
         $boxes[] = $this->getRatingUpsideBox($businessId, $startDate, $endDate, $baseQuery);
+
+        // 5. Layout Sorting
+        $layoutOrder = [
+            'TOTAL_REVIEWS',
+            'SATISFIED_REVIEWS',
+            'FLAG_AND_ALERT',
+            'AVG_RATING',
+            'CSAT_SCORE',
+            'SENTIMENT_ANALYSIS',
+            'CATEGORY_ISSUE_DETECTION',
+            'STAFF_PERFORMANCE_RISK',
+            'STAFF_MENTION_DETECTION',
+            'EMOTION_INTENSITY',
+            'RATING_COMMENT_MISMATCH',
+            'SERVICE_TYPE_DETECTION',
+            'BUSINESS_AREA_DETECTION',
+            'TOP_PERFORMER',
+            'RATING_UPSIDE'
+        ];
+
+        usort($boxes, function ($a, $b) use ($layoutOrder) {
+            $posA = array_search($a['key'], $layoutOrder);
+            $posB = array_search($b['key'], $layoutOrder);
+
+            // If a key is not in layoutOrder, push it to the bottom
+            if ($posA === false) $posA = 999;
+            if ($posB === false) $posB = 999;
+
+            return $posA <=> $posB;
+        });
 
         return $boxes;
     }
