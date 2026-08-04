@@ -345,7 +345,7 @@ class RuleReportService
             [
                 'key' => 'AVG_RATING',
                 'label' => 'Average Rating',
-                'value' => number_format($avgRating, 1),
+                'value' => $avgRating == 0 ? '0' : number_format($avgRating, 1),
                 'sub_value' => "out of 5.0 • {$totalReviews} reviews",
                 'trend' => null,
                 'icon' => '⭐',
