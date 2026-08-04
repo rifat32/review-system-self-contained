@@ -1349,7 +1349,7 @@ class ReviewNewController extends Controller
     public function getAverageRatingClient($businessId, Request $request)
     {
         $query = ReviewNew::where('business_id', $businessId)
-            ->globalReviewFilters()
+            ->globalReviewFilters(is_overall: 1)
             ->whereMeetsThreshold(0)
             ->orderBy('order_no', 'asc')
             ->withCalculatedRating();
@@ -2233,7 +2233,7 @@ class ReviewNewController extends Controller
             "guest_user",
             "survey",
         ])->where("business_id", $businessId)
-            ->globalReviewFilters(0)
+            ->globalReviewFilters()
             ->filterByDateRange()
             ->withCalculatedRating();
 

@@ -409,6 +409,9 @@ class ReviewNew extends Model
             ->filterByCsatScore()
             ->filterByInsightId()
             ->filterByIsPrivate()
+            ->filterByBusinessArea()
+            ->filterByCategory()
+            ->filterBySubCategory()
             ->when($is_staff_review, function ($q) {
                 $q->whereMeetsThreshold(1);
             })
@@ -425,6 +428,47 @@ class ReviewNew extends Model
                     $q->where('review_news.is_overall', $is_overall);
                 }
             });
+    }
+
+    public function scopeFilterByBusinessArea($query)
+    {
+        $query->when(request()->has('business_area_ids'), function ($q) {
+            $areaIds = is_array(request('business_area_ids')) ? request('business_area_ids') : explode(',', request('business_area_ids'));
+            $q->whereHas('business_services', function($subQuery) use ($areaIds) {
+                $subQuery->whereIn('review_business_services.business_area_id', $areaIds);
+            });
+        });
+    }
+
+    public function scopeFilterByCategory($query)
+    {
+        $query->when(request()->has('category_ids'), function ($q) {
+            $categoryIds = is_array(request('category_ids')) ? request('category_ids') : explode(',', request('category_ids'));
+            $q->whereExists(function ($subQuery) use ($categoryIds) {
+                $subQuery->select(\DB::raw(1))
+                    ->from('review_value_news as rvn')
+                    ->join('q_q_sub_categories as qqsc', 'qqsc.question_id', '=', 'rvn.question_id')
+                    ->join('question_categories as qc_sub', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
+                    ->join('question_categories as qc_parent', 'qc_sub.parent_question_category_id', '=', 'qc_parent.id')
+                    ->whereColumn('rvn.review_id', 'review_news.id')
+                    ->whereIn('qc_parent.id', $categoryIds);
+            });
+        });
+    }
+
+    public function scopeFilterBySubCategory($query)
+    {
+        $query->when(request()->has('sub_category_ids'), function ($q) {
+            $subCategoryIds = is_array(request('sub_category_ids')) ? request('sub_category_ids') : explode(',', request('sub_category_ids'));
+            $q->whereExists(function ($subQuery) use ($subCategoryIds) {
+                $subQuery->select(\DB::raw(1))
+                    ->from('review_value_news as rvn')
+                    ->join('q_q_sub_categories as qqsc', 'qqsc.question_id', '=', 'rvn.question_id')
+                    ->join('question_categories as qc_sub', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
+                    ->whereColumn('rvn.review_id', 'review_news.id')
+                    ->whereIn('qc_sub.id', $subCategoryIds);
+            });
+        });
     }
 
     public function scopeFilterByIsPrivate($query)
