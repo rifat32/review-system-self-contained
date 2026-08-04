@@ -1554,7 +1554,7 @@ class ReviewNewController extends Controller
             "survey"
         ])
 
-            ->globalReviewFilters()
+            ->globalReviewFilters(is_overall: 1)
             ->whereMeetsThreshold(0)
             ->filterByDateRange()
 
