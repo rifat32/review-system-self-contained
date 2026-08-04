@@ -245,8 +245,11 @@ class ReviewService
             : null;
 
         // Build WHERE conditions for filters
-        $whereConditions = ['(t.business_id = ? OR t.business_id IS NULL)'];
-        $bindings = [$businessId];
+        $whereConditions = [
+            '(t.business_id = ? OR t.business_id IS NULL)',
+            'r.business_id = ?'
+        ];
+        $bindings = [$businessId, $businessId];
 
         if ($dateRange) {
             $whereConditions[] = 'r.created_at BETWEEN ? AND ?';
