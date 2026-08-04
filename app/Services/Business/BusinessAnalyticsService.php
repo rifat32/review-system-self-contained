@@ -51,7 +51,7 @@ class BusinessAnalyticsService
         $reviewQuery = ReviewNew::where('business_id', $businessId)
             ->when($dateRange, fn($q) => $q->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]))
             ->globalReviewFilters(0)
-            ->with(['business_services', 'value']) // Eager load services and values
+            ->with(['business_services', 'value.tags']) // Eager load services, values, and tags
             ->withCalculatedRating();
 
 
@@ -139,17 +139,15 @@ class BusinessAnalyticsService
             return $service['total_reviews'] >= 3;
         });
 
-        // Get top 3 and worst 3
-        if (count($qualifiedServices) >= 6) {
-            $allServices = array_values($qualifiedServices);
-            $topServices = array_slice($allServices, 0, 3);
-            $worstServices = array_slice(array_reverse($allServices), 0, 3);
-        } else {
-            // If not enough qualified services, use all available
-            $allServices = array_values($serviceMetrics);
-            $topServices = array_slice($allServices, 0, min(3, count($allServices)));
-            $worstServices = array_slice(array_reverse($allServices), 0, min(3, count($allServices)));
-        }
+        // Safely split into top and worst without overlap
+        $allServices = count($qualifiedServices) >= 6 ? array_values($qualifiedServices) : array_values($serviceMetrics);
+        $total = count($allServices);
+
+        $topCount = min(3, (int)ceil($total / 2));
+        $worstCount = min(3, max(0, $total - $topCount));
+
+        $topServices = array_slice($allServices, 0, $topCount);
+        $worstServices = $worstCount > 0 ? array_slice(array_reverse($allServices), 0, $worstCount) : [];
 
         return [
             'top_services' => $topServices,
