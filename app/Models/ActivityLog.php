@@ -14,16 +14,17 @@ class ActivityLog extends Model
     protected $fillable = [
         "api_url",
         "token",
-        "fields",
         "user",
         "user_id",
         "activity",
-        "description",
+        "payload",
+        "queries",
         "ip_address",
         "request_method",
         "device",
         "is_error",
         "message",
+        "error_trace",
         "status_code"
 
     ];

@@ -27,45 +27,48 @@ class ResponseMiddleware
             $convertedContent = $this->convertDatesInJson($content);
             $response->setContent($convertedContent);
 
-            if ((($response->getStatusCode() >= 500 && $response->getStatusCode() < 600))) {
-                $errorLog = [
-                    "api_url" => $request->fullUrl(),
-                    "fields" => json_encode(request()->all()),
-                    "token" => request()->bearerToken() ? request()->bearerToken() : "",
-                    "user" => auth()->user() ? json_encode(auth()->user()) : "",
-                    "user_id" => auth()->user() ? auth()->user()->id : "",
-                    "status_code" => $response->getStatusCode(),
-                    // "ip_address" => request()->header('X-Forwarded-For'),
-                    "ip_address" => request()->ip(),
+            if ($response->getStatusCode() >= 300) {
+                $responseData = json_decode($response->getContent(), true);
+                $isJsonArray = is_array($responseData);
+                
+                // Check if this error was already logged by Handler.php
+                $alreadyLogged = $isJsonArray && isset($responseData['message']) && strpos($responseData['message'], 'Error ID:') !== false;
 
-                    "request_method" => $request->method(),
-                    "message" =>  $response->getContent(),
-                ];
+                if (!$alreadyLogged) {
+                    try {
+                        $payload = request()->except(['password', 'password_confirmation']);
+                        $queries = request()->query();
 
-                // $error =   ErrorLog::create($errorLog);
-                // // $errorMessage = "Error ID: ".$error->id." - Status: ".$error->status_code." - Operation Failed, something is wrong! - Please call to the customer care.";
-                // $errorMessage =  "Error ID: " . $error->id . " - Status: " . $error->status_code . " -  " . "We encountered an issue while processing your request and apologize for any inconvenience this may have caused. Please contact customer support and provide the Error ID: " . $error->id . " for assistance.";
-                // $response->setContent(json_encode(['message' => $errorMessage]));
-            } else if (($response->getStatusCode() >= 300 && $response->getStatusCode() < 500)) {
-                $errorLog = [
-                    "api_url" => $request->fullUrl(),
-                    "fields" => json_encode(request()->all()),
-                    "token" => request()->bearerToken() ? request()->bearerToken() : "",
-                    "user" => auth()->user() ? json_encode(auth()->user()) : "",
-                    "user_id" => auth()->user() ? auth()->user()->id : "",
-                    "status_code" => $response->getStatusCode(),
-                    "ip_address" => request()->ip(),
-                    "request_method" => $request->method(),
-                    "message" =>  $response->getContent(),
-                ];
+                        $log = \App\Models\ActivityLog::create([
+                            "api_url" => '/' . $request->path(),
+                            "token" => $request->bearerToken(),
+                            "user" => auth()->user() ? auth()->user()->email : null,
+                            "user_id" => auth()->user() ? auth()->user()->id : null,
+                            "activity" => "Manual Error Response",
+                            "payload" => !empty($payload) ? json_encode($payload) : null,
+                            "queries" => !empty($queries) ? json_encode($queries) : null,
+                            "ip_address" => $request->ip(),
+                            "request_method" => $request->method(),
+                            "device" => $request->header('User-Agent'),
+                            "is_error" => true,
+                            "message" => $isJsonArray && isset($responseData['message']) ? $responseData['message'] : $response->getContent(),
+                            "error_trace" => null, // No trace because no Exception was thrown
+                            "status_code" => $response->getStatusCode(),
+                        ]);
 
-                // $error =   ErrorLog::create($errorLog);
-
-                // $responseData = json_decode($response->getContent(), true);
-                // if (isset($responseData['message'])) {
-                //     $responseData['message'] = "Error ID: " . $error->id . " - Status: " . $error->status_code . " -  " . $responseData['message'];
-                // }
-                // $response->setContent(json_encode($responseData));
+                        if ($response->getStatusCode() >= 500) {
+                            $errorMessage = "We encountered an issue while processing your request. Please contact customer support and provide the Error ID: " . $log->id . " for assistance.";
+                            $response->setContent(json_encode(['success' => false, 'message' => $errorMessage]));
+                        } else {
+                            if ($isJsonArray && isset($responseData['message'])) {
+                                $responseData['message'] = "Error ID: " . $log->id . " - Status: " . $log->status_code . " - " . $responseData['message'];
+                                $response->setContent(json_encode($responseData));
+                            }
+                        }
+                    } catch (\Throwable $loggingException) {
+                        // Silently catch to prevent loop
+                    }
+                }
             }
         }
 

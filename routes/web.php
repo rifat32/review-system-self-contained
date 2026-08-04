@@ -315,3 +315,17 @@ Route::get('/storage-proxy/{path}', function ($path) {
         'Access-Control-Allow-Origin' => '*',
     ]);
 })->where('path', '.*');
+
+// TEMPORARY ROUTE TO RUN ACTIVITY LOGS MIGRATION
+Route::get('/migrate-activity-logs', function () {
+    \Illuminate\Support\Facades\Artisan::call('migrate', [
+        '--database' => 'logs',
+        '--path' => 'database/activity_migrations',
+        '--force' => true
+    ]);
+    return response()->json([
+        'success' => true,
+        'message' => 'Activity logs migration completed successfully on logs database.',
+        'output' => \Illuminate\Support\Facades\Artisan::output()
+    ]);
+});

@@ -44,7 +44,7 @@ class Handler extends ExceptionHandler
     public function register()
     {
         $this->reportable(function (Throwable $e) {
-            //
+            // Logging is handled in handleApiException to attach the Error ID to the response
         });
     }
 
@@ -79,6 +79,38 @@ class Handler extends ExceptionHandler
         $statusCode = $this->getStatusCode($e);
         $message = $this->getMessage($e, $request);
         $errors = $this->getErrors($e, $request);
+
+        // LOG TO ACTIVITY LOG AND GET ERROR ID
+        $errorId = null;
+        try {
+            $payload = $request->except(['password', 'password_confirmation']);
+            $queries = $request->query();
+
+            $log = \App\Models\ActivityLog::create([
+                'api_url' => '/' . $request->path(),
+                'token' => $request->bearerToken(),
+                'user' => $request->user() ? $request->user()->email : null,
+                'user_id' => $request->user() ? $request->user()->id : null,
+                'activity' => 'Exception Caught',
+                'payload' => !empty($payload) ? json_encode($payload) : null,
+                'queries' => !empty($queries) ? json_encode($queries) : null,
+                'ip_address' => $request->ip(),
+                'request_method' => $request->method(),
+                'device' => $request->header('User-Agent'),
+                'is_error' => true,
+                'message' => $e->getMessage() ?: get_class($e),
+                'error_trace' => $e->getTraceAsString(),
+                'status_code' => $statusCode,
+            ]);
+            $errorId = $log->id;
+        } catch (\Throwable $loggingException) {
+            // Silently catch to prevent loop
+        }
+
+        // APPEND ERROR ID TO MESSAGE FOR FRONTEND
+        if ($errorId) {
+            $message = "Error ID: " . $errorId . " - Status: " . $statusCode . " - " . $message;
+        }
 
         $response = [
             'success' => false,
