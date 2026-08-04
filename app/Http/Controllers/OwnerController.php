@@ -74,6 +74,11 @@ class OwnerController extends Controller
         $validatedData['remember_token'] = Str::random(10);
         $user = User::create($validatedData);
 
+        // ASSIGN ROLE BASED ON TYPE
+        // Assign default customer role
+        $user->assignRole(\App\Models\User::USER_ROLE['CUSTOMER']);
+
+
         // GENERATE ACCESS TOKEN
         $user->token = $user->createToken('Laravel Password Grant Client')->accessToken;
 
@@ -171,6 +176,9 @@ class OwnerController extends Controller
         $validatedData['remember_token'] = Str::random(10);
 
         $user = User::create($validatedData);
+
+        // Assign default customer role
+        $user->assignRole(\App\Models\User::USER_ROLE['CUSTOMER']);
 
         // email verification token
         $email_token = Str::random(30);
