@@ -410,6 +410,7 @@ class ReviewNew extends Model
             ->filterByInsightId()
             ->filterByIsPrivate()
             ->filterByBusinessArea()
+            ->filterByBusinessService()
             ->filterByCategory()
             ->filterBySubCategory()
             ->when($is_staff_review, function ($q) {
@@ -428,6 +429,16 @@ class ReviewNew extends Model
                     $q->where('review_news.is_overall', $is_overall);
                 }
             });
+    }
+
+    public function scopeFilterByBusinessService($query)
+    {
+        $query->when(request()->has('business_service_ids'), function ($q) {
+            $serviceIds = is_array(request('business_service_ids')) ? request('business_service_ids') : explode(',', request('business_service_ids'));
+            $q->whereHas('business_services', function($subQuery) use ($serviceIds) {
+                $subQuery->whereIn('review_business_services.business_service_id', $serviceIds);
+            });
+        });
     }
 
     public function scopeFilterByBusinessArea($query)
