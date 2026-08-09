@@ -617,7 +617,7 @@ class ReviewNew extends Model
 
             if (!empty($tagIds)) {
                 $q->whereHas('value.tags', function ($tagQuery) use ($tagIds) {
-                    $tagQuery->whereIn('tag_news.id', $tagIds);
+                    $tagQuery->whereIn('tags.id', $tagIds);
                 });
             }
         });

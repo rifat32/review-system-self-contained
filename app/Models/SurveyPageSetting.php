@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class SurveyPageSetting extends Model
 {
@@ -57,5 +58,12 @@ class SurveyPageSetting extends Model
     public function business()
     {
         return $this->belongsTo(Business::class);
+    }
+
+    protected function remarksButtonText(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ?: 'Tell us more (Speak or type your feedback)',
+        );
     }
 }

@@ -99,6 +99,7 @@ class Business extends Model
         'is_setup_complete',
         'step_no',
         'rolling_ai_insight',
+        'is_show_public_page_to_customer',
     ];
 
     protected $casts = [
@@ -107,6 +108,7 @@ class Business extends Model
         'is_treat_manager_as_staff' => 'boolean',
         'last_recommendation_at' => 'datetime',
         'rolling_ai_insight' => 'array',
+        'is_show_public_page_to_customer' => 'boolean',
     ];
 
     protected $hidden = [
