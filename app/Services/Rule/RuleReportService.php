@@ -303,6 +303,7 @@ class RuleReportService
         $now = Carbon::now();
         $startDate = match ($period) {
             'last_7_days' => $now->copy()->subDays(7)->startOfDay(),
+            'last_90_days' => $now->copy()->subDays(90)->startOfDay(),
             'this_month' => $now->copy()->startOfMonth(),
             'last_month' => $now->copy()->subMonth()->startOfMonth(),
             'all_time' => null,
