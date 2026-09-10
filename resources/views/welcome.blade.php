@@ -317,7 +317,7 @@
                 <p class="card-description">
                     Interactive Swagger UI for exploring and testing API endpoints
                 </p>
-                <a href="{{ env('APP_URL') }}/api/documentation#/" class="btn btn-secondary" target="_blank">
+                <a href="{{ url('/api/documentation') }}" class="btn btn-secondary" target="_blank">
                     <span class="btn-icon">📖</span>
                     <span>View Docs</span>
                 </a>
