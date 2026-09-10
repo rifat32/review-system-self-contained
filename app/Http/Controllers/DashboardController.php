@@ -637,8 +637,61 @@ class DashboardController extends Controller
 
 
     /**
-     * Get unified dashboard data
-     * GET /v1.0/dashboard/unified
+     * @OA\Get(
+     *      path="/v1.0/dashboard/unified",
+     *      operationId="getUnifiedDashboardData",
+     *      tags={"dashboard_management"},
+     *      summary="Get unified dashboard data",
+     *      description="Retrieve all unified aggregated dashboard metrics, rules boxes, AI insights, top/worst services, ratings breakdown, tags breakdown, review trends, recent reviews, staff performance, and topics breakdown.",
+     *      security={
+     *          {"bearerAuth": {}}
+     *      },
+     *      @OA\Parameter(
+     *          name="period",
+     *          in="query",
+     *          required=false,
+     *          description="Filter period: last_30_days, last_7_days, this_month, last_month, all_time",
+     *          example="all_time",
+     *          @OA\Schema(type="string", enum={"last_30_days", "last_7_days", "this_month", "last_month", "all_time"})
+     *      ),
+     *      @OA\Parameter(
+     *          name="start_date",
+     *          in="query",
+     *          required=false,
+     *          description="Start date in Y-m-d format (used when custom date range is needed)",
+     *          example="2024-01-01",
+     *          @OA\Schema(type="string", format="date")
+     *      ),
+     *      @OA\Parameter(
+     *          name="end_date",
+     *          in="query",
+     *          required=false,
+     *          description="End date in Y-m-d format (used when custom date range is needed)",
+     *          example="2024-03-31",
+     *          @OA\Schema(type="string", format="date")
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="success", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Unified dashboard data retrieved successfully"),
+     *              @OA\Property(property="data", type="object")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated"
+     *      ),
+     *      @OA\Response(
+     *          response=403,
+     *          description="Forbidden - User does not have an associated business"
+     *      ),
+     *      @OA\Response(
+     *          response=422,
+     *          description="Validation error"
+     *      )
+     * )
      */
     public function getUnifiedDashboardData(Request $request)
     {
