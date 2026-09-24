@@ -40,6 +40,7 @@ use App\Http\Controllers\LogoColorController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SurveyPageSettingController;
 use App\Http\Controllers\ExecutiveReportController;
+use App\Http\Controllers\FeedbackOverviewReportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -495,6 +496,9 @@ Route::middleware(['auth:api'])->group(function () {
 
         // 10. Executive Customer Experience Overview Report
         Route::get('/executive-overview', [ExecutiveReportController::class, 'getExecutiveOverview']);
+
+        // 11. Feedback Overview Report
+        Route::get('/feedback-overview', [FeedbackOverviewReportController::class, 'getFeedbackOverview']);
     });
 
     // ============================================================================

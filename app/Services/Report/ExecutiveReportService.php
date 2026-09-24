@@ -2,11 +2,10 @@
 
 namespace App\Services\Report;
 
-use App\Models\Branch;
-use App\Models\Business;
 use App\Models\BusinessAiSummary;
 use App\Models\ReviewNew;
 use App\Models\User;
+use App\Services\Report\Traits\ReportAnalyticsTrait;
 use App\Services\Review\ReviewMetricsService;
 use App\Services\Rule\RuleEngineService;
 use App\Services\Rule\RuleReportService;
@@ -16,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class ExecutiveReportService
 {
+    use ReportAnalyticsTrait;
+
     protected RuleReportService $ruleReportService;
     protected StaffPerformanceService $staffPerformanceService;
     protected ReviewMetricsService $reviewMetricsService;
@@ -408,89 +409,6 @@ class ExecutiveReportService
                 'text' => $riskText,
             ],
         ];
-    }
-
-    /**
-     * Get operational strengths vs issues breakdown matching { name, strength, issue }
-     */
-    protected function getOperationalStrengthsVsIssues(int $businessId, Carbon $startDate, Carbon $endDate, array $filters): array
-    {
-        $highRatingThreshold = RuleEngineService::getHighRatingThreshold();
-        $lowRatingThreshold = RuleEngineService::getLowRatingThreshold();
-
-        $categoriesData = DB::table('question_categories as qc_parent')
-            ->join('question_categories as qc_sub', 'qc_sub.parent_question_category_id', '=', 'qc_parent.id')
-            ->join('q_q_sub_categories as qqsc', 'qqsc.question_sub_category_id', '=', 'qc_sub.id')
-            ->join('review_value_news as rvn', 'rvn.question_id', '=', 'qqsc.question_id')
-            ->join('review_news as r', 'r.id', '=', 'rvn.review_id')
-            ->join('stars as s', 's.id', '=', 'rvn.star_id')
-            ->where('r.business_id', $businessId)
-            ->whereBetween('r.created_at', [$startDate, $endDate])
-            ->when(!empty($filters['branch_id']), fn($q) => $q->where('r.branch_id', $filters['branch_id']))
-            ->when(!empty($filters['survey_id']), fn($q) => $q->where('r.survey_id', $filters['survey_id']))
-            ->when(!empty($filters['source']), fn($q) => $q->where('r.source', $filters['source']))
-            ->select([
-                'qc_parent.title as name',
-                DB::raw("SUM(CASE WHEN s.value >= {$highRatingThreshold} THEN 1 ELSE 0 END) as strength"),
-                DB::raw("SUM(CASE WHEN s.value <= {$lowRatingThreshold} THEN 1 ELSE 0 END) as issue"),
-            ])
-            ->groupBy('qc_parent.id', 'qc_parent.title')
-            ->orderByRaw("SUM(CASE WHEN s.value >= {$highRatingThreshold} THEN 1 ELSE 0 END) DESC")
-            ->take(5)
-            ->get();
-
-        $formatted = [];
-        foreach ($categoriesData as $cat) {
-            $formatted[] = [
-                'name' => $cat->name,
-                'strength' => (int) $cat->strength,
-                'issue' => (int) $cat->issue,
-            ];
-        }
-
-        return $formatted;
-    }
-
-    /**
-     * Get Branch Performance Leaderboard matching { name, score, volume, status }
-     */
-    protected function getBranchPerformanceLeaderboard(int $businessId, Carbon $startDate, Carbon $endDate): array
-    {
-        $branches = Branch::where('business_id', $businessId)->get();
-
-        $result = [];
-        foreach ($branches as $branch) {
-            $branchReviews = ReviewNew::where('branch_id', $branch->id)
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->withCalculatedRating()
-                ->get();
-
-            $total = $branchReviews->count();
-            $avgRating = $this->reviewMetricsService->calculateAverageRating($branchReviews);
-
-            if ($total === 0) {
-                $status = 'No Activity';
-            } elseif ($avgRating < 3.0) {
-                $status = 'Action Required';
-            } elseif ($avgRating < 4.0) {
-                $status = 'Needs Focus';
-            } elseif ($total > 30) {
-                $status = 'High Growth';
-            } else {
-                $status = 'Top Performer';
-            }
-
-            $result[] = [
-                'name' => $branch->name,
-                'score' => (string) number_format($avgRating, 1),
-                'volume' => number_format($total),
-                'status' => $status,
-            ];
-        }
-
-        usort($result, fn($a, $b) => (float)$b['score'] <=> (float)$a['score']);
-
-        return array_slice($result, 0, 5);
     }
 
     /**
