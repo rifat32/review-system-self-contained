@@ -43,27 +43,27 @@ class FeedbackOverviewReportService
             : Carbon::now()->endOfDay();
 
         // Base review query scoped by business and filters
-        $query = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$startDate, $endDate]);
+        $query = ReviewNew::where('review_news.business_id', $businessId)
+            ->whereBetween('review_news.created_at', [$startDate, $endDate]);
 
         if (!empty($filters['branch_id'])) {
-            $query->where('branch_id', $filters['branch_id']);
+            $query->where('review_news.branch_id', $filters['branch_id']);
         }
 
         if (!empty($filters['survey_id'])) {
-            $query->where('survey_id', $filters['survey_id']);
+            $query->where('review_news.survey_id', $filters['survey_id']);
         }
 
         if (!empty($filters['source'])) {
-            $query->where('source', $filters['source']);
+            $query->where('review_news.source', $filters['source']);
         }
 
         if (!empty($filters['sentiment'])) {
-            $query->where('sentiment_label', strtolower($filters['sentiment']));
+            $query->where('review_news.sentiment_label', strtolower($filters['sentiment']));
         }
 
         if (!empty($filters['staff_id'])) {
-            $query->where('staff_id', $filters['staff_id']);
+            $query->where('review_news.staff_id', $filters['staff_id']);
         }
 
         if (!empty($filters['category_id'])) {
@@ -102,23 +102,23 @@ class FeedbackOverviewReportService
         $prevStartDate = (clone $startDate)->subDays($diffInDays);
         $prevEndDate = (clone $startDate)->subSecond();
 
-        $prevQuery = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$prevStartDate, $prevEndDate]);
+        $prevQuery = ReviewNew::where('review_news.business_id', $businessId)
+            ->whereBetween('review_news.created_at', [$prevStartDate, $prevEndDate]);
 
         if (!empty($filters['branch_id'])) {
-            $prevQuery->where('branch_id', $filters['branch_id']);
+            $prevQuery->where('review_news.branch_id', $filters['branch_id']);
         }
         if (!empty($filters['survey_id'])) {
-            $prevQuery->where('survey_id', $filters['survey_id']);
+            $prevQuery->where('review_news.survey_id', $filters['survey_id']);
         }
         if (!empty($filters['source'])) {
-            $prevQuery->where('source', $filters['source']);
+            $prevQuery->where('review_news.source', $filters['source']);
         }
         if (!empty($filters['sentiment'])) {
-            $prevQuery->where('sentiment_label', strtolower($filters['sentiment']));
+            $prevQuery->where('review_news.sentiment_label', strtolower($filters['sentiment']));
         }
         if (!empty($filters['staff_id'])) {
-            $prevQuery->where('staff_id', $filters['staff_id']);
+            $prevQuery->where('review_news.staff_id', $filters['staff_id']);
         }
 
         $prevReviews = $prevQuery->get();

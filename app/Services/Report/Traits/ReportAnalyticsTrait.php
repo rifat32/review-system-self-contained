@@ -15,19 +15,19 @@ trait ReportAnalyticsTrait
      */
     protected function getStackedFeedbackVolumeByChannel(int $businessId, Carbon $startDate, Carbon $endDate, array $filters): array
     {
-        $query = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$startDate, $endDate]);
+        $query = ReviewNew::where('review_news.business_id', $businessId)
+            ->whereBetween('review_news.created_at', [$startDate, $endDate]);
 
         if (!empty($filters['branch_id'])) {
-            $query->where('branch_id', $filters['branch_id']);
+            $query->where('review_news.branch_id', $filters['branch_id']);
         }
 
         if (!empty($filters['survey_id'])) {
-            $query->where('survey_id', $filters['survey_id']);
+            $query->where('review_news.survey_id', $filters['survey_id']);
         }
 
         if (!empty($filters['source'])) {
-            $query->where('source', $filters['source']);
+            $query->where('review_news.source', $filters['source']);
         }
 
         $diffDays = $startDate->diffInDays($endDate);
@@ -165,11 +165,11 @@ trait ReportAnalyticsTrait
      */
     protected function getFeedbackVolumeByBranch(int $businessId, Carbon $startDate, Carbon $endDate, array $filters): array
     {
-        $query = ReviewNew::where('business_id', $businessId)
-            ->whereBetween('created_at', [$startDate, $endDate]);
+        $query = ReviewNew::where('review_news.business_id', $businessId)
+            ->whereBetween('review_news.created_at', [$startDate, $endDate]);
 
         if (!empty($filters['branch_id'])) {
-            $query->where('branch_id', $filters['branch_id']);
+            $query->where('review_news.branch_id', $filters['branch_id']);
         }
 
         $branchesData = (clone $query)
