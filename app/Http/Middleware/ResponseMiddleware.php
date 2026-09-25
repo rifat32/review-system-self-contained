@@ -39,6 +39,25 @@ class ResponseMiddleware
                         $payload = request()->except(['password', 'password_confirmation']);
                         $queries = request()->query();
 
+                        $logMessage = $isJsonArray && isset($responseData['message']) ? $responseData['message'] : $response->getContent();
+                        if ($isJsonArray) {
+                            if (!empty($responseData['error'])) {
+                                $logMessage .= ' | Error: ' . (is_string($responseData['error']) ? $responseData['error'] : json_encode($responseData['error']));
+                            }
+                            if (!empty($responseData['errors'])) {
+                                $logMessage .= ' | Errors: ' . (is_string($responseData['errors']) ? $responseData['errors'] : json_encode($responseData['errors']));
+                            }
+                        }
+
+                        $logTrace = null;
+                        if ($isJsonArray) {
+                            if (!empty($responseData['trace'])) {
+                                $logTrace = is_string($responseData['trace']) ? $responseData['trace'] : json_encode($responseData['trace'], JSON_PRETTY_PRINT);
+                            } elseif (!empty($responseData['error_trace'])) {
+                                $logTrace = is_string($responseData['error_trace']) ? $responseData['error_trace'] : json_encode($responseData['error_trace'], JSON_PRETTY_PRINT);
+                            }
+                        }
+
                         $log = \App\Models\ActivityLog::create([
                             "api_url" => '/' . $request->path(),
                             "token" => $request->bearerToken(),
@@ -51,14 +70,26 @@ class ResponseMiddleware
                             "request_method" => $request->method(),
                             "device" => $request->header('User-Agent'),
                             "is_error" => true,
-                            "message" => $isJsonArray && isset($responseData['message']) ? $responseData['message'] : $response->getContent(),
-                            "error_trace" => null, // No trace because no Exception was thrown
+                            "message" => $logMessage,
+                            "error_trace" => $logTrace,
                             "status_code" => $response->getStatusCode(),
                         ]);
 
                         if ($response->getStatusCode() >= 500) {
-                            $errorMessage = "We encountered an issue while processing your request. Please contact customer support and provide the Error ID: " . $log->id . " for assistance.";
-                            $response->setContent(json_encode(['success' => false, 'message' => $errorMessage]));
+                            if (config('app.env') !== 'production') {
+                                if ($isJsonArray) {
+                                    $responseData['message'] = "Error ID: " . $log->id . " - Status: " . $log->status_code . " - " . $logMessage;
+                                    $response->setContent(json_encode($responseData));
+                                } else {
+                                    $response->setContent(json_encode([
+                                        'success' => false,
+                                        'message' => "Error ID: " . $log->id . " - Status: " . $log->status_code . " - " . $logMessage,
+                                    ]));
+                                }
+                            } else {
+                                $errorMessage = "We encountered an issue while processing your request. Please contact customer support and provide the Error ID: " . $log->id . " for assistance.";
+                                $response->setContent(json_encode(['success' => false, 'message' => $errorMessage]));
+                            }
                         } else {
                             if ($isJsonArray && isset($responseData['message'])) {
                                 $responseData['message'] = "Error ID: " . $log->id . " - Status: " . $log->status_code . " - " . $responseData['message'];
